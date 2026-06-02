@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Subscription extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'customer_id',
+        'package_id',
+        'status',
+        'booking_count',
+        'starts_at',
+        'expires_at',
+    ];
+
+    protected $casts = [
+        'starts_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'booking_count' => 'integer',
+    ];
+
+    public function customer()
+    {
+        return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function package()
+    {
+        return $this->belongsTo(ServicePackage::class, 'package_id');
+    }
+}
