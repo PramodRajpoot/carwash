@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jun 02, 2026 at 01:40 PM
+-- Generation Time: Jun 03, 2026 at 11:46 AM
 -- Server version: 8.0.45-0ubuntu0.24.04.1
 -- PHP Version: 8.3.6
 
@@ -20,6 +20,25 @@ SET time_zone = "+00:00";
 --
 -- Database: `carwash`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `blog_posts`
+--
+
+CREATE TABLE `blog_posts` (
+  `id` bigint UNSIGNED NOT NULL,
+  `author_id` bigint UNSIGNED NOT NULL,
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `featured_image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft',
+  `published_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -122,6 +141,24 @@ CREATE TABLE `failed_jobs` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `feedback_reviews`
+--
+
+CREATE TABLE `feedback_reviews` (
+  `id` bigint UNSIGNED NOT NULL,
+  `booking_id` bigint UNSIGNED NOT NULL,
+  `customer_id` bigint UNSIGNED NOT NULL,
+  `rating` tinyint UNSIGNED NOT NULL,
+  `comment` text COLLATE utf8mb4_unicode_ci,
+  `image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `video_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `franchisees`
 --
 
@@ -144,7 +181,7 @@ CREATE TABLE `franchisees` (
 --
 
 INSERT INTO `franchisees` (`id`, `user_id`, `center_name`, `address`, `city`, `latitude`, `longitude`, `royalty_percentage`, `status`, `created_at`, `updated_at`) VALUES
-(1, 3, 'Hydro Cleaners, Mumbai', 'Linking Road, Bandra West', 'Mumbai', 19.05960000, 72.82950000, 10.00, 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13');
+(1, 3, 'Mumbai North Center', 'Linking Road, Bandra West', 'Mumbai', 19.05960000, 72.82950000, 10.00, 'active', '2026-06-02 02:48:13', '2026-06-03 06:05:52');
 
 -- --------------------------------------------------------
 
@@ -167,7 +204,25 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (2, '2014_10_12_100000_create_password_reset_tokens_table', 1),
 (3, '2019_08_19_000000_create_failed_jobs_table', 1),
 (4, '2019_12_14_000001_create_personal_access_tokens_table', 1),
-(5, '2026_06_02_000000_create_carwash_tables', 1);
+(5, '2026_06_02_000000_create_carwash_tables', 1),
+(6, '2026_06_03_000001_extend_users_and_create_platform_tables', 2);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications_log`
+--
+
+CREATE TABLE `notifications_log` (
+  `id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `body` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -196,6 +251,46 @@ CREATE TABLE `personal_access_tokens` (
   `abilities` text COLLATE utf8mb4_unicode_ci,
   `last_used_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `personal_access_tokens`
+--
+
+INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `name`, `token`, `abilities`, `last_used_at`, `expires_at`, `created_at`, `updated_at`) VALUES
+(17, 'App\\Models\\User', 4, 'auth_token', '702ccf488dc7e2fbd34b4f01116bf7ce7183c5d3e403a921a689ace6c9567e53', '[\"*\"]', '2026-06-03 06:08:22', NULL, '2026-06-03 06:06:46', '2026-06-03 06:08:22');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `platform_settings`
+--
+
+CREATE TABLE `platform_settings` (
+  `id` bigint UNSIGNED NOT NULL,
+  `key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `value` text COLLATE utf8mb4_unicode_ci,
+  `group` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'general',
+  `label` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `royalty_payments`
+--
+
+CREATE TABLE `royalty_payments` (
+  `id` bigint UNSIGNED NOT NULL,
+  `franchisee_id` bigint UNSIGNED NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `due_date` date NOT NULL,
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `paid_date` date DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -304,6 +399,24 @@ INSERT INTO `subscriptions` (`id`, `customer_id`, `package_id`, `status`, `booki
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `support_tickets`
+--
+
+CREATE TABLE `support_tickets` (
+  `id` bigint UNSIGNED NOT NULL,
+  `customer_id` bigint UNSIGNED NOT NULL,
+  `subject` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `body` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'open',
+  `admin_reply` text COLLATE utf8mb4_unicode_ci,
+  `replied_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -319,6 +432,9 @@ CREATE TABLE `users` (
   `referred_by` bigint UNSIGNED DEFAULT NULL,
   `referral_coins` int NOT NULL DEFAULT '0',
   `reward_coins` int NOT NULL DEFAULT '0',
+  `e_points` bigint UNSIGNED NOT NULL DEFAULT '0',
+  `pending_epoints` bigint UNSIGNED NOT NULL DEFAULT '0',
+  `first_booking_discount` tinyint(1) NOT NULL DEFAULT '0',
   `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -329,14 +445,14 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `phone`, `email_verified_at`, `password`, `role`, `referral_code`, `referred_by`, `referral_coins`, `reward_coins`, `status`, `remember_token`, `created_at`, `updated_at`) VALUES
-(1, 'Super Admin', 'superadmin@carwash.com', '9999999991', NULL, '$2y$12$1ozyCOlXF0H.eoGwz4GU3.4tuO.bSOlbi.KrCDySFdflm5fTBoTJ6', 'super_admin', NULL, NULL, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-02 02:48:12'),
-(2, 'Customer Care Admin', 'admin@carwash.com', '9999999992', NULL, '$2y$12$XCOVhWfIalsurOa9Pfp./OWecLRqHpvQ381Fu6JJttAMjFnv6FDl6', 'admin', NULL, NULL, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-02 02:48:12'),
-(3, 'John Franchisee', 'franchisee@carwash.com', '9999999993', NULL, '$2y$12$k5s5uRUg07QZKtcbfj6fquTe.ERe14ZB4Gq1pY/8q8qzEd9S4XCGq', 'franchisee', NULL, NULL, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-02 02:48:12'),
-(4, 'David Customer', 'customer@carwash.com', '9999999994', NULL, '$2y$12$ot87yJolBQ..yR4F2K.xquvZMXivmjcgiMcQo6nc/ICf5x1v3Hjny', 'customer', 'DAVID100', NULL, 500, 250, 'active', NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(5, 'Test Customer', 'customer@carbonhydro.in', '1234567890', NULL, '$2y$12$ivcFvFK7YmzZW9YbwEBdJeKOrxrv2YTV5vr8rMg5.HhuBSihWvKHq', 'customer', 'YJX69ODO', NULL, 0, 0, 'active', NULL, '2026-06-02 04:29:50', '2026-06-02 04:29:50'),
-(6, 'Admin User', 'admin@carbonhydro.in', NULL, NULL, '$2y$12$MhyEVq4UOho3ZBE.VSCvpObFifYzlBCWc5nYTnhONLDrx9n8Tu496', 'customer', 'MJVNKXSA', NULL, 0, 0, 'active', NULL, '2026-06-02 04:34:15', '2026-06-02 04:34:15'),
-(7, 'Franchisee User', 'franchisee@carbonhydro.in', '+91 99999 99999', NULL, '$2y$12$gPDO6oy5Si4MHTfFF5Pf7O0N.rYXBWPjZ7YDBFRtLLNRdb6p2voY2', 'customer', 'POJO8V9A', NULL, 0, 0, 'active', NULL, '2026-06-02 05:30:04', '2026-06-02 05:30:04');
+INSERT INTO `users` (`id`, `name`, `email`, `phone`, `email_verified_at`, `password`, `role`, `referral_code`, `referred_by`, `referral_coins`, `reward_coins`, `e_points`, `pending_epoints`, `first_booking_discount`, `status`, `remember_token`, `created_at`, `updated_at`) VALUES
+(1, 'Super Admin', 'superadmin@carwash.com', '9999999991', NULL, '$2y$12$D5ha6sbxzRXqzS2OkYRJwOjL0yA5fn.fa0/WCG42LhDYL8T67US1u', 'super_admin', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
+(2, 'Customer Care Admin', 'admin@carwash.com', '9999999992', NULL, '$2y$12$SMXpna89r69W5KQcBfEdDu2/jV.WRPe0RZPYqTGJ23yC9sQIuQR3q', 'admin', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
+(3, 'John Franchisee', 'franchisee@carwash.com', '9999999993', NULL, '$2y$12$I05jSOeRtxl/doXf1OGv2u5yTNQFYIsCUZO7GyxhUtdeixYeRAWJm', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
+(4, 'David Customer', 'customer@carwash.com', '9999999994', NULL, '$2y$12$LL8jokBiUU6a0UvxB2DKb.wiQ014n5FblPOQbvXhmsCgKWI/Yrlge', 'customer', 'DAVID100', NULL, 500, 250, 0, 0, 0, 'active', NULL, '2026-06-02 02:48:13', '2026-06-03 06:05:52'),
+(5, 'Test Customer', 'customer@carbonhydro.in', '1234567890', NULL, '$2y$12$ivcFvFK7YmzZW9YbwEBdJeKOrxrv2YTV5vr8rMg5.HhuBSihWvKHq', 'customer', 'YJX69ODO', NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 04:29:50', '2026-06-02 04:29:50'),
+(6, 'Admin User', 'admin@carbonhydro.in', NULL, NULL, '$2y$12$MhyEVq4UOho3ZBE.VSCvpObFifYzlBCWc5nYTnhONLDrx9n8Tu496', 'customer', 'MJVNKXSA', NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 04:34:15', '2026-06-02 04:34:15'),
+(7, 'Franchisee User', 'franchisee@carbonhydro.in', '+91 99999 99999', NULL, '$2y$12$gPDO6oy5Si4MHTfFF5Pf7O0N.rYXBWPjZ7YDBFRtLLNRdb6p2voY2', 'customer', 'POJO8V9A', NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 05:30:04', '2026-06-02 05:30:04');
 
 -- --------------------------------------------------------
 
@@ -367,6 +483,24 @@ INSERT INTO `vehicles` (`id`, `customer_id`, `vehicle_type`, `make_model`, `plat
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `wallet_transactions`
+--
+
+CREATE TABLE `wallet_transactions` (
+  `id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `amount` bigint UNSIGNED NOT NULL,
+  `source` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'confirmed',
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `wishlists`
 --
 
@@ -388,6 +522,14 @@ INSERT INTO `wishlists` (`id`, `customer_id`, `package_id`, `created_at`, `updat
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `blog_posts`
+--
+ALTER TABLE `blog_posts`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `blog_posts_slug_unique` (`slug`),
+  ADD KEY `blog_posts_author_id_foreign` (`author_id`);
 
 --
 -- Indexes for table `bookings`
@@ -421,6 +563,14 @@ ALTER TABLE `failed_jobs`
   ADD UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`);
 
 --
+-- Indexes for table `feedback_reviews`
+--
+ALTER TABLE `feedback_reviews`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `feedback_reviews_booking_id_foreign` (`booking_id`),
+  ADD KEY `feedback_reviews_customer_id_foreign` (`customer_id`);
+
+--
 -- Indexes for table `franchisees`
 --
 ALTER TABLE `franchisees`
@@ -432,6 +582,13 @@ ALTER TABLE `franchisees`
 --
 ALTER TABLE `migrations`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `notifications_log`
+--
+ALTER TABLE `notifications_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `notifications_log_user_id_foreign` (`user_id`);
 
 --
 -- Indexes for table `password_reset_tokens`
@@ -446,6 +603,20 @@ ALTER TABLE `personal_access_tokens`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `personal_access_tokens_token_unique` (`token`),
   ADD KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`);
+
+--
+-- Indexes for table `platform_settings`
+--
+ALTER TABLE `platform_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `platform_settings_key_unique` (`key`);
+
+--
+-- Indexes for table `royalty_payments`
+--
+ALTER TABLE `royalty_payments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `royalty_payments_franchisee_id_foreign` (`franchisee_id`);
 
 --
 -- Indexes for table `service_packages`
@@ -469,6 +640,13 @@ ALTER TABLE `subscriptions`
   ADD KEY `subscriptions_package_id_foreign` (`package_id`);
 
 --
+-- Indexes for table `support_tickets`
+--
+ALTER TABLE `support_tickets`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `support_tickets_customer_id_foreign` (`customer_id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -485,6 +663,13 @@ ALTER TABLE `vehicles`
   ADD KEY `vehicles_customer_id_foreign` (`customer_id`);
 
 --
+-- Indexes for table `wallet_transactions`
+--
+ALTER TABLE `wallet_transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `wallet_transactions_user_id_foreign` (`user_id`);
+
+--
 -- Indexes for table `wishlists`
 --
 ALTER TABLE `wishlists`
@@ -495,6 +680,12 @@ ALTER TABLE `wishlists`
 --
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `blog_posts`
+--
+ALTER TABLE `blog_posts`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `bookings`
@@ -521,6 +712,12 @@ ALTER TABLE `failed_jobs`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `feedback_reviews`
+--
+ALTER TABLE `feedback_reviews`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `franchisees`
 --
 ALTER TABLE `franchisees`
@@ -530,13 +727,31 @@ ALTER TABLE `franchisees`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `notifications_log`
+--
+ALTER TABLE `notifications_log`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+
+--
+-- AUTO_INCREMENT for table `platform_settings`
+--
+ALTER TABLE `platform_settings`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `royalty_payments`
+--
+ALTER TABLE `royalty_payments`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `service_packages`
@@ -557,6 +772,12 @@ ALTER TABLE `subscriptions`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `support_tickets`
+--
+ALTER TABLE `support_tickets`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
@@ -569,6 +790,12 @@ ALTER TABLE `vehicles`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT for table `wallet_transactions`
+--
+ALTER TABLE `wallet_transactions`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `wishlists`
 --
 ALTER TABLE `wishlists`
@@ -577,6 +804,12 @@ ALTER TABLE `wishlists`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `blog_posts`
+--
+ALTER TABLE `blog_posts`
+  ADD CONSTRAINT `blog_posts_author_id_foreign` FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `bookings`
@@ -594,10 +827,29 @@ ALTER TABLE `expenses`
   ADD CONSTRAINT `expenses_franchisee_id_foreign` FOREIGN KEY (`franchisee_id`) REFERENCES `franchisees` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `feedback_reviews`
+--
+ALTER TABLE `feedback_reviews`
+  ADD CONSTRAINT `feedback_reviews_booking_id_foreign` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `feedback_reviews_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `franchisees`
 --
 ALTER TABLE `franchisees`
   ADD CONSTRAINT `franchisees_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `notifications_log`
+--
+ALTER TABLE `notifications_log`
+  ADD CONSTRAINT `notifications_log_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `royalty_payments`
+--
+ALTER TABLE `royalty_payments`
+  ADD CONSTRAINT `royalty_payments_franchisee_id_foreign` FOREIGN KEY (`franchisee_id`) REFERENCES `franchisees` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `slots`
@@ -613,6 +865,12 @@ ALTER TABLE `subscriptions`
   ADD CONSTRAINT `subscriptions_package_id_foreign` FOREIGN KEY (`package_id`) REFERENCES `service_packages` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `support_tickets`
+--
+ALTER TABLE `support_tickets`
+  ADD CONSTRAINT `support_tickets_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `users`
 --
 ALTER TABLE `users`
@@ -623,6 +881,12 @@ ALTER TABLE `users`
 --
 ALTER TABLE `vehicles`
   ADD CONSTRAINT `vehicles_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `wallet_transactions`
+--
+ALTER TABLE `wallet_transactions`
+  ADD CONSTRAINT `wallet_transactions_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `wishlists`
