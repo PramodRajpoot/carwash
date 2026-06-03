@@ -13,6 +13,7 @@ use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\PartnerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +36,9 @@ Route::get('/centers',  [BookingController::class, 'getCenters']);
 
 // Public blog
 Route::get('/blog',       [BlogController::class, 'index']);
+
+// Public: Become Partner inquiry
+Route::post('/partner/apply', [PartnerController::class, 'store']);
 Route::get('/blog/{slug}', [BlogController::class, 'show']);
 
 // ── Protected Routes (Sanctum) ───────────────────────────────────────────
@@ -162,6 +166,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Feedback Reviews
         Route::get('/feedback',         [FeedbackController::class, 'adminIndex']);
+
+        // Partner Inquiries
+        Route::get('/partners',             [PartnerController::class, 'adminIndex']);
+        Route::put('/partners/{id}',        [PartnerController::class, 'adminUpdate']);
+        Route::delete('/partners/{id}',     [PartnerController::class, 'adminDestroy']);
     });
 
     // ── Super Admin Panel ────────────────────────────────────────────────

@@ -49,6 +49,7 @@
           <li><router-link to="/admin/coupons"><span class="nav-icon">🎟️</span> Coupons</router-link></li>
           <li><router-link to="/admin/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
           <li><router-link to="/admin/tickets"><span class="nav-icon">🎫</span> Support Tickets</router-link></li>
+          <li><router-link to="/admin/partners"><span class="nav-icon">🤝</span> Partner Applications</router-link></li>
           <li><router-link to="/admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
           <li><router-link to="/admin/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
         </template>
@@ -66,6 +67,7 @@
           <li><router-link to="/super-admin/coupons"><span class="nav-icon">🎟️</span> Coupons</router-link></li>
           <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
           <li><router-link to="/super-admin/tickets"><span class="nav-icon">🎫</span> Support</router-link></li>
+          <li><router-link to="/super-admin/partners"><span class="nav-icon">🤝</span> Partner Apps</router-link></li>
           <li><router-link to="/super-admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
           <li><router-link to="/super-admin/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
         </template>
@@ -115,7 +117,7 @@ export default {
         'admin-dashboard': 'Dashboard', 'admin-users': 'Users', 'admin-orders': 'Orders', 'admin-slots': 'Slots',
         'admin-coupons': 'Coupons', 'admin-reports': 'Reports', 'admin-franchisees': 'Franchise Management',
         'admin-packages': 'Subscription Packages', 'admin-referrals': 'Referral Network', 'admin-blog': 'Blog',
-        'admin-tickets': 'Support Tickets',
+        'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
         'superadmin-settings': 'Platform Settings',
       };

@@ -51,6 +51,7 @@ import AdminPackages from '@/views/admin/AdminPackages.vue';
 import AdminReferrals from '@/views/admin/AdminReferrals.vue';
 import AdminBlog from '@/views/admin/AdminBlog.vue';
 import AdminTickets from '@/views/admin/AdminTickets.vue';
+import AdminPartners from '@/views/admin/AdminPartners.vue';
 
 // Super Admin Views
 import SuperAdminDashboard from '@/views/super-admin/SuperAdminDashboard.vue';
@@ -132,6 +133,7 @@ export const routes = [
             { path: 'referrals', name: 'admin-referrals', component: AdminReferrals },
             { path: 'blog', name: 'admin-blog', component: AdminBlog },
             { path: 'tickets', name: 'admin-tickets', component: AdminTickets },
+            { path: 'partners', name: 'admin-partners', component: AdminPartners },
         ],
     },
 
@@ -153,6 +155,7 @@ export const routes = [
             { path: 'coupons', name: 'superadmin-coupons', component: AdminCoupons },
             { path: 'blog', name: 'superadmin-blog', component: AdminBlog },
             { path: 'tickets', name: 'superadmin-tickets', component: AdminTickets },
+            { path: 'partners', name: 'superadmin-partners', component: AdminPartners },
             { path: 'reports', name: 'superadmin-reports', component: AdminReports },
         ],
     },
