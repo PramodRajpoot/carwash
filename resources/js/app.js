@@ -38,7 +38,8 @@ router.beforeEach((to, from, next) => {
     }
 
     if (to.meta.role && user && user.role !== to.meta.role && 
-        !(to.meta.role === 'admin' && user.role === 'super_admin')) {
+        !(to.meta.role === 'admin' && user.role === 'super_admin') &&
+        !(to.meta.role === 'super_admin' && user.role === 'super_admin')) {
         return next({ name: 'home' });
     }
 
@@ -48,7 +49,7 @@ router.beforeEach((to, from, next) => {
                 customer: 'customer-dashboard',
                 franchisee: 'franchisee-dashboard',
                 admin: 'admin-dashboard',
-                super_admin: 'admin-dashboard',
+                super_admin: 'superadmin-dashboard',
             };
             return next({ name: dashMap[user.role] || 'home' });
         }

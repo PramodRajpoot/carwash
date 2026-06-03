@@ -8,82 +8,107 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use App\Models\WalletTransaction;
+use App\Models\NotificationLog;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'phone' => 'nullable|string|max:20',
-            'password' => 'required|string|min:6|confirmed',
+            'name'             => 'required|string|max:255',
+            'email'            => 'required|string|email|max:255|unique:users',
+            'phone'            => 'nullable|string|max:20',
+            'password'         => 'required|string|min:6|confirmed',
             'referred_by_code' => 'nullable|string',
-            'role' => 'nullable|string' // for franchisee self-registration or customers
+            'role'             => 'nullable|string',
         ]);
 
         $referredBy = null;
+        $firstBookingDiscount = false;
+
         if ($request->filled('referred_by_code')) {
             $referredUser = User::where('referral_code', $request->referred_by_code)->first();
             if ($referredUser) {
                 $referredBy = $referredUser->id;
-                // Reward referrer
-                $referredUser->increment('referral_coins', 100);
+
+                // Referrer gets 10 PENDING E-Points (confirmed after referred user's first booking)
+                $referredUser->increment('pending_epoints', 10);
+                WalletTransaction::create([
+                    'user_id'     => $referredUser->id,
+                    'type'        => 'credit',
+                    'amount'      => 10,
+                    'source'      => 'referral',
+                    'status'      => 'pending',
+                    'description' => "Pending reward for referring {$request->name}",
+                ]);
+
+                NotificationLog::create([
+                    'user_id' => $referredUser->id,
+                    'type'    => 'referral_reward',
+                    'title'   => 'New Referral!',
+                    'body'    => "{$request->name} registered using your referral code. You'll earn 10 E-Points once they complete their first booking.",
+                ]);
+
+                // New customer gets 10% discount on first booking
+                $firstBookingDiscount = true;
             }
         }
 
-        // Generate a clean referral code for this user
+        // Generate unique referral code
         $referralCode = strtoupper(Str::random(8));
         while (User::where('referral_code', $referralCode)->exists()) {
             $referralCode = strtoupper(Str::random(8));
         }
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'customer',
-            'referral_code' => $referralCode,
-            'referred_by' => $referredBy,
-            'referral_coins' => $referredBy ? 50 : 0, // Reward new referee
-            'reward_coins' => 0,
-            'status' => 'active'
+            'name'                  => $request->name,
+            'email'                 => $request->email,
+            'phone'                 => $request->phone,
+            'password'              => Hash::make($request->password),
+            'role'                  => $request->role ?? 'customer',
+            'referral_code'         => $referralCode,
+            'referred_by'           => $referredBy,
+            'referral_coins'        => 0,
+            'reward_coins'          => 0,
+            'e_points'              => 0,
+            'pending_epoints'       => 0,
+            'first_booking_discount' => $firstBookingDiscount,
+            'status'                => 'active',
         ]);
 
-        // If franchisee role, create empty Franchisee record
         if ($user->role === 'franchisee') {
             $user->franchisee()->create([
-                'center_name' => $user->name . '\'s Car Wash',
-                'address' => 'Pending Setup',
-                'city' => 'Pending Setup',
+                'center_name'        => $user->name . "'s Center",
+                'address'            => 'Pending Setup',
+                'city'               => 'Pending Setup',
                 'royalty_percentage' => 10.0,
-                'status' => 'pending'
+                'status'             => 'pending',
             ]);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'User registered successfully',
+            'status'       => 'success',
+            'message'      => 'Registered successfully. Welcome to CleanAtDoorstep!',
             'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user
+            'token_type'   => 'Bearer',
+            'user'         => $user,
         ], 201);
     }
 
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|string|email',
+            'email'    => 'required|string|email',
             'password' => 'required|string',
         ]);
 
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid login credentials'
+                'status'  => 'error',
+                'message' => 'Invalid login credentials',
             ], 401);
         }
 
@@ -92,19 +117,19 @@ class AuthController extends Controller
         if ($user->status !== 'active') {
             Auth::logout();
             return response()->json([
-                'status' => 'error',
-                'message' => 'Your account is suspended'
+                'status'  => 'error',
+                'message' => 'Your account is suspended',
             ], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Logged in successfully',
+            'status'       => 'success',
+            'message'      => 'Logged in successfully',
             'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user
+            'token_type'   => 'Bearer',
+            'user'         => $user,
         ]);
     }
 
@@ -121,7 +146,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name'  => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
         ]);
@@ -133,9 +158,9 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Profile updated successfully',
-            'user' => $user->fresh($user->role === 'franchisee' ? ['franchisee'] : [])
+            'user'    => $user->fresh($user->role === 'franchisee' ? ['franchisee'] : []),
         ]);
     }
 
@@ -144,23 +169,21 @@ class AuthController extends Controller
         $user = $request->user();
         $request->validate([
             'current_password' => 'required|string',
-            'password' => 'required|string|min:6|confirmed',
+            'password'         => 'required|string|min:6|confirmed',
         ]);
 
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Current password does not match'
+                'status'  => 'error',
+                'message' => 'Current password does not match',
             ], 400);
         }
 
-        $user->update([
-            'password' => Hash::make($request->password)
-        ]);
+        $user->update(['password' => Hash::make($request->password)]);
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Password changed successfully'
+            'status'  => 'success',
+            'message' => 'Password changed successfully',
         ]);
     }
 
@@ -169,8 +192,8 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Logged out successfully'
+            'status'  => 'success',
+            'message' => 'Logged out successfully',
         ]);
     }
 }

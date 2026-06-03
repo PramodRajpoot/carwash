@@ -6,29 +6,68 @@
     </button>
 
     <aside class="dash-sidebar">
-      <div class="dash-sidebar-logo">Carbon &amp; Hydro</div>
+      <div class="dash-sidebar-logo">CleanAtDoorstep</div>
       <ul class="dash-sidebar-nav">
+        <!-- Customer Sidebar -->
         <template v-if="role === 'customer'">
           <li><router-link to="/customer"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/customer/bookings"><span class="nav-icon">📅</span> Bookings</router-link></li>
           <li><router-link to="/customer/vehicles"><span class="nav-icon">🚗</span> My Vehicles</router-link></li>
           <li><router-link to="/customer/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
+          <li><router-link to="/customer/wallet"><span class="nav-icon">💰</span> E-Points Wallet</router-link></li>
+          <li><router-link to="/customer/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
+          <li><router-link to="/customer/offers"><span class="nav-icon">🎟️</span> Offers</router-link></li>
+          <li><router-link to="/customer/support"><span class="nav-icon">🎫</span> Support</router-link></li>
+          <li>
+            <router-link to="/customer/notifications">
+              <span class="nav-icon">🔔</span> Notifications
+              <span v-if="unreadCount > 0" style="margin-left:auto;background:var(--accent-cyan);color:#000;font-size:0.7rem;padding:0.15rem 0.4rem;border-radius:999px;font-weight:700">{{ unreadCount }}</span>
+            </router-link>
+          </li>
           <li><router-link to="/customer/wishlist"><span class="nav-icon">❤️</span> Wishlist</router-link></li>
-          <li><router-link to="/customer/referrals"><span class="nav-icon">🎁</span> Referrals</router-link></li>
         </template>
+
+        <!-- Franchisee Sidebar -->
         <template v-else-if="role === 'franchisee'">
           <li><router-link to="/franchisee"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/franchisee/orders"><span class="nav-icon">📋</span> Orders</router-link></li>
+          <li><router-link to="/franchisee/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
+          <li><router-link to="/franchisee/royalty"><span class="nav-icon">💳</span> Royalty</router-link></li>
           <li><router-link to="/franchisee/expenses"><span class="nav-icon">💰</span> Expenses</router-link></li>
           <li><router-link to="/franchisee/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
+          <li><router-link to="/franchisee/offers"><span class="nav-icon">🎟️</span> Offers</router-link></li>
         </template>
-        <template v-else>
+
+        <!-- Admin Sidebar -->
+        <template v-else-if="role === 'admin'">
           <li><router-link to="/admin"><span class="nav-icon">📊</span> Dashboard</router-link></li>
+          <li><router-link to="/admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
           <li><router-link to="/admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
           <li><router-link to="/admin/orders"><span class="nav-icon">📋</span> Orders</router-link></li>
+          <li><router-link to="/admin/packages"><span class="nav-icon">📦</span> Packages</router-link></li>
           <li><router-link to="/admin/slots"><span class="nav-icon">🕐</span> Slots</router-link></li>
           <li><router-link to="/admin/coupons"><span class="nav-icon">🎟️</span> Coupons</router-link></li>
+          <li><router-link to="/admin/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
+          <li><router-link to="/admin/tickets"><span class="nav-icon">🎫</span> Support Tickets</router-link></li>
+          <li><router-link to="/admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
           <li><router-link to="/admin/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
+        </template>
+
+        <!-- Super Admin Sidebar -->
+        <template v-else-if="role === 'super_admin'">
+          <li><router-link to="/super-admin"><span class="nav-icon">🛡️</span> Dashboard</router-link></li>
+          <li><router-link to="/super-admin/admins"><span class="nav-icon">👤</span> Admin Management</router-link></li>
+          <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Settings</router-link></li>
+          <li style="padding:0.5rem 1.5rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border-color);margin-top:0.5rem">Platform</li>
+          <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
+          <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
+          <li><router-link to="/super-admin/orders"><span class="nav-icon">📋</span> Orders</router-link></li>
+          <li><router-link to="/super-admin/packages"><span class="nav-icon">📦</span> Packages</router-link></li>
+          <li><router-link to="/super-admin/coupons"><span class="nav-icon">🎟️</span> Coupons</router-link></li>
+          <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
+          <li><router-link to="/super-admin/tickets"><span class="nav-icon">🎫</span> Support</router-link></li>
+          <li><router-link to="/super-admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
+          <li><router-link to="/super-admin/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
         </template>
       </ul>
       <div style="padding:0 1.5rem;margin-top:auto;border-top:1px solid var(--border-color);padding-top:1rem">
@@ -36,6 +75,7 @@
         <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;gap:0.5rem;margin-top:0.25rem" @click="logout">🚪 Logout</button>
       </div>
     </aside>
+
     <main class="dash-main">
       <div class="dash-header">
         <h1>{{ pageTitle }}</h1>
@@ -57,15 +97,29 @@ export default {
     return {
       user: JSON.parse(localStorage.getItem('auth_user') || '{}'),
       isDark: true,
+      unreadCount: 0,
     };
   },
   computed: {
     role() { return this.user.role || 'customer'; },
     pageTitle() {
       const n = this.$route.name || '';
-      if (n.includes('dashboard')) return 'Dashboard';
-      const part = n.split('-').pop() || '';
-      return part.charAt(0).toUpperCase() + part.slice(1);
+      const map = {
+        'customer-dashboard': 'Dashboard', 'customer-bookings': 'Bookings', 'customer-vehicles': 'My Vehicles',
+        'customer-subscriptions': 'Subscriptions', 'customer-wallet': 'E-Points Wallet', 'customer-referrals': 'Referrals',
+        'customer-offers': 'Offers & Coupons', 'customer-support': 'Help & Support', 'customer-notifications': 'Notifications',
+        'customer-wishlist': 'Wishlist',
+        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Orders', 'franchisee-expenses': 'Expenses',
+        'franchisee-reports': 'Reports', 'franchisee-royalty': 'Royalty Management', 'franchisee-subscriptions': 'Subscriptions',
+        'franchisee-offers': 'Offers',
+        'admin-dashboard': 'Dashboard', 'admin-users': 'Users', 'admin-orders': 'Orders', 'admin-slots': 'Slots',
+        'admin-coupons': 'Coupons', 'admin-reports': 'Reports', 'admin-franchisees': 'Franchise Management',
+        'admin-packages': 'Subscription Packages', 'admin-referrals': 'Referral Network', 'admin-blog': 'Blog',
+        'admin-tickets': 'Support Tickets',
+        'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
+        'superadmin-settings': 'Platform Settings',
+      };
+      return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },
   },
   methods: {
@@ -86,9 +140,16 @@ export default {
       localStorage.removeItem('auth_user');
       this.$router.push('/login');
     },
+    async loadUnread() {
+      if (this.role === 'customer') {
+        try { const { data } = await axios.get('/api/notifications'); this.unreadCount = data.unread_count || 0; }
+        catch (e) {}
+      }
+    },
   },
   mounted() {
     this.loadTheme();
+    this.loadUnread();
   },
 };
 </script>

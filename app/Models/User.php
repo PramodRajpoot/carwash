@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,11 +11,6 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -27,30 +21,28 @@ class User extends Authenticatable
         'referred_by',
         'referral_coins',
         'reward_coins',
+        'e_points',
+        'pending_epoints',
+        'first_booking_discount',
         'status',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'referral_coins' => 'integer',
-        'reward_coins' => 'integer',
+        'email_verified_at'       => 'datetime',
+        'password'                => 'hashed',
+        'referral_coins'          => 'integer',
+        'reward_coins'            => 'integer',
+        'e_points'                => 'integer',
+        'pending_epoints'         => 'integer',
+        'first_booking_discount'  => 'boolean',
     ];
+
+    // ─── Relations ─────────────────────────────────────────────
 
     public function franchisee()
     {
@@ -85,5 +77,30 @@ class User extends Authenticatable
     public function referrals()
     {
         return $this->hasMany(User::class, 'referred_by');
+    }
+
+    public function walletTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    public function supportTickets()
+    {
+        return $this->hasMany(SupportTicket::class, 'customer_id');
+    }
+
+    public function feedbackReviews()
+    {
+        return $this->hasMany(FeedbackReview::class, 'customer_id');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(NotificationLog::class);
+    }
+
+    public function blogPosts()
+    {
+        return $this->hasMany(BlogPost::class, 'author_id');
     }
 }

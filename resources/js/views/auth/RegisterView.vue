@@ -1,26 +1,29 @@
 <template>
-  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg-primary);padding:2rem">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem">
     <div class="glass-card" style="width:100%;max-width:460px">
-      <div class="text-center" style="margin-bottom:2rem">
-        <router-link to="/" class="navbar-logo" style="font-size:1.5rem">Carbon &amp; Hydro</router-link>
-        <h3 style="margin-top:1rem">Create Account</h3>
-        <p class="text-muted" style="font-size:0.85rem">Join thousands of happy vehicle owners</p>
+      <div style="text-align:center;margin-bottom:2rem">
+        <router-link to="/" style="text-decoration:none"><h2 class="text-gradient" style="font-size:1.5rem">CleanAtDoorstep</h2></router-link>
+        <p class="text-muted" style="font-size:0.9rem;margin-top:0.25rem">Create your free account</p>
       </div>
-      <div v-if="error" class="alert alert-error">{{ error }}</div>
-      <form @submit.prevent="register">
-        <div class="grid grid-2 gap-2">
-          <div class="form-group"><label>Full Name *</label><input v-model="form.name" class="form-input" required></div>
-          <div class="form-group"><label>Phone</label><input v-model="form.phone" class="form-input"></div>
+
+      <div style="display:flex;flex-direction:column;gap:0.75rem">
+        <input v-model="form.name" type="text" class="form-input" placeholder="Full Name" id="reg-name" />
+        <input v-model="form.email" type="email" class="form-input" placeholder="Email Address" id="reg-email" />
+        <input v-model="form.phone" type="tel" class="form-input" placeholder="Mobile Number" id="reg-phone" />
+        <input v-model="form.password" type="password" class="form-input" placeholder="Password (min 6 chars)" id="reg-password" />
+        <input v-model="form.password_confirmation" type="password" class="form-input" placeholder="Confirm Password" id="reg-confirm" />
+        <div style="position:relative">
+          <input v-model="form.referred_by_code" type="text" class="form-input" placeholder="Referral Code (optional) — get 10% off!" id="reg-referral" style="text-transform:uppercase" />
+          <div v-if="form.referred_by_code" style="font-size:0.75rem;color:var(--accent-emerald);margin-top:0.25rem">🎉 10% discount applied on your first booking!</div>
         </div>
-        <div class="form-group"><label>Email *</label><input v-model="form.email" type="email" class="form-input" required></div>
-        <div class="grid grid-2 gap-2">
-          <div class="form-group"><label>Password *</label><input v-model="form.password" type="password" class="form-input" required></div>
-          <div class="form-group"><label>Confirm Password *</label><input v-model="form.password_confirmation" type="password" class="form-input" required></div>
-        </div>
-        <div class="form-group"><label>Referral Code (optional)</label><input v-model="form.referred_by_code" class="form-input" placeholder="e.g. DAVID100"></div>
-        <button type="submit" class="btn btn-primary w-full" :disabled="loading" style="margin-top:0.5rem">{{ loading ? 'Creating...' : 'Create Account' }}</button>
-      </form>
-      <p class="text-center text-muted" style="margin-top:1.5rem;font-size:0.85rem">Already have an account? <router-link to="/login">Sign In</router-link></p>
+        <div v-if="error" style="color:#ef4444;font-size:0.85rem">{{ error }}</div>
+        <button class="btn btn-primary w-full" @click="register" :disabled="loading">{{ loading ? 'Creating Account…' : 'Create Account' }}</button>
+      </div>
+
+      <div style="text-align:center;margin-top:1.5rem">
+        <span class="text-muted" style="font-size:0.85rem">Already have an account? </span>
+        <router-link to="/login" style="color:var(--accent-cyan);font-size:0.85rem;font-weight:600">Sign In</router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -28,11 +31,20 @@
 import axios from 'axios';
 export default {
   name: 'RegisterView',
-  data() { return { form: { name: '', email: '', phone: '', password: '', password_confirmation: '', referred_by_code: '' }, error: '', loading: false }; },
+  data() {
+    return {
+      form: { name: '', email: '', phone: '', password: '', password_confirmation: '', referred_by_code: '' },
+      loading: false, error: '',
+    };
+  },
+  mounted() {
+    // Pre-fill referral code from URL query param
+    const ref = this.$route.query.ref;
+    if (ref) this.form.referred_by_code = ref.toUpperCase();
+  },
   methods: {
     async register() {
-      this.error = '';
-      this.loading = true;
+      this.error = ''; this.loading = true;
       try {
         const { data } = await axios.post('/api/auth/register', this.form);
         localStorage.setItem('auth_token', data.access_token);
@@ -41,8 +53,7 @@ export default {
       } catch (e) {
         const errs = e.response?.data?.errors;
         this.error = errs ? Object.values(errs).flat().join(' ') : (e.response?.data?.message || 'Registration failed.');
-      }
-      this.loading = false;
+      } finally { this.loading = false; }
     },
   },
 };

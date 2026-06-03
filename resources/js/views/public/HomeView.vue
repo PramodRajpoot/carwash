@@ -73,7 +73,7 @@
       <div class="container">
         <div class="section-title">
           <h2>Customer <span class="text-gradient">Testimonials</span></h2>
-          <p>What our happy customers say about Carbon &amp; Hydro.</p>
+          <p>What our happy customers say about CleanAtDoorstep.</p>
         </div>
         <div class="grid grid-3 gap-3">
           <div v-for="(t, i) in testimonials" :key="i" class="card">
@@ -92,7 +92,7 @@
     <section class="section text-center">
       <div class="container">
         <h2 style="margin-bottom:1rem">Ready to <span class="text-gradient">Shine?</span></h2>
-        <p class="text-secondary" style="max-width:500px;margin:0 auto 2rem">Join thousands of happy vehicle owners who trust Carbon &amp; Hydro for premium doorstep cleaning.</p>
+        <p class="text-secondary" style="max-width:500px;margin:0 auto 2rem">Join thousands of happy vehicle owners who trust CleanAtDoorstep for premium doorstep cleaning.</p>
         <div class="flex justify-center gap-2">
           <router-link to="/register" class="btn btn-primary">Get Started Free</router-link>
           <router-link to="/become-partner" class="btn btn-outline">Become a Partner</router-link>

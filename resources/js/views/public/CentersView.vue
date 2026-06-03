@@ -2,7 +2,7 @@
   <div>
     <section class="section">
       <div class="container">
-        <div class="section-title"><h2>Our <span class="text-gradient">Centers</span></h2><p>Find a Carbon &amp; Hydro center near you.</p></div>
+        <div class="section-title"><h2>Our <span class="text-gradient">Centers</span></h2><p>Find a CleanAtDoorstep center near you.</p></div>
         <div v-if="loading" class="text-center text-muted" style="padding:3rem">Loading centers...</div>
         <div v-else>
           <div class="grid grid-3 gap-3">
