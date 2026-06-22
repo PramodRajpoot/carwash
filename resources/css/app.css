@@ -709,6 +709,30 @@ tr:hover td { background: rgba(6,182,212,0.03); }
     font-weight: 700;
     font-size: 0.9rem;
 }
+.theme-toggle-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+}
+.theme-toggle-inline:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.3);
+    transform: rotate(20deg) scale(1.05);
+}
 @media (max-width: 768px) {
     .dash-sidebar { display: none; }
     .dash-main { padding: 1rem; }

@@ -1,9 +1,5 @@
 <template>
   <div class="dash-layout">
-    <!-- Fixed top-right theme toggle -->
-    <button class="theme-toggle-fixed" @click="toggleTheme" :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-      {{ isDark ? '☀️' : '🌙' }}
-    </button>
 
     <aside class="dash-sidebar">
       <div class="dash-sidebar-logo">CleanAtDoorstep</div>
@@ -84,6 +80,9 @@
         <div class="user-info">
           <span class="text-secondary" style="font-size:0.85rem">{{ user.name }}</span>
           <div class="avatar">{{ user.name ? user.name.charAt(0).toUpperCase() : 'U' }}</div>
+          <button class="theme-toggle-inline" @click="toggleTheme" :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+            {{ isDark ? '☀️' : '🌙' }}
+          </button>
         </div>
       </div>
       <router-view />
