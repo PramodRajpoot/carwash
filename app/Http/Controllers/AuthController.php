@@ -7,9 +7,12 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Models\WalletTransaction;
 use App\Models\NotificationLog;
+use App\Mail\WelcomeCustomerMail;
 
 class AuthController extends Controller
 {
@@ -85,6 +88,13 @@ class AuthController extends Controller
                 'royalty_percentage' => 10.0,
                 'status'             => 'pending',
             ]);
+        }
+
+        // Send welcome email to the customer
+        try {
+            Mail::to($user->email)->send(new WelcomeCustomerMail($user));
+        } catch (\Exception $e) {
+            Log::error('Welcome email failed for user #' . $user->id . ': ' . $e->getMessage());
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
