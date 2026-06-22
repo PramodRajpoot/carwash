@@ -118,7 +118,7 @@ export default {
       testimonials: [
         { name: 'Rahul Sharma', role: 'SUV Owner, Mumbai', text: 'Absolutely love the waterless wash! My Fortuner looks brand new every week. The monthly package is amazing value.' },
         { name: 'Priya Patel', role: 'Sedan Owner, Delhi', text: 'Reliable, on-time, and professional. The team always goes above and beyond. Best car wash service I have used.' },
-        { name: 'Amit Kumar', role: 'Fleet Manager, Pune', text: 'Managing 20+ commercial vehicles is easy with Carbon & Hydro. Their franchise team handles everything perfectly.' },
+        { name: 'Amit Kumar', role: 'Fleet Manager, Pune', text: 'Managing 20+ commercial vehicles is easy with CleanAt Doorstep. Their franchise team handles everything perfectly.' },
       ],
     };
   },

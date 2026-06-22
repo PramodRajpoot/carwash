@@ -1,45 +1,78 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0ea5e9"/>
-      <stop offset="50%" style="stop-color:#6366f1"/>
-      <stop offset="100%" style="stop-color:#8b5cf6"/>
-    </linearGradient>
-    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3"/>
-      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+    <linearGradient id="bubble-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#5dc1f8"/>
+      <stop offset="100%" stop-color="#218de2"/>
     </linearGradient>
   </defs>
-  <!-- Rounded square background -->
-  <rect width="64" height="64" rx="14" ry="14" fill="url(#bg)"/>
-  <!-- Shine overlay -->
-  <rect width="64" height="64" rx="14" ry="14" fill="url(#shine)"/>
-  <!-- Water drop / clean symbol -->
-  <g transform="translate(32,30)" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Car body -->
-    <path d="M-16,6 L-14,-2 L-8,-8 L8,-8 L14,-2 L16,6" fill="rgba(255,255,255,0.15)" stroke="#ffffff"/>
-    <!-- Car base -->
-    <line x1="-18" y1="6" x2="18" y2="6"/>
-    <!-- Windows -->
-    <line x1="-1" y1="-8" x2="-1" y2="-2"/>
-    <!-- Left wheel -->
-    <circle cx="-10" cy="9" r="3.5" fill="rgba(255,255,255,0.2)" stroke="#ffffff"/>
-    <!-- Right wheel -->
-    <circle cx="10" cy="9" r="3.5" fill="rgba(255,255,255,0.2)" stroke="#ffffff"/>
-    <!-- Sparkle top-right -->
-    <g transform="translate(12,-14)" stroke="#ffffff" stroke-width="2" opacity="0.9">
-      <line x1="0" y1="-4" x2="0" y2="4"/>
-      <line x1="-4" y1="0" x2="4" y2="0"/>
-    </g>
-    <!-- Sparkle small -->
-    <g transform="translate(-14,-12)" stroke="#ffffff" stroke-width="1.5" opacity="0.7">
-      <line x1="0" y1="-2.5" x2="0" y2="2.5"/>
-      <line x1="-2.5" y1="0" x2="2.5" y2="0"/>
-    </g>
-    <!-- Water drops -->
-    <circle cx="5" cy="-16" r="1.5" fill="#ffffff" opacity="0.6"/>
-    <circle cx="-8" cy="-18" r="1" fill="#ffffff" opacity="0.5"/>
+
+  <!-- Bubbles background -->
+  <g fill="url(#bubble-grad)">
+    <circle cx="150" cy="220" r="80" />
+    <circle cx="260" cy="180" r="100" />
+    <circle cx="380" cy="230" r="90" />
+    <circle cx="90" cy="280" r="60" />
+    <circle cx="430" cy="280" r="70" />
+    <circle cx="200" cy="260" r="70" />
+    <circle cx="320" cy="260" r="80" />
   </g>
-  <!-- C&H text -->
-  <text x="32" y="54" font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="10" fill="#ffffff" text-anchor="middle" opacity="0.9">C&amp;H</text>
+
+  <!-- Small bubble rings -->
+  <g fill="none" stroke="#218de2" stroke-width="8">
+    <circle cx="260" cy="60" r="15" />
+    <circle cx="290" cy="90" r="10" />
+    <circle cx="120" cy="110" r="18" />
+    <circle cx="400" cy="130" r="14" />
+  </g>
+  <g fill="none" stroke="#5dc1f8" stroke-width="4">
+    <circle cx="260" cy="60" r="15" />
+    <circle cx="290" cy="90" r="10" />
+    <circle cx="120" cy="110" r="18" />
+    <circle cx="400" cy="130" r="14" />
+  </g>
+
+  <!-- Hose curve -->
+  <path d="M390 125 C 550 100, 550 360, 400 360 L 390 360" fill="none" stroke="#000" stroke-width="15" stroke-linecap="round"/>
+  
+  <!-- Hose Nozzle -->
+  <path d="M395 115 L 365 120 L 365 130 L 395 135 Z" fill="#000" />
+  <path d="M365 118 L 355 120 L 355 130 L 365 132 Z" fill="#000" />
+
+  <!-- Water from nozzle -->
+  <path d="M355 125 L 290 140 L 300 150 Z" fill="#5dc1f8" />
+
+  <!-- Car Silhouette -->
+  <!-- Outline -->
+  <path d="M 40 300 C 40 260, 50 240, 100 230 L 180 200 L 260 180 C 290 180, 310 190, 340 220 L 380 260 C 390 270, 400 285, 400 300" fill="#fff" stroke="#000" stroke-width="14" stroke-linejoin="round"/>
+  <!-- Underline/Base -->
+  <path d="M 40 300 C 50 290, 80 290, 100 300 L 340 300 C 360 290, 390 290, 400 300" fill="none" stroke="#000" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Windows -->
+  <!-- Window 1 (Back) -->
+  <polygon points="120,240 170,220 200,220 180,260 105,260" fill="#111" />
+  <!-- Window 2 (Middle-Back) -->
+  <polygon points="210,220 250,220 250,260 190,260" fill="#111" />
+  <!-- Window 3 (Front) -->
+  <polygon points="260,220 300,220 320,260 260,260" fill="#111" />
+  <!-- Window 4 (Small Front) -->
+  <polygon points="310,220 325,235 335,260 328,260" fill="#111" />
+
+  <!-- Sparkles -->
+  <g fill="#5dc1f8">
+    <polygon points="220,290 225,275 230,290 245,295 230,300 225,315 220,300 205,295" />
+    <polygon points="250,270 253,260 256,270 266,273 256,276 253,286 250,276 240,273" />
+    <polygon points="200,265 202,258 204,265 211,267 204,269 202,276 200,269 193,267" />
+  </g>
+
+  <!-- Text -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-weight="900" font-size="80" fill="#218de2" text-anchor="middle" letter-spacing="2">CLEANAT</text>
+  <text x="256" y="480" font-family="Arial, sans-serif" font-weight="900" font-size="50" fill="#218de2" text-anchor="middle" letter-spacing="4">DOORSTEP</text>
+  
+  <!-- Text Highlights/Inline -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-weight="900" font-size="80" fill="none" stroke="#5dc1f8" stroke-width="2" text-anchor="middle" letter-spacing="2">CLEANAT</text>
+  <text x="256" y="480" font-family="Arial, sans-serif" font-weight="900" font-size="50" fill="none" stroke="#5dc1f8" stroke-width="1.5" text-anchor="middle" letter-spacing="4">DOORSTEP</text>
+  
+  <!-- Doorstep lines -->
+  <path d="M 40 450 L 100 450 M 50 465 L 100 465" fill="none" stroke="#5dc1f8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 412 450 L 472 450 M 412 465 L 462 465" fill="none" stroke="#5dc1f8" stroke-width="4" stroke-linecap="round"/>
 </svg>

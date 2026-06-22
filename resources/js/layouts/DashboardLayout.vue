@@ -2,7 +2,7 @@
   <div class="dash-layout">
 
     <aside class="dash-sidebar">
-      <div class="dash-sidebar-logo">CleanAtDoorstep</div>
+      <div class="dash-sidebar-logo">CleanAt Doorstep</div>
       <ul class="dash-sidebar-nav">
         <!-- Customer Sidebar -->
         <template v-if="role === 'customer'">

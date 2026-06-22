@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to CleanAtDoorstep</title>
+    <title>Welcome to CleanAt Doorstep</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -29,12 +29,10 @@
                         <td style="background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #8b5cf6 100%); padding:48px 40px 40px; text-align:center;">
                             <!-- Car wash icon -->
                             <div style="margin-bottom:20px;">
-                                <span style="display:inline-block; background:rgba(255,255,255,0.2); border-radius:50%; width:80px; height:80px; line-height:80px; font-size:36px;">
-                                    🚗✨
-                                </span>
+                                <img src="{{ $message->embed(public_path('logo.png')) }}" alt="CleanAt Doorstep" width="100" height="100" style="display:inline-block; background:rgba(255,255,255,0.9); border-radius:16px; padding:10px;">
                             </div>
                             <h1 style="margin:0 0 8px; color:#ffffff; font-size:28px; font-weight:700; letter-spacing:-0.5px;">
-                                Welcome to CleanAtDoorstep!
+                                Welcome to CleanAt Doorstep!
                             </h1>
                             <p style="margin:0; color:rgba(255,255,255,0.85); font-size:16px; font-weight:400;">
                                 Your car deserves the best care — right at your doorstep.
@@ -52,7 +50,7 @@
                                 {{ $userName }}
                             </h2>
                             <p style="margin:0; color:#475569; font-size:15px; line-height:1.7;">
-                                Thank you for joining <strong style="color:#0ea5e9;">CleanAtDoorstep</strong>! We're thrilled to have you on board.
+                                Thank you for joining <strong style="color:#0ea5e9;">CleanAt Doorstep</strong>! We're thrilled to have you on board.
                                 Your account is all set up and ready to go. Book your first professional car wash service and experience the convenience of doorstep cleaning.
                             </p>
                         </td>
@@ -177,7 +175,7 @@
                     <tr>
                         <td style="padding:24px 40px 36px; text-align:center;">
                             <p style="margin:0 0 8px; color:#1e293b; font-size:16px; font-weight:700;">
-                                CleanAtDoorstep
+                                CleanAt Doorstep
                             </p>
                             <p style="margin:0 0 16px; color:#94a3b8; font-size:13px; line-height:1.5;">
                                 Professional car wash services at your doorstep.<br>
@@ -190,7 +188,7 @@
                                 <a href="#" style="display:inline-block; margin:0 6px; width:36px; height:36px; line-height:36px; background:#f1f5f9; border-radius:50%; text-decoration:none; font-size:16px;">🐦</a>
                             </p>
                             <p style="margin:0; color:#cbd5e1; font-size:11px; line-height:1.6;">
-                                © {{ date('Y') }} CleanAtDoorstep. All rights reserved.<br>
+                                © {{ date('Y') }} CleanAt Doorstep. All rights reserved.<br>
                                 You received this email because you created an account on our platform.<br>
                                 <a href="{{ $appUrl }}" style="color:#6366f1; text-decoration:underline;">Visit our website</a>
                             </p>

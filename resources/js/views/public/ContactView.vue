@@ -9,7 +9,7 @@
               <h4 style="margin-bottom:1rem">Head Office</h4>
               <div class="flex items-center gap-2" style="margin-bottom:0.75rem"><span>📍</span><span class="text-secondary" style="font-size:0.9rem">Linking Road, Bandra West, Mumbai - 400050</span></div>
               <div class="flex items-center gap-2" style="margin-bottom:0.75rem"><span>📞</span><span class="text-secondary" style="font-size:0.9rem">+91 99999 99999</span></div>
-              <div class="flex items-center gap-2" style="margin-bottom:0.75rem"><span>✉️</span><span class="text-secondary" style="font-size:0.9rem">info@carbonhydro.in</span></div>
+              <div class="flex items-center gap-2" style="margin-bottom:0.75rem"><span>✉️</span><span class="text-secondary" style="font-size:0.9rem">info@cleanatdoorstep.com</span></div>
               <div class="flex items-center gap-2"><span>🕐</span><span class="text-secondary" style="font-size:0.9rem">Mon - Sat: 8AM - 8PM</span></div>
             </div>
           </div>
