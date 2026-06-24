@@ -188,6 +188,7 @@ export default {
         this.user.avatar = data.avatar;
         this.user = { ...this.user, ...data.user };
         localStorage.setItem('auth_user', JSON.stringify(this.user));
+        window.dispatchEvent(new Event('user-updated'));
         this.avatarMsg = 'Photo updated!';
         this.avatarMsgType = 'success';
       } catch (err) {
@@ -206,6 +207,7 @@ export default {
         const { data } = await axios.put('/api/auth/profile', this.profileForm);
         this.user = data.user;
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        window.dispatchEvent(new Event('user-updated'));
         this.profileSuccess = data.message || 'Profile updated!';
       } catch (err) {
         const errs = err.response?.data?.errors;

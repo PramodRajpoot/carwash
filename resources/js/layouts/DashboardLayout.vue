@@ -173,10 +173,17 @@ export default {
         catch (e) {}
       }
     },
+    updateLocalUser() {
+      this.user = JSON.parse(localStorage.getItem('auth_user') || '{}');
+    },
   },
   mounted() {
     this.loadTheme();
     this.loadUnread();
+    window.addEventListener('user-updated', this.updateLocalUser);
+  },
+  beforeUnmount() {
+    window.removeEventListener('user-updated', this.updateLocalUser);
   },
 };
 </script>
