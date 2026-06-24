@@ -101,12 +101,8 @@ class AuthController extends Controller
             ]);
         }
 
-        // Send welcome email to the customer
-        try {
-            Mail::to($user->email)->send(new WelcomeCustomerMail($user));
-        } catch (\Exception $e) {
-            Log::error('Welcome email failed for user #' . $user->id . ': ' . $e->getMessage());
-        }
+        // Dispatch welcome email via queue job (non-blocking)
+        \App\Jobs\SendWelcomeEmailJob::dispatch($user);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

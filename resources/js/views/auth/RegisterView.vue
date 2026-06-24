@@ -50,7 +50,10 @@
         </div>
 
         <div v-if="serverError" style="color:#ef4444;font-size:0.85rem">{{ serverError }}</div>
-        <button class="btn btn-primary w-full" @click="register" :disabled="loading">{{ loading ? 'Creating Account…' : 'Create Account' }}</button>
+        <button class="btn btn-primary w-full reg-btn" @click="register" :disabled="loading">
+          <svg v-if="loading" class="btn-spinner" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="31.4 31.4" /></svg>
+          <span>{{ loading ? 'Creating Account…' : 'Create Account' }}</span>
+        </button>
       </div>
 
       <div style="text-align:center;margin-top:1.5rem">
@@ -223,5 +226,23 @@ export default {
 .input-error {
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+}
+
+.reg-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-spinner {
+  width: 18px;
+  height: 18px;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
