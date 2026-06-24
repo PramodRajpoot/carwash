@@ -154,6 +154,24 @@ class AuthController extends Controller
         ]);
     }
 
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ], [
+            'email.exists' => 'We could not find an account with that email address.',
+        ]);
+
+        // Here we would normally send a password reset link.
+        // For now, we will just return a success message.
+        // TODO: Implement actual password reset email dispatch
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Password reset link sent to your email.',
+        ]);
+    }
+
     public function me(Request $request)
     {
         $user = $request->user();

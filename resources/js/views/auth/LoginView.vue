@@ -7,40 +7,69 @@
       </div>
 
       <!-- Tab Toggle -->
-      <div class="flex" style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:4px;margin-bottom:1.5rem">
+      <div v-if="mode !== 'forgot'" class="flex" style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:4px;margin-bottom:1.5rem">
         <button class="btn btn-sm" :class="mode === 'email' ? 'btn-primary' : 'btn-ghost'" style="flex:1" @click="mode = 'email'">📧 Email</button>
         <button class="btn btn-sm" :class="mode === 'otp' ? 'btn-primary' : 'btn-ghost'" style="flex:1" @click="mode = 'otp'">📱 OTP</button>
       </div>
 
       <!-- Email Login -->
       <div v-if="mode === 'email'" style="display:flex;flex-direction:column;gap:0.75rem">
-        <input v-model="email" type="email" class="form-input" placeholder="Email address" id="login-email" />
-        <div class="input-wrapper">
-          <input v-model="password" :type="showPwd ? 'text' : 'password'" class="form-input" placeholder="Password" id="login-password" @keyup.enter="loginEmail" />
-          <span class="pwd-toggle" @click="showPwd = !showPwd">
-            <svg v-if="!showPwd" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-          </span>
+        <div>
+          <input v-model="email" type="email" class="form-input" placeholder="Email address" id="login-email" />
+          <div v-if="errors.email" style="color:#ef4444;font-size:0.85rem;margin-top:0.25rem">{{ errors.email[0] }}</div>
+        </div>
+        <div>
+          <div class="input-wrapper">
+            <input v-model="password" :type="showPwd ? 'text' : 'password'" class="form-input" placeholder="Password" id="login-password" @keyup.enter="loginEmail" />
+            <span class="pwd-toggle" @click="showPwd = !showPwd">
+              <svg v-if="!showPwd" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </span>
+          </div>
+          <div v-if="errors.password" style="color:#ef4444;font-size:0.85rem;margin-top:0.25rem">{{ errors.password[0] }}</div>
+        </div>
+        <div style="text-align:right">
+          <a href="#" @click.prevent="mode = 'forgot'; error=''; errors={}" style="color:var(--accent-cyan);font-size:0.85rem;text-decoration:none;font-weight:600">Forgot Password?</a>
         </div>
         <div v-if="error" style="color:#ef4444;font-size:0.85rem">{{ error }}</div>
         <button class="btn btn-primary w-full" @click="loginEmail" :disabled="loading">{{ loading ? 'Signing in…' : 'Sign In' }}</button>
       </div>
 
       <!-- OTP Login -->
-      <div v-else style="display:flex;flex-direction:column;gap:0.75rem">
-        <input v-model="phone" type="tel" class="form-input" placeholder="Mobile Number (e.g. 9999999999)" id="login-phone" />
+      <div v-else-if="mode === 'otp'" style="display:flex;flex-direction:column;gap:0.75rem">
+        <div>
+          <input v-model="phone" type="tel" class="form-input" placeholder="Mobile Number (e.g. 9999999999)" id="login-phone" />
+          <div v-if="errors.phone" style="color:#ef4444;font-size:0.85rem;margin-top:0.25rem">{{ errors.phone[0] }}</div>
+        </div>
         <div v-if="!otpSent" class="flex gap-2">
           <input v-model="phone" type="tel" class="form-input" style="display:none" />
           <button class="btn btn-primary w-full" @click="sendOtp" :disabled="loading || !phone">{{ loading ? 'Sending…' : 'Send OTP' }}</button>
         </div>
         <div v-else>
-          <input v-model="otp" type="text" class="form-input" placeholder="Enter 4-digit OTP" maxlength="4" id="login-otp" />
+          <div>
+            <input v-model="otp" type="text" class="form-input" placeholder="Enter 4-digit OTP" maxlength="4" id="login-otp" />
+            <div v-if="errors.otp" style="color:#ef4444;font-size:0.85rem;margin-top:0.25rem">{{ errors.otp[0] }}</div>
+          </div>
           <div v-if="devOtp" class="text-muted" style="font-size:0.78rem;margin-top:0.25rem">Dev OTP: <strong style="color:var(--accent-cyan)">{{ devOtp }}</strong></div>
           <div v-if="error" style="color:#ef4444;font-size:0.85rem;margin-top:0.4rem">{{ error }}</div>
           <div class="flex gap-2" style="margin-top:0.75rem">
             <button class="btn btn-primary" style="flex:1" @click="verifyOtp" :disabled="loading">{{ loading ? 'Verifying…' : 'Verify & Login' }}</button>
             <button class="btn btn-ghost" @click="otpSent = false; otp = ''" style="flex:1">Resend</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Forgot Password -->
+      <div v-else-if="mode === 'forgot'" style="display:flex;flex-direction:column;gap:0.75rem">
+        <div>
+          <input v-model="email" type="email" class="form-input" placeholder="Enter your email address" id="forgot-email" />
+          <div v-if="errors.email" style="color:#ef4444;font-size:0.85rem;margin-top:0.25rem">{{ errors.email[0] }}</div>
+        </div>
+        <div v-if="forgotSuccess" style="color:#10b981;font-size:0.85rem">{{ forgotSuccess }}</div>
+        <div v-if="error" style="color:#ef4444;font-size:0.85rem">{{ error }}</div>
+        <button class="btn btn-primary w-full" @click="sendForgotPassword" :disabled="loading">{{ loading ? 'Sending Reset Link…' : 'Send Reset Link' }}</button>
+        <div style="text-align:center;margin-top:0.5rem">
+          <button class="btn btn-ghost btn-sm" @click="mode = 'email'; error=''; errors={}; forgotSuccess=''">Back to Login</button>
         </div>
       </div>
 
@@ -55,36 +84,68 @@
 import axios from 'axios';
 export default {
   name: 'LoginView',
-  data() { return { mode: 'email', email: '', password: '', phone: '', otp: '', otpSent: false, devOtp: null, loading: false, error: '', showPwd: false }; },
+  data() { return { mode: 'email', email: '', password: '', phone: '', otp: '', otpSent: false, devOtp: null, loading: false, error: '', errors: {}, showPwd: false, forgotSuccess: '' }; },
   methods: {
     async loginEmail() {
-      this.error = ''; this.loading = true;
+      this.error = ''; this.errors = {}; this.loading = true;
       try {
         const { data } = await axios.post('/api/auth/login', { email: this.email, password: this.password });
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         const map = { customer: '/customer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin' };
         this.$router.push(map[data.user.role] || '/customer');
-      } catch (e) { this.error = e.response?.data?.message || 'Login failed.'; }
+      } catch (e) {
+        if (e.response?.status === 422) {
+          this.errors = e.response.data.errors || {};
+        } else {
+          this.error = e.response?.data?.message || 'Login failed.';
+        }
+      }
       finally { this.loading = false; }
     },
     async sendOtp() {
-      this.loading = true; this.error = '';
+      this.loading = true; this.error = ''; this.errors = {};
       try {
         const { data } = await axios.post('/api/auth/otp/send', { phone: this.phone });
         this.otpSent = true;
         if (data.otp) this.devOtp = data.otp;
-      } catch (e) { this.error = e.response?.data?.message || 'Failed to send OTP.'; }
+      } catch (e) {
+        if (e.response?.status === 422) {
+          this.errors = e.response.data.errors || {};
+        } else {
+          this.error = e.response?.data?.message || 'Failed to send OTP.';
+        }
+      }
       finally { this.loading = false; }
     },
     async verifyOtp() {
-      this.error = ''; this.loading = true;
+      this.error = ''; this.errors = {}; this.loading = true;
       try {
         const { data } = await axios.post('/api/auth/otp/verify', { phone: this.phone, otp: this.otp });
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         this.$router.push('/customer');
-      } catch (e) { this.error = e.response?.data?.message || 'Invalid OTP.'; }
+      } catch (e) {
+        if (e.response?.status === 422) {
+          this.errors = e.response.data.errors || {};
+        } else {
+          this.error = e.response?.data?.message || 'Invalid OTP.';
+        }
+      }
+      finally { this.loading = false; }
+    },
+    async sendForgotPassword() {
+      this.error = ''; this.errors = {}; this.forgotSuccess = ''; this.loading = true;
+      try {
+        await axios.post('/api/auth/forgot-password', { email: this.email });
+        this.forgotSuccess = 'Password reset link sent to your email.';
+      } catch (e) {
+        if (e.response?.status === 422) {
+          this.errors = e.response.data.errors || {};
+        } else {
+          this.error = e.response?.data?.message || 'Failed to send reset link. Please try again later.';
+        }
+      }
       finally { this.loading = false; }
     },
   },
