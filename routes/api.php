@@ -26,6 +26,7 @@ use App\Http\Controllers\PartnerController;
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login',    [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/auth/reset-password',  [AuthController::class, 'resetPassword']);
 
 // OTP Authentication (alternative login)
 Route::post('/auth/otp/send',   [OtpController::class, 'send']);

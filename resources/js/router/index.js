@@ -17,6 +17,7 @@ import PrivacyView from '@/views/public/PrivacyView.vue';
 // Auth Views
 import LoginView from '@/views/auth/LoginView.vue';
 import RegisterView from '@/views/auth/RegisterView.vue';
+import ResetPasswordView from '@/views/auth/ResetPasswordView.vue';
 
 // Customer Views
 import CustomerDashboard from '@/views/customer/CustomerDashboard.vue';
@@ -81,6 +82,7 @@ export const routes = [
     // ── Auth ─────────────────────────────────────────────────────
     { path: '/login', name: 'login', component: LoginView, meta: { guest: true } },
     { path: '/register', name: 'register', component: RegisterView, meta: { guest: true } },
+    { path: '/reset-password', name: 'reset-password', component: ResetPasswordView, meta: { guest: true } },
 
     // ── Customer Dashboard ───────────────────────────────────────
     {

@@ -162,14 +162,54 @@ class AuthController extends Controller
             'email.exists' => 'We could not find an account with that email address.',
         ]);
 
-        // Here we would normally send a password reset link.
-        // For now, we will just return a success message.
-        // TODO: Implement actual password reset email dispatch
+        $status = \Illuminate\Support\Facades\Password::broker()->sendResetLink(
+            $request->only('email')
+        );
+
+        if ($status === \Illuminate\Support\Facades\Password::RESET_LINK_SENT) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Password reset link sent to your email.',
+            ]);
+        }
 
         return response()->json([
-            'status'  => 'success',
-            'message' => 'Password reset link sent to your email.',
+            'status'  => 'error',
+            'message' => __($status),
+        ], 400);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token'    => 'required',
+            'email'    => 'required|email|exists:users,email',
+            'password' => 'required|string|min:6|confirmed',
+        ], [
+            'email.exists' => 'We could not find an account with that email address.',
+            'password.confirmed' => 'The password confirmation does not match.',
+            'password.min' => 'The password must be at least 6 characters.',
         ]);
+
+        $status = \Illuminate\Support\Facades\Password::broker()->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->password = Hash::make($password);
+                $user->save();
+            }
+        );
+
+        if ($status === \Illuminate\Support\Facades\Password::PASSWORD_RESET) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Password has been successfully reset.',
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'error',
+            'message' => __($status),
+        ], 400);
     }
 
     public function me(Request $request)
