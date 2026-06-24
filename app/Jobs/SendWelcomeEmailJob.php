@@ -38,7 +38,7 @@ class SendWelcomeEmailJob implements ShouldQueue
      */
     public function handle(): void
     {
-       // Mail::to($this->user->email)->send(new WelcomeCustomerMail($this->user));
+        Mail::to($this->user->email)->send(new WelcomeCustomerMail($this->user));
     }
 
     /**

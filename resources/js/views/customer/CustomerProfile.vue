@@ -99,17 +99,35 @@
             <div class="form-row">
               <div class="field">
                 <label for="current-pwd">Current Password <span class="req">*</span></label>
-                <input v-model="passwordForm.current_password" type="password" class="form-input" id="current-pwd" placeholder="Enter current password" />
+                <div class="input-wrapper">
+                  <input v-model="passwordForm.current_password" :type="showPwd.current ? 'text' : 'password'" class="form-input" id="current-pwd" placeholder="Enter current password" />
+                  <span class="pwd-toggle" @click="showPwd.current = !showPwd.current">
+                    <svg v-if="!showPwd.current" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </span>
+                </div>
               </div>
             </div>
             <div class="form-row two-col">
               <div class="field">
                 <label for="new-pwd">New Password <span class="req">*</span></label>
-                <input v-model="passwordForm.password" type="password" class="form-input" id="new-pwd" placeholder="Min 6 characters" />
+                <div class="input-wrapper">
+                  <input v-model="passwordForm.password" :type="showPwd.new ? 'text' : 'password'" class="form-input" id="new-pwd" placeholder="Min 6 characters" />
+                  <span class="pwd-toggle" @click="showPwd.new = !showPwd.new">
+                    <svg v-if="!showPwd.new" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </span>
+                </div>
               </div>
               <div class="field">
                 <label for="confirm-pwd">Confirm Password <span class="req">*</span></label>
-                <input v-model="passwordForm.password_confirmation" type="password" class="form-input" id="confirm-pwd" placeholder="Re-enter new password" />
+                <div class="input-wrapper">
+                  <input v-model="passwordForm.password_confirmation" :type="showPwd.confirm ? 'text' : 'password'" class="form-input" id="confirm-pwd" placeholder="Re-enter new password" />
+                  <span class="pwd-toggle" @click="showPwd.confirm = !showPwd.confirm">
+                    <svg v-if="!showPwd.confirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </span>
+                </div>
               </div>
             </div>
             <div v-if="pwdError" class="msg msg-error">{{ pwdError }}</div>
@@ -140,6 +158,7 @@ export default {
       profileLoading: false, profileError: '', profileSuccess: '',
       pwdLoading: false, pwdError: '', pwdSuccess: '',
       avatarUploading: false, avatarMsg: '', avatarMsgType: '',
+      showPwd: { current: false, new: false, confirm: false },
     };
   },
   computed: {
@@ -460,6 +479,28 @@ export default {
 .req {
   color: #ef4444;
   font-weight: 700;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-wrapper .form-input {
+  padding-right: 2.5rem;
+}
+.pwd-toggle {
+  position: absolute;
+  right: 12px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.pwd-toggle:hover {
+  color: var(--accent-cyan);
 }
 
 .msg {

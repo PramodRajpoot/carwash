@@ -15,7 +15,13 @@
       <!-- Email Login -->
       <div v-if="mode === 'email'" style="display:flex;flex-direction:column;gap:0.75rem">
         <input v-model="email" type="email" class="form-input" placeholder="Email address" id="login-email" />
-        <input v-model="password" type="password" class="form-input" placeholder="Password" id="login-password" @keyup.enter="loginEmail" />
+        <div class="input-wrapper">
+          <input v-model="password" :type="showPwd ? 'text' : 'password'" class="form-input" placeholder="Password" id="login-password" @keyup.enter="loginEmail" />
+          <span class="pwd-toggle" @click="showPwd = !showPwd">
+            <svg v-if="!showPwd" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </span>
+        </div>
         <div v-if="error" style="color:#ef4444;font-size:0.85rem">{{ error }}</div>
         <button class="btn btn-primary w-full" @click="loginEmail" :disabled="loading">{{ loading ? 'Signing in…' : 'Sign In' }}</button>
       </div>
@@ -49,7 +55,7 @@
 import axios from 'axios';
 export default {
   name: 'LoginView',
-  data() { return { mode: 'email', email: '', password: '', phone: '', otp: '', otpSent: false, devOtp: null, loading: false, error: '' }; },
+  data() { return { mode: 'email', email: '', password: '', phone: '', otp: '', otpSent: false, devOtp: null, loading: false, error: '', showPwd: false }; },
   methods: {
     async loginEmail() {
       this.error = ''; this.loading = true;
@@ -84,3 +90,26 @@ export default {
   },
 };
 </script>
+<style scoped>
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-wrapper .form-input {
+  padding-right: 2.5rem;
+}
+.pwd-toggle {
+  position: absolute;
+  right: 12px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.pwd-toggle:hover {
+  color: var(--accent-cyan);
+}
+</style>

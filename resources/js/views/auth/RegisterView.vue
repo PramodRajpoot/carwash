@@ -31,14 +31,26 @@
         <!-- Password -->
         <div>
           <label class="reg-label" for="reg-password">Password <span class="req-star">*</span></label>
-          <input v-model="form.password" type="password" class="form-input" :class="{ 'input-error': errors.password }" placeholder="Password (min 6 chars)" id="reg-password" @blur="validatePassword" @input="clearError('password')" />
+          <div class="input-wrapper">
+            <input v-model="form.password" :type="showPwd.main ? 'text' : 'password'" class="form-input" :class="{ 'input-error': errors.password }" placeholder="Password (min 6 chars)" id="reg-password" @blur="validatePassword" @input="clearError('password')" />
+            <span class="pwd-toggle" @click="showPwd.main = !showPwd.main">
+              <svg v-if="!showPwd.main" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </span>
+          </div>
           <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
         </div>
 
         <!-- Confirm Password -->
         <div>
           <label class="reg-label" for="reg-confirm">Confirm Password <span class="req-star">*</span></label>
-          <input v-model="form.password_confirmation" type="password" class="form-input" :class="{ 'input-error': errors.password_confirmation }" placeholder="Confirm Password" id="reg-confirm" @blur="validateConfirmPassword" @input="clearError('password_confirmation')" />
+          <div class="input-wrapper">
+            <input v-model="form.password_confirmation" :type="showPwd.confirm ? 'text' : 'password'" class="form-input" :class="{ 'input-error': errors.password_confirmation }" placeholder="Confirm Password" id="reg-confirm" @blur="validateConfirmPassword" @input="clearError('password_confirmation')" />
+            <span class="pwd-toggle" @click="showPwd.confirm = !showPwd.confirm">
+              <svg v-if="!showPwd.confirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </span>
+          </div>
           <span v-if="errors.password_confirmation" class="field-error">{{ errors.password_confirmation }}</span>
         </div>
 
@@ -71,7 +83,7 @@ export default {
     return {
       form: { name: '', email: '', phone: '', password: '', password_confirmation: '', referred_by_code: '' },
       errors: { name: '', email: '', phone: '', password: '', password_confirmation: '' },
-      loading: false, serverError: '',
+      loading: false, serverError: '', showPwd: { main: false, confirm: false }
     };
   },
   mounted() {
@@ -226,6 +238,28 @@ export default {
 .input-error {
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-wrapper .form-input {
+  padding-right: 2.5rem;
+}
+.pwd-toggle {
+  position: absolute;
+  right: 12px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.pwd-toggle:hover {
+  color: var(--accent-cyan);
 }
 
 .reg-btn {
