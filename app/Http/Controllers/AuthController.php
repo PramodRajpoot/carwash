@@ -19,12 +19,23 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name'             => 'required|string|max:255',
+            'name'             => 'required|string|min:2|max:255',
             'email'            => 'required|string|email|max:255|unique:users',
-            'phone'            => 'nullable|string|max:20',
+            'phone'            => 'required|numeric|regex:/^[0-9]{10}$/',
             'password'         => 'required|string|min:6|confirmed',
             'referred_by_code' => 'nullable|string',
             'role'             => 'nullable|string',
+        ], [
+            'name.required'     => 'Full name is required.',
+            'name.min'          => 'Name must be at least 2 characters.',
+            'email.required'    => 'Email address is required.',
+            'email.email'       => 'Please enter a valid email address.',
+            'email.unique'      => 'This email is already registered.',
+            'phone.required'    => 'Mobile number is required.',
+            'phone.regex'       => 'Please enter a valid 10-digit mobile number.',
+            'password.required' => 'Password is required.',
+            'password.min'      => 'Password must be at least 6 characters.',
+            'password.confirmed' => 'Passwords do not match.',
         ]);
 
         $referredBy = null;
