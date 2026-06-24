@@ -102,7 +102,11 @@ class AuthController extends Controller
         }
 
         // Dispatch welcome email via queue job (non-blocking)
-        \App\Jobs\SendWelcomeEmailJob::dispatch($user);
+        try {
+           \App\Jobs\SendWelcomeEmailJob::dispatch($user);
+        } catch (\Exception $e) {
+            Log::warning('Welcome email dispatch failed for user #' . $user->id . ': ' . $e->getMessage());
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -211,6 +215,41 @@ class AuthController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Logged out successfully',
+        ]);
+    }
+
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ], [
+            'avatar.required' => 'Please select an image.',
+            'avatar.image'    => 'The file must be an image.',
+            'avatar.mimes'    => 'Only JPEG, PNG, JPG, and WebP formats are allowed.',
+            'avatar.max'      => 'Image size must not exceed 2MB.',
+        ]);
+
+        $user = $request->user();
+
+        // Delete old avatar if exists
+        if ($user->avatar) {
+            $oldPath = public_path($user->avatar);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+        }
+
+        $file = $request->file('avatar');
+        $filename = 'avatar_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('avatars'), $filename);
+
+        $user->update(['avatar' => 'avatars/' . $filename]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Profile photo updated successfully',
+            'avatar'  => 'avatars/' . $filename,
+            'user'    => $user->fresh(),
         ]);
     }
 }

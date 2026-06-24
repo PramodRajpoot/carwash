@@ -29,6 +29,7 @@ import CustomerWallet from '@/views/customer/CustomerWallet.vue';
 import CustomerSupport from '@/views/customer/CustomerSupport.vue';
 import CustomerOffers from '@/views/customer/CustomerOffers.vue';
 import CustomerNotifications from '@/views/customer/CustomerNotifications.vue';
+import CustomerProfile from '@/views/customer/CustomerProfile.vue';
 
 // Franchisee Views
 import FranchiseeDashboard from '@/views/franchisee/FranchiseeDashboard.vue';
@@ -97,6 +98,7 @@ export const routes = [
             { path: 'support', name: 'customer-support', component: CustomerSupport },
             { path: 'offers', name: 'customer-offers', component: CustomerOffers },
             { path: 'notifications', name: 'customer-notifications', component: CustomerNotifications },
+            { path: 'profile', name: 'customer-profile', component: CustomerProfile },
         ],
     },
 
