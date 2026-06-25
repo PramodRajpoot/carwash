@@ -38,23 +38,42 @@
       <!-- OTP Login -->
       <div v-else-if="mode === 'otp'" style="display:flex;flex-direction:column;gap:0.75rem">
         <div>
-          <input v-model="phone" type="tel" class="form-input" placeholder="Mobile Number (e.g. 9999999999)" id="login-phone" />
-          <div v-if="errors.phone" style="color:#ef4444;font-size:0.85rem;margin-top:0.25rem">{{ errors.phone[0] }}</div>
+          <input v-model="identifier" type="text" class="form-input" placeholder="Mobile Number or Email" id="login-identifier" />
+          <div v-if="errors.identifier" style="color:#ef4444;font-size:0.85rem;margin-top:0.25rem">{{ errors.identifier[0] }}</div>
         </div>
         <div v-if="!otpSent" class="flex gap-2">
-          <input v-model="phone" type="tel" class="form-input" style="display:none" />
-          <button class="btn btn-primary w-full" @click="sendOtp" :disabled="loading">{{ loading ? 'Sending…' : 'Send OTP' }}</button>
+          <input v-model="identifier" type="text" class="form-input" style="display:none" />
+          <button class="btn btn-primary w-full" @click="sendOtp(false)" :disabled="loading">
+            <span v-if="loading" style="display:inline-block;width:1rem;height:1rem;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin 0.75s linear infinite;margin-right:0.5rem;vertical-align:middle;"></span>
+            {{ loading ? 'Sending…' : 'Send OTP' }}
+          </button>
         </div>
         <div v-else>
+          <div style="margin-bottom:0.75rem;font-size:0.85rem;color:var(--text-muted);text-align:center;">
+            OTP sent to your email/mobile.
+          </div>
           <div>
             <input v-model="otp" type="text" class="form-input" placeholder="Enter 4-digit OTP" maxlength="4" id="login-otp" />
             <div v-if="errors.otp" style="color:#ef4444;font-size:0.85rem;margin-top:0.25rem">{{ errors.otp[0] }}</div>
           </div>
-          <div v-if="devOtp" class="text-muted" style="font-size:0.78rem;margin-top:0.25rem">Dev OTP: <strong style="color:var(--accent-cyan)">{{ devOtp }}</strong></div>
           <div v-if="error" style="color:#ef4444;font-size:0.85rem;margin-top:0.4rem">{{ error }}</div>
           <div class="flex gap-2" style="margin-top:0.75rem">
-            <button class="btn btn-primary" style="flex:1" @click="verifyOtp" :disabled="loading">{{ loading ? 'Verifying…' : 'Verify & Login' }}</button>
-            <button class="btn btn-ghost" @click="otpSent = false; otp = ''" style="flex:1">Resend</button>
+            <button class="btn btn-primary w-full" @click="verifyOtp" :disabled="loading">
+              <span v-if="loading" style="display:inline-block;width:1rem;height:1rem;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin 0.75s linear infinite;margin-right:0.5rem;vertical-align:middle;"></span>
+              {{ loading ? 'Verifying…' : 'Verify & Login' }}
+            </button>
+          </div>
+          <div style="text-align:center;margin-top:1rem;font-size:0.85rem;" class="text-muted">
+            <span v-if="countdown > 0">Resend OTP in <strong style="color:var(--text-primary)">{{ formatTime(countdown) }}</strong></span>
+            <div v-else>
+              <a href="#" @click.prevent="sendOtp(true)" :style="{ pointerEvents: (loading || resendCount >= 2) ? 'none' : 'auto', opacity: (loading || resendCount >= 2) ? 0.5 : 1, color: 'var(--accent-cyan)', textDecoration: 'none', fontWeight: 600 }">
+                Resend OTP <span v-if="resendCount < 2">({{ 2 - resendCount }} left)</span>
+              </a>
+              <div v-if="resendCount >= 2" style="color:#ef4444;margin-top:0.25rem;">Maximum resend limit reached.</div>
+            </div>
+          </div>
+          <div style="text-align:center;margin-top:0.75rem">
+             <a href="#" @click.prevent="otpSent = false; otp = ''; countdown = 0; if(timer) clearInterval(timer);" style="color:var(--text-muted);font-size:0.8rem;text-decoration:underline;">Change Email/Mobile</a>
           </div>
         </div>
       </div>
@@ -84,8 +103,27 @@
 import axios from 'axios';
 export default {
   name: 'LoginView',
-  data() { return { mode: 'email', email: '', password: '', phone: '', otp: '', otpSent: false, devOtp: null, loading: false, error: '', errors: {}, showPwd: false, forgotSuccess: '' }; },
+  data() { return { mode: 'email', email: '', password: '', identifier: '', otp: '', otpSent: false, loading: false, error: '', errors: {}, showPwd: false, forgotSuccess: '', resendCount: 0, countdown: 0, timer: null }; },
+  beforeUnmount() {
+    if (this.timer) clearInterval(this.timer);
+  },
   methods: {
+    formatTime(seconds) {
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const s = (seconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    },
+    startCountdown() {
+      this.countdown = 120;
+      if (this.timer) clearInterval(this.timer);
+      this.timer = setInterval(() => {
+        if (this.countdown > 0) {
+          this.countdown--;
+        } else {
+          clearInterval(this.timer);
+        }
+      }, 1000);
+    },
     async loginEmail() {
       this.error = ''; this.errors = {}; this.loading = true;
       try {
@@ -103,12 +141,16 @@ export default {
       }
       finally { this.loading = false; }
     },
-    async sendOtp() {
+    async sendOtp(isResend = false) {
+      if (isResend && this.resendCount >= 2) return;
       this.loading = true; this.error = ''; this.errors = {};
       try {
-        const { data } = await axios.post('/api/auth/otp/send', { phone: this.phone });
+        const { data } = await axios.post('/api/auth/otp/send', { identifier: this.identifier });
         this.otpSent = true;
-        if (data.otp) this.devOtp = data.otp;
+        if (isResend) {
+          this.resendCount++;
+        }
+        this.startCountdown();
       } catch (e) {
         if (e.response?.status === 422) {
           this.errors = e.response.data.errors || {};
@@ -121,7 +163,7 @@ export default {
     async verifyOtp() {
       this.error = ''; this.errors = {}; this.loading = true;
       try {
-        const { data } = await axios.post('/api/auth/otp/verify', { phone: this.phone, otp: this.otp });
+        const { data } = await axios.post('/api/auth/otp/verify', { identifier: this.identifier, otp: this.otp });
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         this.$router.push('/customer');
@@ -152,6 +194,9 @@ export default {
 };
 </script>
 <style scoped>
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 .input-wrapper {
   position: relative;
   display: flex;
