@@ -13,7 +13,11 @@ class OtpController extends Controller
     public function send(Request $request)
     {
         $request->validate([
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|numeric|regex:/^[0-9]{10}$/',
+        ], [
+            'phone.required' => 'Mobile number is required.',
+            'phone.numeric'  => 'Mobile number must contain only digits.',
+            'phone.regex'    => 'Please enter a valid 10-digit mobile number.',
         ]);
 
         $phone = $request->phone;
@@ -38,8 +42,14 @@ class OtpController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'phone' => 'required|string|max:20',
-            'otp'   => 'required|string|min:4|max:6',
+            'phone' => 'required|numeric|regex:/^[0-9]{10}$/',
+            'otp'   => 'required|string|size:4',
+        ], [
+            'phone.required' => 'Mobile number is required.',
+            'phone.numeric'  => 'Mobile number must contain only digits.',
+            'phone.regex'    => 'Please enter a valid 10-digit mobile number.',
+            'otp.required'   => 'OTP is required.',
+            'otp.size'       => 'OTP must be exactly 4 digits.',
         ]);
 
         $phone = $request->phone;

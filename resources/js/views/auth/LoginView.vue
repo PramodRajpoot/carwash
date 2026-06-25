@@ -43,7 +43,7 @@
         </div>
         <div v-if="!otpSent" class="flex gap-2">
           <input v-model="phone" type="tel" class="form-input" style="display:none" />
-          <button class="btn btn-primary w-full" @click="sendOtp" :disabled="loading || !phone">{{ loading ? 'Sending…' : 'Send OTP' }}</button>
+          <button class="btn btn-primary w-full" @click="sendOtp" :disabled="loading">{{ loading ? 'Sending…' : 'Send OTP' }}</button>
         </div>
         <div v-else>
           <div>
