@@ -68,6 +68,19 @@
         </button>
       </div>
 
+      <div style="margin:1.5rem 0;display:flex;align-items:center;gap:1rem;">
+        <div style="flex:1;height:1px;background:var(--border-color);"></div>
+        <span style="color:var(--text-muted);font-size:0.85rem;font-weight:500;">OR</span>
+        <div style="flex:1;height:1px;background:var(--border-color);"></div>
+      </div>
+
+      <div>
+        <a href="/api/auth/google" class="btn btn-ghost w-full" style="display:flex;align-items:center;justify-content:center;gap:0.75rem;border:1px solid var(--border-color);background:var(--bg-primary);text-decoration:none;color:var(--text-primary);font-weight:600;">
+          <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.275c0-.853-.07-1.673-.21-2.46H12v4.545h6.583c-.292 1.517-1.168 2.804-2.455 3.664v2.993h3.948c2.316-2.128 3.66-5.263 3.414-8.742z"/><path fill="#34A853" d="M12 24c3.24 0 5.956-1.077 7.948-2.915l-3.948-2.993c-1.08.723-2.457 1.15-3.978 1.15-3.056 0-5.642-2.062-6.57-4.838H1.36v3.106C3.332 21.436 7.37 24 12 24z"/><path fill="#FBBC05" d="M5.43 14.404a7.172 7.172 0 0 1-.38-2.404c0-.837.144-1.65.394-2.404V6.49H1.359A11.968 11.968 0 0 0 0 12c0 1.94.464 3.784 1.285 5.43l4.145-3.026z"/><path fill="#EA4335" d="M12 4.792c1.764 0 3.348.608 4.595 1.796l3.447-3.447C17.95 1.213 15.234 0 12 0 7.37 0 3.332 2.564 1.36 6.49l4.085 3.106C6.377 6.842 8.944 4.792 12 4.792z"/></svg>
+          Continue with Google
+        </a>
+      </div>
+
       <div style="text-align:center;margin-top:1.5rem">
         <span class="text-muted" style="font-size:0.85rem">Already have an account? </span>
         <router-link to="/login" style="color:var(--accent-cyan);font-size:0.85rem;font-weight:600">Sign In</router-link>

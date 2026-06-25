@@ -56,6 +56,7 @@
           <li><router-link to="/super-admin/admins"><span class="nav-icon">👤</span> Admin Management</router-link></li>
           <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Settings</router-link></li>
           <li style="padding:0.5rem 1.5rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border-color);margin-top:0.5rem">Platform</li>
+          <li><router-link to="/super-admin/master-slots"><span class="nav-icon">⏰</span> Master Slots</router-link></li>
           <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
           <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
           <li><router-link to="/super-admin/orders"><span class="nav-icon">📋</span> Orders</router-link></li>

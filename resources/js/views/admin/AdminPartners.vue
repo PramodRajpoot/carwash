@@ -98,6 +98,24 @@
         </div>
       </div>
     </div>
+
+    <!-- Password Modal -->
+    <div v-if="generatedPasswordData" class="modal-overlay" @click.self="generatedPasswordData = null">
+      <div class="modal-content" style="max-width: 500px; text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
+        <h3>Franchise Created Successfully!</h3>
+        <p class="text-muted" style="margin-bottom: 1.5rem; line-height: 1.6;">
+          A new franchisee account has been created for <strong>{{ generatedPasswordData.name }}</strong>. 
+          Please securely share this temporary password with them so they can log in.
+        </p>
+        
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); font-family: monospace; font-size: 1.25rem; font-weight: 700; color: var(--text-primary); letter-spacing: 2px; border: 1px dashed var(--border-color); margin-bottom: 1.5rem;">
+          {{ generatedPasswordData.password }}
+        </div>
+        
+        <button class="btn btn-primary w-full" @click="generatedPasswordData = null">I have copied the password</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -118,6 +136,7 @@ export default {
         { val: 'approved', label: '✅ Approved' },
         { val: 'rejected', label: '❌ Rejected' },
       ],
+      generatedPasswordData: null,
     };
   },
   methods: {
@@ -133,7 +152,17 @@ export default {
       }[s] || 'badge-amber';
     },
     async updateStatus(inq) {
-      await axios.put(`/api/admin/partners/${inq.id}`, { status: inq.status });
+      try {
+        const { data } = await axios.put(`/api/admin/partners/${inq.id}`, { status: inq.status });
+        if (data.generated_password) {
+          this.generatedPasswordData = {
+            name: inq.name,
+            password: data.generated_password
+          };
+        }
+      } catch (e) {
+        alert('Failed to update status.');
+      }
       await this.load();
     },
     async saveNotes(inq) {

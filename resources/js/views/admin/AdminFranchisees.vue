@@ -36,9 +36,39 @@
               <div class="text-muted" style="font-size:0.75rem">Revenue</div>
             </div>
           </div>
-          <div class="flex gap-3" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">
-            <span>📍 {{ f.address }}</span>
-            <span>💰 Royalty: {{ f.royalty_percentage }}%</span>
+          <div class="flex gap-3 justify-between items-center" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border-color);padding-top:0.75rem;">
+            <div class="flex gap-3">
+              <span>📍 {{ f.address }}</span>
+              <span>💰 Royalty: {{ f.royalty_percentage }}%</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" @click="openSlotModal(f)" style="color:var(--accent-cyan);border:1px solid var(--accent-cyan);padding:0.2rem 0.5rem;">⏰ Assign Wash Slots</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assign Slots Modal -->
+    <div v-if="showSlotModal" class="modal-overlay" @click.self="showSlotModal = false">
+      <div class="modal-content">
+        <h3>Assign Wash Slots</h3>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">Select which time slots are available for <strong>{{ selectedFranchise?.center_name }}</strong></p>
+        
+        <div v-if="loadingSlots" class="text-center text-muted" style="padding: 1rem;">Loading slots...</div>
+        <div v-else>
+          <div v-for="slot in allMasterSlots" :key="slot.id" style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" :id="'slot-'+slot.id" :value="slot.id" v-model="selectedSlotIds" style="width: 1.2rem; height: 1.2rem; accent-color: var(--accent-cyan);" />
+            <label :for="'slot-'+slot.id" style="cursor: pointer;">
+              <strong>{{ slot.name }}</strong> <span class="text-muted">({{ slot.time_range }})</span>
+            </label>
+          </div>
+          
+          <div v-if="error" class="alert alert-error" style="margin-top: 1rem;">{{ error }}</div>
+          
+          <div class="flex gap-2" style="margin-top: 1.5rem;">
+            <button class="btn btn-primary" @click="saveSlotAssignments" :disabled="savingSlots">
+              {{ savingSlots ? 'Saving...' : 'Save Assignments' }}
+            </button>
+            <button class="btn btn-ghost" @click="showSlotModal = false">Cancel</button>
           </div>
         </div>
       </div>
@@ -49,11 +79,54 @@
 import axios from 'axios';
 export default {
   name: 'AdminFranchisees',
-  data() { return { franchisees: [], loading: true }; },
+  data() { 
+    return { 
+      franchisees: [], 
+      loading: true,
+      
+      showSlotModal: false,
+      loadingSlots: false,
+      savingSlots: false,
+      selectedFranchise: null,
+      allMasterSlots: [],
+      selectedSlotIds: [],
+      error: ''
+    }; 
+  },
   methods: {
     async updateStatus(f) {
       await axios.put(`/api/admin/franchisees/${f.id}/status`, { status: f.status });
     },
+    async openSlotModal(f) {
+      this.selectedFranchise = f;
+      this.showSlotModal = true;
+      this.loadingSlots = true;
+      this.error = '';
+      this.selectedSlotIds = [];
+      
+      try {
+        const { data } = await axios.get(`/api/admin/franchisees/${f.id}/slots`);
+        
+        this.allMasterSlots = data.filter(s => s.status === 'active');
+        this.selectedSlotIds = data.filter(s => s.assigned).map(s => s.id);
+      } catch (e) {
+        this.error = 'Failed to load slot data.';
+      }
+      this.loadingSlots = false;
+    },
+    async saveSlotAssignments() {
+      this.savingSlots = true;
+      this.error = '';
+      try {
+        await axios.post(`/api/admin/franchisees/${this.selectedFranchise.id}/slots`, {
+          master_slot_ids: this.selectedSlotIds
+        });
+        this.showSlotModal = false;
+      } catch (e) {
+        this.error = 'Failed to save slot assignments.';
+      }
+      this.savingSlots = false;
+    }
   },
   async mounted() {
     try { const { data } = await axios.get('/api/admin/franchisees'); this.franchisees = data; }

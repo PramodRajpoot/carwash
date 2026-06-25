@@ -86,11 +86,38 @@ class PartnerController extends Controller
         ]);
 
         $data = [];
+        $generatedPassword = null;
 
         if ($request->filled('status')) {
             $data['status'] = $request->status;
             if ($request->status === 'contacted' && !$inquiry->contacted_at) {
                 $data['contacted_at'] = now();
+            }
+
+            // Auto-create franchisee if approved
+            if ($request->status === 'approved' && $inquiry->status !== 'approved') {
+                $userExists = \App\Models\User::where('email', $inquiry->email)->first();
+                if (!$userExists) {
+                    $generatedPassword = \Illuminate\Support\Str::random(8);
+                    
+                    $user = \App\Models\User::create([
+                        'name' => $inquiry->name,
+                        'email' => $inquiry->email,
+                        'phone' => $inquiry->phone,
+                        'password' => \Illuminate\Support\Facades\Hash::make($generatedPassword),
+                        'role' => 'franchisee',
+                        'status' => 'active'
+                    ]);
+
+                    \App\Models\Franchisee::create([
+                        'user_id' => $user->id,
+                        'center_name' => $inquiry->name . "'s Center",
+                        'address' => 'Pending Setup',
+                        'city' => $inquiry->city ?? 'Pending Setup',
+                        'royalty_percentage' => 10.0,
+                        'status' => 'active'
+                    ]);
+                }
             }
         }
 
@@ -100,11 +127,18 @@ class PartnerController extends Controller
 
         $inquiry->update($data);
 
-        return response()->json([
+        $response = [
             'status'  => 'success',
             'message' => 'Inquiry updated.',
             'inquiry' => $inquiry->fresh(),
-        ]);
+        ];
+
+        if ($generatedPassword) {
+            $response['generated_password'] = $generatedPassword;
+            $response['message'] = 'Inquiry approved and Franchisee account created automatically.';
+        }
+
+        return response()->json($response);
     }
 
     // Admin: delete inquiry

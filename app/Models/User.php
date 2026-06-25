@@ -26,6 +26,7 @@ class User extends Authenticatable
         'first_booking_discount',
         'status',
         'avatar',
+        'google_id',
     ];
 
     protected $hidden = [

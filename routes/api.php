@@ -14,6 +14,7 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\PartnerController;
+use App\Http\Controllers\SuperAdminSlotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,6 +32,10 @@ Route::post('/auth/reset-password',  [AuthController::class, 'resetPassword']);
 // OTP Authentication (alternative login)
 Route::post('/auth/otp/send',   [OtpController::class, 'send']);
 Route::post('/auth/otp/verify', [OtpController::class, 'verify']);
+
+// Google OAuth
+Route::get('/auth/google', [App\Http\Controllers\GoogleAuthController::class, 'redirect']);
+Route::get('/auth/google/callback', [App\Http\Controllers\GoogleAuthController::class, 'callback']);
 
 // Public service data
 Route::get('/packages', [BookingController::class, 'getPackages']);
@@ -147,6 +152,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Franchise Management
         Route::get('/franchisees',                  [AdminController::class, 'getFranchisees']);
         Route::put('/franchisees/{id}/status',      [AdminController::class, 'updateFranchiseeStatus']);
+        Route::get('/franchisees/{id}/slots',       [SuperAdminSlotController::class, 'getAssignedSlots']);
+        Route::post('/franchisees/{id}/slots',      [SuperAdminSlotController::class, 'assignSlots']);
+
+        // Master Slots (Read Only for Admin)
+        Route::get('/master-slots', [SuperAdminSlotController::class, 'getMasterSlots']);
 
         // Package Plans CRUD
         Route::get('/packages',             [AdminController::class, 'getPackages']);
@@ -195,5 +205,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users',        [SuperAdminController::class, 'getAllUsers']);
         Route::get('/orders',       [SuperAdminController::class, 'getAllOrders']);
         Route::get('/wallet',       [SuperAdminController::class, 'getAllWalletTransactions']);
+
+        // Master Slots Management
+        Route::post('/master-slots', [SuperAdminSlotController::class, 'createMasterSlot']);
+        Route::put('/master-slots/{id}', [SuperAdminSlotController::class, 'updateMasterSlot']);
+        Route::delete('/master-slots/{id}', [SuperAdminSlotController::class, 'deleteMasterSlot']);
     });
 });
