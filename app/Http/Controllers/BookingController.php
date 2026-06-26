@@ -39,6 +39,7 @@ class BookingController extends Controller
 
         $slots = Slot::where('franchisee_id', $request->franchisee_id)
             ->where('date', $request->date)
+            ->where('status', 'active')
             ->get();
 
         return response()->json($slots);

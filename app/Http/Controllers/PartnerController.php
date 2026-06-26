@@ -15,6 +15,8 @@ class PartnerController extends Controller
             'email'   => 'required|email|max:255',
             'phone'   => 'required|string|max:20',
             'city'    => 'required|string|max:100',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
             'budget'  => 'nullable|string|max:50',
             'message' => 'nullable|string|max:2000',
         ]);
@@ -36,6 +38,8 @@ class PartnerController extends Controller
             'email'   => $request->email,
             'phone'   => $request->phone,
             'city'    => $request->city,
+            'latitude'=> $request->latitude,
+            'longitude'=> $request->longitude,
             'budget'  => $request->budget,
             'message' => $request->message,
             'status'  => 'new',
@@ -114,6 +118,8 @@ class PartnerController extends Controller
                         'center_name' => $inquiry->name . "'s Center",
                         'address' => 'Pending Setup',
                         'city' => $inquiry->city ?? 'Pending Setup',
+                        'latitude' => $inquiry->latitude,
+                        'longitude' => $inquiry->longitude,
                         'royalty_percentage' => 10.0,
                         'status' => 'active'
                     ]);

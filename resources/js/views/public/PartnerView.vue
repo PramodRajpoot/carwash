@@ -106,19 +106,39 @@ export default {
   },
   methods: {
     emptyForm() {
-      return { name: '', email: '', phone: '', city: '', budget: '', message: '' };
+      return { name: '', email: '', phone: '', city: '', budget: '', message: '', latitude: null, longitude: null };
     },
     async submit() {
       this.error = '';
       this.submitting = true;
-      try {
-        await axios.post('/api/partner/apply', this.form);
-        this.submitted = true;
-      } catch (e) {
-        const msg = e.response?.data?.message;
-        this.error = msg || 'Submission failed. Please try again.';
-      } finally {
-        this.submitting = false;
+
+      const doSubmit = async () => {
+        try {
+          await axios.post('/api/partner/apply', this.form);
+          this.submitted = true;
+        } catch (e) {
+          const msg = e.response?.data?.message;
+          this.error = msg || 'Submission failed. Please try again.';
+        } finally {
+          this.submitting = false;
+        }
+      };
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            this.form.latitude = position.coords.latitude;
+            this.form.longitude = position.coords.longitude;
+            doSubmit();
+          },
+          (err) => {
+            console.warn('Geolocation failed or denied:', err);
+            doSubmit();
+          },
+          { timeout: 5000 }
+        );
+      } else {
+        doSubmit();
       }
     },
   },

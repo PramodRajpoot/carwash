@@ -14,6 +14,8 @@ class PartnerInquiry extends Model
         'email',
         'phone',
         'city',
+        'latitude',
+        'longitude',
         'budget',
         'message',
         'status',

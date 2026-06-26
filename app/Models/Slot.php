@@ -17,6 +17,7 @@ class Slot extends Model
         'time_range',
         'max_bookings',
         'current_bookings',
+        'status',
     ];
 
     public function franchisee()

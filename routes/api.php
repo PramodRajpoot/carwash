@@ -140,6 +140,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Slots
         Route::get('/slots',   [AdminController::class, 'getSlots']);
         Route::post('/slots',  [AdminController::class, 'saveSlotConfig']);
+        Route::put('/slots/{id}', [AdminController::class, 'updateSlot']);
 
         // Coupons
         Route::get('/coupons',          [AdminController::class, 'getCoupons']);

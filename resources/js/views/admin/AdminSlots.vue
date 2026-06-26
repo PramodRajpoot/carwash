@@ -23,6 +23,7 @@
               <th>Max Capacity Cap</th>
               <th>Active Bookings</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -33,9 +34,16 @@
               <td style="font-weight: 700; color: var(--accent-cyan);">{{ s.max_bookings }} washes</td>
               <td>{{ s.current_bookings }} washes</td>
               <td>
+                <span class="badge" :class="s.status === 'active' ? 'badge-emerald' : 'badge-rose'" style="margin-bottom: 0.25rem; display: inline-block;">
+                  {{ s.status || 'active' }}
+                </span>
+                <br>
                 <span class="badge" :class="s.current_bookings >= s.max_bookings ? 'badge-rose' : 'badge-emerald'">
                   {{ s.current_bookings >= s.max_bookings ? 'FULLY BOOKED' : 'SLOTS AVAILABLE' }}
                 </span>
+              </td>
+              <td>
+                <button class="btn btn-ghost btn-sm" @click="openEditModal(s)" style="padding: 0.2rem 0.5rem; color: var(--accent-cyan);">Edit</button>
               </td>
             </tr>
           </tbody>
@@ -108,6 +116,35 @@
         </form>
       </div>
     </div>
+
+    <!-- Edit Single Slot Modal -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
+      <div class="modal-content">
+        <h3>Edit Slot</h3>
+        <div v-if="editError" class="alert alert-error">{{ editError }}</div>
+
+        <form @submit.prevent="updateSlot">
+          <div class="form-group">
+            <label>Maximum Booking Capacity</label>
+            <input v-model="editForm.max_bookings" type="number" min="1" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select v-model="editForm.status" class="form-select" required>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div class="flex gap-2" style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary" :disabled="editSubmitting">
+              {{ editSubmitting ? 'Saving...' : 'Save Changes' }}
+            </button>
+            <button type="button" class="btn btn-ghost" @click="showEditModal = false">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -131,7 +168,11 @@ export default {
         end_date: new Date().toISOString().substr(0, 10),
         time_ranges: [],
         max_bookings: 5
-      }
+      },
+      showEditModal: false,
+      editSubmitting: false,
+      editError: '',
+      editForm: { id: null, max_bookings: 3, status: 'active' }
     };
   },
   methods: {
@@ -177,6 +218,26 @@ export default {
         this.error = e.response?.data?.message || 'Failed to update slot settings.';
       }
       this.submitting = false;
+    },
+    openEditModal(slot) {
+      this.editError = '';
+      this.editForm = { id: slot.id, max_bookings: slot.max_bookings, status: slot.status || 'active' };
+      this.showEditModal = true;
+    },
+    async updateSlot() {
+      this.editSubmitting = true;
+      this.editError = '';
+      try {
+        await axios.put(`/api/admin/slots/${this.editForm.id}`, {
+          max_bookings: this.editForm.max_bookings,
+          status: this.editForm.status
+        });
+        this.showEditModal = false;
+        this.loadData();
+      } catch (e) {
+        this.editError = e.response?.data?.message || 'Failed to update slot.';
+      }
+      this.editSubmitting = false;
     }
   },
   mounted() {

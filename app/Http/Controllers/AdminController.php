@@ -224,6 +224,17 @@ class AdminController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Slot configs saved.', 'slots' => $createdSlots]);
     }
 
+    public function updateSlot(Request $request, $id)
+    {
+        $slot = Slot::findOrFail($id);
+        $request->validate([
+            'max_bookings' => 'nullable|integer|min:1',
+            'status'       => 'nullable|in:active,inactive',
+        ]);
+        $slot->update($request->only('max_bookings', 'status'));
+        return response()->json(['status' => 'success', 'message' => 'Slot updated.', 'slot' => $slot]);
+    }
+
     // ─── Coupons ─────────────────────────────────────────────────
 
     public function getCoupons()
