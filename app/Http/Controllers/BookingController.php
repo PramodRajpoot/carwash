@@ -41,26 +41,6 @@ class BookingController extends Controller
             ->where('date', $request->date)
             ->get();
 
-        // If slots are not created, return standard layout with current_bookings = 0
-        if ($slots->isEmpty()) {
-            $slotsData = [
-                '09:00 AM - 11:00 AM',
-                '11:00 AM - 01:00 PM',
-                '01:00 PM - 03:00 PM',
-                '03:00 PM - 05:00 PM'
-            ];
-            $slots = collect();
-            foreach ($slotsData as $time) {
-                $slots->push([
-                    'franchisee_id' => $request->franchisee_id,
-                    'date' => $request->date,
-                    'time_range' => $time,
-                    'max_bookings' => 3,
-                    'current_bookings' => 0
-                ]);
-            }
-        }
-
         return response()->json($slots);
     }
 
@@ -158,11 +138,14 @@ class BookingController extends Controller
         if ($slot) {
             $slot->increment('current_bookings');
         } else {
+            $masterSlot = \App\Models\MasterSlot::where('time_range', $request->slot_time)->first();
+            $maxBookings = $masterSlot ? $masterSlot->default_max_bookings : 3;
+            
             Slot::create([
                 'franchisee_id' => $franchisee->id,
                 'date' => $request->booking_date,
                 'time_range' => $request->slot_time,
-                'max_bookings' => 3,
+                'max_bookings' => $maxBookings,
                 'current_bookings' => 1
             ]);
         }
@@ -264,11 +247,14 @@ class BookingController extends Controller
         if ($newSlot) {
             $newSlot->increment('current_bookings');
         } else {
+            $masterSlot = \App\Models\MasterSlot::where('time_range', $request->slot_time)->first();
+            $maxBookings = $masterSlot ? $masterSlot->default_max_bookings : 3;
+
             Slot::create([
                 'franchisee_id' => $booking->franchisee_id,
                 'date' => $request->booking_date,
                 'time_range' => $request->slot_time,
-                'max_bookings' => 3,
+                'max_bookings' => $maxBookings,
                 'current_bookings' => 1
             ]);
         }

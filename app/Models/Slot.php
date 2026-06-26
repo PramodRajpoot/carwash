@@ -9,6 +9,8 @@ class Slot extends Model
 {
     use HasFactory;
 
+    protected $table = 'franchisee_master_slot';
+
     protected $fillable = [
         'franchisee_id',
         'date',

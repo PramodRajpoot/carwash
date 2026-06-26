@@ -55,25 +55,43 @@
         <form @submit.prevent="saveSlot">
           <div class="form-group">
             <label>Franchisee Center</label>
-            <select v-model="form.franchisee_id" class="form-select" required>
+            <select v-model="form.franchisee_id" class="form-select" @change="fetchAssignedSlots" required>
               <option value="">Select Center</option>
               <option v-for="c in centers" :key="c.id" :value="c.id">{{ c.center_name }} ({{ c.city }})</option>
             </select>
           </div>
 
-          <div class="form-group">
-            <label>Select Date</label>
-            <input v-model="form.date" type="date" class="form-input" required />
+          <div class="flex gap-2">
+            <div class="form-group" style="flex: 1;">
+              <label>Start Date</label>
+              <input v-model="form.start_date" type="date" class="form-input" required />
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>End Date</label>
+              <input v-model="form.end_date" type="date" class="form-input" required :min="form.start_date" />
+            </div>
           </div>
 
           <div class="form-group">
-            <label>Time Slot Range</label>
-            <select v-model="form.time_range" class="form-select" required>
-              <option>09:00 AM - 11:00 AM</option>
-              <option>11:00 AM - 01:00 PM</option>
-              <option>01:00 PM - 03:00 PM</option>
-              <option>03:00 PM - 05:00 PM</option>
-            </select>
+            <label>Time Slot Ranges</label>
+            <div v-if="!form.franchisee_id" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
+              Select a center first
+            </div>
+            <div v-else-if="fetchingSlots" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
+              Loading slots...
+            </div>
+            <div v-else-if="availableTimeRanges.length === 0" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
+              No slots assigned to this center
+            </div>
+            <div v-else style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+              <label v-for="range in availableTimeRanges" :key="range" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" :value="range" v-model="form.time_ranges" />
+                <span style="font-family: monospace;">{{ range }}</span>
+              </label>
+            </div>
+            <div v-if="form.time_ranges.length === 0 && availableTimeRanges.length > 0" class="text-rose" style="font-size: 0.75rem; margin-top: 0.25rem;">
+              Please select at least one time slot.
+            </div>
           </div>
 
           <div class="form-group">
@@ -105,10 +123,13 @@ export default {
       showAddModal: false,
       submitting: false,
       error: '',
+      availableTimeRanges: [],
+      fetchingSlots: false,
       form: {
         franchisee_id: '',
-        date: new Date().toISOString().substr(0, 10),
-        time_range: '09:00 AM - 11:00 AM',
+        start_date: new Date().toISOString().substr(0, 10),
+        end_date: new Date().toISOString().substr(0, 10),
+        time_ranges: [],
         max_bookings: 5
       }
     };
@@ -127,7 +148,25 @@ export default {
       }
       this.loading = false;
     },
+    async fetchAssignedSlots() {
+      this.form.time_ranges = [];
+      this.availableTimeRanges = [];
+      if (!this.form.franchisee_id) return;
+      
+      this.fetchingSlots = true;
+      try {
+        const { data } = await axios.get('/api/admin/master-slots');
+        this.availableTimeRanges = data.filter(s => s.status === 'active').map(s => s.time_range);
+      } catch (e) {
+        console.error("Could not fetch master slots.");
+      }
+      this.fetchingSlots = false;
+    },
     async saveSlot() {
+      if (this.form.time_ranges.length === 0) {
+        this.error = 'Please select at least one time slot range.';
+        return;
+      }
       this.submitting = true;
       this.error = '';
       try {

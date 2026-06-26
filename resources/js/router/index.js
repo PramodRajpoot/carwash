@@ -17,6 +17,8 @@ import PrivacyView from '@/views/public/PrivacyView.vue';
 // Auth Views
 import LoginView from '@/views/auth/LoginView.vue';
 import RegisterView from '@/views/auth/RegisterView.vue';
+import ResetPasswordView from '@/views/auth/ResetPasswordView.vue';
+import OAuthCallbackView from '@/views/auth/OAuthCallbackView.vue';
 
 // Customer Views
 import CustomerDashboard from '@/views/customer/CustomerDashboard.vue';
@@ -29,6 +31,7 @@ import CustomerWallet from '@/views/customer/CustomerWallet.vue';
 import CustomerSupport from '@/views/customer/CustomerSupport.vue';
 import CustomerOffers from '@/views/customer/CustomerOffers.vue';
 import CustomerNotifications from '@/views/customer/CustomerNotifications.vue';
+import CustomerProfile from '@/views/customer/CustomerProfile.vue';
 
 // Franchisee Views
 import FranchiseeDashboard from '@/views/franchisee/FranchiseeDashboard.vue';
@@ -57,6 +60,7 @@ import AdminPartners from '@/views/admin/AdminPartners.vue';
 import SuperAdminDashboard from '@/views/super-admin/SuperAdminDashboard.vue';
 import SuperAdminAdmins from '@/views/super-admin/SuperAdminAdmins.vue';
 import SuperAdminSettings from '@/views/super-admin/SuperAdminSettings.vue';
+import SuperAdminSlots from '@/views/super-admin/SuperAdminSlots.vue';
 
 export const routes = [
     // ── Public Pages ─────────────────────────────────────────────
@@ -80,6 +84,8 @@ export const routes = [
     // ── Auth ─────────────────────────────────────────────────────
     { path: '/login', name: 'login', component: LoginView, meta: { guest: true } },
     { path: '/register', name: 'register', component: RegisterView, meta: { guest: true } },
+    { path: '/reset-password', name: 'reset-password', component: ResetPasswordView, meta: { guest: true } },
+    { path: '/oauth/callback', name: 'oauth-callback', component: OAuthCallbackView, meta: { guest: true } },
 
     // ── Customer Dashboard ───────────────────────────────────────
     {
@@ -97,6 +103,7 @@ export const routes = [
             { path: 'support', name: 'customer-support', component: CustomerSupport },
             { path: 'offers', name: 'customer-offers', component: CustomerOffers },
             { path: 'notifications', name: 'customer-notifications', component: CustomerNotifications },
+            { path: 'profile', name: 'customer-profile', component: CustomerProfile },
         ],
     },
 
@@ -146,6 +153,7 @@ export const routes = [
             { path: '', name: 'superadmin-dashboard', component: SuperAdminDashboard },
             { path: 'admins', name: 'superadmin-admins', component: SuperAdminAdmins },
             { path: 'settings', name: 'superadmin-settings', component: SuperAdminSettings },
+            { path: 'master-slots', name: 'superadmin-slots', component: SuperAdminSlots },
             // Super admin also has access to all admin sub-pages via their own routes
             { path: 'users', name: 'superadmin-users', component: AdminUsers },
             { path: 'orders', name: 'superadmin-orders', component: AdminOrders },

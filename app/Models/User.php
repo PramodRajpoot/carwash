@@ -25,6 +25,8 @@ class User extends Authenticatable
         'pending_epoints',
         'first_booking_discount',
         'status',
+        'avatar',
+        'google_id',
     ];
 
     protected $hidden = [

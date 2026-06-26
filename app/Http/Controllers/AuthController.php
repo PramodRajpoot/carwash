@@ -19,12 +19,23 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name'             => 'required|string|max:255',
+            'name'             => 'required|string|min:2|max:255',
             'email'            => 'required|string|email|max:255|unique:users',
-            'phone'            => 'nullable|string|max:20',
+            'phone'            => 'required|numeric|regex:/^[0-9]{10}$/',
             'password'         => 'required|string|min:6|confirmed',
             'referred_by_code' => 'nullable|string',
             'role'             => 'nullable|string',
+        ], [
+            'name.required'     => 'Full name is required.',
+            'name.min'          => 'Name must be at least 2 characters.',
+            'email.required'    => 'Email address is required.',
+            'email.email'       => 'Please enter a valid email address.',
+            'email.unique'      => 'This email is already registered.',
+            'phone.required'    => 'Mobile number is required.',
+            'phone.regex'       => 'Please enter a valid 10-digit mobile number.',
+            'password.required' => 'Password is required.',
+            'password.min'      => 'Password must be at least 6 characters.',
+            'password.confirmed' => 'Passwords do not match.',
         ]);
 
         $referredBy = null;
@@ -90,11 +101,11 @@ class AuthController extends Controller
             ]);
         }
 
-        // Send welcome email to the customer
+        // Dispatch welcome email via queue job (non-blocking)
         try {
-            Mail::to($user->email)->send(new WelcomeCustomerMail($user));
+           \App\Jobs\SendWelcomeEmailJob::dispatch($user);
         } catch (\Exception $e) {
-            Log::error('Welcome email failed for user #' . $user->id . ': ' . $e->getMessage());
+            Log::warning('Welcome email dispatch failed for user #' . $user->id . ': ' . $e->getMessage());
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -141,6 +152,64 @@ class AuthController extends Controller
             'token_type'   => 'Bearer',
             'user'         => $user,
         ]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ], [
+            'email.exists' => 'We could not find an account with that email address.',
+        ]);
+
+        $status = \Illuminate\Support\Facades\Password::broker()->sendResetLink(
+            $request->only('email')
+        );
+
+        if ($status === \Illuminate\Support\Facades\Password::RESET_LINK_SENT) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Password reset link sent to your email.',
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'error',
+            'message' => __($status),
+        ], 400);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token'    => 'required',
+            'email'    => 'required|email|exists:users,email',
+            'password' => 'required|string|min:6|confirmed',
+        ], [
+            'email.exists' => 'We could not find an account with that email address.',
+            'password.confirmed' => 'The password confirmation does not match.',
+            'password.min' => 'The password must be at least 6 characters.',
+        ]);
+
+        $status = \Illuminate\Support\Facades\Password::broker()->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->password = Hash::make($password);
+                $user->save();
+            }
+        );
+
+        if ($status === \Illuminate\Support\Facades\Password::PASSWORD_RESET) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Password has been successfully reset.',
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'error',
+            'message' => __($status),
+        ], 400);
     }
 
     public function me(Request $request)
@@ -204,6 +273,41 @@ class AuthController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Logged out successfully',
+        ]);
+    }
+
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ], [
+            'avatar.required' => 'Please select an image.',
+            'avatar.image'    => 'The file must be an image.',
+            'avatar.mimes'    => 'Only JPEG, PNG, JPG, and WebP formats are allowed.',
+            'avatar.max'      => 'Image size must not exceed 2MB.',
+        ]);
+
+        $user = $request->user();
+
+        // Delete old avatar if exists
+        if ($user->avatar) {
+            $oldPath = public_path($user->avatar);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+        }
+
+        $file = $request->file('avatar');
+        $filename = 'avatar_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('avatars'), $filename);
+
+        $user->update(['avatar' => 'avatars/' . $filename]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Profile photo updated successfully',
+            'avatar'  => 'avatars/' . $filename,
+            'user'    => $user->fresh(),
         ]);
     }
 }

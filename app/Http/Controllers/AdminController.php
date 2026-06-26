@@ -199,17 +199,29 @@ class AdminController extends Controller
     {
         $request->validate([
             'franchisee_id' => 'required|exists:franchisees,id',
-            'date'          => 'required|date',
-            'time_range'    => 'required|string',
+            'start_date'    => 'required|date',
+            'end_date'      => 'required|date|after_or_equal:start_date',
+            'time_ranges'   => 'required|array|min:1',
+            'time_ranges.*' => 'required|string',
             'max_bookings'  => 'required|integer|min:1',
         ]);
 
-        $slot = Slot::updateOrCreate(
-            ['franchisee_id' => $request->franchisee_id, 'date' => $request->date, 'time_range' => $request->time_range],
-            ['max_bookings'  => $request->max_bookings]
-        );
+        $createdSlots = [];
+        $start = Carbon::parse($request->start_date);
+        $end = Carbon::parse($request->end_date);
 
-        return response()->json(['status' => 'success', 'message' => 'Slot config saved.', 'slot' => $slot]);
+        for ($date = $start; $date->lte($end); $date->addDay()) {
+            $dateString = $date->format('Y-m-d');
+            foreach ($request->time_ranges as $time_range) {
+                $slot = Slot::updateOrCreate(
+                    ['franchisee_id' => $request->franchisee_id, 'date' => $dateString, 'time_range' => $time_range],
+                    ['max_bookings'  => $request->max_bookings]
+                );
+                $createdSlots[] = $slot;
+            }
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Slot configs saved.', 'slots' => $createdSlots]);
     }
 
     // ─── Coupons ─────────────────────────────────────────────────
