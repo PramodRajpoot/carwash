@@ -3,8 +3,8 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jun 03, 2026 at 11:46 AM
--- Server version: 8.0.45-0ubuntu0.24.04.1
+-- Generation Time: Jun 29, 2026 at 05:09 AM
+-- Server version: 8.0.46-0ubuntu0.24.04.3
 -- PHP Version: 8.3.6
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -181,7 +181,69 @@ CREATE TABLE `franchisees` (
 --
 
 INSERT INTO `franchisees` (`id`, `user_id`, `center_name`, `address`, `city`, `latitude`, `longitude`, `royalty_percentage`, `status`, `created_at`, `updated_at`) VALUES
-(1, 3, 'Mumbai North Center', 'Linking Road, Bandra West', 'Mumbai', 19.05960000, 72.82950000, 10.00, 'active', '2026-06-02 02:48:13', '2026-06-03 06:05:52');
+(1, 3, 'Mumbai North Center', 'Linking Road, Bandra West', 'Mumbai', 19.05960000, 72.82950000, 10.00, 'active', '2026-06-02 02:48:13', '2026-06-03 06:05:52'),
+(2, 12, 'Vel numquam repellen\'s Center', 'Pending Setup', 'Vel lorem est labor', NULL, NULL, 10.00, 'active', '2026-06-26 00:31:43', '2026-06-26 00:31:43'),
+(3, 14, 'Vitae est magnam eni\'s Center', 'Pending Setup', 'Inventore ut totam q', NULL, NULL, 10.00, 'active', '2026-06-26 00:41:14', '2026-06-26 00:41:14');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `franchisee_master_slot`
+--
+
+CREATE TABLE `franchisee_master_slot` (
+  `id` bigint UNSIGNED NOT NULL,
+  `franchisee_id` bigint UNSIGNED NOT NULL,
+  `date` date NOT NULL,
+  `time_range` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `max_bookings` int NOT NULL DEFAULT '3',
+  `current_bookings` int NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `franchisee_master_slot`
+--
+
+INSERT INTO `franchisee_master_slot` (`id`, `franchisee_id`, `date`, `time_range`, `max_bookings`, `current_bookings`, `created_at`, `updated_at`, `status`) VALUES
+(1, 1, '2026-06-02', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(2, 1, '2026-06-02', '11:00 AM - 01:00 PM', 3, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(3, 1, '2026-06-02', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(4, 1, '2026-06-02', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(5, 1, '2026-06-03', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(6, 1, '2026-06-03', '11:00 AM - 01:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(7, 1, '2026-06-03', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(8, 1, '2026-06-03', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(9, 1, '2026-06-04', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(10, 1, '2026-06-04', '11:00 AM - 01:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(11, 1, '2026-06-04', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(12, 1, '2026-06-04', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(13, 1, '2026-06-05', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(14, 1, '2026-06-05', '11:00 AM - 01:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(15, 1, '2026-06-05', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(16, 1, '2026-06-05', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(17, 1, '2026-06-06', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(18, 1, '2026-06-06', '11:00 AM - 01:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13', 'active'),
+(19, 1, '2026-06-06', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-26 00:26:32', 'inactive'),
+(20, 1, '2026-06-06', '03:00 PM - 05:00 PM', 4, 0, '2026-06-02 02:48:13', '2026-06-26 00:29:48', 'inactive');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `master_slots`
+--
+
+CREATE TABLE `master_slots` (
+  `id` bigint UNSIGNED NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `time_range` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `default_max_bookings` int NOT NULL DEFAULT '3',
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -205,7 +267,15 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (3, '2019_08_19_000000_create_failed_jobs_table', 1),
 (4, '2019_12_14_000001_create_personal_access_tokens_table', 1),
 (5, '2026_06_02_000000_create_carwash_tables', 1),
-(6, '2026_06_03_000001_extend_users_and_create_platform_tables', 2);
+(6, '2026_06_03_000001_extend_users_and_create_platform_tables', 2),
+(7, '2026_06_03_000002_create_partner_inquiries_table', 3),
+(8, '2026_06_24_163538_add_avatar_to_users_table', 4),
+(9, '2026_06_25_150744_add_google_id_to_users_table', 4),
+(10, '2026_06_25_180027_create_master_slots_table', 4),
+(11, '2026_06_25_180039_create_franchisee_master_slot_table', 4),
+(12, '2026_06_25_190852_drop_and_rename_slots_tables', 4),
+(13, '2026_06_26_055003_add_status_to_franchisee_master_slot_table', 5),
+(14, '2026_06_26_060719_add_lat_lng_to_partner_inquiries_table', 6);
 
 -- --------------------------------------------------------
 
@@ -223,6 +293,38 @@ CREATE TABLE `notifications_log` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `partner_inquiries`
+--
+
+CREATE TABLE `partner_inquiries` (
+  `id` bigint UNSIGNED NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phone` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `city` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `latitude` decimal(10,7) DEFAULT NULL,
+  `longitude` decimal(10,7) DEFAULT NULL,
+  `budget` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `message` text COLLATE utf8mb4_unicode_ci,
+  `status` enum('new','contacted','approved','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'new',
+  `admin_notes` text COLLATE utf8mb4_unicode_ci,
+  `contacted_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `partner_inquiries`
+--
+
+INSERT INTO `partner_inquiries` (`id`, `name`, `email`, `phone`, `city`, `latitude`, `longitude`, `budget`, `message`, `status`, `admin_notes`, `contacted_at`, `created_at`, `updated_at`) VALUES
+(1, 'Test Partner', 'testpartner@gmail.com', '9876543210', 'Bangalore', NULL, NULL, '₹5-10 Lakhs', 'I want to open a franchise in Bangalore', 'new', NULL, NULL, '2026-06-03 06:40:54', '2026-06-03 06:40:54'),
+(2, 'Vel numquam repellen', 'zyfubo@mailinator.com', '+1 (514) 912-7907', 'Vel lorem est labor', NULL, NULL, '₹5-10 Lakhs', 'Dignissimos et dolor', 'approved', NULL, NULL, '2026-06-26 00:31:26', '2026-06-26 00:31:43'),
+(3, 'Vitae est magnam eni', 'wajodizozi@mailinator.com', '+1 (875) 523-7853', 'Inventore ut totam q', NULL, NULL, '₹2-5 Lakhs', 'Irure fugiat eveniet', 'approved', NULL, NULL, '2026-06-26 00:40:40', '2026-06-26 00:41:14');
 
 -- --------------------------------------------------------
 
@@ -260,7 +362,8 @@ CREATE TABLE `personal_access_tokens` (
 --
 
 INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `name`, `token`, `abilities`, `last_used_at`, `expires_at`, `created_at`, `updated_at`) VALUES
-(17, 'App\\Models\\User', 4, 'auth_token', '702ccf488dc7e2fbd34b4f01116bf7ce7183c5d3e403a921a689ace6c9567e53', '[\"*\"]', '2026-06-03 06:08:22', NULL, '2026-06-03 06:06:46', '2026-06-03 06:08:22');
+(20, 'App\\Models\\User', 2, 'auth_token', 'a985262a38cd603d2e98a7f81f5d43b0bafc166c29dffbcd6c0e0c82889aa747', '[\"*\"]', '2026-06-03 06:35:44', NULL, '2026-06-03 06:35:44', '2026-06-03 06:35:44'),
+(22, 'App\\Models\\User', 1, 'auth_token', '23afe2097cd5217503b1adb27afa9b8d61aa47910fbbded4c38abb56b9ebd35b', '[\"*\"]', '2026-06-03 06:46:20', NULL, '2026-06-03 06:45:55', '2026-06-03 06:46:20');
 
 -- --------------------------------------------------------
 
@@ -277,6 +380,20 @@ CREATE TABLE `platform_settings` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `platform_settings`
+--
+
+INSERT INTO `platform_settings` (`id`, `key`, `value`, `group`, `label`, `created_at`, `updated_at`) VALUES
+(1, 'epoints_per_referral', '10', 'referral', 'E-Points per Referral', '2026-06-03 06:31:36', '2026-06-03 06:31:36'),
+(2, 'min_wallet_redemption', '1000', 'wallet', 'Minimum E-Points to Redeem', '2026-06-03 06:31:36', '2026-06-03 06:31:36'),
+(3, 'default_royalty_percent', '10', 'royalty', 'Default Royalty Percentage (%)', '2026-06-03 06:31:36', '2026-06-03 06:31:36'),
+(4, 'referral_discount_pct', '10', 'referral', 'First Booking Discount for Referred Customer (%)', '2026-06-03 06:31:36', '2026-06-03 06:31:36'),
+(5, 'sms_notifications', 'false', 'notifications', 'Enable SMS Notifications', '2026-06-03 06:31:36', '2026-06-03 06:31:36'),
+(6, 'email_notifications', 'true', 'notifications', 'Enable Email Notifications', '2026-06-03 06:31:36', '2026-06-03 06:31:36'),
+(7, 'push_notifications', 'false', 'notifications', 'Enable Push Notifications', '2026-06-03 06:31:36', '2026-06-03 06:31:36'),
+(8, 'platform_name', 'CleanAtDoorstep', 'general', 'Platform Name', '2026-06-03 06:31:36', '2026-06-03 06:31:36');
 
 -- --------------------------------------------------------
 
@@ -331,49 +448,6 @@ INSERT INTO `service_packages` (`id`, `name`, `description`, `vehicle_type`, `pr
 -- --------------------------------------------------------
 
 --
--- Table structure for table `slots`
---
-
-CREATE TABLE `slots` (
-  `id` bigint UNSIGNED NOT NULL,
-  `franchisee_id` bigint UNSIGNED NOT NULL,
-  `date` date NOT NULL,
-  `time_range` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `max_bookings` int NOT NULL DEFAULT '3',
-  `current_bookings` int NOT NULL DEFAULT '0',
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `slots`
---
-
-INSERT INTO `slots` (`id`, `franchisee_id`, `date`, `time_range`, `max_bookings`, `current_bookings`, `created_at`, `updated_at`) VALUES
-(1, 1, '2026-06-02', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(2, 1, '2026-06-02', '11:00 AM - 01:00 PM', 3, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(3, 1, '2026-06-02', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(4, 1, '2026-06-02', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(5, 1, '2026-06-03', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(6, 1, '2026-06-03', '11:00 AM - 01:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(7, 1, '2026-06-03', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(8, 1, '2026-06-03', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(9, 1, '2026-06-04', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(10, 1, '2026-06-04', '11:00 AM - 01:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(11, 1, '2026-06-04', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(12, 1, '2026-06-04', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(13, 1, '2026-06-05', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(14, 1, '2026-06-05', '11:00 AM - 01:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(15, 1, '2026-06-05', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(16, 1, '2026-06-05', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(17, 1, '2026-06-06', '09:00 AM - 11:00 AM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(18, 1, '2026-06-06', '11:00 AM - 01:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(19, 1, '2026-06-06', '01:00 PM - 03:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(20, 1, '2026-06-06', '03:00 PM - 05:00 PM', 3, 0, '2026-06-02 02:48:13', '2026-06-02 02:48:13');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `subscriptions`
 --
 
@@ -424,9 +498,10 @@ CREATE TABLE `users` (
   `id` bigint UNSIGNED NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `google_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `role` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'customer',
   `referral_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `referred_by` bigint UNSIGNED DEFAULT NULL,
@@ -436,6 +511,7 @@ CREATE TABLE `users` (
   `pending_epoints` bigint UNSIGNED NOT NULL DEFAULT '0',
   `first_booking_discount` tinyint(1) NOT NULL DEFAULT '0',
   `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `avatar` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -445,14 +521,21 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `phone`, `email_verified_at`, `password`, `role`, `referral_code`, `referred_by`, `referral_coins`, `reward_coins`, `e_points`, `pending_epoints`, `first_booking_discount`, `status`, `remember_token`, `created_at`, `updated_at`) VALUES
-(1, 'Super Admin', 'superadmin@carwash.com', '9999999991', NULL, '$2y$12$D5ha6sbxzRXqzS2OkYRJwOjL0yA5fn.fa0/WCG42LhDYL8T67US1u', 'super_admin', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
-(2, 'Customer Care Admin', 'admin@carwash.com', '9999999992', NULL, '$2y$12$SMXpna89r69W5KQcBfEdDu2/jV.WRPe0RZPYqTGJ23yC9sQIuQR3q', 'admin', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
-(3, 'John Franchisee', 'franchisee@carwash.com', '9999999993', NULL, '$2y$12$I05jSOeRtxl/doXf1OGv2u5yTNQFYIsCUZO7GyxhUtdeixYeRAWJm', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
-(4, 'David Customer', 'customer@carwash.com', '9999999994', NULL, '$2y$12$LL8jokBiUU6a0UvxB2DKb.wiQ014n5FblPOQbvXhmsCgKWI/Yrlge', 'customer', 'DAVID100', NULL, 500, 250, 0, 0, 0, 'active', NULL, '2026-06-02 02:48:13', '2026-06-03 06:05:52'),
-(5, 'Test Customer', 'customer@carbonhydro.in', '1234567890', NULL, '$2y$12$ivcFvFK7YmzZW9YbwEBdJeKOrxrv2YTV5vr8rMg5.HhuBSihWvKHq', 'customer', 'YJX69ODO', NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 04:29:50', '2026-06-02 04:29:50'),
-(6, 'Admin User', 'admin@carbonhydro.in', NULL, NULL, '$2y$12$MhyEVq4UOho3ZBE.VSCvpObFifYzlBCWc5nYTnhONLDrx9n8Tu496', 'customer', 'MJVNKXSA', NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 04:34:15', '2026-06-02 04:34:15'),
-(7, 'Franchisee User', 'franchisee@carbonhydro.in', '+91 99999 99999', NULL, '$2y$12$gPDO6oy5Si4MHTfFF5Pf7O0N.rYXBWPjZ7YDBFRtLLNRdb6p2voY2', 'customer', 'POJO8V9A', NULL, 0, 0, 0, 0, 0, 'active', NULL, '2026-06-02 05:30:04', '2026-06-02 05:30:04');
+INSERT INTO `users` (`id`, `name`, `email`, `google_id`, `phone`, `email_verified_at`, `password`, `role`, `referral_code`, `referred_by`, `referral_coins`, `reward_coins`, `e_points`, `pending_epoints`, `first_booking_discount`, `status`, `avatar`, `remember_token`, `created_at`, `updated_at`) VALUES
+(1, 'Super Admin', 'superadmin@carwash.com', NULL, '9999999991', NULL, '$2y$12$D5ha6sbxzRXqzS2OkYRJwOjL0yA5fn.fa0/WCG42LhDYL8T67US1u', 'super_admin', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
+(2, 'Customer Care Admin', 'admin@carwash.com', NULL, '9999999992', NULL, '$2y$12$SMXpna89r69W5KQcBfEdDu2/jV.WRPe0RZPYqTGJ23yC9sQIuQR3q', 'admin', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
+(3, 'John Franchisee', 'franchisee@carwash.com', NULL, '9999999993', NULL, '$2y$12$I05jSOeRtxl/doXf1OGv2u5yTNQFYIsCUZO7GyxhUtdeixYeRAWJm', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-02 02:48:12', '2026-06-03 06:05:52'),
+(4, 'David Customer', 'customer@carwash.com', NULL, '9999999994', NULL, '$2y$12$LL8jokBiUU6a0UvxB2DKb.wiQ014n5FblPOQbvXhmsCgKWI/Yrlge', 'customer', 'DAVID100', NULL, 500, 250, 0, 0, 0, 'active', NULL, NULL, '2026-06-02 02:48:13', '2026-06-03 06:05:52'),
+(5, 'Test Customer', 'customer@carbonhydro.in', NULL, '1234567890', NULL, '$2y$12$ivcFvFK7YmzZW9YbwEBdJeKOrxrv2YTV5vr8rMg5.HhuBSihWvKHq', 'customer', 'YJX69ODO', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-02 04:29:50', '2026-06-02 04:29:50'),
+(6, 'Admin User', 'admin@carbonhydro.in', NULL, NULL, NULL, '$2y$12$MhyEVq4UOho3ZBE.VSCvpObFifYzlBCWc5nYTnhONLDrx9n8Tu496', 'customer', 'MJVNKXSA', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-02 04:34:15', '2026-06-02 04:34:15'),
+(7, 'Franchisee User', 'franchisee@carbonhydro.in', NULL, '+91 99999 99999', NULL, '$2y$12$gPDO6oy5Si4MHTfFF5Pf7O0N.rYXBWPjZ7YDBFRtLLNRdb6p2voY2', 'customer', 'POJO8V9A', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-02 05:30:04', '2026-06-02 05:30:04'),
+(8, 'Castor Nieves', 'nonuzeni@mailinator.com', NULL, '+1 (715) 153-7976', NULL, '$2y$12$IlalccDMPy1Vka5gchA6ruFLnHxK/tmykU4UtSexC0S.oHxBs1dti', 'customer', '0ZFZLAGP', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-12 06:32:44', '2026-06-12 06:32:44'),
+(9, 'Natalie Roach', 'lekowo@mailinator.com', NULL, '+1 (796) 596-5041', NULL, '$2y$12$H0TqJCwSc4SphNZONLuKRufoZkVfe0xTrQMy8odgvY/MESYr4jKuK', 'customer', 'ZILLKT8U', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-22 02:13:21', '2026-06-22 02:13:21'),
+(10, 'Gloria Roth', 'dolecok@mailinator.com', NULL, '+1 (289) 434-5423', NULL, '$2y$12$iuhTTKWH9hlB5g3kNvhLte/RiAiFXcszZ7BzyvJ5AmpyHCSLp/X5u', 'customer', 'HECIER2F', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-22 05:06:06', '2026-06-22 05:06:06'),
+(11, 'Randall Miles', 'lujefudis@mailinator.com', NULL, '8523698547', NULL, '$2y$12$72YMNaf9HX.cQC4Y15wqheLx4PCpHugpNPI0SQTAAi1f8MCw37ulC', 'customer', 'VDK7ORDJ', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-26 00:30:29', '2026-06-26 00:30:29'),
+(12, 'Vel numquam repellen', 'zyfubo@mailinator.com', NULL, '+1 (514) 912-7907', NULL, '$2y$12$kA7JCqTK3SMRT2KAPpZXv.Y8TyjhJNjMTtLwgkChQ4XQPnz5X862q', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-26 00:31:43', '2026-06-26 00:31:43'),
+(13, 'Carissa Juarez', 'narypy@mailinator.com', NULL, '1634651362', NULL, '$2y$12$yZZEmXYA8RsnVqO3bDrWuuWPujFMAWHEGA/H10IOqivgCAETiZCQS', 'customer', 'F99VBAKQ', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-26 00:32:33', '2026-06-26 00:32:33'),
+(14, 'Vitae est magnam eni', 'wajodizozi@mailinator.com', NULL, '+1 (875) 523-7853', NULL, '$2y$12$vfcDAT4qQ/XdT3Kj5M4BVOg8hpsR3UBqgFu6uoCkNyEiyWaA4jFLe', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-26 00:41:14', '2026-06-26 00:41:14');
 
 -- --------------------------------------------------------
 
@@ -478,7 +561,8 @@ INSERT INTO `vehicles` (`id`, `customer_id`, `vehicle_type`, `make_model`, `plat
 (1, 4, 'suv', 'Toyota Fortuner (Black)', 'MH-01-AB-1234', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
 (2, 4, 'hatchback', 'Hyundai i20 (White)', 'MH-01-CD-5678', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
 (3, 5, 'hatchback', 'Tesla Model 3', 'MH 12 TS 1234', '2026-06-02 04:31:30', '2026-06-02 04:31:30'),
-(4, 5, 'hatchback', 'Tesla Model Y', 'MH-12-CH-2026', '2026-06-02 05:11:33', '2026-06-02 05:11:33');
+(4, 5, 'hatchback', 'Tesla Model Y', 'MH-12-CH-2026', '2026-06-02 05:11:33', '2026-06-02 05:11:33'),
+(5, 8, 'sedan', 'sa', 'sa', '2026-06-12 06:33:07', '2026-06-12 06:33:07');
 
 -- --------------------------------------------------------
 
@@ -578,6 +662,19 @@ ALTER TABLE `franchisees`
   ADD KEY `franchisees_user_id_foreign` (`user_id`);
 
 --
+-- Indexes for table `franchisee_master_slot`
+--
+ALTER TABLE `franchisee_master_slot`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `slots_franchisee_id_foreign` (`franchisee_id`);
+
+--
+-- Indexes for table `master_slots`
+--
+ALTER TABLE `master_slots`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `migrations`
 --
 ALTER TABLE `migrations`
@@ -589,6 +686,12 @@ ALTER TABLE `migrations`
 ALTER TABLE `notifications_log`
   ADD PRIMARY KEY (`id`),
   ADD KEY `notifications_log_user_id_foreign` (`user_id`);
+
+--
+-- Indexes for table `partner_inquiries`
+--
+ALTER TABLE `partner_inquiries`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `password_reset_tokens`
@@ -625,13 +728,6 @@ ALTER TABLE `service_packages`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `slots`
---
-ALTER TABLE `slots`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `slots_franchisee_id_foreign` (`franchisee_id`);
-
---
 -- Indexes for table `subscriptions`
 --
 ALTER TABLE `subscriptions`
@@ -653,6 +749,7 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `users_email_unique` (`email`),
   ADD UNIQUE KEY `users_referral_code_unique` (`referral_code`),
+  ADD UNIQUE KEY `users_google_id_unique` (`google_id`),
   ADD KEY `users_referred_by_foreign` (`referred_by`);
 
 --
@@ -721,13 +818,25 @@ ALTER TABLE `feedback_reviews`
 -- AUTO_INCREMENT for table `franchisees`
 --
 ALTER TABLE `franchisees`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `franchisee_master_slot`
+--
+ALTER TABLE `franchisee_master_slot`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+
+--
+-- AUTO_INCREMENT for table `master_slots`
+--
+ALTER TABLE `master_slots`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `notifications_log`
@@ -736,16 +845,22 @@ ALTER TABLE `notifications_log`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `partner_inquiries`
+--
+ALTER TABLE `partner_inquiries`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `platform_settings`
 --
 ALTER TABLE `platform_settings`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `royalty_payments`
@@ -758,12 +873,6 @@ ALTER TABLE `royalty_payments`
 --
 ALTER TABLE `service_packages`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
--- AUTO_INCREMENT for table `slots`
---
-ALTER TABLE `slots`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `subscriptions`
@@ -781,13 +890,13 @@ ALTER TABLE `support_tickets`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `vehicles`
 --
 ALTER TABLE `vehicles`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `wallet_transactions`
@@ -840,6 +949,12 @@ ALTER TABLE `franchisees`
   ADD CONSTRAINT `franchisees_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `franchisee_master_slot`
+--
+ALTER TABLE `franchisee_master_slot`
+  ADD CONSTRAINT `slots_franchisee_id_foreign` FOREIGN KEY (`franchisee_id`) REFERENCES `franchisees` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `notifications_log`
 --
 ALTER TABLE `notifications_log`
@@ -850,12 +965,6 @@ ALTER TABLE `notifications_log`
 --
 ALTER TABLE `royalty_payments`
   ADD CONSTRAINT `royalty_payments_franchisee_id_foreign` FOREIGN KEY (`franchisee_id`) REFERENCES `franchisees` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `slots`
---
-ALTER TABLE `slots`
-  ADD CONSTRAINT `slots_franchisee_id_foreign` FOREIGN KEY (`franchisee_id`) REFERENCES `franchisees` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `subscriptions`
