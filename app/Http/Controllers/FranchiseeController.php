@@ -51,8 +51,15 @@ class FranchiseeController extends Controller
             $royaltyAlert = $daysUntilDue <= 7;
         }
 
+        $assignedTimeRanges = \App\Models\Slot::where('franchisee_id', $franchisee->id)
+            ->select('time_range')
+            ->distinct()
+            ->pluck('time_range')
+            ->toArray();
+
         return response()->json([
             'franchisee'          => $franchisee,
+            'assigned_slots'      => $assignedTimeRanges,
             'revenue'             => compact('daily', 'weekly', 'monthly', 'yearly'),
             'total_orders'        => $totalOrders,
             'pending_orders'      => $pendingOrders,

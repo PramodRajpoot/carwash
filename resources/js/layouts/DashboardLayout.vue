@@ -79,7 +79,6 @@
       <div class="dash-header">
         <h1>{{ pageTitle }}</h1>
         <div class="user-info">
-          <span class="text-secondary" style="font-size:0.85rem">{{ user.name }}</span>
           <div class="user-menu-wrapper" style="position:relative">
             <div class="avatar avatar-btn" @click="showUserMenu = !showUserMenu" tabindex="0" @blur="delayCloseMenu">
               <img v-if="user.avatar" :src="'/' + user.avatar" class="avatar-img-header" alt="" />
@@ -87,6 +86,10 @@
             </div>
             <transition name="menu-fade">
               <div v-if="showUserMenu" class="user-dropdown">
+                <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;">
+                  <div style="font-weight: 600; line-height: 1.2;">{{ user.name }}</div>
+                  <div class="text-secondary" style="font-size: 0.75rem; text-transform: capitalize; margin-top: 0.25rem;">{{ role.replace('_', ' ') }}</div>
+                </div>
                 <router-link :to="profileRoute" class="dropdown-item" @click.native="showUserMenu = false">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   Profile

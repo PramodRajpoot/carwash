@@ -60,6 +60,13 @@
         <div><span class="text-muted" style="font-size:0.8rem">City</span><div style="font-weight:600">{{ data.franchisee?.city }}</div></div>
         <div><span class="text-muted" style="font-size:0.8rem">Royalty Rate</span><div style="font-weight:600">{{ data.franchisee?.royalty_percentage }}%</div></div>
         <div><span class="text-muted" style="font-size:0.8rem">Status</span><span class="badge badge-emerald" style="margin-top:0.2rem">{{ data.franchisee?.status }}</span></div>
+        <div style="grid-column: span 2; margin-top: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+          <span class="text-muted" style="font-size:0.8rem">Assigned Slots</span>
+          <div style="margin-top:0.4rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <span v-for="slot in data.assigned_slots" :key="slot" class="badge" style="background:var(--accent-indigo);color:#fff;padding:0.4rem 0.8rem;">{{ slot }}</span>
+            <span v-if="!data.assigned_slots || data.assigned_slots.length === 0" class="text-muted" style="font-size:0.85rem">No slots assigned yet.</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
