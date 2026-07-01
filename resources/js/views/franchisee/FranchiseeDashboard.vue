@@ -61,12 +61,23 @@
         <div><span class="text-muted" style="font-size:0.8rem">Royalty Rate</span><div style="font-weight:600">{{ data.franchisee?.royalty_percentage }}%</div></div>
         <div><span class="text-muted" style="font-size:0.8rem">Status</span><span class="badge badge-emerald" style="margin-top:0.2rem">{{ data.franchisee?.status }}</span></div>
         <div style="grid-column: span 2; margin-top: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-          <span class="text-muted" style="font-size:0.8rem">Assigned Slots</span>
+          <span class="text-muted" style="font-size:0.8rem">Time Ranges (All Assigned)</span>
           <div style="margin-top:0.4rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
             <span v-for="slot in data.assigned_slots" :key="slot" class="badge" style="background:var(--accent-indigo);color:#fff;padding:0.4rem 0.8rem;">{{ slot }}</span>
             <span v-if="!data.assigned_slots || data.assigned_slots.length === 0" class="text-muted" style="font-size:0.85rem">No slots assigned yet.</span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Quick Link: Slots Management -->
+    <div class="glass-card" style="margin-top:1.5rem">
+      <div class="flex items-center justify-between">
+        <div>
+          <h4 style="margin:0">🕐 Slots Management</h4>
+          <div class="text-muted" style="font-size:0.85rem; margin-top:0.25rem;">Manage your assigned time slots — activate or deactivate as needed.</div>
+        </div>
+        <router-link to="/franchisee/slots" class="btn btn-primary btn-sm">Manage Slots →</router-link>
       </div>
     </div>
   </div>
@@ -98,3 +109,4 @@ export default {
   },
 };
 </script>
+

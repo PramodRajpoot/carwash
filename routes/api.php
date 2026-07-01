@@ -111,6 +111,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders',                           [FranchiseeController::class, 'getOrders']);
         Route::put('/orders/{id}/status',               [FranchiseeController::class, 'updateBookingStatus']);
         Route::post('/orders/{id}/reschedule',          [FranchiseeController::class, 'rescheduleService']);
+        Route::put('/slots/{id}/toggle',                [FranchiseeController::class, 'toggleSlotStatus']);
         Route::get('/expenses',                         [FranchiseeController::class, 'getExpenses']);
         Route::post('/expenses',                        [FranchiseeController::class, 'addExpense']);
         Route::delete('/expenses/{id}',                 [FranchiseeController::class, 'deleteExpense']);

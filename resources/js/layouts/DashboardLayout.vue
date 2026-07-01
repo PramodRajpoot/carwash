@@ -27,6 +27,7 @@
         <template v-else-if="role === 'franchisee'">
           <li><router-link to="/franchisee"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/franchisee/orders"><span class="nav-icon">📋</span> Orders</router-link></li>
+          <li><router-link to="/franchisee/slots"><span class="nav-icon">🕐</span> Slots Management</router-link></li>
           <li><router-link to="/franchisee/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
           <li><router-link to="/franchisee/royalty"><span class="nav-icon">💳</span> Royalty</router-link></li>
           <li><router-link to="/franchisee/expenses"><span class="nav-icon">💰</span> Expenses</router-link></li>
@@ -136,7 +137,8 @@ export default {
         'customer-subscriptions': 'Subscriptions', 'customer-wallet': 'E-Points Wallet', 'customer-referrals': 'Referrals',
         'customer-offers': 'Offers & Coupons', 'customer-support': 'Help & Support', 'customer-notifications': 'Notifications',
         'customer-wishlist': 'Wishlist', 'customer-profile': 'My Profile',
-        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Orders', 'franchisee-expenses': 'Expenses',
+        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Orders', 'franchisee-slots': 'Slots Management',
+        'franchisee-expenses': 'Expenses',
         'franchisee-reports': 'Reports', 'franchisee-royalty': 'Royalty Management', 'franchisee-subscriptions': 'Subscriptions',
         'franchisee-offers': 'Offers',
         'admin-dashboard': 'Dashboard', 'admin-users': 'Users', 'admin-orders': 'Orders', 'admin-slots': 'Slots',

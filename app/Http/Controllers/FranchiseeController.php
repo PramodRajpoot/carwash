@@ -26,7 +26,7 @@ class FranchiseeController extends Controller
         $now = Carbon::now();
 
         $daily   = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereDate('booking_date', $now->toDateString())->sum('total_price');
-        $weekly  = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereBetween('booking_date', [$now->startOfWeek()->toDateString(), $now->endOfWeek()->toDateString()])->sum('total_price');
+        $weekly  = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereBetween('booking_date', [$now->copy()->startOfWeek()->toDateString(), $now->copy()->endOfWeek()->toDateString()])->sum('total_price');
         $monthly = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereYear('booking_date', $now->year)->whereMonth('booking_date', $now->month)->sum('total_price');
         $yearly  = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereYear('booking_date', $now->year)->sum('total_price');
 
@@ -34,10 +34,13 @@ class FranchiseeController extends Controller
         $pendingOrders   = Booking::where('franchisee_id', $franchisee->id)->whereIn('status', ['pending', 'assigned'])->count();
         $completedOrders = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->count();
 
-        // Active subscriptions assigned to this franchisee's customers
-        $activeSubscriptions = Subscription::whereHas('bookings', function($q) use ($franchisee) {
-            $q->where('franchisee_id', $franchisee->id);
-        })->where('status', 'active')->count();
+        // Active subscriptions for customers who have bookings at this franchise
+        $customerIds = Booking::where('franchisee_id', $franchisee->id)
+            ->distinct()
+            ->pluck('customer_id');
+        $activeSubscriptions = Subscription::whereIn('customer_id', $customerIds)
+            ->where('status', 'active')
+            ->count();
 
         // Upcoming royalty
         $upcomingRoyalty = RoyaltyPayment::where('franchisee_id', $franchisee->id)
@@ -57,9 +60,16 @@ class FranchiseeController extends Controller
             ->pluck('time_range')
             ->toArray();
 
+        $upcomingSlots = \App\Models\Slot::where('franchisee_id', $franchisee->id)
+            ->whereDate('date', '>=', $now->toDateString())
+            ->orderBy('date', 'asc')
+            ->orderBy('time_range', 'asc')
+            ->get();
+
         return response()->json([
             'franchisee'          => $franchisee,
             'assigned_slots'      => $assignedTimeRanges,
+            'upcoming_slots'      => $upcomingSlots,
             'revenue'             => compact('daily', 'weekly', 'monthly', 'yearly'),
             'total_orders'        => $totalOrders,
             'pending_orders'      => $pendingOrders,
@@ -306,6 +316,20 @@ class FranchiseeController extends Controller
 
         return response()->json([
             'offers' => $coupons,
+        ]);
+    }
+
+    public function toggleSlotStatus(Request $request, $id)
+    {
+        $franchisee = $this->getFranchisee($request);
+
+        $slot = \App\Models\Slot::where('franchisee_id', $franchisee->id)->findOrFail($id);
+        $slot->update(['is_active' => !$slot->is_active]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Slot status updated successfully.',
+            'slot'    => $slot,
         ]);
     }
 }

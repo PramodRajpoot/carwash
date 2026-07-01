@@ -41,6 +41,7 @@ import FranchiseeReports from '@/views/franchisee/FranchiseeReports.vue';
 import FranchiseeRoyalty from '@/views/franchisee/FranchiseeRoyalty.vue';
 import FranchiseeSubscriptions from '@/views/franchisee/FranchiseeSubscriptions.vue';
 import FranchiseeOffers from '@/views/franchisee/FranchiseeOffers.vue';
+import FranchiseeSlots from '@/views/franchisee/FranchiseeSlots.vue';
 
 // Admin Views
 import AdminDashboard from '@/views/admin/AdminDashboard.vue';
@@ -115,6 +116,7 @@ export const routes = [
         children: [
             { path: '', name: 'franchisee-dashboard', component: FranchiseeDashboard },
             { path: 'orders', name: 'franchisee-orders', component: FranchiseeOrders },
+            { path: 'slots', name: 'franchisee-slots', component: FranchiseeSlots },
             { path: 'expenses', name: 'franchisee-expenses', component: FranchiseeExpenses },
             { path: 'reports', name: 'franchisee-reports', component: FranchiseeReports },
             { path: 'royalty', name: 'franchisee-royalty', component: FranchiseeRoyalty },
