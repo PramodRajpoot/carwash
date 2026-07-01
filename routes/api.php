@@ -15,6 +15,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\PartnerController;
 use App\Http\Controllers\SuperAdminSlotController;
+use App\Http\Controllers\BannerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,8 @@ Route::get('/auth/google/callback', [App\Http\Controllers\GoogleAuthController::
 // Public service data
 Route::get('/packages', [BookingController::class, 'getPackages']);
 Route::get('/centers',  [BookingController::class, 'getCenters']);
+Route::get('/offers',   [BookingController::class, 'getOffers']);
+Route::get('/banners',  [BannerController::class, 'index']);
 
 // Public blog
 Route::get('/blog',       [BlogController::class, 'index']);
@@ -212,5 +215,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/master-slots', [SuperAdminSlotController::class, 'createMasterSlot']);
         Route::put('/master-slots/{id}', [SuperAdminSlotController::class, 'updateMasterSlot']);
         Route::delete('/master-slots/{id}', [SuperAdminSlotController::class, 'deleteMasterSlot']);
+
+        // Banner Management
+        Route::get('/banners', [BannerController::class, 'adminIndex']);
+        Route::post('/banners', [BannerController::class, 'store']);
+        Route::put('/banners/{id}', [BannerController::class, 'update']);
+        Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
     });
 });

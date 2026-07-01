@@ -30,6 +30,17 @@ class BookingController extends Controller
         return response()->json($centers);
     }
 
+    public function getOffers(Request $request)
+    {
+        $offers = Coupon::where('status', 'active')
+            ->where(function($query) {
+                $query->whereNull('expires_at')
+                      ->orWhere('expires_at', '>=', Carbon::now());
+            })
+            ->get();
+        return response()->json($offers);
+    }
+
     public function checkSlotAvailability(Request $request)
     {
         $request->validate([

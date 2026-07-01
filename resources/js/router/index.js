@@ -62,6 +62,7 @@ import SuperAdminDashboard from '@/views/super-admin/SuperAdminDashboard.vue';
 import SuperAdminAdmins from '@/views/super-admin/SuperAdminAdmins.vue';
 import SuperAdminSettings from '@/views/super-admin/SuperAdminSettings.vue';
 import SuperAdminSlots from '@/views/super-admin/SuperAdminSlots.vue';
+import SuperAdminBanners from '@/views/super-admin/SuperAdminBanners.vue';
 
 export const routes = [
     // ── Public Pages ─────────────────────────────────────────────
@@ -156,6 +157,7 @@ export const routes = [
             { path: 'admins', name: 'superadmin-admins', component: SuperAdminAdmins },
             { path: 'settings', name: 'superadmin-settings', component: SuperAdminSettings },
             { path: 'master-slots', name: 'superadmin-slots', component: SuperAdminSlots },
+            { path: 'banners', name: 'superadmin-banners', component: SuperAdminBanners },
             // Super admin also has access to all admin sub-pages via their own routes
             { path: 'users', name: 'superadmin-users', component: AdminUsers },
             { path: 'orders', name: 'superadmin-orders', component: AdminOrders },
