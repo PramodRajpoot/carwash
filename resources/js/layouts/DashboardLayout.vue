@@ -58,6 +58,7 @@
           <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Settings</router-link></li>
           <li style="padding:0.5rem 1.5rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border-color);margin-top:0.5rem">Platform</li>
           <li><router-link to="/super-admin/banners"><span class="nav-icon">🖼️</span> Hero Banners</router-link></li>
+          <li><router-link to="/super-admin/service-partners"><span class="nav-icon">🤝</span> Service Partners</router-link></li>
           <li><router-link to="/super-admin/master-slots"><span class="nav-icon">⏰</span> Master Slots</router-link></li>
           <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
           <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
@@ -147,7 +148,7 @@ export default {
         'admin-packages': 'Subscription Packages', 'admin-referrals': 'Referral Network', 'admin-blog': 'Blog',
         'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
-        'superadmin-settings': 'Platform Settings',
+        'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
       };
       return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },

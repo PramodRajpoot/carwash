@@ -16,6 +16,7 @@ use App\Http\Controllers\BlogController;
 use App\Http\Controllers\PartnerController;
 use App\Http\Controllers\SuperAdminSlotController;
 use App\Http\Controllers\BannerController;
+use App\Http\Controllers\ServicePartnerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,6 +44,7 @@ Route::get('/packages', [BookingController::class, 'getPackages']);
 Route::get('/centers',  [BookingController::class, 'getCenters']);
 Route::get('/offers',   [BookingController::class, 'getOffers']);
 Route::get('/banners',  [BannerController::class, 'index']);
+Route::get('/service-partners', [ServicePartnerController::class, 'index']);
 
 // Public blog
 Route::get('/blog',       [BlogController::class, 'index']);
@@ -221,5 +223,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/banners', [BannerController::class, 'store']);
         Route::put('/banners/{id}', [BannerController::class, 'update']);
         Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
+
+        // Service Partners Management
+        Route::get('/service-partners', [ServicePartnerController::class, 'adminIndex']);
+        Route::post('/service-partners', [ServicePartnerController::class, 'store']);
+        Route::put('/service-partners/{id}', [ServicePartnerController::class, 'update']);
+        Route::delete('/service-partners/{id}', [ServicePartnerController::class, 'destroy']);
     });
 });

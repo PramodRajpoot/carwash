@@ -15,8 +15,7 @@
 
       <!-- Slider Controls -->
       <div v-if="banners && banners.length > 1" class="slider-controls">
-        <button @click="prevBanner" class="slider-btn">‹</button>
-        <button @click="nextBanner" class="slider-btn">›</button>
+        <button v-for="(banner, index) in banners" :key="index" @click="currentBannerIndex = index; resetSliderInterval()" class="dot-btn" :class="{ active: currentBannerIndex === index }"></button>
       </div>
 
       <!-- Content -->
@@ -99,12 +98,12 @@
         </div>
         <div class="grid grid-3 gap-4">
           <div class="glass-card fade-in-up text-center">
-            <div style="font-size:2.5rem;margin-bottom:0.75rem"><img src="/images/mission.png" alt="Mission" style="width:50px;height:50px;margin:0 auto" /></div>
+            <div style="font-size:2.5rem;margin-bottom:0.75rem">🎯</div>
             <h4>Our Mission</h4>
             <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">To deliver premium doorstep car cleaning that saves water and time while providing showroom-quality results.</p>
           </div>
           <div class="glass-card fade-in-up delay-1 text-center">
-            <div style="font-size:2.5rem;margin-bottom:0.75rem"><img src="/images/vision.png" alt="Vision" style="width:50px;height:50px;margin:0 auto" /></div>
+            <div style="font-size:2.5rem;margin-bottom:0.75rem">🔭</div>
             <h4>Our Vision</h4>
             <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">To become India's leading eco-friendly vehicle care franchise network with 500+ centers by 2028.</p>
           </div>
@@ -141,10 +140,15 @@
           <h2>Authorised <span class="text-gradient">Service Partners</span></h2>
           <p>Trusted by industry leaders to deliver exceptional care.</p>
         </div>
-        <div class="flex items-center justify-center gap-4" style="flex-wrap:wrap">
-          <div v-for="(partner, index) in partners" :key="index" class="glass-card flex items-center justify-center" style="width:160px;height:100px;background:var(--bg-card)">
-             <div style="font-weight:700;font-size:1.25rem;color:var(--text-secondary)">{{ partner }}</div>
-          </div>
+      </div>
+      <div v-if="partners.length > 0" class="offers-ticker" style="border: none; background: transparent; padding: 1rem 0;">
+        <div class="ticker-content">
+          <template v-for="n in 12" :key="'loop-'+n">
+            <div v-for="partner in partners" :key="n+'-'+partner.id" class="ticker-item" style="margin-right: 4rem; vertical-align: middle;">
+               <img v-if="partner.image_path" :src="partner.image_path" :alt="partner.name" style="height: 95px; width: auto; object-fit: contain; filter: grayscale(100%) opacity(0.7); transition: all 0.3s ease;" onmouseover="this.style.filter='grayscale(0) opacity(1)'" onmouseout="this.style.filter='grayscale(100%) opacity(0.7)'">
+               <div v-else style="font-weight:700;font-size:1.5rem;color:var(--text-muted);">{{ partner.name }}</div>
+            </div>
+          </template>
         </div>
       </div>
     </section>
@@ -330,7 +334,7 @@ export default {
         { type: 'bus', name: 'Buses', icon: '🚌', price: 1499 },
         { type: 'volvo_bus', name: 'Volvo Buses', icon: '🚍', price: 2499 },
       ],
-      partners: ['AutoGlym', '3M Car Care', 'Meguiar\'s', 'Turtle Wax', 'Sonax'],
+      partners: [],
       testimonials: [
         { name: 'Rahul Sharma', role: 'SUV Owner, Mumbai', text: 'Absolutely love the waterless wash! My Fortuner looks brand new every week. The monthly package is amazing value.' },
         { name: 'Priya Patel', role: 'Sedan Owner, Delhi', text: 'Reliable, on-time, and professional. The team always goes above and beyond. Best car wash service I have used.' },
@@ -352,6 +356,7 @@ export default {
   mounted() {
     this.fetchOffers();
     this.fetchBanners();
+    this.fetchPartners();
   },
   methods: {
     async fetchBanners() {
@@ -363,6 +368,16 @@ export default {
         }
       } catch (error) {
         console.error('Failed to fetch banners:', error);
+      }
+    },
+    async fetchPartners() {
+      try {
+        const response = await fetch('/api/service-partners');
+        if (response.ok) {
+          this.partners = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch partners:', error);
       }
     },
     startBannerSlider() {
@@ -469,37 +484,33 @@ export default {
 
 .slider-controls {
   position: absolute;
-  top: 50%;
+  bottom: 30px;
   left: 0;
   width: 100%;
-  transform: translateY(-50%);
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 12px;
   padding: 0 1.5rem;
   z-index: 20;
   pointer-events: none;
 }
-.slider-btn {
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  width: 50px;
-  height: 50px;
+.dot-btn {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  font-size: 2.2rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   cursor: pointer;
   pointer-events: auto;
   transition: all 0.3s ease;
-  backdrop-filter: blur(4px);
+  padding: 0;
 }
-.slider-btn:hover {
+.dot-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+.dot-btn.active {
   background: var(--accent-cyan);
-  color: #000;
-  border-color: var(--accent-cyan);
+  transform: scale(1.3);
 }
 
 .offers-ticker {

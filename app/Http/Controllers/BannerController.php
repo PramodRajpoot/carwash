@@ -28,7 +28,7 @@ class BannerController extends Controller
         ]);
 
         $file = $request->file('image');
-        $filename = time() . '_' . $file->getClientOriginalName();
+        $filename = time() . '_banner.' . $file->getClientOriginalExtension();
         $destinationPath = public_path('images/banners');
         
         if (!File::exists($destinationPath)) {
