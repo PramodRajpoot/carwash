@@ -182,11 +182,16 @@
           <p>Hear directly from our successful franchise partners across India.</p>
         </div>
         <div class="grid grid-3 gap-3">
-          <div v-for="(feedback, i) in partnerFeedback" :key="i" class="card" style="padding:0;overflow:hidden">
-            <div style="height:180px;background:var(--bg-card-hover);display:flex;align-items:center;justify-content:center;position:relative">
-               <!-- Placeholder for Video -->
-               <div style="width:50px;height:50px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;position:relative;z-index:1;">▶</div>
-               <img :src="feedback.thumbnail" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0.6" />
+          <div v-for="(feedback, i) in partnerFeedback" :key="i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
+            <div class="feedback-thumb">
+               <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
+               <div v-else class="feedback-thumb-placeholder"></div>
+               <!-- Play button overlay -->
+               <div class="play-btn-overlay" v-if="feedback.video_path">
+                 <div class="play-btn-circle">
+                   <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                 </div>
+               </div>
             </div>
             <div style="padding:1.5rem">
                <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city }} Partner</h4>
@@ -195,6 +200,47 @@
           </div>
         </div>
       </div>
+
+      <!-- Video Lightbox Modal -->
+      <transition name="lightbox">
+        <div v-if="lightboxOpen" class="video-lightbox-overlay" @click.self="closeLightbox">
+          <!-- Floating ambient particles -->
+          <div class="lightbox-particle lightbox-particle-1"></div>
+          <div class="lightbox-particle lightbox-particle-2"></div>
+          <div class="lightbox-particle lightbox-particle-3"></div>
+
+          <div class="video-lightbox-content">
+            <!-- Animated gradient border glow -->
+            <div class="lightbox-glow"></div>
+
+            <button class="lightbox-close-btn" @click="closeLightbox" aria-label="Close video">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+            </button>
+
+            <div class="lightbox-video-wrapper">
+              <video v-if="lightboxFeedback && lightboxFeedback.video_path" ref="lightboxVideo" controls autoplay :poster="lightboxFeedback.thumbnail_path" class="lightbox-video">
+                <source :src="lightboxFeedback.video_path" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+              <div v-else class="lightbox-no-video">
+                <img v-if="lightboxFeedback && lightboxFeedback.thumbnail_path" :src="lightboxFeedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover;" />
+                <p v-else class="text-muted" style="text-align:center;padding:3rem;">No video available</p>
+              </div>
+            </div>
+
+            <div v-if="lightboxFeedback" class="lightbox-info">
+              <div class="lightbox-info-inner">
+                <div class="lightbox-partner-badge">
+                  <span class="lightbox-badge-icon">📍</span>
+                  <span>{{ lightboxFeedback.city }}</span>
+                </div>
+                <h4 class="lightbox-title">{{ lightboxFeedback.city }} Partner</h4>
+                <p class="lightbox-quote">"{{ lightboxFeedback.quote }}"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
     </section>
 
     <!-- FAQ -->
@@ -204,15 +250,16 @@
           <h2>Frequently Asked <span class="text-gradient">Questions</span></h2>
           <p>Everything you need to know about our services.</p>
         </div>
-        <div style="display:flex;flex-direction:column;gap:1rem">
-          <div v-for="(faq, i) in faqs" :key="i" class="glass-card" style="padding:1.25rem;cursor:pointer" @click="toggleFaq(i)">
+        <div v-if="faqs.length > 0" style="display:flex;flex-direction:column;gap:1rem">
+          <div v-for="(faq, i) in faqs" :key="faq.id || i" class="glass-card" style="padding:1.25rem;cursor:pointer" @click="toggleFaq(i)">
             <div class="flex justify-between items-center">
-              <h4 style="font-size:1.05rem;margin:0">{{ faq.q }}</h4>
+              <h4 style="font-size:1.05rem;margin:0">{{ faq.question }}</h4>
               <span style="font-size:1.5rem;color:var(--accent-cyan);transition:transform 0.3s" :style="{ transform: faq.open ? 'rotate(45deg)' : 'rotate(0)' }">+</span>
             </div>
-            <p v-if="faq.open" class="text-secondary" style="margin-top:1rem;font-size:0.95rem;animation:fadeInUp 0.3s ease">{{ faq.a }}</p>
+            <p v-if="faq.open" class="text-secondary" style="margin-top:1rem;font-size:0.95rem;animation:fadeInUp 0.3s ease">{{ faq.answer }}</p>
           </div>
         </div>
+        <div v-else class="text-center text-muted" style="padding:2rem;">No FAQs available.</div>
       </div>
     </section>
 
@@ -318,6 +365,8 @@ export default {
   },
   data() {
     return {
+      lightboxOpen: false,
+      lightboxFeedback: null,
       partnerSubmitted: false,
       partnerSubmitting: false,
       partnerError: '',
@@ -335,28 +384,18 @@ export default {
         { type: 'volvo_bus', name: 'Volvo Buses', icon: '🚍', price: 2499 },
       ],
       partners: [],
-      testimonials: [
-        { name: 'Rahul Sharma', role: 'SUV Owner, Mumbai', text: 'Absolutely love the waterless wash! My Fortuner looks brand new every week. The monthly package is amazing value.' },
-        { name: 'Priya Patel', role: 'Sedan Owner, Delhi', text: 'Reliable, on-time, and professional. The team always goes above and beyond. Best car wash service I have used.' },
-        { name: 'Amit Kumar', role: 'Fleet Manager, Pune', text: 'Managing 20+ commercial vehicles is easy with CleanAt Doorstep. Their franchise team handles everything perfectly.' },
-      ],
-      partnerFeedback: [
-        { city: 'Delhi', quote: 'Incredible support and a robust business model.', thumbnail: 'https://images.unsplash.com/photo-1556761175-5973dc0f32b7?auto=format&fit=crop&q=80&w=300' },
-        { city: 'Mumbai', quote: 'Our bookings grew 300% in the first quarter alone.', thumbnail: 'https://images.unsplash.com/photo-1542744094-24638ea095b4?auto=format&fit=crop&q=80&w=300' },
-        { city: 'Bangalore', quote: 'The tech platform makes managing operations a breeze.', thumbnail: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&q=80&w=300' },
-      ],
-      faqs: [
-        { q: 'Do I need to provide water and electricity?', a: 'Yes, we request customers to provide basic water and electricity access for best results. Our team brings all other tools and chemicals required.', open: false },
-        { q: 'How often should I get my car washed?', a: 'For best results, we recommend a regular wash weekly or bi-weekly. Deep interior cleaning is ideal every 4 to 6 months.', open: false },
-        { q: 'Is the service truly at my doorstep?', a: 'Yes! All our services are completely doorstep-based, so you don’t have to go anywhere — we come to your home or office.', open: false },
-        { q: 'Are your cleaning products safe for the environment?', a: 'Absolutely. We use premium, eco-friendly, and biodegradable cleaning agents that are safe for your vehicle and the environment.', open: false }
-      ]
+      testimonials: [],
+      partnerFeedback: [],
+      faqs: []
     };
   },
   mounted() {
     this.fetchOffers();
     this.fetchBanners();
     this.fetchPartners();
+    this.fetchTestimonials();
+    this.fetchPartnerFeedback();
+    this.fetchFaqs();
   },
   methods: {
     async fetchBanners() {
@@ -378,6 +417,37 @@ export default {
         }
       } catch (error) {
         console.error('Failed to fetch partners:', error);
+      }
+    },
+    async fetchTestimonials() {
+      try {
+        const response = await fetch('/api/testimonials');
+        if (response.ok) {
+          this.testimonials = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch testimonials:', error);
+      }
+    },
+    async fetchPartnerFeedback() {
+      try {
+        const response = await fetch('/api/partner-feedback');
+        if (response.ok) {
+          this.partnerFeedback = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch partner feedback:', error);
+      }
+    },
+    async fetchFaqs() {
+      try {
+        const response = await fetch('/api/faqs');
+        if (response.ok) {
+          const data = await response.json();
+          this.faqs = data.map(faq => ({ ...faq, open: false }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch FAQs:', error);
       }
     },
     startBannerSlider() {
@@ -416,7 +486,9 @@ export default {
       }
     },
     toggleFaq(index) {
-      this.faqs[index].open = !this.faqs[index].open;
+      const wasOpen = this.faqs[index].open;
+      this.faqs.forEach(faq => faq.open = false);
+      this.faqs[index].open = !wasOpen;
     },
     emptyPartnerForm() {
       return { name: '', email: '', phone: '', city: '', budget: '', message: '', latitude: null, longitude: null };
@@ -456,6 +528,19 @@ export default {
     },
     submitNewsletter() {
       alert('Thank you for subscribing to our newsletter!');
+    },
+    openVideoLightbox(feedback) {
+      this.lightboxFeedback = feedback;
+      this.lightboxOpen = true;
+      document.body.style.overflow = 'hidden';
+    },
+    closeLightbox() {
+      if (this.$refs.lightboxVideo) {
+        this.$refs.lightboxVideo.pause();
+      }
+      this.lightboxOpen = false;
+      this.lightboxFeedback = null;
+      document.body.style.overflow = '';
     }
   }
 };
@@ -536,5 +621,329 @@ export default {
 @keyframes ticker {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* ── Feedback Cards ── */
+.feedback-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.feedback-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(6, 182, 212, 0.15);
+}
+.feedback-thumb {
+  height: 200px;
+  background: var(--bg-card-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.feedback-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.feedback-card:hover .feedback-thumb-img {
+  transform: scale(1.05);
+}
+.feedback-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card-hover) 100%);
+}
+.play-btn-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  transition: background 0.3s ease;
+  z-index: 2;
+}
+.feedback-card:hover .play-btn-overlay {
+  background: rgba(0, 0, 0, 0.45);
+}
+.play-btn-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(6, 182, 212, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 4px;
+  transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+}
+.feedback-card:hover .play-btn-circle {
+  transform: scale(1.15);
+  background: rgba(6, 182, 212, 1);
+  box-shadow: 0 6px 30px rgba(6, 182, 212, 0.5);
+}
+
+/* ── Video Lightbox ── */
+.video-lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(ellipse at center, rgba(6, 28, 44, 0.92) 0%, rgba(0, 0, 0, 0.95) 100%);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 2rem;
+  overflow: hidden;
+}
+
+/* Floating ambient particles */
+.lightbox-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(60px);
+  opacity: 0.35;
+}
+.lightbox-particle-1 {
+  width: 300px;
+  height: 300px;
+  background: rgba(6, 182, 212, 0.4);
+  top: -80px;
+  left: -60px;
+  animation: floatParticle1 8s ease-in-out infinite;
+}
+.lightbox-particle-2 {
+  width: 200px;
+  height: 200px;
+  background: rgba(139, 92, 246, 0.35);
+  bottom: -40px;
+  right: -40px;
+  animation: floatParticle2 10s ease-in-out infinite;
+}
+.lightbox-particle-3 {
+  width: 150px;
+  height: 150px;
+  background: rgba(16, 185, 129, 0.3);
+  top: 50%;
+  right: 10%;
+  animation: floatParticle3 12s ease-in-out infinite;
+}
+@keyframes floatParticle1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, 30px) scale(1.15); }
+}
+@keyframes floatParticle2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-30px, -40px) scale(1.1); }
+}
+@keyframes floatParticle3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.25; }
+  50% { transform: translate(-20px, 20px) scale(1.2); opacity: 0.4; }
+}
+
+.video-lightbox-content {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #0c1222;
+  box-shadow:
+    0 30px 100px rgba(0, 0, 0, 0.7),
+    0 0 80px rgba(6, 182, 212, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 1;
+}
+
+/* Animated gradient glow behind the card */
+.lightbox-glow {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 22px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(6, 182, 212, 0.5),
+    rgba(139, 92, 246, 0.4),
+    rgba(16, 185, 129, 0.4),
+    rgba(245, 158, 11, 0.3),
+    rgba(6, 182, 212, 0.5)
+  );
+  z-index: -1;
+  animation: rotateGlow 4s linear infinite;
+  opacity: 0.6;
+  filter: blur(4px);
+}
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lightbox-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lightbox-close-btn:hover {
+  background: rgba(239, 68, 68, 0.7);
+  color: #fff;
+  border-color: rgba(239, 68, 68, 0.5);
+  transform: rotate(90deg) scale(1.1);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+}
+
+.lightbox-video-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  position: relative;
+}
+.lightbox-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.lightbox-no-video {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-info {
+  position: relative;
+  background: linear-gradient(180deg, #0e1629 0%, #0c1222 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.lightbox-info-inner {
+  padding: 1.25rem 1.75rem 1.5rem;
+}
+.lightbox-partner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  border-radius: 20px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  letter-spacing: 0.03em;
+  margin-bottom: 0.75rem;
+}
+.lightbox-badge-icon {
+  font-size: 0.85rem;
+}
+.lightbox-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.lightbox-quote {
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Lightbox transitions */
+.lightbox-enter-active {
+  animation: lightboxOverlayIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lightbox-leave-active {
+  animation: lightboxOverlayOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes lightboxOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes lightboxOverlayOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.lightbox-enter-active .video-lightbox-content {
+  animation: lightboxContentIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lightbox-leave-active .video-lightbox-content {
+  animation: lightboxContentOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes lightboxContentIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(30px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+@keyframes lightboxContentOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+}
+
+@media (max-width: 768px) {
+  .video-lightbox-overlay {
+    padding: 1rem;
+  }
+  .video-lightbox-content {
+    max-width: 100%;
+    border-radius: 14px;
+  }
+  .lightbox-glow {
+    border-radius: 16px;
+  }
+  .lightbox-info-inner {
+    padding: 1rem 1.25rem 1.25rem;
+  }
 }
 </style>
