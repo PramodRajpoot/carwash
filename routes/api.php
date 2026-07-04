@@ -20,6 +20,7 @@ use App\Http\Controllers\ServicePartnerController;
 use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\PartnerFeedbackController;
 use App\Http\Controllers\FaqController;
+use App\Http\Controllers\NewsletterController;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,6 +52,9 @@ Route::get('/service-partners', [ServicePartnerController::class, 'index']);
 Route::get('/testimonials', [TestimonialController::class, 'index']);
 Route::get('/partner-feedback', [PartnerFeedbackController::class, 'index']);
 Route::get('/faqs', [FaqController::class, 'index']);
+
+// Newsletter
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
 
 // Public blog
 Route::get('/blog',       [BlogController::class, 'index']);

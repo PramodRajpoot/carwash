@@ -344,10 +344,15 @@
         <div class="glass-card" style="max-width:700px;margin:0 auto;background:var(--gradient-card)">
           <h3 style="margin-bottom:0.5rem">Subscribe to our <span class="text-gradient">Newsletter</span></h3>
           <p class="text-secondary" style="margin-bottom:1.5rem">Get the latest offers, tips, and updates directly in your inbox.</p>
-          <form @submit.prevent="submitNewsletter" class="flex gap-2" style="max-width:500px;margin:0 auto">
-            <input type="email" class="form-input" placeholder="Enter your email address" required style="flex:1">
-            <button type="submit" class="btn btn-primary">Subscribe</button>
+          <form @submit.prevent="submitNewsletter" class="flex gap-2" style="max-width:500px;margin:0 auto;position:relative;">
+            <input type="email" v-model="newsletterEmail" class="form-input" placeholder="Enter your email address" required style="flex:1" :disabled="newsletterSubmitting">
+            <button type="submit" class="btn btn-primary" :disabled="newsletterSubmitting">
+              {{ newsletterSubmitting ? 'Subscribing...' : 'Subscribe' }}
+            </button>
           </form>
+          <div v-if="newsletterMessage" :class="newsletterError ? 'text-danger' : 'text-success'" style="margin-top: 1rem; font-size: 0.9rem;">
+            {{ newsletterMessage }}
+          </div>
         </div>
       </div>
     </section>
@@ -371,6 +376,10 @@ export default {
       partnerSubmitting: false,
       partnerError: '',
       partnerForm: { name: '', email: '', phone: '', city: '', budget: '', message: '', latitude: null, longitude: null },
+      newsletterEmail: '',
+      newsletterSubmitting: false,
+      newsletterMessage: '',
+      newsletterError: false,
       offers: [],
       banners: [],
       currentBannerIndex: 0,
@@ -526,8 +535,25 @@ export default {
         doSubmit();
       }
     },
-    submitNewsletter() {
-      alert('Thank you for subscribing to our newsletter!');
+    async submitNewsletter() {
+      if (!this.newsletterEmail) return;
+      this.newsletterSubmitting = true;
+      this.newsletterMessage = '';
+      this.newsletterError = false;
+
+      try {
+        const response = await axios.post('/api/newsletter/subscribe', { email: this.newsletterEmail });
+        this.newsletterMessage = response.data.message || 'Successfully subscribed!';
+        this.newsletterEmail = '';
+      } catch (error) {
+        this.newsletterError = true;
+        this.newsletterMessage = error.response?.data?.message || 'Failed to subscribe. Please try again.';
+      } finally {
+        this.newsletterSubmitting = false;
+        setTimeout(() => {
+          this.newsletterMessage = '';
+        }, 5000);
+      }
     },
     openVideoLightbox(feedback) {
       this.lightboxFeedback = feedback;
