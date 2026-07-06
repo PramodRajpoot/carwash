@@ -30,6 +30,17 @@ class BookingController extends Controller
         return response()->json($centers);
     }
 
+    public function getOffers(Request $request)
+    {
+        $offers = Coupon::where('status', 'active')
+            ->where(function($query) {
+                $query->whereNull('expires_at')
+                      ->orWhere('expires_at', '>=', Carbon::now());
+            })
+            ->get();
+        return response()->json($offers);
+    }
+
     public function checkSlotAvailability(Request $request)
     {
         $request->validate([
@@ -39,7 +50,7 @@ class BookingController extends Controller
 
         $slots = Slot::where('franchisee_id', $request->franchisee_id)
             ->where('date', $request->date)
-            ->where('status', 'active')
+            ->where('is_active', true)
             ->get();
 
         return response()->json($slots);
@@ -68,6 +79,13 @@ class BookingController extends Controller
             ->where('date', $request->booking_date)
             ->where('time_range', $request->slot_time)
             ->first();
+
+        if ($slot && !$slot->is_active) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Selected slot is currently unavailable. Please choose another slot.'
+            ], 400);
+        }
 
         if ($slot && $slot->current_bookings >= $slot->max_bookings) {
             return response()->json([

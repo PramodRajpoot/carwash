@@ -27,6 +27,7 @@
         <template v-else-if="role === 'franchisee'">
           <li><router-link to="/franchisee"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/franchisee/orders"><span class="nav-icon">📋</span> Orders</router-link></li>
+          <li><router-link to="/franchisee/slots"><span class="nav-icon">🕐</span> Slots Management</router-link></li>
           <li><router-link to="/franchisee/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
           <li><router-link to="/franchisee/royalty"><span class="nav-icon">💳</span> Royalty</router-link></li>
           <li><router-link to="/franchisee/expenses"><span class="nav-icon">💰</span> Expenses</router-link></li>
@@ -56,6 +57,11 @@
           <li><router-link to="/super-admin/admins"><span class="nav-icon">👤</span> Admin Management</router-link></li>
           <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Settings</router-link></li>
           <li style="padding:0.5rem 1.5rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border-color);margin-top:0.5rem">Platform</li>
+          <li><router-link to="/super-admin/banners"><span class="nav-icon">🖼️</span> Hero Banners</router-link></li>
+          <li><router-link to="/super-admin/service-partners"><span class="nav-icon">🤝</span> Service Partners</router-link></li>
+          <li><router-link to="/super-admin/testimonials"><span class="nav-icon">💬</span> Testimonials</router-link></li>
+          <li><router-link to="/super-admin/partner-feedback"><span class="nav-icon">🎥</span> Partner Feedback</router-link></li>
+          <li><router-link to="/super-admin/faqs"><span class="nav-icon">❓</span> FAQs</router-link></li>
           <li><router-link to="/super-admin/master-slots"><span class="nav-icon">⏰</span> Master Slots</router-link></li>
           <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
           <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
@@ -79,7 +85,6 @@
       <div class="dash-header">
         <h1>{{ pageTitle }}</h1>
         <div class="user-info">
-          <span class="text-secondary" style="font-size:0.85rem">{{ user.name }}</span>
           <div class="user-menu-wrapper" style="position:relative">
             <div class="avatar avatar-btn" @click="showUserMenu = !showUserMenu" tabindex="0" @blur="delayCloseMenu">
               <img v-if="user.avatar" :src="'/' + user.avatar" class="avatar-img-header" alt="" />
@@ -87,6 +92,10 @@
             </div>
             <transition name="menu-fade">
               <div v-if="showUserMenu" class="user-dropdown">
+                <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;">
+                  <div style="font-weight: 600; line-height: 1.2;">{{ user.name }}</div>
+                  <div class="text-secondary" style="font-size: 0.75rem; text-transform: capitalize; margin-top: 0.25rem;">{{ role.replace('_', ' ') }}</div>
+                </div>
                 <router-link :to="profileRoute" class="dropdown-item" @click.native="showUserMenu = false">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   Profile
@@ -133,7 +142,8 @@ export default {
         'customer-subscriptions': 'Subscriptions', 'customer-wallet': 'E-Points Wallet', 'customer-referrals': 'Referrals',
         'customer-offers': 'Offers & Coupons', 'customer-support': 'Help & Support', 'customer-notifications': 'Notifications',
         'customer-wishlist': 'Wishlist', 'customer-profile': 'My Profile',
-        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Orders', 'franchisee-expenses': 'Expenses',
+        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Orders', 'franchisee-slots': 'Slots Management',
+        'franchisee-expenses': 'Expenses',
         'franchisee-reports': 'Reports', 'franchisee-royalty': 'Royalty Management', 'franchisee-subscriptions': 'Subscriptions',
         'franchisee-offers': 'Offers',
         'admin-dashboard': 'Dashboard', 'admin-users': 'Users', 'admin-orders': 'Orders', 'admin-slots': 'Slots',
@@ -141,7 +151,7 @@ export default {
         'admin-packages': 'Subscription Packages', 'admin-referrals': 'Referral Network', 'admin-blog': 'Blog',
         'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
-        'superadmin-settings': 'Platform Settings',
+        'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
       };
       return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },

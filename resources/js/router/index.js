@@ -41,6 +41,7 @@ import FranchiseeReports from '@/views/franchisee/FranchiseeReports.vue';
 import FranchiseeRoyalty from '@/views/franchisee/FranchiseeRoyalty.vue';
 import FranchiseeSubscriptions from '@/views/franchisee/FranchiseeSubscriptions.vue';
 import FranchiseeOffers from '@/views/franchisee/FranchiseeOffers.vue';
+import FranchiseeSlots from '@/views/franchisee/FranchiseeSlots.vue';
 
 // Admin Views
 import AdminDashboard from '@/views/admin/AdminDashboard.vue';
@@ -61,6 +62,11 @@ import SuperAdminDashboard from '@/views/super-admin/SuperAdminDashboard.vue';
 import SuperAdminAdmins from '@/views/super-admin/SuperAdminAdmins.vue';
 import SuperAdminSettings from '@/views/super-admin/SuperAdminSettings.vue';
 import SuperAdminSlots from '@/views/super-admin/SuperAdminSlots.vue';
+import SuperAdminBanners from '@/views/super-admin/SuperAdminBanners.vue';
+import SuperAdminServicePartners from '@/views/super-admin/SuperAdminServicePartners.vue';
+import SuperAdminTestimonials from '@/views/super-admin/SuperAdminTestimonials.vue';
+import SuperAdminPartnerFeedback from '@/views/super-admin/SuperAdminPartnerFeedback.vue';
+import SuperAdminFaqs from '@/views/super-admin/SuperAdminFaqs.vue';
 
 export const routes = [
     // ── Public Pages ─────────────────────────────────────────────
@@ -115,6 +121,7 @@ export const routes = [
         children: [
             { path: '', name: 'franchisee-dashboard', component: FranchiseeDashboard },
             { path: 'orders', name: 'franchisee-orders', component: FranchiseeOrders },
+            { path: 'slots', name: 'franchisee-slots', component: FranchiseeSlots },
             { path: 'expenses', name: 'franchisee-expenses', component: FranchiseeExpenses },
             { path: 'reports', name: 'franchisee-reports', component: FranchiseeReports },
             { path: 'royalty', name: 'franchisee-royalty', component: FranchiseeRoyalty },
@@ -154,6 +161,11 @@ export const routes = [
             { path: 'admins', name: 'superadmin-admins', component: SuperAdminAdmins },
             { path: 'settings', name: 'superadmin-settings', component: SuperAdminSettings },
             { path: 'master-slots', name: 'superadmin-slots', component: SuperAdminSlots },
+            { path: 'banners', name: 'superadmin-banners', component: SuperAdminBanners },
+            { path: 'service-partners', name: 'superadmin-service-partners', component: SuperAdminServicePartners },
+            { path: 'testimonials', name: 'superadmin-testimonials', component: SuperAdminTestimonials },
+            { path: 'partner-feedback', name: 'superadmin-partner-feedback', component: SuperAdminPartnerFeedback },
+            { path: 'faqs', name: 'superadmin-faqs', component: SuperAdminFaqs },
             // Super admin also has access to all admin sub-pages via their own routes
             { path: 'users', name: 'superadmin-users', component: AdminUsers },
             { path: 'orders', name: 'superadmin-orders', component: AdminOrders },

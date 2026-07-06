@@ -15,6 +15,12 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\PartnerController;
 use App\Http\Controllers\SuperAdminSlotController;
+use App\Http\Controllers\BannerController;
+use App\Http\Controllers\ServicePartnerController;
+use App\Http\Controllers\TestimonialController;
+use App\Http\Controllers\PartnerFeedbackController;
+use App\Http\Controllers\FaqController;
+use App\Http\Controllers\NewsletterController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +46,15 @@ Route::get('/auth/google/callback', [App\Http\Controllers\GoogleAuthController::
 // Public service data
 Route::get('/packages', [BookingController::class, 'getPackages']);
 Route::get('/centers',  [BookingController::class, 'getCenters']);
+Route::get('/offers',   [BookingController::class, 'getOffers']);
+Route::get('/banners',  [BannerController::class, 'index']);
+Route::get('/service-partners', [ServicePartnerController::class, 'index']);
+Route::get('/testimonials', [TestimonialController::class, 'index']);
+Route::get('/partner-feedback', [PartnerFeedbackController::class, 'index']);
+Route::get('/faqs', [FaqController::class, 'index']);
+
+// Newsletter
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
 
 // Public blog
 Route::get('/blog',       [BlogController::class, 'index']);
@@ -111,6 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders',                           [FranchiseeController::class, 'getOrders']);
         Route::put('/orders/{id}/status',               [FranchiseeController::class, 'updateBookingStatus']);
         Route::post('/orders/{id}/reschedule',          [FranchiseeController::class, 'rescheduleService']);
+        Route::put('/slots/{id}/toggle',                [FranchiseeController::class, 'toggleSlotStatus']);
         Route::get('/expenses',                         [FranchiseeController::class, 'getExpenses']);
         Route::post('/expenses',                        [FranchiseeController::class, 'addExpense']);
         Route::delete('/expenses/{id}',                 [FranchiseeController::class, 'deleteExpense']);
@@ -211,5 +227,36 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/master-slots', [SuperAdminSlotController::class, 'createMasterSlot']);
         Route::put('/master-slots/{id}', [SuperAdminSlotController::class, 'updateMasterSlot']);
         Route::delete('/master-slots/{id}', [SuperAdminSlotController::class, 'deleteMasterSlot']);
+
+        // Banner Management
+        Route::get('/banners', [BannerController::class, 'adminIndex']);
+        Route::post('/banners', [BannerController::class, 'store']);
+        Route::put('/banners/{id}', [BannerController::class, 'update']);
+        Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
+
+        // Service Partners Management
+        Route::get('/service-partners', [ServicePartnerController::class, 'adminIndex']);
+        Route::post('/service-partners', [ServicePartnerController::class, 'store']);
+        Route::put('/service-partners/{id}', [ServicePartnerController::class, 'update']);
+        Route::delete('/service-partners/{id}', [ServicePartnerController::class, 'destroy']);
+
+        // Testimonial Management
+        Route::get('/testimonials', [TestimonialController::class, 'adminIndex']);
+        Route::post('/testimonials', [TestimonialController::class, 'store']);
+        Route::put('/testimonials/{id}', [TestimonialController::class, 'update']);
+        Route::delete('/testimonials/{id}', [TestimonialController::class, 'destroy']);
+
+        // Partner Feedback Management
+        Route::get('/partner-feedback', [PartnerFeedbackController::class, 'adminIndex']);
+        Route::post('/partner-feedback', [PartnerFeedbackController::class, 'store']);
+        Route::put('/partner-feedback/{id}', [PartnerFeedbackController::class, 'update']);
+        Route::post('/partner-feedback/{id}', [PartnerFeedbackController::class, 'update']); // FormData with _method=PUT
+        Route::delete('/partner-feedback/{id}', [PartnerFeedbackController::class, 'destroy']);
+
+        // FAQ Management
+        Route::get('/faqs', [FaqController::class, 'adminIndex']);
+        Route::post('/faqs', [FaqController::class, 'store']);
+        Route::put('/faqs/{id}', [FaqController::class, 'update']);
+        Route::delete('/faqs/{id}', [FaqController::class, 'destroy']);
     });
 });
