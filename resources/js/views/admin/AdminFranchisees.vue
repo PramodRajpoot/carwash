@@ -106,6 +106,8 @@
 </template>
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
+
 export default {
   name: 'AdminFranchisees',
   data() { 
@@ -124,12 +126,21 @@ export default {
   },
   methods: {
     async updateStatus(f, newStatus) {
-      if (!confirm(`Are you sure you want to ${newStatus} this franchise?`)) return;
+      const result = await Swal.fire({
+        title: 'Confirm Action',
+        text: `Are you sure you want to ${newStatus} this franchise?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, do it!'
+      });
+      if (!result.isConfirmed) return;
+
       try {
         await axios.put(`/api/admin/franchisees/${f.id}/status`, { status: newStatus });
         f.status = newStatus;
+        Swal.fire('Updated!', 'Status has been updated successfully.', 'success');
       } catch (e) {
-        alert('Failed to update status');
+        Swal.fire('Error', 'Failed to update status', 'error');
       }
     },
     handleAction(event, f) {
@@ -146,8 +157,83 @@ export default {
         this.updateStatus(f, 'suspended');
       } else if (action === 'view') {
         this.openSlotModal(f);
-      } else if (action === 'edit' || action === 'renew' || action === 'upload') {
-        alert(`${action} action triggered for ${f.center_name}. (To be implemented)`);
+      } else if (action === 'edit') {
+        this.openEditModal(f);
+      } else if (action === 'renew' || action === 'upload') {
+        Swal.fire('Notice', `${action} action triggered for ${f.center_name}. (To be implemented)`, 'info');
+      }
+    },
+    async openEditModal(f) {
+      const { value: formValues } = await Swal.fire({
+        title: 'Edit Franchise',
+        html: `
+          <div style="display:flex; flex-direction:column; gap:10px; text-align:left; font-size: 0.9rem;">
+            <div>
+              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">Owner Name</label>
+              <input id="swal-name" class="form-input" style="width:100%" placeholder="Owner Name" value="${f.user?.name || ''}">
+            </div>
+            <div>
+              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">Email</label>
+              <input id="swal-email" type="email" class="form-input" style="width:100%" placeholder="Email" value="${f.user?.email || ''}">
+            </div>
+            <div>
+              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">Phone</label>
+              <input id="swal-phone" class="form-input" style="width:100%" placeholder="Phone" value="${f.user?.phone || ''}">
+            </div>
+            <div>
+              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">Center Name</label>
+              <input id="swal-center" class="form-input" style="width:100%" placeholder="Center Name" value="${f.center_name || ''}">
+            </div>
+            <div>
+              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">City</label>
+              <input id="swal-city" class="form-input" style="width:100%" placeholder="City" value="${f.city || ''}">
+            </div>
+            <div>
+              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">Address</label>
+              <input id="swal-address" class="form-input" style="width:100%" placeholder="Address" value="${f.address || ''}">
+            </div>
+            <div>
+              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">Royalty</label>
+              <input id="swal-royalty" type="number" step="0.01" class="form-input" style="width:100%" placeholder="Royalty" value="${f.royalty_percentage || ''}">
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Save Changes',
+        preConfirm: () => {
+          return {
+            name: document.getElementById('swal-name').value,
+            email: document.getElementById('swal-email').value,
+            phone: document.getElementById('swal-phone').value,
+            center_name: document.getElementById('swal-center').value,
+            city: document.getElementById('swal-city').value,
+            address: document.getElementById('swal-address').value,
+            royalty_percentage: document.getElementById('swal-royalty').value,
+            role: 'franchisee',
+            status: f.user?.status || 'active'
+          }
+        }
+      });
+
+      if (formValues) {
+        try {
+          await axios.put(`/api/admin/users/${f.user_id || f.user?.id}`, formValues);
+          Swal.fire('Saved!', 'Franchise details have been updated.', 'success');
+          
+          if (f.user) {
+            f.user.name = formValues.name;
+            f.user.email = formValues.email;
+            f.user.phone = formValues.phone;
+          }
+          f.center_name = formValues.center_name;
+          f.city = formValues.city;
+          f.address = formValues.address;
+          f.royalty_percentage = formValues.royalty_percentage;
+        } catch (error) {
+          console.error(error);
+          Swal.fire('Error', error.response?.data?.message || 'Failed to update franchise', 'error');
+        }
       }
     },
     async openSlotModal(f) {
