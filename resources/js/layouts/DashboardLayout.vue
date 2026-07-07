@@ -1,7 +1,8 @@
 <template>
   <div class="dash-layout">
+    <div v-if="showMobileMenu" class="modal-overlay" style="z-index: 1040" @click="showMobileMenu = false"></div>
 
-    <aside class="dash-sidebar">
+    <aside class="dash-sidebar" :class="{ 'mobile-open': showMobileMenu }">
       <div class="dash-sidebar-logo">CleanAt Doorstep</div>
       <ul class="dash-sidebar-nav">
         <!-- Customer Sidebar -->
@@ -83,7 +84,10 @@
 
     <main class="dash-main">
       <div class="dash-header">
-        <h1>{{ pageTitle }}</h1>
+        <div style="display: flex; align-items: center;">
+          <button class="dash-mobile-toggle" @click="showMobileMenu = true">☰</button>
+          <h1>{{ pageTitle }}</h1>
+        </div>
         <div class="user-info">
           <div class="user-menu-wrapper" style="position:relative">
             <div class="avatar avatar-btn" @click="showUserMenu = !showUserMenu" tabindex="0" @blur="delayCloseMenu">
@@ -127,6 +131,7 @@ export default {
       isDark: true,
       unreadCount: 0,
       showUserMenu: false,
+      showMobileMenu: false,
     };
   },
   computed: {
@@ -192,6 +197,11 @@ export default {
     this.loadTheme();
     this.loadUnread();
     window.addEventListener('user-updated', this.updateLocalUser);
+  },
+  watch: {
+    $route() {
+      this.showMobileMenu = false;
+    }
   },
   beforeUnmount() {
     window.removeEventListener('user-updated', this.updateLocalUser);
