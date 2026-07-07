@@ -26,7 +26,7 @@
         <!-- Franchisee Sidebar -->
         <template v-else-if="role === 'franchisee'">
           <li><router-link to="/franchisee"><span class="nav-icon">📊</span> Dashboard</router-link></li>
-          <li><router-link to="/franchisee/orders"><span class="nav-icon">📋</span> Orders</router-link></li>
+          <li><router-link to="/franchisee/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
           <li><router-link to="/franchisee/slots"><span class="nav-icon">🕐</span> Slots Management</router-link></li>
           <li><router-link to="/franchisee/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
           <li><router-link to="/franchisee/royalty"><span class="nav-icon">💳</span> Royalty</router-link></li>
@@ -40,7 +40,7 @@
           <li><router-link to="/admin"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
           <li><router-link to="/admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
-          <li><router-link to="/admin/orders"><span class="nav-icon">📋</span> Orders</router-link></li>
+          <li><router-link to="/admin/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
           <li><router-link to="/admin/packages"><span class="nav-icon">📦</span> Packages</router-link></li>
           <li><router-link to="/admin/slots"><span class="nav-icon">🕐</span> Slots</router-link></li>
           <li><router-link to="/admin/coupons"><span class="nav-icon">🎟️</span> Coupons</router-link></li>
@@ -65,7 +65,7 @@
           <li><router-link to="/super-admin/master-slots"><span class="nav-icon">⏰</span> Master Slots</router-link></li>
           <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
           <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
-          <li><router-link to="/super-admin/orders"><span class="nav-icon">📋</span> Orders</router-link></li>
+          <li><router-link to="/super-admin/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
           <li><router-link to="/super-admin/packages"><span class="nav-icon">📦</span> Packages</router-link></li>
           <li><router-link to="/super-admin/coupons"><span class="nav-icon">🎟️</span> Coupons</router-link></li>
           <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
@@ -142,16 +142,16 @@ export default {
         'customer-subscriptions': 'Subscriptions', 'customer-wallet': 'E-Points Wallet', 'customer-referrals': 'Referrals',
         'customer-offers': 'Offers & Coupons', 'customer-support': 'Help & Support', 'customer-notifications': 'Notifications',
         'customer-wishlist': 'Wishlist', 'customer-profile': 'My Profile',
-        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Orders', 'franchisee-slots': 'Slots Management',
+        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Booking Management', 'franchisee-slots': 'Slots Management',
         'franchisee-expenses': 'Expenses',
         'franchisee-reports': 'Reports', 'franchisee-royalty': 'Royalty Management', 'franchisee-subscriptions': 'Subscriptions',
         'franchisee-offers': 'Offers',
-        'admin-dashboard': 'Dashboard', 'admin-users': 'Users', 'admin-orders': 'Orders', 'admin-slots': 'Slots',
+        'admin-dashboard': 'Dashboard', 'admin-users': 'Users', 'admin-orders': 'Booking Management', 'admin-slots': 'Slots',
         'admin-coupons': 'Coupons', 'admin-reports': 'Reports', 'admin-franchisees': 'Franchise Management',
         'admin-packages': 'Subscription Packages', 'admin-referrals': 'Referral Network', 'admin-blog': 'Blog',
         'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
-        'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
+        'superadmin-orders': 'Booking Management', 'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
       };
       return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },
