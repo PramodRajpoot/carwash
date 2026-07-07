@@ -3,54 +3,83 @@
     <div class="flex justify-between items-center" style="margin-bottom:1.5rem">
       <h3>Franchise Management</h3>
     </div>
-    <div class="glass-card">
+    <div class="glass-card" style="overflow-x: auto;">
       <div v-if="loading" class="text-muted" style="text-align:center;padding:2rem">Loading…</div>
       <div v-else-if="franchisees.length === 0" class="text-muted" style="text-align:center;padding:2rem">No franchise partners yet.</div>
-      <div v-else>
-        <div v-for="f in franchisees" :key="f.id" class="glass-card" style="margin-bottom:0.75rem">
-          <div class="flex justify-between items-start" style="margin-bottom:0.75rem">
-            <div>
-              <div style="font-weight:700;font-size:1rem">{{ f.center_name }}</div>
-              <div class="text-muted" style="font-size:0.82rem">{{ f.city }} • {{ f.user?.name }} • {{ f.user?.phone }}</div>
-            </div>
-            <div class="flex gap-2 items-center">
-              <span class="badge" :class="{ 'badge-emerald': f.status === 'active', 'badge-rose': f.status === 'inactive', 'badge-amber': f.status === 'pending' }">{{ f.status }}</span>
-              <select v-model="f.status" class="form-input" style="padding:0.25rem 0.5rem;font-size:0.8rem;width:auto" @change="updateStatus(f)">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
+      <table v-else class="table" style="width: 100%; text-align: left; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted);">
+            <th style="padding: 1rem 0.5rem;">Owner Name</th>
+            <th style="padding: 1rem 0.5rem;">City</th>
+            <th style="padding: 1rem 0.5rem;">State</th>
+            <th style="padding: 1rem 0.5rem;">Address</th>
+            <th style="padding: 1rem 0.5rem;">Contact Info</th>
+            <th style="padding: 1rem 0.5rem;">Royalty (₹)</th>
+            <th style="padding: 1rem 0.5rem;">Status</th>
+            <th style="padding: 1rem 0.5rem;">Performance</th>
+            <th style="padding: 1rem 0.5rem;">Revenue</th>
+            <th style="padding: 1rem 0.5rem;">Bookings (Total / Completed)</th>
+            <th style="padding: 1rem 0.5rem; text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="f in franchisees" :key="f.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+            <td style="padding: 1rem 0.5rem;">
+              <div style="font-weight: 600;">{{ f.user?.name || '-' }}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ f.center_name }}</div>
+            </td>
+            <td style="padding: 1rem 0.5rem;">{{ f.city || '-' }}</td>
+            <td style="padding: 1rem 0.5rem;">{{ f.state || 'N/A' }}</td>
+            <td style="padding: 1rem 0.5rem; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" :title="f.address">
+              {{ f.address || '-' }}
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <div>{{ f.user?.phone || '-' }}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ f.user?.email || '-' }}</div>
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <div style="font-weight: 600; color: var(--accent-cyan);">
+                ₹{{ ((f.total_revenue || 0) * (f.royalty_percentage / 100)).toLocaleString() }}
+              </div>
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <span class="badge" :class="{ 'badge-emerald': f.status === 'active', 'badge-rose': f.status === 'inactive' || f.status === 'suspended', 'badge-amber': f.status === 'pending' }">
+                {{ f.status.toUpperCase() }}
+              </span>
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <div v-if="f.total_orders > 0">
+                {{ Math.round((f.completed_orders / f.total_orders) * 100) }}%
+              </div>
+              <div v-else class="text-muted">-</div>
+            </td>
+            <td style="padding: 1rem 0.5rem; font-weight: 600;">
+              ₹{{ (f.total_revenue || 0).toLocaleString() }}
+            </td>
+            <td style="padding: 1rem 0.5rem; text-align: center;">
+              {{ f.total_orders || 0 }} / <span style="color: var(--accent-emerald);">{{ f.completed_orders || 0 }}</span>
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <select class="form-input" style="padding: 0.25rem; font-size: 0.8rem; width: 120px;" @change="handleAction($event, f)">
+                <option value="">-- Actions --</option>
+                <option value="approve" v-if="f.status !== 'active'">Approve</option>
+                <option value="reject" v-if="f.status !== 'inactive'">Reject</option>
+                <option value="suspend" v-if="f.status !== 'suspended'">Suspend</option>
+                <option value="renew">Renew Agreement</option>
+                <option value="upload">Upload Docs</option>
+                <option value="view">View / Slots</option>
+                <option value="edit">Edit</option>
               </select>
-            </div>
-          </div>
-          <div class="grid grid-3 gap-3">
-            <div style="text-align:center">
-              <div style="font-size:1.2rem;font-weight:700;color:var(--accent-cyan)">{{ f.total_orders || 0 }}</div>
-              <div class="text-muted" style="font-size:0.75rem">Total Orders</div>
-            </div>
-            <div style="text-align:center">
-              <div style="font-size:1.2rem;font-weight:700;color:var(--accent-emerald)">{{ f.completed_orders || 0 }}</div>
-              <div class="text-muted" style="font-size:0.75rem">Completed</div>
-            </div>
-            <div style="text-align:center">
-              <div style="font-size:1.2rem;font-weight:700;color:var(--accent-violet)">₹{{ (f.total_revenue || 0).toLocaleString() }}</div>
-              <div class="text-muted" style="font-size:0.75rem">Revenue</div>
-            </div>
-          </div>
-          <div class="flex gap-3 justify-between items-center" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border-color);padding-top:0.75rem;">
-            <div class="flex gap-3">
-              <span>📍 {{ f.address }}</span>
-              <span>💰 Royalty: {{ f.royalty_percentage }}%</span>
-            </div>
-            <button class="btn btn-ghost btn-sm" @click="openSlotModal(f)" style="color:var(--accent-cyan);border:1px solid var(--accent-cyan);padding:0.2rem 0.5rem;">⏰ Assign Wash Slots</button>
-          </div>
-        </div>
-      </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <!-- Assign Slots Modal -->
+    <!-- Assign Slots / View Modal (Reusing the existing slot modal logic for 'view') -->
     <div v-if="showSlotModal" class="modal-overlay" @click.self="showSlotModal = false">
       <div class="modal-content">
-        <h3>Assign Wash Slots</h3>
+        <h3>View & Assign Wash Slots</h3>
         <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">Select which time slots are available for <strong>{{ selectedFranchise?.center_name }}</strong></p>
         
         <div v-if="loadingSlots" class="text-center text-muted" style="padding: 1rem;">Loading slots...</div>
@@ -94,8 +123,32 @@ export default {
     }; 
   },
   methods: {
-    async updateStatus(f) {
-      await axios.put(`/api/admin/franchisees/${f.id}/status`, { status: f.status });
+    async updateStatus(f, newStatus) {
+      if (!confirm(`Are you sure you want to ${newStatus} this franchise?`)) return;
+      try {
+        await axios.put(`/api/admin/franchisees/${f.id}/status`, { status: newStatus });
+        f.status = newStatus;
+      } catch (e) {
+        alert('Failed to update status');
+      }
+    },
+    handleAction(event, f) {
+      const action = event.target.value;
+      event.target.value = ""; // reset dropdown
+      
+      if (!action) return;
+
+      if (action === 'approve') {
+        this.updateStatus(f, 'active');
+      } else if (action === 'reject') {
+        this.updateStatus(f, 'inactive');
+      } else if (action === 'suspend') {
+        this.updateStatus(f, 'suspended');
+      } else if (action === 'view') {
+        this.openSlotModal(f);
+      } else if (action === 'edit' || action === 'renew' || action === 'upload') {
+        alert(`${action} action triggered for ${f.center_name}. (To be implemented)`);
+      }
     },
     async openSlotModal(f) {
       this.selectedFranchise = f;
@@ -129,9 +182,13 @@ export default {
     }
   },
   async mounted() {
-    try { const { data } = await axios.get('/api/admin/franchisees'); this.franchisees = data; }
+    try { 
+      const { data } = await axios.get('/api/admin/franchisees'); 
+      this.franchisees = data; 
+    }
     catch (e) { console.error(e); }
     finally { this.loading = false; }
   },
 };
 </script>
+
