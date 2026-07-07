@@ -344,7 +344,7 @@
         <div class="glass-card" style="max-width:700px;margin:0 auto;background:var(--gradient-card)">
           <h3 style="margin-bottom:0.5rem">Subscribe to our <span class="text-gradient">Newsletter</span></h3>
           <p class="text-secondary" style="margin-bottom:1.5rem">Get the latest offers, tips, and updates directly in your inbox.</p>
-          <form @submit.prevent="submitNewsletter" class="flex gap-2" style="max-width:500px;margin:0 auto;position:relative;">
+          <form @submit.prevent="submitNewsletter" class="flex gap-2" style="max-width:500px;margin:0 auto;position:relative;flex-wrap:wrap">
             <input type="email" v-model="newsletterEmail" class="form-input" placeholder="Enter your email address" required style="flex:1" :disabled="newsletterSubmitting">
             <button type="submit" class="btn btn-primary" :disabled="newsletterSubmitting">
               {{ newsletterSubmitting ? 'Subscribing...' : 'Subscribe' }}
@@ -719,7 +719,7 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   background: radial-gradient(ellipse at center, rgba(6, 28, 44, 0.92) 0%, rgba(0, 0, 0, 0.95) 100%);
   backdrop-filter: blur(20px) saturate(1.2);
