@@ -2,33 +2,25 @@
   <div>
     <!-- Stats Row -->
     <div class="grid grid-4 gap-3" style="margin-bottom:1.5rem">
-      <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan); margin: 0;">📋</div>
-        <div style="text-align: right;">
-          <div class="stat-label" style="margin-bottom: 0.25rem;">Total Applications</div>
-          <div class="stat-value">{{ stats.total || 0 }}</div>
-        </div>
+      <div class="stat-card" style="position: relative;">
+        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan); width: 36px; height: 36px; font-size: 1rem;">📋</div>
+        <div class="stat-value">{{ stats.total || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 1.5rem; right: 1.5rem; margin: 0; text-align: right;">Total Applications</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-amber); display: flex; justify-content: space-between; align-items: center;">
-        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber); margin: 0;">🆕</div>
-        <div style="text-align: right;">
-          <div class="stat-label" style="margin-bottom: 0.25rem;">New (Unread)</div>
-          <div class="stat-value" style="color:var(--accent-amber)">{{ stats.new || 0 }}</div>
-        </div>
+      <div class="stat-card" style="border:1px solid var(--accent-amber); position: relative;">
+        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber); width: 36px; height: 36px; font-size: 1rem;">🆕</div>
+        <div class="stat-value" style="color:var(--accent-amber)">{{ stats.new || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 1.5rem; right: 1.5rem; margin: 0; text-align: right;">New (Unread)</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-emerald); display: flex; justify-content: space-between; align-items: center;">
-        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald); margin: 0;">✅</div>
-        <div style="text-align: right;">
-          <div class="stat-label" style="margin-bottom: 0.25rem;">Approved</div>
-          <div class="stat-value" style="color:var(--accent-emerald)">{{ stats.approved || 0 }}</div>
-        </div>
+      <div class="stat-card" style="border:1px solid var(--accent-emerald); position: relative;">
+        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald); width: 36px; height: 36px; font-size: 1rem;">✅</div>
+        <div class="stat-value" style="color:var(--accent-emerald)">{{ stats.approved || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 1.5rem; right: 1.5rem; margin: 0; text-align: right;">Approved</div>
       </div>
-      <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet); margin: 0;">📞</div>
-        <div style="text-align: right;">
-          <div class="stat-label" style="margin-bottom: 0.25rem;">Contacted</div>
-          <div class="stat-value">{{ stats.contacted || 0 }}</div>
-        </div>
+      <div class="stat-card" style="position: relative;">
+        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet); width: 36px; height: 36px; font-size: 1rem;">📞</div>
+        <div class="stat-value">{{ stats.contacted || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 1.5rem; right: 1.5rem; margin: 0; text-align: right;">Contacted</div>
       </div>
     </div>
 
