@@ -5,7 +5,16 @@
         <h3>Platform User Profiles</h3>
         <p class="text-muted" style="font-size: 0.85rem;">Manage admin accounts, franchisees center staff, and registered customers.</p>
       </div>
-      <button class="btn btn-primary btn-sm" @click="openCreateModal">+ Generate User</button>
+      <div class="flex gap-2 items-center">
+        <select v-model="selectedRoleFilter" class="form-input" style="padding: 0.25rem 0.5rem; font-size: 0.9rem; margin: 0;">
+          <option value="">All Roles</option>
+          <option value="super_admin">Super Admin</option>
+          <option value="admin">Admin</option>
+          <option value="franchisee">Franchisee</option>
+          <option value="customer">Customer</option>
+        </select>
+        <button class="btn btn-primary btn-sm" @click="openCreateModal">+ Generate User</button>
+      </div>
     </div>
 
     <div v-if="loading" class="text-center text-muted" style="padding: 3rem;">
@@ -13,7 +22,7 @@
     </div>
 
     <div v-else>
-      <div v-if="users.length" class="table-wrap">
+      <div v-if="filteredUsers.length" class="table-wrap">
         <table>
           <thead>
             <tr>
@@ -27,7 +36,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="u in users" :key="u.id">
+            <tr v-for="u in filteredUsers" :key="u.id">
               <td style="font-weight: 600; color: var(--text-primary);">{{ u.name }}</td>
               <td>{{ u.email }}</td>
               <td>{{ u.phone || 'N/A' }}</td>
@@ -174,6 +183,7 @@ export default {
   data() {
     return {
       users: [],
+      selectedRoleFilter: '',
       loading: true,
       showModal: false,
       isEdit: false,
@@ -195,6 +205,12 @@ export default {
         royalty_percentage: 10
       }
     };
+  },
+  computed: {
+    filteredUsers() {
+      if (!this.selectedRoleFilter) return this.users;
+      return this.users.filter(u => u.role === this.selectedRoleFilter);
+    }
   },
   methods: {
     roleBadge(r) {
