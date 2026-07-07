@@ -76,28 +76,63 @@
       </table>
     </div>
 
-    <!-- Assign Slots / View Modal (Reusing the existing slot modal logic for 'view') -->
+    <!-- Assign Slots / View Modal -->
     <div v-if="showSlotModal" class="modal-overlay" @click.self="showSlotModal = false">
-      <div class="modal-content">
-        <h3>View & Assign Wash Slots</h3>
+      <div class="modal-content" style="max-width: 650px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 style="margin: 0;">Franchise Details & Wash Slots</h3>
+          <button class="btn btn-ghost btn-sm" @click="showSlotModal = false" style="padding: 0.2rem 0.5rem;">✕</button>
+        </div>
+
+        <div v-if="selectedFranchise" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; font-size: 0.9rem;">
+            <div>
+              <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Owner Info</div>
+              <div style="font-weight: 600;">{{ selectedFranchise.user?.name || '-' }}</div>
+              <div class="text-muted">{{ selectedFranchise.user?.phone || '-' }}</div>
+              <div class="text-muted">{{ selectedFranchise.user?.email || '-' }}</div>
+            </div>
+            <div>
+              <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Center Details</div>
+              <div style="font-weight: 600;">{{ selectedFranchise.center_name || '-' }}</div>
+              <div class="text-muted">{{ selectedFranchise.city || '-' }}, {{ selectedFranchise.state || 'N/A' }}</div>
+              <div class="text-muted" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;" :title="selectedFranchise.address">{{ selectedFranchise.address || '-' }}</div>
+            </div>
+            <div>
+              <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Performance</div>
+              <div><span style="font-weight: 600; color: var(--accent-emerald);">{{ selectedFranchise.completed_orders || 0 }}</span> / {{ selectedFranchise.total_orders || 0 }} Bookings Completed</div>
+              <div class="text-muted">Success Rate: {{ selectedFranchise.total_orders > 0 ? Math.round((selectedFranchise.completed_orders / selectedFranchise.total_orders) * 100) : 0 }}%</div>
+            </div>
+            <div>
+              <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Financials</div>
+              <div>Revenue: <span style="font-weight: 600;">₹{{ (selectedFranchise.total_revenue || 0).toLocaleString() }}</span></div>
+              <div class="text-muted">Royalty Rate: {{ selectedFranchise.royalty_percentage }}</div>
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="margin-bottom: 0.5rem;">Assign Wash Slots</h4>
         <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">Select which time slots are available for <strong>{{ selectedFranchise?.center_name }}</strong></p>
         
-        <div v-if="loadingSlots" class="text-center text-muted" style="padding: 1rem;">Loading slots...</div>
+        <div v-if="loadingSlots" class="text-center text-muted" style="padding: 2rem; background: var(--bg-secondary); border-radius: 8px;">Loading slots...</div>
         <div v-else>
-          <div v-for="slot in allMasterSlots" :key="slot.id" style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <input type="checkbox" :id="'slot-'+slot.id" :value="slot.id" v-model="selectedSlotIds" style="width: 1.2rem; height: 1.2rem; accent-color: var(--accent-cyan);" />
-            <label :for="'slot-'+slot.id" style="cursor: pointer;">
-              <strong>{{ slot.name }}</strong> <span class="text-muted">({{ slot.time_range }})</span>
-            </label>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem;">
+            <div v-for="slot in allMasterSlots" :key="slot.id" style="display: flex; align-items: flex-start; gap: 0.5rem; background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color);">
+              <input type="checkbox" :id="'slot-'+slot.id" :value="slot.id" v-model="selectedSlotIds" style="width: 1.2rem; height: 1.2rem; accent-color: var(--accent-cyan); margin-top: 0.1rem;" />
+              <label :for="'slot-'+slot.id" style="cursor: pointer; flex: 1; line-height: 1.3;">
+                <div style="font-weight: 600;">{{ slot.name }}</div>
+                <div class="text-muted" style="font-size: 0.8rem;">{{ slot.time_range }}</div>
+              </label>
+            </div>
           </div>
           
           <div v-if="error" class="alert alert-error" style="margin-top: 1rem;">{{ error }}</div>
           
-          <div class="flex gap-2" style="margin-top: 1.5rem;">
+          <div class="flex gap-2" style="margin-top: 2rem; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <button class="btn btn-ghost" @click="showSlotModal = false">Cancel</button>
             <button class="btn btn-primary" @click="saveSlotAssignments" :disabled="savingSlots">
               {{ savingSlots ? 'Saving...' : 'Save Assignments' }}
             </button>
-            <button class="btn btn-ghost" @click="showSlotModal = false">Cancel</button>
           </div>
         </div>
       </div>
