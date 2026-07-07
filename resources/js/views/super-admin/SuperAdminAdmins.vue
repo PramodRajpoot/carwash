@@ -4,23 +4,23 @@
       <h3>Admin Management</h3>
       <button class="btn btn-primary" @click="openCreate">+ New Admin</button>
     </div>
-    <div class="glass-card">
+    <div class="glass-card" style="padding: 1rem; overflow-x: auto;">
       <div v-if="loading" class="text-muted" style="text-align:center;padding:2rem">Loading…</div>
-      <table v-else style="width:100%;border-collapse:collapse;font-size:0.87rem">
+      <table v-else style="width:100%;border-collapse:collapse;font-size:0.87rem;min-width:600px;">
         <thead><tr style="border-bottom:2px solid var(--border-color)">
-          <th style="text-align:left;padding:0.6rem 0.5rem;color:var(--text-muted)">Name</th>
-          <th style="text-align:left;padding:0.6rem 0.5rem;color:var(--text-muted)">Email</th>
-          <th style="text-align:left;padding:0.6rem 0.5rem;color:var(--text-muted)">Role</th>
-          <th style="text-align:left;padding:0.6rem 0.5rem;color:var(--text-muted)">Status</th>
-          <th style="text-align:right;padding:0.6rem 0.5rem;color:var(--text-muted)">Actions</th>
+          <th style="text-align:left;padding:0.6rem 0.5rem;color:var(--text-muted);white-space:nowrap;">Name</th>
+          <th style="text-align:left;padding:0.6rem 0.5rem;color:var(--text-muted);white-space:nowrap;">Email</th>
+          <th style="text-align:left;padding:0.6rem 0.5rem;color:var(--text-muted);white-space:nowrap;">Role</th>
+          <th style="text-align:left;padding:0.6rem 0.5rem;color:var(--text-muted);white-space:nowrap;">Status</th>
+          <th style="text-align:right;padding:0.6rem 0.5rem;color:var(--text-muted);white-space:nowrap;">Actions</th>
         </tr></thead>
         <tbody>
           <tr v-for="a in admins" :key="a.id" style="border-bottom:1px solid var(--border-color)">
-            <td style="padding:0.7rem 0.5rem;font-weight:600">{{ a.name }}</td>
+            <td style="padding:0.7rem 0.5rem;font-weight:600;white-space:nowrap;">{{ a.name }}</td>
             <td style="padding:0.7rem 0.5rem" class="text-muted">{{ a.email }}</td>
-            <td style="padding:0.7rem 0.5rem"><span class="badge" :class="a.role === 'super_admin' ? 'badge-violet' : 'badge-cyan'" style="font-size:0.73rem">{{ a.role }}</span></td>
-            <td style="padding:0.7rem 0.5rem"><span class="badge" :class="a.status === 'active' ? 'badge-emerald' : 'badge-rose'" style="font-size:0.73rem">{{ a.status }}</span></td>
-            <td style="padding:0.7rem 0.5rem;text-align:right">
+            <td style="padding:0.7rem 0.5rem;white-space:nowrap;"><span class="badge" :class="a.role === 'super_admin' ? 'badge-violet' : 'badge-cyan'" style="font-size:0.73rem">{{ a.role }}</span></td>
+            <td style="padding:0.7rem 0.5rem;white-space:nowrap;"><span class="badge" :class="a.status === 'active' ? 'badge-emerald' : 'badge-rose'" style="font-size:0.73rem">{{ a.status }}</span></td>
+            <td style="padding:0.7rem 0.5rem;text-align:right;white-space:nowrap;">
               <button class="btn btn-sm btn-ghost" @click="openEdit(a)">Edit</button>
               <button v-if="a.role !== 'super_admin'" class="btn btn-sm" style="background:rgba(239,68,68,0.15);color:#ef4444;margin-left:0.25rem" @click="del(a)">Delete</button>
             </td>
