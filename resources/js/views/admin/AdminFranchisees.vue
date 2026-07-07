@@ -23,7 +23,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="f in franchisees" :key="f.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+          <tr v-for="f in paginatedFranchisees" :key="f.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
             <td style="padding: 1rem 0.5rem;">
               <div style="font-weight: 600;">{{ f.user?.name || '-' }}</div>
               <div class="text-muted" style="font-size: 0.75rem;">{{ f.center_name }}</div>
@@ -74,6 +74,28 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem;">
+        <div class="text-muted" style="font-size: 0.85rem;">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, franchisees.length) }} of {{ franchisees.length }} entries
+        </div>
+        <div class="flex gap-1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
+          
+          <template v-for="page in totalPages" :key="page">
+            <button v-if="page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)"
+              class="btn btn-sm" 
+              :class="currentPage === page ? 'btn-primary' : 'btn-outline'"
+              @click="currentPage = page">
+              {{ page }}
+            </button>
+            <span v-else-if="page === currentPage - 2 || page === currentPage + 2" class="text-muted" style="padding: 0 0.25rem;">...</span>
+          </template>
+          
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
+      </div>
     </div>
 
     <!-- Assign Slots / View Modal -->
@@ -156,8 +178,19 @@ export default {
       selectedFranchise: null,
       allMasterSlots: [],
       selectedSlotIds: [],
+      currentPage: 1,
+      itemsPerPage: 10,
       error: ''
     }; 
+  },
+  computed: {
+    paginatedFranchisees() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.franchisees.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.franchisees.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     async updateStatus(f, newStatus) {

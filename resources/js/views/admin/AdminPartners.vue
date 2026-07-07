@@ -1,37 +1,48 @@
 <template>
   <div>
-    <!-- Stats Row -->
-    <div class="grid grid-4 gap-3" style="margin-bottom:1.5rem">
-      <div class="stat-card" style="position: relative;">
-        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan); width: 36px; height: 36px; font-size: 1rem;">📋</div>
-        <div class="stat-value">{{ stats.total || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 1.5rem; right: 1.5rem; margin: 0; text-align: right;">Total Applications</div>
+    <!-- Compact Stats Row -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+      <div class="stat-card" style="position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">📋</div>
+        <div class="stat-value" style="font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.total || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Total Applications</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-amber); position: relative;">
-        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber); width: 36px; height: 36px; font-size: 1rem;">🆕</div>
-        <div class="stat-value" style="color:var(--accent-amber)">{{ stats.new || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 1.5rem; right: 1.5rem; margin: 0; text-align: right;">New (Unread)</div>
+      <div class="stat-card" style="border:1px solid var(--accent-amber); position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">🆕</div>
+        <div class="stat-value" style="color:var(--accent-amber); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.new || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">New (Unread)</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-emerald); position: relative;">
-        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald); width: 36px; height: 36px; font-size: 1rem;">✅</div>
-        <div class="stat-value" style="color:var(--accent-emerald)">{{ stats.approved || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 1.5rem; right: 1.5rem; margin: 0; text-align: right;">Approved</div>
+      <div class="stat-card" style="border:1px solid var(--accent-emerald); position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">✅</div>
+        <div class="stat-value" style="color:var(--accent-emerald); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.approved || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Approved</div>
       </div>
-      <div class="stat-card" style="position: relative;">
-        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet); width: 36px; height: 36px; font-size: 1rem;">📞</div>
-        <div class="stat-value">{{ stats.contacted || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 1.5rem; right: 1.5rem; margin: 0; text-align: right;">Contacted</div>
+      <div class="stat-card" style="position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">📞</div>
+        <div class="stat-value" style="font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.contacted || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Contacted</div>
+      </div>
+      <div class="stat-card" style="border:1px solid var(--accent-rose); position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(244,63,94,0.15);color:var(--accent-rose); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">❌</div>
+        <div class="stat-value" style="color:var(--accent-rose); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.rejected || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Rejected</div>
       </div>
     </div>
 
-    <!-- Filter Tabs -->
-    <div class="flex gap-2" style="margin-bottom:1rem">
-      <button v-for="f in filters" :key="f.val"
-        class="btn btn-sm"
-        :class="activeFilter === f.val ? 'btn-primary' : 'btn-ghost'"
-        @click="activeFilter = f.val; load()">
-        {{ f.label }} ({{ f.val === '' ? stats.total : stats[f.val] || 0 }})
-      </button>
+    <!-- Filter Tabs & Search -->
+    <div class="flex gap-2 justify-between items-center" style="margin-bottom:1rem; flex-wrap: wrap;">
+      <div class="flex gap-2">
+        <button v-for="f in filters" :key="f.val"
+          class="btn btn-sm"
+          :class="activeFilter === f.val ? 'btn-primary' : 'btn-ghost'"
+          @click="activeFilter = f.val; currentPage = 1; load()">
+          {{ f.label }} ({{ f.val === '' ? stats.total : stats[f.val] || 0 }})
+        </button>
+      </div>
+      
+      <div v-if="inquiries.length > 10" style="min-width: 250px;">
+        <input type="text" v-model="searchQuery" class="form-input" placeholder="Search name, email, phone..." style="width: 100%; padding: 0.4rem 0.8rem; font-size: 0.85rem;" />
+      </div>
     </div>
 
     <!-- Applications List -->
@@ -53,7 +64,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="inq in inquiries" :key="inq.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+          <tr v-for="inq in paginatedInquiries" :key="inq.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
             <td style="padding: 1rem 0.5rem; font-weight: 600;">
               {{ inq.name }}
             </td>
@@ -99,6 +110,28 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem;">
+        <div class="text-muted" style="font-size: 0.85rem;">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredInquiries.length) }} of {{ filteredInquiries.length }} entries
+        </div>
+        <div class="flex gap-1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
+          
+          <template v-for="page in totalPages" :key="page">
+            <button v-if="page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)"
+              class="btn btn-sm" 
+              :class="currentPage === page ? 'btn-primary' : 'btn-outline'"
+              @click="currentPage = page">
+              {{ page }}
+            </button>
+            <span v-else-if="page === currentPage - 2 || page === currentPage + 2" class="text-muted" style="padding: 0 0.25rem;">...</span>
+          </template>
+          
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
+      </div>
     </div>
 
     <!-- Password Modal -->
@@ -131,6 +164,9 @@ export default {
       stats: {},
       loading: true,
       activeFilter: '',
+      searchQuery: '',
+      currentPage: 1,
+      itemsPerPage: 10,
       filters: [
         { val: '', label: 'All' },
         { val: 'new', label: '🆕 New' },
@@ -140,6 +176,30 @@ export default {
       ],
       generatedPasswordData: null,
     };
+  },
+  computed: {
+    filteredInquiries() {
+      if (!this.searchQuery) return this.inquiries;
+      const q = this.searchQuery.toLowerCase();
+      return this.inquiries.filter(i => 
+        (i.name && i.name.toLowerCase().includes(q)) ||
+        (i.email && i.email.toLowerCase().includes(q)) ||
+        (i.phone && i.phone.includes(q)) ||
+        (i.city && i.city.toLowerCase().includes(q))
+      );
+    },
+    paginatedInquiries() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.filteredInquiries.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.filteredInquiries.length / this.itemsPerPage) || 1;
+    }
+  },
+  watch: {
+    searchQuery() {
+      this.currentPage = 1;
+    }
   },
   methods: {
     formatDate(d) {
