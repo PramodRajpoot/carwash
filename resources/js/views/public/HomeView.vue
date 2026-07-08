@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Hero / Banner -->
-    <section class="hero" style="position: relative; overflow: hidden; min-height: 70vh; display: flex; align-items: center; padding: 4rem 0;">
+    <section class="hero" style="position: relative; overflow: hidden; display: flex; align-items: center;">
       <!-- Background Slider -->
       <div v-if="banners && banners.length > 0">
         <div v-for="(banner, index) in banners" :key="banner.id" class="hero-bg" 
@@ -20,10 +20,10 @@
 
       <!-- Content -->
       <div class="container flex items-center" style="gap:4rem;flex-wrap:wrap;position: relative;z-index: 10;">
-        <div class="hero-content fade-in-up" style="max-width: 650px;">
+        <div class="hero-content fade-in-up" style="max-width: 650px; width: 100%;">
           <h1 style="color: #fff;"><span class="text-gradient">Premium Car Wash</span><br>At Your Doorstep</h1>
-          <p style="color: rgba(255,255,255,0.85); font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">Experience eco-friendly, waterless car cleaning with our professional detailing team. Book online, sit back, and watch your vehicle shine — all from the comfort of your home.</p>
-          <div class="flex gap-2">
+          <p class="hero-text" style="color: rgba(255,255,255,0.85); line-height: 1.6;">Experience eco-friendly, waterless car cleaning with our professional detailing team. Book online, sit back, and watch your vehicle shine — all from the comfort of your home.</p>
+          <div class="flex gap-2" style="flex-wrap: wrap;">
             <router-link to="/services" class="btn btn-primary" style="padding: 0.85rem 1.5rem;">Explore Services</router-link>
             <router-link to="/register" class="btn btn-outline pulse-glow" style="border-color: rgba(255,255,255,0.3); color: #fff; padding: 0.85rem 1.5rem;">Book Now</router-link>
           </div>
@@ -71,10 +71,10 @@
     <!-- About Us -->
     <section class="section">
       <div class="container flex items-center" style="gap:4rem;flex-wrap:wrap">
-        <div style="flex:1;min-width:300px" class="fade-in-up">
+        <div style="flex:1;min-width:250px" class="fade-in-up">
            <img src="https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800" alt="About CleanAtDoorstep" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);">
         </div>
-        <div style="flex:1;min-width:300px" class="fade-in-up delay-1">
+        <div style="flex:1;min-width:250px" class="fade-in-up delay-1">
           <div class="section-title" style="text-align:left;margin-bottom:1.5rem">
             <h2>About <span class="text-gradient">CleanAtDoorstep</span></h2>
           </div>

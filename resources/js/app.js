@@ -5,6 +5,17 @@ import { routes } from './router/index.js';
 import axios from 'axios';
 import '../css/app.css';
 
+// Enforce proper responsive viewport on mobile devices
+let viewportMeta = document.querySelector('meta[name="viewport"]');
+if (viewportMeta) {
+    viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0');
+} else {
+    viewportMeta = document.createElement('meta');
+    viewportMeta.name = 'viewport';
+    viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0';
+    document.head.appendChild(viewportMeta);
+}
+
 // Configure Axios
 axios.defaults.baseURL = '';
 axios.defaults.headers.common['Accept'] = 'application/json';
