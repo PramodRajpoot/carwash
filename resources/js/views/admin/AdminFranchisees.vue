@@ -15,6 +15,7 @@
             <th style="padding: 1rem 0.5rem;">Address</th>
             <th style="padding: 1rem 0.5rem;">Contact Info</th>
             <th style="padding: 1rem 0.5rem;">Royalty (₹)</th>
+            <th style="padding: 1rem 0.5rem;">Agreement</th>
             <th style="padding: 1rem 0.5rem;">Status</th>
             <th style="padding: 1rem 0.5rem;">Performance</th>
             <th style="padding: 1rem 0.5rem;">Revenue</th>
@@ -40,6 +41,16 @@
             <td style="padding: 1rem 0.5rem;">
               <div style="font-weight: 600; color: var(--accent-cyan);">
                 ₹{{ ((f.total_revenue || 0) * (f.royalty_percentage / 100)).toLocaleString() }}
+              </div>
+            </td>
+            <td style="padding: 1rem 0.5rem; font-size: 0.8rem;">
+              <div :style="{ color: !f.agreement_expires_at ? 'var(--text-muted)' : (new Date(f.agreement_expires_at) < new Date() ? 'var(--accent-rose)' : 'var(--accent-emerald)') }">
+                <span v-if="f.agreement_expires_at">Exp: {{ f.agreement_expires_at }}</span>
+                <span v-else>No Date</span>
+              </div>
+              <div style="margin-top: 0.25rem;">
+                <a v-if="f.document_path" :href="'/' + f.document_path" target="_blank" style="color:var(--accent-cyan); text-decoration:none;">View Doc</a>
+                <span v-else class="text-muted">No Doc</span>
               </div>
             </td>
             <td style="padding: 1rem 0.5rem;">
@@ -128,7 +139,14 @@
             <div>
               <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Financials</div>
               <div>Revenue: <span style="font-weight: 600;">₹{{ (selectedFranchise.total_revenue || 0).toLocaleString() }}</span></div>
-              <div class="text-muted">Royalty Rate: {{ selectedFranchise.royalty_percentage }}</div>
+              <div class="text-muted">Royalty Rate: {{ selectedFranchise.royalty_percentage }}%</div>
+            </div>
+            <div style="grid-column: 1 / -1; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+              <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Agreement & Documents</div>
+              <div style="display:flex; gap: 2rem;">
+                <div>Expires: <span style="font-weight: 600;" :style="{ color: !selectedFranchise.agreement_expires_at ? 'var(--text-muted)' : (new Date(selectedFranchise.agreement_expires_at) < new Date() ? 'var(--accent-rose)' : 'var(--accent-emerald)') }">{{ selectedFranchise.agreement_expires_at || 'Not set' }}</span></div>
+                <div>Document: <a v-if="selectedFranchise.document_path" :href="'/' + selectedFranchise.document_path" target="_blank" style="color:var(--accent-cyan); text-decoration:none;">View Document</a><span v-else class="text-muted">No document uploaded</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -227,8 +245,67 @@ export default {
         this.openSlotModal(f);
       } else if (action === 'edit') {
         this.openEditModal(f);
-      } else if (action === 'renew' || action === 'upload') {
-        Swal.fire('Notice', `${action} action triggered for ${f.center_name}. (To be implemented)`, 'info');
+      } else if (action === 'renew') {
+        this.renewAgreement(f);
+      } else if (action === 'upload') {
+        this.uploadDocument(f);
+      }
+    },
+    async renewAgreement(f) {
+      const today = new Date();
+      today.setFullYear(today.getFullYear() + 1);
+      const defaultDate = today.toISOString().split('T')[0];
+      
+      const { value: newDate } = await Swal.fire({
+        title: 'Renew Agreement',
+        html: `Select new expiration date for <strong>${f.center_name}</strong>`,
+        input: 'date',
+        inputValue: f.agreement_expires_at || defaultDate,
+        showCancelButton: true,
+        confirmButtonText: 'Renew'
+      });
+
+      if (newDate) {
+        try {
+          await axios.post(`/api/admin/franchisees/${f.id}/renew`, { agreement_expires_at: newDate });
+          f.agreement_expires_at = newDate;
+          Swal.fire('Renewed!', 'Agreement has been renewed successfully.', 'success');
+        } catch (error) {
+          Swal.fire('Error', 'Failed to renew agreement.', 'error');
+        }
+      }
+    },
+    async uploadDocument(f) {
+      const { value: file } = await Swal.fire({
+        title: 'Upload Document',
+        html: `<div style="margin-bottom:1rem; font-size:0.9rem;">Select document for <strong>${f.center_name}</strong> (PDF, JPG, PNG)</div>`,
+        input: 'file',
+        inputAttributes: {
+          accept: '.pdf,image/*',
+          'aria-label': 'Upload your document'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Upload',
+        inputValidator: (file) => {
+          if (!file) return 'You need to select a file!';
+        }
+      });
+
+      if (file) {
+        const formData = new FormData();
+        formData.append('document', file);
+        
+        Swal.fire({ title: 'Uploading...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+        try {
+          const { data } = await axios.post(`/api/admin/franchisees/${f.id}/upload-document`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          f.document_path = data.franchisee.document_path;
+          Swal.fire('Uploaded!', 'Document has been uploaded successfully.', 'success');
+        } catch (error) {
+          Swal.fire('Error', error.response?.data?.message || 'Failed to upload document.', 'error');
+        }
       }
     },
     async openEditModal(f) {

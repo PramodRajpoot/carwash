@@ -330,6 +330,37 @@ class AdminController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Franchise status updated.', 'franchisee' => $franchisee]);
     }
 
+    public function renewAgreement(Request $request, $id)
+    {
+        $franchisee = Franchisee::findOrFail($id);
+        $request->validate(['agreement_expires_at' => 'required|date']);
+        $franchisee->update(['agreement_expires_at' => $request->agreement_expires_at]);
+        return response()->json(['status' => 'success', 'message' => 'Agreement renewed.', 'franchisee' => $franchisee]);
+    }
+
+    public function uploadDocument(Request $request, $id)
+    {
+        $franchisee = Franchisee::findOrFail($id);
+        $request->validate([
+            'document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120' // 5MB max
+        ]);
+
+        if ($request->hasFile('document')) {
+            $file = $request->file('document');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('franchise_documents'), $filename);
+            
+            // Delete old doc if exists
+            if ($franchisee->document_path && file_exists(public_path($franchisee->document_path))) {
+                unlink(public_path($franchisee->document_path));
+            }
+
+            $franchisee->update(['document_path' => 'franchise_documents/' . $filename]);
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Document uploaded.', 'franchisee' => $franchisee]);
+    }
+
     // ─── Package Management ──────────────────────────────────────
 
     public function getPackages()
