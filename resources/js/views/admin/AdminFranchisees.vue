@@ -40,7 +40,7 @@
             </td>
             <td style="padding: 1rem 0.5rem;">
               <div style="font-weight: 600; color: var(--accent-cyan);">
-                ₹{{ ((f.total_revenue || 0) * (f.royalty_percentage / 100)).toLocaleString() }}
+                ₹{{ (f.royalty_percentage || 0).toLocaleString() }}
               </div>
             </td>
             <td style="padding: 1rem 0.5rem; font-size: 0.8rem;">
@@ -139,7 +139,7 @@
             <div>
               <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Financials</div>
               <div>Revenue: <span style="font-weight: 600;">₹{{ (selectedFranchise.total_revenue || 0).toLocaleString() }}</span></div>
-              <div class="text-muted">Royalty Rate: {{ selectedFranchise.royalty_percentage }}%</div>
+              <div class="text-muted">Royalty Rate: ₹{{ selectedFranchise.royalty_percentage }}</div>
             </div>
             <div style="grid-column: 1 / -1; border-top: 1px solid var(--border-color); padding-top: 1rem;">
               <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Agreement & Documents</div>
@@ -338,8 +338,8 @@ export default {
               <input id="swal-address" class="form-input" style="width:100%" placeholder="Address" value="${f.address || ''}">
             </div>
             <div>
-              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">Royalty</label>
-              <input id="swal-royalty" type="number" step="0.01" class="form-input" style="width:100%" placeholder="Royalty" value="${f.royalty_percentage || ''}">
+              <label style="font-weight:600; margin-bottom:0.25rem; display:block;">Royalty Amount (₹)</label>
+              <input id="swal-royalty" type="number" step="0.01" class="form-input" style="width:100%" placeholder="Royalty Amount" value="${f.royalty_percentage || ''}">
             </div>
           </div>
         `,

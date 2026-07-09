@@ -74,6 +74,7 @@ class AdminController extends Controller
             'password' => 'required|string|min:6',
             'role'     => 'required|string|in:super_admin,admin,franchisee,customer',
             'status'   => 'required|string|in:active,suspended',
+            'royalty_percentage' => 'nullable|numeric|min:0',
         ]);
 
         $user = User::create([
@@ -112,6 +113,7 @@ class AdminController extends Controller
             'phone'  => 'nullable|string|max:20',
             'role'   => 'required|string|in:super_admin,admin,franchisee,customer',
             'status' => 'required|string|in:active,suspended',
+            'royalty_percentage' => 'nullable|numeric|min:0',
         ]);
 
         $user->update([
@@ -293,8 +295,8 @@ class AdminController extends Controller
             ->with('franchisee')
             ->get()
             ->map(function($stat) {
-                $rate = $stat->franchisee ? ($stat->franchisee->royalty_percentage / 100) : 0.10;
-                $stat->royalty = $stat->revenue * $rate;
+                $rate = $stat->franchisee ? $stat->franchisee->royalty_percentage : 0;
+                $stat->royalty = $stat->count * $rate;
                 return $stat;
             });
 
