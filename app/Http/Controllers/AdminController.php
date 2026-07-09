@@ -325,7 +325,7 @@ class AdminController extends Controller
     public function updateFranchiseeStatus(Request $request, $id)
     {
         $franchisee = Franchisee::findOrFail($id);
-        $request->validate(['status' => 'required|in:active,inactive,pending']);
+        $request->validate(['status' => 'required|in:active,inactive,pending,suspended']);
         $franchisee->update(['status' => $request->status]);
         return response()->json(['status' => 'success', 'message' => 'Franchise status updated.', 'franchisee' => $franchisee]);
     }
