@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, Button, ActivityIndicator } from 'react-native';
 import api from '../services/api';
-
-export default function HomeScreen({ navigation }) {
+import { AuthContext } from '../context/AuthContext';export default function HomeScreen({ navigation }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const { user, logout } = useContext(AuthContext);
 
     const checkApi = async () => {
         setLoading(true);
@@ -40,6 +40,13 @@ export default function HomeScreen({ navigation }) {
                 {data && (
                     <Text style={styles.successText}>Success! Data: {JSON.stringify(data)}</Text>
                 )}
+            </View>
+
+            <View style={{ marginTop: 40 }}>
+                <Text style={{ marginBottom: 10, textAlign: 'center' }}>
+                    Logged in as: {user ? user.name : 'Unknown'}
+                </Text>
+                <Button title="Logout" onPress={logout} color="red" />
             </View>
         </View>
     );
