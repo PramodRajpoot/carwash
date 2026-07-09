@@ -1,100 +1,135 @@
 <template>
   <div>
-    <!-- Stats Row -->
-    <div class="grid grid-4 gap-3" style="margin-bottom:1.5rem">
-      <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan)">📋</div>
-        <div class="stat-value">{{ stats.total || 0 }}</div>
-        <div class="stat-label">Total Applications</div>
+    <!-- Compact Stats Row -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+      <div class="stat-card" style="position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">📋</div>
+        <div class="stat-value" style="font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.total || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Total Applications</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-amber)">
-        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber)">🆕</div>
-        <div class="stat-value" style="color:var(--accent-amber)">{{ stats.new || 0 }}</div>
-        <div class="stat-label">New (Unread)</div>
+      <div class="stat-card" style="border:1px solid var(--accent-amber); position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">🆕</div>
+        <div class="stat-value" style="color:var(--accent-amber); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.new || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">New (Unread)</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-emerald)">
-        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald)">✅</div>
-        <div class="stat-value" style="color:var(--accent-emerald)">{{ stats.approved || 0 }}</div>
-        <div class="stat-label">Approved</div>
+      <div class="stat-card" style="border:1px solid var(--accent-emerald); position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">✅</div>
+        <div class="stat-value" style="color:var(--accent-emerald); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.approved || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Approved</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet)">📞</div>
-        <div class="stat-value">{{ stats.contacted || 0 }}</div>
-        <div class="stat-label">Contacted</div>
+      <div class="stat-card" style="position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">📞</div>
+        <div class="stat-value" style="font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.contacted || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Contacted</div>
+      </div>
+      <div class="stat-card" style="border:1px solid var(--accent-rose); position: relative; padding: 0.75rem; min-height: 60px;">
+        <div class="stat-icon" style="background:rgba(244,63,94,0.15);color:var(--accent-rose); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">❌</div>
+        <div class="stat-value" style="color:var(--accent-rose); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.rejected || 0 }}</div>
+        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Rejected</div>
       </div>
     </div>
 
-    <!-- Filter Tabs -->
-    <div class="flex gap-2" style="margin-bottom:1rem">
-      <button v-for="f in filters" :key="f.val"
-        class="btn btn-sm"
-        :class="activeFilter === f.val ? 'btn-primary' : 'btn-ghost'"
-        @click="activeFilter = f.val; load()">
-        {{ f.label }} ({{ f.val === '' ? stats.total : stats[f.val] || 0 }})
-      </button>
+    <!-- Filter Tabs & Search -->
+    <div class="flex gap-2 justify-between items-center" style="margin-bottom:1rem; flex-wrap: wrap;">
+      <div class="flex gap-2">
+        <button v-for="f in filters" :key="f.val"
+          class="btn btn-sm"
+          :class="activeFilter === f.val ? 'btn-primary' : 'btn-ghost'"
+          @click="activeFilter = f.val; currentPage = 1; load()">
+          {{ f.label }} ({{ f.val === '' ? stats.total : stats[f.val] || 0 }})
+        </button>
+      </div>
+      
+      <div v-if="inquiries.length > 10" style="min-width: 250px;">
+        <input type="text" v-model="searchQuery" class="form-input" placeholder="Search name, email, phone..." style="width: 100%; padding: 0.4rem 0.8rem; font-size: 0.85rem;" />
+      </div>
     </div>
 
     <!-- Applications List -->
-    <div class="glass-card">
+    <div class="glass-card" style="overflow-x: auto;">
       <div v-if="loading" class="text-muted" style="text-align:center;padding:2rem">Loading applications…</div>
       <div v-else-if="inquiries.length === 0" class="text-muted" style="text-align:center;padding:2rem">
         No applications in this category.
       </div>
-      <div v-else>
-        <div v-for="inq in inquiries" :key="inq.id" class="glass-card" style="margin-bottom:0.75rem">
-          <!-- Header -->
-          <div class="flex justify-between items-start" style="margin-bottom:0.75rem">
-            <div class="flex gap-3 items-start">
-              <div style="width:42px;height:42px;border-radius:50%;background:var(--gradient-btn);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;flex-shrink:0">
-                {{ inq.name.charAt(0).toUpperCase() }}
+      <table v-else class="table" style="width: 100%; text-align: left; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted);">
+            <th style="padding: 1rem 0.5rem;">Applicant</th>
+            <th style="padding: 1rem 0.5rem;">Contact</th>
+            <th style="padding: 1rem 0.5rem;">City & Budget</th>
+            <th style="padding: 1rem 0.5rem;">Dates</th>
+            <th style="padding: 1rem 0.5rem; min-width: 250px;">Message & Notes</th>
+            <th style="padding: 1rem 0.5rem;">Status</th>
+            <th style="padding: 1rem 0.5rem; text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="inq in paginatedInquiries" :key="inq.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+            <td style="padding: 1rem 0.5rem; font-weight: 600;">
+              {{ inq.name }}
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <div>📞 {{ inq.phone }}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">📧 <a :href="'mailto:' + inq.email">{{ inq.email }}</a></div>
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <div>📍 {{ inq.city }}</div>
+              <div v-if="inq.budget" class="text-muted" style="font-size: 0.75rem;">💰 {{ inq.budget }}</div>
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <div style="font-size: 0.8rem;">Applied: {{ formatDate(inq.created_at) }}</div>
+              <div v-if="inq.contacted_at" class="text-muted" style="font-size: 0.75rem;">Contacted: {{ formatDate(inq.contacted_at) }}</div>
+            </td>
+            <td style="padding: 1rem 0.5rem; max-width: 250px;">
+              <div v-if="inq.message" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;" :title="inq.message">
+                "{{ inq.message }}"
               </div>
-              <div>
-                <div style="font-weight:700;font-size:1rem">{{ inq.name }}</div>
-                <div class="text-muted" style="font-size:0.8rem">
-                  📧 {{ inq.email }} &nbsp;•&nbsp; 📞 {{ inq.phone }} &nbsp;•&nbsp; 📍 {{ inq.city }}
-                </div>
-                <div class="flex gap-2" style="margin-top:0.35rem">
-                  <span v-if="inq.budget" class="badge badge-cyan" style="font-size:0.72rem">💰 {{ inq.budget }}</span>
-                  <span class="text-muted" style="font-size:0.72rem">Applied: {{ formatDate(inq.created_at) }}</span>
-                  <span v-if="inq.contacted_at" class="text-muted" style="font-size:0.72rem">• Contacted: {{ formatDate(inq.contacted_at) }}</span>
-                </div>
+              <div class="flex gap-1">
+                <textarea v-model="inq._notes" class="form-input" rows="1" style="resize:none;font-size:0.75rem; padding: 0.25rem; flex: 1;"
+                  :placeholder="inq.admin_notes || 'Add internal notes...'"></textarea>
+                <button class="btn btn-sm btn-outline" style="font-size: 0.7rem; padding: 0.15rem 0.3rem;" @click="saveNotes(inq)">Save</button>
               </div>
-            </div>
-            <div class="flex gap-2 items-center">
-              <span class="badge" :class="statusClass(inq.status)">{{ inq.status }}</span>
-              <select v-model="inq.status" class="form-input" style="padding:0.25rem 0.5rem;font-size:0.8rem;width:auto" @change="updateStatus(inq)">
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <select v-model="inq.status" class="form-input" style="padding:0.25rem;font-size:0.8rem;width:110px; margin-bottom: 0.25rem;" @change="updateStatus(inq)">
                 <option value="new">New</option>
                 <option value="contacted">Contacted</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </select>
-            </div>
-          </div>
-
-          <!-- Message -->
-          <div v-if="inq.message" style="background:var(--bg-secondary);padding:0.75rem;border-radius:var(--radius-sm);font-size:0.85rem;line-height:1.6;white-space:pre-wrap;margin-bottom:0.75rem;color:var(--text-secondary)">
-            "{{ inq.message }}"
-          </div>
-
-          <!-- Admin Notes -->
-          <div style="display:flex;gap:0.5rem;align-items:flex-end">
-            <div style="flex:1">
-              <label class="text-muted" style="font-size:0.78rem;display:block;margin-bottom:0.2rem">Internal Notes</label>
-              <textarea v-model="inq._notes" class="form-input" rows="2" style="resize:none;font-size:0.85rem"
-                :placeholder="inq.admin_notes || 'Add internal notes about this applicant…'"></textarea>
-            </div>
-            <div class="flex flex-col gap-1">
-              <button class="btn btn-sm btn-primary" @click="saveNotes(inq)">Save</button>
-              <button class="btn btn-sm" style="background:rgba(239,68,68,0.15);color:#ef4444" @click="del(inq)">Delete</button>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex gap-2" style="margin-top:0.75rem">
-            <a :href="'tel:' + inq.phone" class="btn btn-sm btn-outline">📞 Call</a>
-            <a :href="'mailto:' + inq.email + '?subject=CleanAtDoorstep Franchise Partnership'" class="btn btn-sm btn-outline">📧 Email</a>
-            <a :href="'https://wa.me/91' + inq.phone.replace(/\D/g,'')" target="_blank" class="btn btn-sm btn-outline" style="color:#25d366">💬 WhatsApp</a>
-          </div>
+              <br/>
+              <span class="badge" :class="statusClass(inq.status)" style="font-size: 0.7rem;">{{ inq.status.toUpperCase() }}</span>
+            </td>
+            <td style="padding: 1rem 0.5rem; text-align: center;">
+              <div class="flex gap-1 justify-center">
+                <a :href="'tel:' + inq.phone" class="btn btn-sm btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" title="Call">📞</a>
+                <a :href="'https://wa.me/91' + inq.phone.replace(/\D/g,'')" target="_blank" class="btn btn-sm btn-outline" style="color:#25d366; padding: 0.25rem 0.5rem; font-size: 0.8rem;" title="WhatsApp">💬</a>
+                <button class="btn btn-sm btn-ghost text-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" @click="del(inq)" title="Delete">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem;">
+        <div class="text-muted" style="font-size: 0.85rem;">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredInquiries.length) }} of {{ filteredInquiries.length }} entries
+        </div>
+        <div class="flex gap-1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
+          
+          <template v-for="page in totalPages" :key="page">
+            <button v-if="page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)"
+              class="btn btn-sm" 
+              :class="currentPage === page ? 'btn-primary' : 'btn-outline'"
+              @click="currentPage = page">
+              {{ page }}
+            </button>
+            <span v-else-if="page === currentPage - 2 || page === currentPage + 2" class="text-muted" style="padding: 0 0.25rem;">...</span>
+          </template>
+          
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
         </div>
       </div>
     </div>
@@ -129,6 +164,9 @@ export default {
       stats: {},
       loading: true,
       activeFilter: '',
+      searchQuery: '',
+      currentPage: 1,
+      itemsPerPage: 10,
       filters: [
         { val: '', label: 'All' },
         { val: 'new', label: '🆕 New' },
@@ -138,6 +176,30 @@ export default {
       ],
       generatedPasswordData: null,
     };
+  },
+  computed: {
+    filteredInquiries() {
+      if (!this.searchQuery) return this.inquiries;
+      const q = this.searchQuery.toLowerCase();
+      return this.inquiries.filter(i => 
+        (i.name && i.name.toLowerCase().includes(q)) ||
+        (i.email && i.email.toLowerCase().includes(q)) ||
+        (i.phone && i.phone.includes(q)) ||
+        (i.city && i.city.toLowerCase().includes(q))
+      );
+    },
+    paginatedInquiries() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.filteredInquiries.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.filteredInquiries.length / this.itemsPerPage) || 1;
+    }
+  },
+  watch: {
+    searchQuery() {
+      this.currentPage = 1;
+    }
   },
   methods: {
     formatDate(d) {

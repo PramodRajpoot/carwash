@@ -26,7 +26,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="o in orders" :key="o.id">
+            <tr v-for="o in paginatedOrders" :key="o.id">
               <td>#{{ o.id }}</td>
               <td>
                 <div style="font-weight:600; color:var(--text-primary);">{{ o.customer?.name }}</div>
@@ -57,6 +57,28 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem;">
+        <div class="text-muted" style="font-size: 0.85rem;">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, orders.length) }} of {{ orders.length }} entries
+        </div>
+        <div class="flex gap-1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
+          
+          <template v-for="page in totalPages" :key="page">
+            <button v-if="page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)"
+              class="btn btn-sm" 
+              :class="currentPage === page ? 'btn-primary' : 'btn-outline'"
+              @click="currentPage = page">
+              {{ page }}
+            </button>
+            <span v-else-if="page === currentPage - 2 || page === currentPage + 2" class="text-muted" style="padding: 0 0.25rem;">...</span>
+          </template>
+          
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
       </div>
       <div v-else class="empty-state">
         <p>No bookings have been made on the platform yet.</p>
@@ -142,6 +164,8 @@ export default {
       loading: true,
       selectedOrder: null,
       submitting: false,
+      currentPage: 1,
+      itemsPerPage: 10,
       form: {
         franchisee_id: '',
         booking_date: '',
@@ -151,6 +175,15 @@ export default {
         total_price: 0
       }
     };
+  },
+  computed: {
+    paginatedOrders() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.orders.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.orders.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     statusBadge(s) {

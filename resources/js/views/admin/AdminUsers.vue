@@ -5,7 +5,16 @@
         <h3>Platform User Profiles</h3>
         <p class="text-muted" style="font-size: 0.85rem;">Manage admin accounts, franchisees center staff, and registered customers.</p>
       </div>
-      <button class="btn btn-primary btn-sm" @click="openCreateModal">+ Generate User</button>
+      <div class="flex gap-2 items-center">
+        <select v-model="selectedRoleFilter" class="form-input" style="padding: 0.25rem 0.5rem; font-size: 0.9rem; margin: 0;">
+          <option value="">All Roles</option>
+          <option value="super_admin">Super Admin</option>
+          <option value="admin">Admin</option>
+          <option value="franchisee">Franchisee</option>
+          <option value="customer">Customer</option>
+        </select>
+        <button class="btn btn-primary btn-sm" @click="openCreateModal">+ Generate User</button>
+      </div>
     </div>
 
     <div v-if="loading" class="text-center text-muted" style="padding: 3rem;">
@@ -13,7 +22,7 @@
     </div>
 
     <div v-else>
-      <div v-if="users.length" class="table-wrap">
+      <div v-if="filteredUsers.length" class="table-wrap">
         <table>
           <thead>
             <tr>
@@ -27,7 +36,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="u in users" :key="u.id">
+            <tr v-for="u in paginatedUsers" :key="u.id">
               <td style="font-weight: 600; color: var(--text-primary);">{{ u.name }}</td>
               <td>{{ u.email }}</td>
               <td>{{ u.phone || 'N/A' }}</td>
@@ -58,7 +67,30 @@
           </tbody>
         </table>
       </div>
-      <div v-else class="empty-state">
+      
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem;">
+        <div class="text-muted" style="font-size: 0.85rem;">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredUsers.length) }} of {{ filteredUsers.length }} entries
+        </div>
+        <div class="flex gap-1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
+          
+          <template v-for="page in totalPages" :key="page">
+            <button v-if="page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)"
+              class="btn btn-sm" 
+              :class="currentPage === page ? 'btn-primary' : 'btn-outline'"
+              @click="currentPage = page">
+              {{ page }}
+            </button>
+            <span v-else-if="page === currentPage - 2 || page === currentPage + 2" class="text-muted" style="padding: 0 0.25rem;">...</span>
+          </template>
+          
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
+      </div>
+
+      <div v-if="!filteredUsers.length" class="empty-state">
         <p>No user accounts found.</p>
       </div>
     </div>
@@ -174,6 +206,7 @@ export default {
   data() {
     return {
       users: [],
+      selectedRoleFilter: '',
       loading: true,
       showModal: false,
       isEdit: false,
@@ -182,6 +215,8 @@ export default {
       resetUser: null,
       resetPasswordVal: '',
       selectedUserId: null,
+      currentPage: 1,
+      itemsPerPage: 10,
       form: {
         name: '',
         email: '',
@@ -195,6 +230,24 @@ export default {
         royalty_percentage: 10
       }
     };
+  },
+  computed: {
+    filteredUsers() {
+      if (!this.selectedRoleFilter) return this.users;
+      return this.users.filter(u => u.role === this.selectedRoleFilter);
+    },
+    paginatedUsers() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.filteredUsers.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.filteredUsers.length / this.itemsPerPage) || 1;
+    }
+  },
+  watch: {
+    selectedRoleFilter() {
+      this.currentPage = 1;
+    }
   },
   methods: {
     roleBadge(r) {
