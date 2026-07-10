@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 04, 2026 at 04:37 PM
+-- Generation Time: Jul 10, 2026 at 02:00 AM
 -- Server version: 8.0.46-0ubuntu0.22.04.3
 -- PHP Version: 8.3.30
 
@@ -214,8 +214,10 @@ CREATE TABLE `franchisees` (
   `city` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `latitude` decimal(10,8) DEFAULT NULL,
   `longitude` decimal(11,8) DEFAULT NULL,
-  `royalty_percentage` decimal(5,2) NOT NULL DEFAULT '10.00',
+  `royalty_percentage` decimal(10,2) NOT NULL,
   `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `agreement_expires_at` date DEFAULT NULL,
+  `document_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -224,10 +226,10 @@ CREATE TABLE `franchisees` (
 -- Dumping data for table `franchisees`
 --
 
-INSERT INTO `franchisees` (`id`, `user_id`, `center_name`, `address`, `city`, `latitude`, `longitude`, `royalty_percentage`, `status`, `created_at`, `updated_at`) VALUES
-(2, 30, 'Pramod Chauhan\'s Center', 'Pending Setup', 'noida', NULL, NULL, '10.00', 'active', '2026-06-25 13:10:30', '2026-06-25 13:10:30'),
-(3, 32, 'rahul kumar\'s Center', 'Pending Setup', 'Ex sint elit ut ex', NULL, NULL, '10.00', 'active', '2026-06-30 10:29:16', '2026-06-30 10:29:16'),
-(4, 3, 'CleanAt Downtown Center', '123 Main Street', 'Delhi', NULL, NULL, '10.00', 'active', '2026-07-01 00:55:35', '2026-07-01 00:55:35');
+INSERT INTO `franchisees` (`id`, `user_id`, `center_name`, `address`, `city`, `latitude`, `longitude`, `royalty_percentage`, `status`, `agreement_expires_at`, `document_path`, `created_at`, `updated_at`) VALUES
+(2, 30, 'Pramod Chauhan\'s Center', 'Pending Setup', 'noida', NULL, NULL, '110.00', 'inactive', '2027-07-11', 'franchise_documents/1783616179_hero.png', '2026-06-25 13:10:30', '2026-07-09 11:46:42'),
+(3, 32, 'rahul kumar\'s Center', 'Pending Setup', 'Ex sint elit ut ex', NULL, NULL, '10.00', 'active', NULL, NULL, '2026-06-30 10:29:16', '2026-06-30 10:29:16'),
+(4, 3, 'CleanAt Downtown Center', '123 Main Street', 'Delhi', NULL, NULL, '10.00', 'active', NULL, NULL, '2026-07-01 00:55:35', '2026-07-01 00:55:35');
 
 -- --------------------------------------------------------
 
@@ -1624,7 +1626,9 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (24, '2026_07_02_170215_create_testimonials_table', 15),
 (25, '2026_07_02_172120_create_partner_feedback_table', 16),
 (26, '2026_07_04_160216_create_faqs_table', 17),
-(27, '2026_07_04_161944_create_newsletter_subscribers_table', 18);
+(27, '2026_07_04_161944_create_newsletter_subscribers_table', 18),
+(28, '2026_07_09_163831_add_agreement_fields_to_franchisees_table', 19),
+(29, '2026_07_09_170817_change_royalty_column_type_in_franchisees_table', 20);
 
 -- --------------------------------------------------------
 
@@ -1777,7 +1781,7 @@ INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `n
 (89, 'App\\Models\\User', 1, 'auth_token', '3c963d69b9073daa63b9c59c5571a8529105a8b7d262e3245c1d2df1fba20f53', '[\"*\"]', NULL, NULL, '2026-07-02 12:56:19', '2026-07-02 12:56:19'),
 (90, 'App\\Models\\User', 1, 'auth_token', '1eaadd9d954ed8f0343c87a5eb820f10c9a5eaac3763d83c516473ad1eef2a0e', '[\"*\"]', '2026-07-02 12:56:59', NULL, '2026-07-02 12:56:29', '2026-07-02 12:56:59'),
 (91, 'App\\Models\\User', 1, 'auth_token', 'c539ef174f204232fa0d00866f00eeae43220d322f960512fba154840a706e68', '[\"*\"]', NULL, NULL, '2026-07-02 13:12:15', '2026-07-02 13:12:15'),
-(92, 'App\\Models\\User', 1, 'auth_token', 'd24eb5e652985b5348a3c8e597c7346e453ea1499b713f17730cae401dbed39e', '[\"*\"]', '2026-07-04 10:55:18', NULL, '2026-07-04 10:18:48', '2026-07-04 10:55:18');
+(92, 'App\\Models\\User', 1, 'auth_token', 'd24eb5e652985b5348a3c8e597c7346e453ea1499b713f17730cae401dbed39e', '[\"*\"]', '2026-07-09 20:00:03', NULL, '2026-07-04 10:18:48', '2026-07-09 20:00:03');
 
 -- --------------------------------------------------------
 
@@ -1996,7 +2000,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `google_id`, `phone`, `email_verifie
 (27, 'Vernon Perry', 'tuwowo@mailinator.com', NULL, '8547548754', NULL, '$2y$12$i2GUrBCvFbi..uHDsoQkKOcaYoJPW7zQEy/hej4DXdHD4bwFhAgEm', 'customer', 'GHKLPTCO', NULL, 0, 0, 0, 0, 0, 'active', 'avatars/avatar_27_1782322784.jpeg', NULL, '2026-06-24 11:22:45', '2026-06-24 12:09:44'),
 (28, 'Pramod', 'pramod@example.com', NULL, '9876543211', NULL, '$2y$12$.g00b7gMoi3OXtmzwCD6IuIFLX3GJ557jSQZoEdwFdvS4ZhKeOG3i', 'customer', 'IGTVNAK6', NULL, 0, 0, 0, 0, 0, 'active', 'avatars/avatar_28_1782321382.jpeg', NULL, '2026-06-24 11:38:27', '2026-06-24 11:55:36'),
 (29, 'Aiko Marshall', 'tyfu@mailinator.com', NULL, '8523698547', NULL, '$2y$12$s2QkX78XMbyT4ihFFDWrH.kLr4ZenJbETYgCbgHmNH4uaAHJcExwO', 'customer', '0C9I9XZU', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-25 12:20:49', '2026-06-25 12:20:49'),
-(30, 'Pramod Chauhan', 'aimt@yopmail.com', NULL, '09027956097', NULL, '$2y$12$D5ha6sbxzRXqzS2OkYRJwOjL0yA5fn.fa0/WCG42LhDYL8T67US1u', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-25 13:10:30', '2026-06-25 13:10:30'),
+(30, 'Pramod Chauhan', 'aimt@yopmail.com', NULL, '09027956097', NULL, '$2y$12$D5ha6sbxzRXqzS2OkYRJwOjL0yA5fn.fa0/WCG42LhDYL8T67US1u', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-25 13:10:30', '2026-07-09 11:46:42'),
 (31, 'iit', 'superadmink@carwash.com', NULL, '8523696589', NULL, '$2y$12$akb9fvS1PtB7.KP/yRM9ieDmKU85SiP/8n2WxyM9.n5OzoM558Phi', 'customer', '2PHPRMYI', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-25 13:12:02', '2026-06-25 13:12:02'),
 (32, 'rahul kumar', 'rahul@gmail.com', NULL, '+1 (727) 718-7479', NULL, '$2y$12$pIF5zIL2khCckDBUogBS5OIBD.qgIZmrgIYawpJB1HQTOKZj1TL2O', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-30 10:29:16', '2026-06-30 10:29:16'),
 (33, 'Alexander Kinney', 'gehek@mailinator.com', NULL, '1724842561', NULL, '$2y$12$PzKawGChcLJt1khnM2rd3u4R2K8aQCV4VQVji6xbs22QxcN2q.YH.', 'customer', 'KQU8PXWQ', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-30 19:00:01', '2026-06-30 19:00:01');
@@ -2340,7 +2344,7 @@ ALTER TABLE `master_slots`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `newsletter_subscribers`
