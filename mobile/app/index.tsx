@@ -13,6 +13,7 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 // ── Your Laravel server URL ──
 // Using LAN IP since carwash.local won't resolve on the phone.
@@ -43,6 +44,7 @@ const FILTERS = [
 ];
 
 export default function ServicesScreen() {
+  const router = useRouter();
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -109,6 +111,9 @@ export default function ServicesScreen() {
           <Text style={styles.headerTitle}>🚗 CleanAtDoorstep</Text>
           <Text style={styles.headerSubtitle}>Professional Vehicle Detailing</Text>
         </View>
+        <TouchableOpacity style={styles.loginBtnHeader} onPress={() => router.push('/login')}>
+          <Text style={styles.loginBtnHeaderText}>Login</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Section Title ── */}
@@ -257,7 +262,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // ── Header ──
   header: {
     backgroundColor: '#0f1336',
     paddingTop: Platform.OS === 'android' ? 44 : 10,
@@ -265,6 +269,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 212, 255, 0.12)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     color: '#ffffff',
@@ -276,6 +283,19 @@ const styles = StyleSheet.create({
     color: '#5a6380',
     fontSize: 12,
     marginTop: 2,
+  },
+  loginBtnHeader: {
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 255, 0.3)',
+  },
+  loginBtnHeaderText: {
+    color: '#00D4FF',
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   // ── Section Title ──
