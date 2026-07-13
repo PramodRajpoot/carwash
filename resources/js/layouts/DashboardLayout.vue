@@ -55,25 +55,22 @@
         <!-- Super Admin Sidebar -->
         <template v-else-if="role === 'super_admin'">
           <li><router-link to="/super-admin"><span class="nav-icon">🛡️</span> Dashboard</router-link></li>
-          <li><router-link to="/super-admin/admins"><span class="nav-icon">👤</span> Admin Management</router-link></li>
-          <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Settings</router-link></li>
-          <li style="padding:0.5rem 1.5rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border-color);margin-top:0.5rem">Platform</li>
-          <li><router-link to="/super-admin/banners"><span class="nav-icon">🖼️</span> Hero Banners</router-link></li>
-          <li><router-link to="/super-admin/service-partners"><span class="nav-icon">🤝</span> Service Partners</router-link></li>
-          <li><router-link to="/super-admin/testimonials"><span class="nav-icon">💬</span> Testimonials</router-link></li>
-          <li><router-link to="/super-admin/partner-feedback"><span class="nav-icon">🎥</span> Partner Feedback</router-link></li>
-          <li><router-link to="/super-admin/faqs"><span class="nav-icon">❓</span> FAQs</router-link></li>
-          <li><router-link to="/super-admin/master-slots"><span class="nav-icon">⏰</span> Master Slots</router-link></li>
-          <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
-          <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
-          <li><router-link to="/super-admin/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
-          <li><router-link to="/super-admin/packages"><span class="nav-icon">📦</span> Packages</router-link></li>
-          <li><router-link to="/super-admin/coupons"><span class="nav-icon">🎟️</span> Coupons</router-link></li>
-          <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
-          <li><router-link to="/super-admin/tickets"><span class="nav-icon">🎫</span> Support</router-link></li>
-          <li><router-link to="/super-admin/partners"><span class="nav-icon">🤝</span> Partner Apps</router-link></li>
-          <li><router-link to="/super-admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
-          <li><router-link to="/super-admin/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
+          <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchise management</router-link></li>
+          <li><router-link to="/super-admin/customers"><span class="nav-icon">🤝</span> Customer management</router-link></li>
+          <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> User management</router-link></li>
+          <li><router-link to="/super-admin/orders"><span class="nav-icon">📋</span> Booking management</router-link></li>
+          <li><router-link to="/super-admin/services"><span class="nav-icon">🚗</span> Services management</router-link></li>
+          <li><router-link to="/super-admin/packages"><span class="nav-icon">📦</span> Subscription plan</router-link></li>
+          <li><router-link to="/super-admin/partners"><span class="nav-icon">❓</span> (Partner app) Franchise queries</router-link></li>
+          <li><router-link to="/super-admin/reports"><span class="nav-icon">📈</span> Reports & Analytics</router-link></li>
+          <li><router-link to="/super-admin/marketing"><span class="nav-icon">📢</span> Marketing</router-link></li>
+          <li><router-link to="/super-admin/cms"><span class="nav-icon">📝</span> Cms Management</router-link></li>
+          <li><router-link to="/super-admin/roles"><span class="nav-icon">🔐</span> User & Role Management</router-link></li>
+          <li><router-link to="/super-admin/payment-gateway"><span class="nav-icon">💳</span> Payment Gateway</router-link></li>
+          <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Refferal Program</router-link></li>
+          <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Setting</router-link></li>
+          <li><router-link to="/super-admin/tickets"><span class="nav-icon">🎫</span> Supports</router-link></li>
+          <li><router-link to="/super-admin/notifications"><span class="nav-icon">🔔</span> Notification</router-link></li>
         </template>
       </ul>
       <div style="padding:0 1.5rem;margin-top:auto;border-top:1px solid var(--border-color);padding-top:1rem">
