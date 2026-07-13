@@ -22,6 +22,7 @@ use App\Http\Controllers\PartnerFeedbackController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\CmsController;
+use App\Http\Controllers\PaymentGatewayController;
 
 /*
 |--------------------------------------------------------------------------
@@ -277,5 +278,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/cms/about-us', [CmsController::class, 'updateAboutUs']);
         Route::get('/cms/privacy-policy', [CmsController::class, 'getPrivacyPolicy']);
         Route::put('/cms/privacy-policy', [CmsController::class, 'updatePrivacyPolicy']);
+
+        // Payment Gateway Settings
+        Route::get('/payment-gateways', [PaymentGatewayController::class, 'index']);
+        Route::post('/payment-gateways', [PaymentGatewayController::class, 'store']);
+        Route::put('/payment-gateways/{slug}', [PaymentGatewayController::class, 'update']);
+        Route::put('/payment-gateways/{slug}/activate', [PaymentGatewayController::class, 'activate']);
+        Route::delete('/payment-gateways/{slug}', [PaymentGatewayController::class, 'destroy']);
     });
 });

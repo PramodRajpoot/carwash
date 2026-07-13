@@ -71,6 +71,7 @@ import CmsAboutUs from '@/views/super-admin/cms/CmsAboutUs.vue';
 import CmsPrivacyPolicy from '@/views/super-admin/cms/CmsPrivacyPolicy.vue';
 import CmsTerms from '@/views/super-admin/cms/CmsTerms.vue';
 import CmsContact from '@/views/super-admin/cms/CmsContact.vue';
+import SuperAdminPaymentGateway from '@/views/super-admin/SuperAdminPaymentGateway.vue';
 
 export const routes = [
     // ── Public Pages ─────────────────────────────────────────────
@@ -185,6 +186,7 @@ export const routes = [
             { path: 'tickets', name: 'superadmin-tickets', component: AdminTickets },
             { path: 'partners', name: 'superadmin-partners', component: AdminPartners },
             { path: 'reports', name: 'superadmin-reports', component: AdminReports },
+            { path: 'payment-gateway', name: 'superadmin-payment-gateway', component: SuperAdminPaymentGateway }
         ],
     },
 
