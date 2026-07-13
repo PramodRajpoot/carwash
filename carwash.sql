@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1deb5ubuntu1
+-- version 5.2.1deb3
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 10, 2026 at 02:00 AM
--- Server version: 8.0.46-0ubuntu0.22.04.3
--- PHP Version: 8.3.30
+-- Generation Time: Jul 13, 2026 at 12:08 PM
+-- Server version: 8.0.46-0ubuntu0.24.04.3
+-- PHP Version: 8.3.6
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -29,7 +29,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `banners` (
   `id` bigint UNSIGNED NOT NULL,
-  `image_path` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `image_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `order` int NOT NULL DEFAULT '0',
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT NULL,
@@ -66,6 +66,13 @@ CREATE TABLE `blog_posts` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `blog_posts`
+--
+
+INSERT INTO `blog_posts` (`id`, `author_id`, `title`, `slug`, `content`, `featured_image`, `status`, `published_at`, `created_at`, `updated_at`) VALUES
+(2, 1, 'sdas', 'sdas', 'asda', NULL, 'published', '2026-07-13 05:46:56', '2026-07-13 05:46:56', '2026-07-13 05:46:56');
+
 -- --------------------------------------------------------
 
 --
@@ -93,8 +100,8 @@ CREATE TABLE `bookings` (
 --
 
 INSERT INTO `bookings` (`id`, `customer_id`, `vehicle_id`, `franchisee_id`, `package_id`, `booking_date`, `slot_time`, `status`, `payment_status`, `payment_method`, `total_price`, `created_at`, `updated_at`) VALUES
-(5, 31, 9, 2, 3, '2026-06-26', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'cod', '399.00', '2026-06-25 13:56:57', '2026-06-25 13:56:57'),
-(6, 33, 10, 2, 3, '2026-07-01', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'online', '399.00', '2026-06-30 19:06:01', '2026-06-30 19:06:01');
+(5, 31, 9, 2, 3, '2026-06-26', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'cod', 399.00, '2026-06-25 13:56:57', '2026-06-25 13:56:57'),
+(6, 33, 10, 2, 3, '2026-07-01', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'online', 399.00, '2026-06-30 19:06:01', '2026-06-30 19:06:01');
 
 -- --------------------------------------------------------
 
@@ -118,9 +125,9 @@ CREATE TABLE `coupons` (
 --
 
 INSERT INTO `coupons` (`id`, `code`, `discount_type`, `discount_value`, `expires_at`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'WELCOME10', 'percentage', '10.00', '2026-07-02', 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(2, 'CLEAN50', 'fixed', '50.00', '2026-07-02', 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(3, 'WELCOME20', 'percentage', '20.00', NULL, 'active', '2026-07-01 13:03:14', '2026-07-01 13:03:14');
+(1, 'WELCOME10', 'percentage', 10.00, '2026-07-02', 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(2, 'CLEAN50', 'fixed', 50.00, '2026-07-02', 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(3, 'WELCOME20', 'percentage', 20.00, NULL, 'active', '2026-07-01 13:03:14', '2026-07-01 13:03:14');
 
 -- --------------------------------------------------------
 
@@ -163,8 +170,8 @@ CREATE TABLE `failed_jobs` (
 
 CREATE TABLE `faqs` (
   `id` bigint UNSIGNED NOT NULL,
-  `question` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `answer` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `question` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `answer` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `sort_order` int NOT NULL DEFAULT '0',
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT NULL,
@@ -217,7 +224,7 @@ CREATE TABLE `franchisees` (
   `royalty_percentage` decimal(10,2) NOT NULL,
   `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `agreement_expires_at` date DEFAULT NULL,
-  `document_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `document_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -227,9 +234,9 @@ CREATE TABLE `franchisees` (
 --
 
 INSERT INTO `franchisees` (`id`, `user_id`, `center_name`, `address`, `city`, `latitude`, `longitude`, `royalty_percentage`, `status`, `agreement_expires_at`, `document_path`, `created_at`, `updated_at`) VALUES
-(2, 30, 'Pramod Chauhan\'s Center', 'Pending Setup', 'noida', NULL, NULL, '110.00', 'inactive', '2027-07-11', 'franchise_documents/1783616179_hero.png', '2026-06-25 13:10:30', '2026-07-09 11:46:42'),
-(3, 32, 'rahul kumar\'s Center', 'Pending Setup', 'Ex sint elit ut ex', NULL, NULL, '10.00', 'active', NULL, NULL, '2026-06-30 10:29:16', '2026-06-30 10:29:16'),
-(4, 3, 'CleanAt Downtown Center', '123 Main Street', 'Delhi', NULL, NULL, '10.00', 'active', NULL, NULL, '2026-07-01 00:55:35', '2026-07-01 00:55:35');
+(2, 30, 'Pramod Chauhan\'s Center', 'Pending Setup', 'noida', NULL, NULL, 110.00, 'suspended', '2026-07-16', 'franchise_documents/1783616179_hero.png', '2026-06-25 13:10:30', '2026-07-13 00:10:03'),
+(3, 32, 'rahul kumar\'s Center', 'Pending Setup', 'Ex sint elit ut ex', NULL, NULL, 10.00, 'active', NULL, NULL, '2026-06-30 10:29:16', '2026-06-30 10:29:16'),
+(4, 3, 'CleanAt Downtown Center', '123 Main Street', 'Delhi', NULL, NULL, 10.00, 'active', NULL, NULL, '2026-07-01 00:55:35', '2026-07-01 00:55:35');
 
 -- --------------------------------------------------------
 
@@ -247,7 +254,7 @@ CREATE TABLE `franchisee_master_slot` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active'
+  `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1570,10 +1577,10 @@ INSERT INTO `franchisee_master_slot` (`id`, `franchisee_id`, `date`, `time_range
 
 CREATE TABLE `master_slots` (
   `id` bigint UNSIGNED NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `time_range` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `time_range` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `default_max_bookings` int NOT NULL DEFAULT '3',
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1628,7 +1635,8 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (26, '2026_07_04_160216_create_faqs_table', 17),
 (27, '2026_07_04_161944_create_newsletter_subscribers_table', 18),
 (28, '2026_07_09_163831_add_agreement_fields_to_franchisees_table', 19),
-(29, '2026_07_09_170817_change_royalty_column_type_in_franchisees_table', 20);
+(29, '2026_07_09_170817_change_royalty_column_type_in_franchisees_table', 20),
+(30, '2026_07_13_120211_create_payment_gateways_table', 21);
 
 -- --------------------------------------------------------
 
@@ -1638,7 +1646,7 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 
 CREATE TABLE `newsletter_subscribers` (
   `id` bigint UNSIGNED NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `is_subscribed` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -1677,10 +1685,10 @@ CREATE TABLE `notifications_log` (
 
 CREATE TABLE `partner_feedback` (
   `id` bigint UNSIGNED NOT NULL,
-  `city` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `quote` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `thumbnail_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `video_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `city` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `quote` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `thumbnail_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `video_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -1705,16 +1713,16 @@ INSERT INTO `partner_feedback` (`id`, `city`, `quote`, `thumbnail_path`, `video_
 
 CREATE TABLE `partner_inquiries` (
   `id` bigint UNSIGNED NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `phone` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `city` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phone` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `city` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `latitude` decimal(10,7) DEFAULT NULL,
   `longitude` decimal(10,7) DEFAULT NULL,
-  `budget` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `message` text COLLATE utf8mb4_unicode_ci,
-  `status` enum('new','contacted','approved','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'new',
-  `admin_notes` text COLLATE utf8mb4_unicode_ci,
+  `budget` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `status` enum('new','contacted','approved','rejected') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'new',
+  `admin_notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `contacted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -1751,6 +1759,32 @@ CREATE TABLE `password_reset_tokens` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `payment_gateways`
+--
+
+CREATE TABLE `payment_gateways` (
+  `id` bigint UNSIGNED NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `config` json DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '0',
+  `is_default` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `payment_gateways`
+--
+
+INSERT INTO `payment_gateways` (`id`, `name`, `slug`, `config`, `is_active`, `is_default`, `created_at`, `updated_at`) VALUES
+(1, 'Stripe', 'stripe', '{\"public_key\": \"\", \"secret_key\": \"\"}', 0, 1, '2026-07-13 06:33:05', '2026-07-13 06:37:14'),
+(2, 'Razorpay', 'razorpay', '{\"key_id\": \"\", \"key_secret\": \"\"}', 1, 1, '2026-07-13 06:33:05', '2026-07-13 06:37:14'),
+(3, 'PayPal', 'paypal', '{\"mode\": \"sandbox\", \"client_id\": \"\", \"client_secret\": \"\"}', 0, 1, '2026-07-13 06:33:05', '2026-07-13 06:37:14');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `personal_access_tokens`
 --
 
@@ -1781,7 +1815,8 @@ INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `n
 (89, 'App\\Models\\User', 1, 'auth_token', '3c963d69b9073daa63b9c59c5571a8529105a8b7d262e3245c1d2df1fba20f53', '[\"*\"]', NULL, NULL, '2026-07-02 12:56:19', '2026-07-02 12:56:19'),
 (90, 'App\\Models\\User', 1, 'auth_token', '1eaadd9d954ed8f0343c87a5eb820f10c9a5eaac3763d83c516473ad1eef2a0e', '[\"*\"]', '2026-07-02 12:56:59', NULL, '2026-07-02 12:56:29', '2026-07-02 12:56:59'),
 (91, 'App\\Models\\User', 1, 'auth_token', 'c539ef174f204232fa0d00866f00eeae43220d322f960512fba154840a706e68', '[\"*\"]', NULL, NULL, '2026-07-02 13:12:15', '2026-07-02 13:12:15'),
-(92, 'App\\Models\\User', 1, 'auth_token', 'd24eb5e652985b5348a3c8e597c7346e453ea1499b713f17730cae401dbed39e', '[\"*\"]', '2026-07-09 20:00:03', NULL, '2026-07-04 10:18:48', '2026-07-09 20:00:03');
+(92, 'App\\Models\\User', 1, 'auth_token', 'd24eb5e652985b5348a3c8e597c7346e453ea1499b713f17730cae401dbed39e', '[\"*\"]', '2026-07-09 20:00:03', NULL, '2026-07-04 10:18:48', '2026-07-09 20:00:03'),
+(97, 'App\\Models\\User', 1, 'auth_token', 'e6b55d9208c3c342c223a8b34d2c517ca92957c8a30146e53baeb805c68bd177', '[\"*\"]', '2026-07-13 06:37:14', NULL, '2026-07-13 04:52:13', '2026-07-13 06:37:14');
 
 -- --------------------------------------------------------
 
@@ -1804,14 +1839,18 @@ CREATE TABLE `platform_settings` (
 --
 
 INSERT INTO `platform_settings` (`id`, `key`, `value`, `group`, `label`, `created_at`, `updated_at`) VALUES
-(1, 'epoints_per_referral', '10', 'referral', 'E-Points per Referral', '2026-06-11 09:50:39', '2026-06-11 09:50:39'),
-(2, 'min_wallet_redemption', '1000', 'wallet', 'Minimum E-Points to Redeem', '2026-06-11 09:50:39', '2026-06-11 09:50:39'),
-(3, 'default_royalty_percent', '10', 'royalty', 'Default Royalty Percentage (%)', '2026-06-11 09:50:39', '2026-06-11 09:50:39'),
-(4, 'referral_discount_pct', '10', 'referral', 'First Booking Discount for Referred Customer (%)', '2026-06-11 09:50:39', '2026-06-11 09:50:39'),
-(5, 'sms_notifications', 'false', 'notifications', 'Enable SMS Notifications', '2026-06-11 09:50:39', '2026-06-11 09:50:39'),
-(6, 'email_notifications', 'true', 'notifications', 'Enable Email Notifications', '2026-06-11 09:50:39', '2026-06-11 09:50:39'),
-(7, 'push_notifications', 'false', 'notifications', 'Enable Push Notifications', '2026-06-11 09:50:39', '2026-06-11 09:50:39'),
-(8, 'platform_name', 'CleanAtDoorstep', 'general', 'Platform Name', '2026-06-11 09:50:39', '2026-06-11 09:50:39');
+(1, 'epoints_per_referral', '20', 'general', '', '2026-06-11 09:50:39', '2026-07-13 02:15:42'),
+(2, 'min_wallet_redemption', '2000', 'general', '', '2026-06-11 09:50:39', '2026-07-13 02:16:44'),
+(3, 'default_royalty_percent', '10', 'general', '', '2026-06-11 09:50:39', '2026-07-13 02:14:33'),
+(4, 'referral_discount_pct', '10', 'general', '', '2026-06-11 09:50:39', '2026-07-13 02:14:33'),
+(5, 'sms_notifications', 'false', 'general', '', '2026-06-11 09:50:39', '2026-07-13 02:14:33'),
+(6, 'email_notifications', 'true', 'general', '', '2026-06-11 09:50:39', '2026-07-13 02:14:33'),
+(7, 'push_notifications', 'false', 'general', '', '2026-06-11 09:50:39', '2026-07-13 02:14:33'),
+(8, 'platform_name', 'CleanAtDoorstep', 'general', '', '2026-06-11 09:50:39', '2026-07-13 02:14:33'),
+(9, 'cms_about_us', '{\"title\":\"About <span class=\\\"text-gradient\\\">CleanAtDoorstep<\\/span>\",\"description\":\"We are India\'s most trusted doorstep car wash and detailing service. Since our inception, we have been committed to providing top-tier vehicle care while saving millions of liters of water using our advanced eco-friendly solutions.\",\"image_url\":\"https:\\/\\/images.unsplash.com\\/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800\",\"points\":[\"\\u2705 Trained & Verified Professionals\",\"\\u2705 Eco-Friendly & Water Efficient\",\"\\u2705 No Hidden Charges or Hassle\",\"\\u2705 New point\"]}', 'cms', '', '2026-07-13 05:46:34', '2026-07-13 05:46:34'),
+(10, 'cms_privacy_policy', '{\"content\":\"<h2>Privacy Policy<\\/h2>\\n<p>Your privacy is important to us. This Privacy Policy outlines how CleanAtDoorstep collects, uses, and protects your information.<\\/p>\\n<h3>Information Collection<\\/h3>\\n<p>We collect information when you register, book a service, or contact us.<\\/p>\\n<h3>Information Use<\\/h3>\\n<p>Your information is used to provide and improve our services.<\\/p>\"}', 'cms', '', '2026-07-13 05:55:46', '2026-07-13 05:55:46'),
+(11, 'cms_terms', '{\"content\":\"<h3 style=\\\"margin-bottom:0.75rem\\\">1. Acceptance of Terms<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">By accessing or using the CleanAtDoorstep platform, you agree to be bound by these Terms and Conditions and all applicable laws. If you do not agree, please do not use our services.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">2. Services<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">CleanAtDoorstep provides on-demand vehicle cleaning and detailing services through a network of franchise partners. Service availability is subject to your location and the availability of franchise partners in your area.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">3. Booking & Cancellation<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">Bookings must be made in advance through the platform. Cancellations made 24 hours before the scheduled time will be fully refunded. Cancellations within 24 hours may be subject to a cancellation fee.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">4. E-Points & Wallet<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">E-Points are earned through referrals and service bookings. Pending E-Points are confirmed once the referred customer completes their first booking. Minimum 1000 confirmed E-Points are required for redemption. E-Points have no cash value and cannot be transferred.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">5. Referral Programme<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">Users earn 10 E-Points for each successful referral. A referral is considered successful when the referred customer completes their first service booking. Referred customers receive a 10% discount on their first booking only.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">6. Franchise Partners<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">Franchise partners operate independently under the CleanAtDoorstep brand. They are responsible for service quality and timely delivery. Royalty payments are due monthly as per franchise agreement terms.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">7. Privacy<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">Your use of the platform is also governed by our Privacy Policy. Personal data is processed in accordance with applicable data protection laws.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">8. Limitation of Liability<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">CleanAtDoorstep is not liable for any indirect, incidental, or consequential damages arising from the use of our services. Maximum liability is limited to the amount paid for the specific service.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">9. Changes to Terms<\\/h3>\\n<p class=\\\"text-muted\\\">We reserve the right to modify these terms at any time. Continued use of the platform after changes constitutes acceptance of the new terms.<\\/p>\\n<h3 style=\\\"margin-bottom:0.75rem\\\">8. Limitation of Liability<\\/h3>\\n<p class=\\\"text-muted\\\" style=\\\"margin-bottom:1.5rem\\\">CleanAtDoorstep is not liable for any indirect, incidental, or consequential damages arising from the use of our services. Maximum liability is limited to the amount paid for the specific service.<\\/p>\\n\\n<h3 style=\\\"margin-bottom:0.75rem\\\">9. Changes to Terms<\\/h3>\\n<p class=\\\"text-muted\\\">We reserve the right to modify these terms at any time. Continued use of the platform after changes constitutes acceptance of the new terms.<\\/p>\"}', 'general', '', '2026-07-13 06:09:55', '2026-07-13 06:09:55'),
+(12, 'payment_gateways', '{\"active\":\"razorpay\",\"stripe\":{\"public_key\":null,\"secret_key\":null},\"razorpay\":{\"key_id\":null,\"key_secret\":null},\"paypal\":{\"client_id\":null,\"client_secret\":null,\"mode\":\"sandbox\",\"new_key_3\":null}}', 'general', NULL, '2026-07-13 06:20:38', '2026-07-13 06:28:55');
 
 -- --------------------------------------------------------
 
@@ -1853,15 +1892,15 @@ CREATE TABLE `service_packages` (
 --
 
 INSERT INTO `service_packages` (`id`, `name`, `description`, `vehicle_type`, `price`, `frequency_days`, `max_bookings`, `created_at`, `updated_at`) VALUES
-(1, 'Eco Hatchback Wash', 'Exterior waterless foam wash, tire dressing, and vacuuming.', 'hatchback', '299.00', 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(2, 'Premium Hatchback Monthly', '4 detailed foam washes per month, deep interior vacuuming, dashboard polish.', 'hatchback', '999.00', 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(3, 'Eco Sedan Wash', 'Eco-friendly waterless pressure wash, interior vacuuming and perfume spray.', 'sedan', '399.00', 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(4, 'Premium Sedan Monthly', '4 complete detailing washes, wax coating, deep carpet vacuuming and glass cleaning.', 'sedan', '1299.00', 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(5, 'Eco SUV Wash', 'Pressure wash, mud removal, underbody spray, vacuuming and tire glaze.', 'suv', '499.00', 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(6, 'Premium SUV Monthly', '4 premium underbody & exterior washes, complete leather conditioning, and wheel detailing.', 'suv', '1499.00', 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(7, 'Eco Commercial Wash', 'High-efficiency pressure wash for light commercial vans, cabin dusting, outer cleaning.', 'commercial', '699.00', 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(8, 'Bus Wash Standard', 'Heavy duty exterior pressure wash, wheels wash, and basic windows spray.', 'bus', '1499.00', 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(9, 'Volvo Bus Luxury Wash', 'Detailed multi-stage pressure wash, windshield buffing, side panel wax coating, interior deodorizing.', 'volvo_bus', '2499.00', 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13');
+(1, 'Eco Hatchback Wash', 'Exterior waterless foam wash, tire dressing, and vacuuming.', 'hatchback', 299.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(2, 'Premium Hatchback Monthly', '4 detailed foam washes per month, deep interior vacuuming, dashboard polish.', 'hatchback', 999.00, 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(3, 'Eco Sedan Wash', 'Eco-friendly waterless pressure wash, interior vacuuming and perfume spray.', 'sedan', 399.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(4, 'Premium Sedan Monthly', '4 complete detailing washes, wax coating, deep carpet vacuuming and glass cleaning.', 'sedan', 1299.00, 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(5, 'Eco SUV Wash', 'Pressure wash, mud removal, underbody spray, vacuuming and tire glaze.', 'suv', 499.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(6, 'Premium SUV Monthly', '4 premium underbody & exterior washes, complete leather conditioning, and wheel detailing.', 'suv', 1499.00, 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(7, 'Eco Commercial Wash', 'High-efficiency pressure wash for light commercial vans, cabin dusting, outer cleaning.', 'commercial', 699.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(8, 'Bus Wash Standard', 'Heavy duty exterior pressure wash, wheels wash, and basic windows spray.', 'bus', 1499.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(9, 'Volvo Bus Luxury Wash', 'Detailed multi-stage pressure wash, windshield buffing, side panel wax coating, interior deodorizing.', 'volvo_bus', 2499.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13');
 
 -- --------------------------------------------------------
 
@@ -1871,8 +1910,8 @@ INSERT INTO `service_packages` (`id`, `name`, `description`, `vehicle_type`, `pr
 
 CREATE TABLE `service_partners` (
   `id` bigint UNSIGNED NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `image_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `order` int NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT NULL,
@@ -1935,9 +1974,9 @@ CREATE TABLE `support_tickets` (
 
 CREATE TABLE `testimonials` (
   `id` bigint UNSIGNED NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `role` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `text` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -1964,10 +2003,10 @@ CREATE TABLE `users` (
   `id` bigint UNSIGNED NOT NULL,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `google_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `google_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `phone` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `role` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'customer',
   `referral_code` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `referred_by` bigint UNSIGNED DEFAULT NULL,
@@ -1977,7 +2016,7 @@ CREATE TABLE `users` (
   `pending_epoints` bigint UNSIGNED NOT NULL DEFAULT '0',
   `first_booking_discount` tinyint(1) NOT NULL DEFAULT '0',
   `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
-  `avatar` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `remember_token` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -2003,7 +2042,8 @@ INSERT INTO `users` (`id`, `name`, `email`, `google_id`, `phone`, `email_verifie
 (30, 'Pramod Chauhan', 'aimt@yopmail.com', NULL, '09027956097', NULL, '$2y$12$D5ha6sbxzRXqzS2OkYRJwOjL0yA5fn.fa0/WCG42LhDYL8T67US1u', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-25 13:10:30', '2026-07-09 11:46:42'),
 (31, 'iit', 'superadmink@carwash.com', NULL, '8523696589', NULL, '$2y$12$akb9fvS1PtB7.KP/yRM9ieDmKU85SiP/8n2WxyM9.n5OzoM558Phi', 'customer', '2PHPRMYI', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-25 13:12:02', '2026-06-25 13:12:02'),
 (32, 'rahul kumar', 'rahul@gmail.com', NULL, '+1 (727) 718-7479', NULL, '$2y$12$pIF5zIL2khCckDBUogBS5OIBD.qgIZmrgIYawpJB1HQTOKZj1TL2O', 'franchisee', NULL, NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-30 10:29:16', '2026-06-30 10:29:16'),
-(33, 'Alexander Kinney', 'gehek@mailinator.com', NULL, '1724842561', NULL, '$2y$12$PzKawGChcLJt1khnM2rd3u4R2K8aQCV4VQVji6xbs22QxcN2q.YH.', 'customer', 'KQU8PXWQ', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-30 19:00:01', '2026-06-30 19:00:01');
+(33, 'Alexander Kinney', 'gehek@mailinator.com', NULL, '1724842561', NULL, '$2y$12$PzKawGChcLJt1khnM2rd3u4R2K8aQCV4VQVji6xbs22QxcN2q.YH.', 'customer', 'KQU8PXWQ', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-06-30 19:00:01', '2026-06-30 19:00:01'),
+(34, 'Pramod Chauhan', 'rahul1@gmail.com', NULL, '9027956097', NULL, '$2y$12$2dYa6LDgkZdD9Q1HYM/TDui8/mqhrfvWuXHoivBL02dhQoWNEKJAi', 'customer', '9YHESAJ4', NULL, 0, 0, 0, 0, 0, 'active', NULL, NULL, '2026-07-13 00:05:22', '2026-07-13 00:05:22');
 
 -- --------------------------------------------------------
 
@@ -2184,6 +2224,13 @@ ALTER TABLE `password_reset_tokens`
   ADD PRIMARY KEY (`email`);
 
 --
+-- Indexes for table `payment_gateways`
+--
+ALTER TABLE `payment_gateways`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `payment_gateways_slug_unique` (`slug`);
+
+--
 -- Indexes for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
@@ -2284,7 +2331,7 @@ ALTER TABLE `banners`
 -- AUTO_INCREMENT for table `blog_posts`
 --
 ALTER TABLE `blog_posts`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `bookings`
@@ -2344,7 +2391,7 @@ ALTER TABLE `master_slots`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `newsletter_subscribers`
@@ -2371,16 +2418,22 @@ ALTER TABLE `partner_inquiries`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
+-- AUTO_INCREMENT for table `payment_gateways`
+--
+ALTER TABLE `payment_gateways`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=98;
 
 --
 -- AUTO_INCREMENT for table `platform_settings`
 --
 ALTER TABLE `platform_settings`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `royalty_payments`
@@ -2422,7 +2475,7 @@ ALTER TABLE `testimonials`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `vehicles`
