@@ -169,6 +169,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Franchise Management
         Route::get('/franchisees',                  [AdminController::class, 'getFranchisees']);
         Route::put('/franchisees/{id}/status',      [AdminController::class, 'updateFranchiseeStatus']);
+        Route::post('/franchisees/{id}/renew',      [AdminController::class, 'renewAgreement']);
+        Route::post('/franchisees/{id}/upload-document', [AdminController::class, 'uploadDocument']);
         Route::get('/franchisees/{id}/slots',       [SuperAdminSlotController::class, 'getAssignedSlots']);
         Route::post('/franchisees/{id}/slots',      [SuperAdminSlotController::class, 'assignSlots']);
 

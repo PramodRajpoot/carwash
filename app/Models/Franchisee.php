@@ -18,6 +18,12 @@ class Franchisee extends Model
         'longitude',
         'royalty_percentage',
         'status',
+        'agreement_expires_at',
+        'document_path',
+    ];
+
+    protected $casts = [
+        'agreement_expires_at' => 'date',
     ];
 
     public function user()

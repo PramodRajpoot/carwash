@@ -74,6 +74,7 @@ class AdminController extends Controller
             'password' => 'required|string|min:6',
             'role'     => 'required|string|in:super_admin,admin,franchisee,customer',
             'status'   => 'required|string|in:active,suspended',
+            'royalty_percentage' => 'nullable|numeric|min:0',
         ]);
 
         $user = User::create([
@@ -112,6 +113,7 @@ class AdminController extends Controller
             'phone'  => 'nullable|string|max:20',
             'role'   => 'required|string|in:super_admin,admin,franchisee,customer',
             'status' => 'required|string|in:active,suspended',
+            'royalty_percentage' => 'nullable|numeric|min:0',
         ]);
 
         $user->update([
@@ -293,8 +295,8 @@ class AdminController extends Controller
             ->with('franchisee')
             ->get()
             ->map(function($stat) {
-                $rate = $stat->franchisee ? ($stat->franchisee->royalty_percentage / 100) : 0.10;
-                $stat->royalty = $stat->revenue * $rate;
+                $rate = $stat->franchisee ? $stat->franchisee->royalty_percentage : 0;
+                $stat->royalty = $stat->count * $rate;
                 return $stat;
             });
 
@@ -325,9 +327,40 @@ class AdminController extends Controller
     public function updateFranchiseeStatus(Request $request, $id)
     {
         $franchisee = Franchisee::findOrFail($id);
-        $request->validate(['status' => 'required|in:active,inactive,pending']);
+        $request->validate(['status' => 'required|in:active,inactive,pending,suspended']);
         $franchisee->update(['status' => $request->status]);
         return response()->json(['status' => 'success', 'message' => 'Franchise status updated.', 'franchisee' => $franchisee]);
+    }
+
+    public function renewAgreement(Request $request, $id)
+    {
+        $franchisee = Franchisee::findOrFail($id);
+        $request->validate(['agreement_expires_at' => 'required|date']);
+        $franchisee->update(['agreement_expires_at' => $request->agreement_expires_at]);
+        return response()->json(['status' => 'success', 'message' => 'Agreement renewed.', 'franchisee' => $franchisee]);
+    }
+
+    public function uploadDocument(Request $request, $id)
+    {
+        $franchisee = Franchisee::findOrFail($id);
+        $request->validate([
+            'document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120' // 5MB max
+        ]);
+
+        if ($request->hasFile('document')) {
+            $file = $request->file('document');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('franchise_documents'), $filename);
+            
+            // Delete old doc if exists
+            if ($franchisee->document_path && file_exists(public_path($franchisee->document_path))) {
+                unlink(public_path($franchisee->document_path));
+            }
+
+            $franchisee->update(['document_path' => 'franchise_documents/' . $filename]);
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Document uploaded.', 'franchisee' => $franchisee]);
     }
 
     // ─── Package Management ──────────────────────────────────────
