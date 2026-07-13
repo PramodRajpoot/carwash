@@ -57,15 +57,28 @@
           <li><router-link to="/super-admin"><span class="nav-icon">🛡️</span> Dashboard</router-link></li>
           <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchise management</router-link></li>
           <li><router-link to="/super-admin/customers"><span class="nav-icon">🤝</span> Customer management</router-link></li>
-          <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> User management</router-link></li>
+          <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> User & Role Management</router-link></li>
           <li><router-link to="/super-admin/orders"><span class="nav-icon">📋</span> Booking management</router-link></li>
           <li><router-link to="/super-admin/services"><span class="nav-icon">🚗</span> Services management</router-link></li>
           <li><router-link to="/super-admin/packages"><span class="nav-icon">📦</span> Subscription plan</router-link></li>
           <li><router-link to="/super-admin/partners"><span class="nav-icon">❓</span> (Partner app) Franchise queries</router-link></li>
           <li><router-link to="/super-admin/reports"><span class="nav-icon">📈</span> Reports & Analytics</router-link></li>
           <li><router-link to="/super-admin/marketing"><span class="nav-icon">📢</span> Marketing</router-link></li>
-          <li><router-link to="/super-admin/cms"><span class="nav-icon">📝</span> Cms Management</router-link></li>
-          <li><router-link to="/super-admin/roles"><span class="nav-icon">🔐</span> User & Role Management</router-link></li>
+          <li @click="isCmsOpen = !isCmsOpen" style="cursor: pointer; padding:0.5rem 1.5rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border-color);margin-top:0.5rem; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+            <span>CMS Management</span>
+            <svg style="transition: transform 0.2s; width: 14px; height: 14px;" :style="{ transform: isCmsOpen ? 'rotate(90deg)' : 'rotate(0deg)' }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </li>
+          <template v-if="isCmsOpen">
+            <li><router-link to="/super-admin/cms/homepage"><span class="nav-icon">🏠</span> Homepage</router-link></li>
+            <li><router-link to="/super-admin/cms/about"><span class="nav-icon">ℹ️</span> About Us</router-link></li>
+            <li><router-link to="/super-admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
+            <li><router-link to="/super-admin/faqs"><span class="nav-icon">❓</span> FAQs</router-link></li>
+            <li><router-link to="/super-admin/cms/privacy-policy"><span class="nav-icon">🔒</span> Privacy Policy</router-link></li>
+            <li><router-link to="/super-admin/cms/terms"><span class="nav-icon">📜</span> Terms & Conditions</router-link></li>
+            <li><router-link to="/super-admin/cms/contact"><span class="nav-icon">📞</span> Contact Page</router-link></li>
+            <li><router-link to="/super-admin/banners"><span class="nav-icon">🖼️</span> Banners</router-link></li>
+          </template>
+          <li style="border-top:1px solid var(--border-color);margin-top:0.5rem;padding-top:0.5rem;"></li>
           <li><router-link to="/super-admin/payment-gateway"><span class="nav-icon">💳</span> Payment Gateway</router-link></li>
           <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Refferal Program</router-link></li>
           <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Setting</router-link></li>
@@ -129,6 +142,7 @@ export default {
       unreadCount: 0,
       showUserMenu: false,
       showMobileMenu: false,
+      isCmsOpen: true, // Default to open
     };
   },
   computed: {

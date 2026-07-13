@@ -10,7 +10,46 @@
     </div>
 
     <div v-else>
-      <div v-if="orders.length" class="table-wrap">
+      <div class="glass-card mb-4 p-4 flex flex-wrap gap-3 items-end" style="background: var(--bg-primary); margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+        <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+          <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Search</label>
+          <input v-model="filters.search" class="form-input" placeholder="ID, Name, Email, Plate..." />
+        </div>
+        <div class="form-group" style="min-width: 140px; margin-bottom: 0;">
+          <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Status</label>
+          <select v-model="filters.status" class="form-select">
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="assigned">Assigned</option>
+            <option value="ongoing">Ongoing</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="postponed">Postponed</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width: 150px; margin-bottom: 0;">
+          <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Center</label>
+          <select v-model="filters.franchisee_id" class="form-select">
+            <option value="">All Centers</option>
+            <option v-for="c in centers" :key="c.id" :value="c.id">{{ c.center_name }}</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width: 120px; margin-bottom: 0;">
+          <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Payment</label>
+          <select v-model="filters.payment_status" class="form-select">
+            <option value="">All</option>
+            <option value="paid">Paid</option>
+            <option value="unpaid">Unpaid</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width: 140px; margin-bottom: 0;">
+          <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Date</label>
+          <input v-model="filters.date" type="date" class="form-input" />
+        </div>
+        <button class="btn btn-ghost" @click="clearFilters" v-if="hasFilters" title="Clear Filters" style="padding: 0.5rem; height: 42px;">✖</button>
+      </div>
+
+      <div v-if="filteredOrders.length" class="table-wrap">
         <table>
           <thead>
             <tr>
@@ -62,7 +101,7 @@
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem;">
         <div class="text-muted" style="font-size: 0.85rem;">
-          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, orders.length) }} of {{ orders.length }} entries
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} of {{ filteredOrders.length }} entries
         </div>
         <div class="flex gap-1">
           <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
@@ -80,8 +119,11 @@
           <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
         </div>
       </div>
-      <div v-else class="empty-state">
+      <div v-else-if="!orders.length" class="empty-state">
         <p>No bookings have been made on the platform yet.</p>
+      </div>
+      <div v-else class="empty-state">
+        <p>No bookings match your current filter criteria.</p>
       </div>
     </div>
 
@@ -166,6 +208,13 @@ export default {
       submitting: false,
       currentPage: 1,
       itemsPerPage: 10,
+      filters: {
+        search: '',
+        status: '',
+        payment_status: '',
+        franchisee_id: '',
+        date: ''
+      },
       form: {
         franchisee_id: '',
         booking_date: '',
@@ -177,15 +226,46 @@ export default {
     };
   },
   computed: {
+    hasFilters() {
+      return Object.values(this.filters).some(v => v !== '');
+    },
+    filteredOrders() {
+      return this.orders.filter(o => {
+        if (this.filters.status && o.status !== this.filters.status) return false;
+        if (this.filters.payment_status && o.payment_status !== this.filters.payment_status) return false;
+        if (this.filters.franchisee_id && String(o.franchisee_id) !== String(this.filters.franchisee_id)) return false;
+        if (this.filters.date && o.booking_date !== this.filters.date) return false;
+        if (this.filters.search) {
+          const s = this.filters.search.toLowerCase();
+          const matchId = String(o.id).includes(s);
+          const matchName = o.customer?.name?.toLowerCase().includes(s);
+          const matchEmail = o.customer?.email?.toLowerCase().includes(s);
+          const matchPlate = o.vehicle?.plate_number?.toLowerCase().includes(s);
+          if (!matchId && !matchName && !matchEmail && !matchPlate) return false;
+        }
+        return true;
+      });
+    },
     paginatedOrders() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
-      return this.orders.slice(start, start + this.itemsPerPage);
+      return this.filteredOrders.slice(start, start + this.itemsPerPage);
     },
     totalPages() {
-      return Math.ceil(this.orders.length / this.itemsPerPage) || 1;
+      return Math.ceil(this.filteredOrders.length / this.itemsPerPage) || 1;
+    }
+  },
+  watch: {
+    filters: {
+      deep: true,
+      handler() {
+        this.currentPage = 1;
+      }
     }
   },
   methods: {
+    clearFilters() {
+      this.filters = { search: '', status: '', payment_status: '', franchisee_id: '', date: '' };
+    },
     statusBadge(s) {
       return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan';
     },

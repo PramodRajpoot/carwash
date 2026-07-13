@@ -67,6 +67,10 @@ import SuperAdminServicePartners from '@/views/super-admin/SuperAdminServicePart
 import SuperAdminTestimonials from '@/views/super-admin/SuperAdminTestimonials.vue';
 import SuperAdminPartnerFeedback from '@/views/super-admin/SuperAdminPartnerFeedback.vue';
 import SuperAdminFaqs from '@/views/super-admin/SuperAdminFaqs.vue';
+import CmsAboutUs from '@/views/super-admin/cms/CmsAboutUs.vue';
+import CmsPrivacyPolicy from '@/views/super-admin/cms/CmsPrivacyPolicy.vue';
+import CmsTerms from '@/views/super-admin/cms/CmsTerms.vue';
+import CmsContact from '@/views/super-admin/cms/CmsContact.vue';
 
 export const routes = [
     // ── Public Pages ─────────────────────────────────────────────
@@ -166,6 +170,10 @@ export const routes = [
             { path: 'testimonials', name: 'superadmin-testimonials', component: SuperAdminTestimonials },
             { path: 'partner-feedback', name: 'superadmin-partner-feedback', component: SuperAdminPartnerFeedback },
             { path: 'faqs', name: 'superadmin-faqs', component: SuperAdminFaqs },
+            { path: 'cms/about', name: 'superadmin-cms-about', component: CmsAboutUs },
+            { path: 'cms/privacy-policy', name: 'superadmin-cms-privacy-policy', component: CmsPrivacyPolicy },
+            { path: 'cms/terms', name: 'superadmin-cms-terms', component: CmsTerms },
+            { path: 'cms/contact', name: 'superadmin-cms-contact', component: CmsContact },
             // Super admin also has access to all admin sub-pages via their own routes
             { path: 'users', name: 'superadmin-users', component: AdminUsers },
             { path: 'orders', name: 'superadmin-orders', component: AdminOrders },

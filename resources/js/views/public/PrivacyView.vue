@@ -5,35 +5,69 @@
         <h1 style="margin-bottom:0.5rem">Privacy <span class="text-gradient">Policy</span></h1>
         <p class="text-muted" style="margin-bottom:2rem">Last updated: June 2026</p>
 
-        <div class="glass-card" style="line-height:1.85;font-size:0.92rem">
-          <h3 style="margin-bottom:0.75rem">1. Information We Collect</h3>
-          <p class="text-muted" style="margin-bottom:1.5rem">We collect: (a) Personal information such as name, email, phone, and address when you register; (b) Vehicle information added to your profile; (c) Booking and transaction history; (d) Device information and usage data for app improvements.</p>
+        <div v-if="loading" class="flex items-center justify-center py-10">
+          <div class="spinner"></div>
+        </div>
 
-          <h3 style="margin-bottom:0.75rem">2. How We Use Your Information</h3>
-          <p class="text-muted" style="margin-bottom:1.5rem">Your information is used to: process bookings and payments, communicate service confirmations and reminders, manage referral rewards and E-Points, improve our platform, comply with legal obligations, and send promotional offers (with your consent).</p>
-
-          <h3 style="margin-bottom:0.75rem">3. Data Sharing</h3>
-          <p class="text-muted" style="margin-bottom:1.5rem">We share your data with franchise partners to fulfill service bookings, payment processors for transactions, and SMS/email service providers for notifications. We do not sell personal data to third parties.</p>
-
-          <h3 style="margin-bottom:0.75rem">4. Data Security</h3>
-          <p class="text-muted" style="margin-bottom:1.5rem">We implement industry-standard security measures including SSL encryption, hashed passwords, and access controls. However, no transmission over the internet is 100% secure.</p>
-
-          <h3 style="margin-bottom:0.75rem">5. Cookies</h3>
-          <p class="text-muted" style="margin-bottom:1.5rem">We use cookies and local storage for authentication tokens and user preferences (such as dark/light mode). These are essential for platform functionality.</p>
-
-          <h3 style="margin-bottom:0.75rem">6. Your Rights</h3>
-          <p class="text-muted" style="margin-bottom:1.5rem">You have the right to: access your personal data, request correction of inaccurate data, request deletion of your account, opt out of marketing communications, and port your data in machine-readable format.</p>
-
-          <h3 style="margin-bottom:0.75rem">7. Retention</h3>
-          <p class="text-muted" style="margin-bottom:1.5rem">We retain your data for as long as your account is active or as required by law. Booking and financial records are retained for 7 years for compliance purposes.</p>
-
-          <h3 style="margin-bottom:0.75rem">8. Contact Us</h3>
-          <p class="text-muted">For privacy-related queries, contact us at <strong style="color:var(--accent-cyan)">privacy@cleanatdoorstep.in</strong> or reach out through our Contact page.</p>
+        <div v-else class="glass-card fade-in-up" style="line-height:1.85;font-size:0.92rem">
+           <div class="cms-content" v-html="privacyPolicy.content"></div>
         </div>
       </div>
     </section>
   </div>
 </template>
+
 <script>
-export default { name: 'PrivacyView' };
+export default {
+  name: 'PrivacyView',
+  data() {
+    return {
+      loading: true,
+      privacyPolicy: { content: '' },
+    };
+  },
+  mounted() {
+    this.fetchPrivacyPolicy();
+  },
+  methods: {
+    async fetchPrivacyPolicy() {
+      try {
+        const response = await fetch('/api/cms/privacy-policy');
+        if (response.ok) {
+          this.privacyPolicy = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch Privacy Policy:', error);
+      } finally {
+        this.loading = false;
+      }
+    }
+  }
+};
 </script>
+
+<style scoped>
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(6, 182, 212, 0.2);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.cms-content :deep(h3) {
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cms-content :deep(p) {
+  margin-bottom: 1.5rem;
+  color: var(--text-muted);
+}
+</style>

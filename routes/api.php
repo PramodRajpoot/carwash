@@ -21,6 +21,7 @@ use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\PartnerFeedbackController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\CmsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,6 +53,12 @@ Route::get('/service-partners', [ServicePartnerController::class, 'index']);
 Route::get('/testimonials', [TestimonialController::class, 'index']);
 Route::get('/partner-feedback', [PartnerFeedbackController::class, 'index']);
 Route::get('/faqs', [FaqController::class, 'index']);
+
+// CMS Public
+Route::get('/cms/about-us', [CmsController::class, 'getAboutUs']);
+Route::get('/cms/privacy-policy', [CmsController::class, 'getPrivacyPolicy']);
+Route::get('/cms/terms', [CmsController::class, 'getTermsAndConditions']);
+Route::get('/cms/contact', [CmsController::class, 'getContactPage']);
 
 // Newsletter
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
@@ -260,5 +267,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/faqs', [FaqController::class, 'store']);
         Route::put('/faqs/{id}', [FaqController::class, 'update']);
         Route::delete('/faqs/{id}', [FaqController::class, 'destroy']);
+        
+        // CMS Management
+        Route::get('/cms/about-us', [CmsController::class, 'getAboutUs']);
+        Route::post('/cms/about', [CmsController::class, 'updateAboutUs']);
+        Route::post('/cms/privacy-policy', [CmsController::class, 'updatePrivacyPolicy']);
+        Route::post('/cms/terms', [CmsController::class, 'updateTermsAndConditions']);
+        Route::post('/cms/contact', [CmsController::class, 'updateContactPage']);
+        Route::put('/cms/about-us', [CmsController::class, 'updateAboutUs']);
+        Route::get('/cms/privacy-policy', [CmsController::class, 'getPrivacyPolicy']);
+        Route::put('/cms/privacy-policy', [CmsController::class, 'updatePrivacyPolicy']);
     });
 });

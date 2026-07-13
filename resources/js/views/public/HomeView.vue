@@ -69,20 +69,18 @@
     </section>
 
     <!-- About Us -->
-    <section class="section">
+    <section class="section" v-if="aboutUs">
       <div class="container flex items-center" style="gap:4rem;flex-wrap:wrap">
         <div style="flex:1;min-width:250px" class="fade-in-up">
-           <img src="https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800" alt="About CleanAtDoorstep" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);">
+           <img :src="aboutUs.image_url" alt="About CleanAtDoorstep" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);">
         </div>
         <div style="flex:1;min-width:250px" class="fade-in-up delay-1">
           <div class="section-title" style="text-align:left;margin-bottom:1.5rem">
-            <h2>About <span class="text-gradient">CleanAtDoorstep</span></h2>
+            <h2 v-html="aboutUs.title"></h2>
           </div>
-          <p class="text-secondary" style="margin-bottom:1.5rem;font-size:1.05rem">We are India's most trusted doorstep car wash and detailing service. Since our inception, we have been committed to providing top-tier vehicle care while saving millions of liters of water using our advanced eco-friendly solutions.</p>
+          <p class="text-secondary" style="margin-bottom:1.5rem;font-size:1.05rem">{{ aboutUs.description }}</p>
           <ul style="list-style:none;margin-bottom:2rem;color:var(--text-secondary)">
-            <li style="margin-bottom:0.75rem">✅ Trained & Verified Professionals</li>
-            <li style="margin-bottom:0.75rem">✅ Eco-Friendly & Water Efficient</li>
-            <li style="margin-bottom:0.75rem">✅ No Hidden Charges or Hassle</li>
+            <li v-for="(point, idx) in aboutUs.points" :key="idx" style="margin-bottom:0.75rem">{{ point }}</li>
           </ul>
           <router-link to="/about" class="btn btn-primary">Learn More About Us</router-link>
         </div>
@@ -395,7 +393,8 @@ export default {
       partners: [],
       testimonials: [],
       partnerFeedback: [],
-      faqs: []
+      faqs: [],
+      aboutUs: null
     };
   },
   mounted() {
@@ -405,6 +404,7 @@ export default {
     this.fetchTestimonials();
     this.fetchPartnerFeedback();
     this.fetchFaqs();
+    this.fetchAboutUs();
   },
   methods: {
     async fetchBanners() {
@@ -457,6 +457,16 @@ export default {
         }
       } catch (error) {
         console.error('Failed to fetch FAQs:', error);
+      }
+    },
+    async fetchAboutUs() {
+      try {
+        const response = await fetch('/api/cms/about-us');
+        if (response.ok) {
+          this.aboutUs = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch About Us:', error);
       }
     },
     startBannerSlider() {

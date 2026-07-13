@@ -5,12 +5,11 @@
         <div class="section-title"><h2>Contact <span class="text-gradient">Us</span></h2><p>We would love to hear from you. Reach out with questions, feedback, or partnership inquiries.</p></div>
         <div class="grid grid-2 gap-4">
           <div>
-            <div class="glass-card" style="margin-bottom:1.5rem">
-              <h4 style="margin-bottom:1rem">Head Office</h4>
-              <div class="flex items-center gap-2" style="margin-bottom:0.75rem"><span>📍</span><span class="text-secondary" style="font-size:0.9rem">Linking Road, Bandra West, Mumbai - 400050</span></div>
-              <div class="flex items-center gap-2" style="margin-bottom:0.75rem"><span>📞</span><span class="text-secondary" style="font-size:0.9rem">+91 99999 99999</span></div>
-              <div class="flex items-center gap-2" style="margin-bottom:0.75rem"><span>✉️</span><span class="text-secondary" style="font-size:0.9rem">info@cleanatdoorstep.com</span></div>
-              <div class="flex items-center gap-2"><span>🕐</span><span class="text-secondary" style="font-size:0.9rem">Mon - Sat: 8AM - 8PM</span></div>
+            <div v-if="loading" class="flex items-center justify-center p-5 glass-card" style="margin-bottom:1.5rem">
+              <div class="spinner"></div>
+            </div>
+            <div v-else class="glass-card fade-in-up" style="margin-bottom:1.5rem">
+              <div class="cms-content" v-html="contactData.content"></div>
             </div>
           </div>
           <div class="glass-card">
@@ -32,7 +31,63 @@
 <script>
 export default {
   name: 'ContactView',
-  data() { return { sent: false, form: { name: '', email: '', subject: '', message: '' } }; },
-  methods: { send() { this.sent = true; } },
+  data() { 
+    return { 
+      sent: false, 
+      form: { name: '', email: '', subject: '', message: '' },
+      loading: true,
+      contactData: { content: '' }
+    }; 
+  },
+  mounted() {
+    this.fetchContact();
+  },
+  methods: { 
+    send() { this.sent = true; },
+    async fetchContact() {
+      try {
+        const response = await fetch('/api/cms/contact');
+        if (response.ok) {
+          this.contactData = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch Contact:', error);
+      } finally {
+        this.loading = false;
+      }
+    }
+  },
 };
 </script>
+
+<style scoped>
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(6, 182, 212, 0.2);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.cms-content :deep(h4) {
+  margin-bottom: 1rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cms-content :deep(div) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cms-content :deep(.text-secondary) {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+</style>
