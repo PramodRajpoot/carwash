@@ -179,6 +179,7 @@ export const routes = [
             { path: 'cms/contact', name: 'superadmin-cms-contact', component: CmsContact },
             // Super admin also has access to all admin sub-pages via their own routes
             { path: 'users', name: 'superadmin-users', component: AdminUsers },
+            { path: 'customers', name: 'superadmin-customers', component: () => import('@/views/super-admin/SuperAdminCustomers.vue') },
             { path: 'orders', name: 'superadmin-orders', component: SuperAdminOrders },
             { path: 'services', name: 'superadmin-services', component: SuperAdminServices },
             { path: 'franchisees', name: 'superadmin-franchisees', component: AdminFranchisees },

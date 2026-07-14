@@ -364,4 +364,50 @@ class SuperAdminController extends Controller
         $service->delete();
         return response()->json(['status' => 'success', 'message' => 'Service deleted successfully.']);
     }
+
+    // ── Customer Management ──────────────────────────────────────────────────
+
+    public function getCustomers(Request $request)
+    {
+        $customers = User::where('role', 'customer')
+            ->withCount(['bookings', 'supportTickets'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        // Calculate total wallet balance if needed or it's handled by wallet_balance column? 
+        // Wait, User table doesn't have wallet_balance column, it relies on WalletTransaction? Or maybe it's not a column. Let's just return the users for now.
+        return response()->json($customers);
+    }
+
+    public function getCustomerDetails($id)
+    {
+        $customer = User::where('role', 'customer')
+            ->with([
+                'vehicles',
+                'bookings' => function($q) { $q->orderBy('booking_date', 'desc'); },
+                'bookings.package',
+                'subscriptions' => function($q) { $q->orderBy('created_at', 'desc'); },
+                'subscriptions.package',
+                'walletTransactions' => function($q) { $q->orderBy('created_at', 'desc'); },
+                'supportTickets' => function($q) { $q->orderBy('created_at', 'desc'); },
+                'referrals',
+                'referrer'
+            ])
+            ->findOrFail($id);
+            
+        return response()->json($customer);
+    }
+
+    public function toggleCustomerStatus($id)
+    {
+        $customer = User::where('role', 'customer')->findOrFail($id);
+        $customer->status = ($customer->status === 'active') ? 'blocked' : 'active';
+        $customer->save();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Customer status updated successfully.',
+            'customer_status' => $customer->status
+        ]);
+    }
 }
