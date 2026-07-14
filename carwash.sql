@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 13, 2026 at 12:08 PM
+-- Generation Time: Jul 14, 2026 at 11:28 AM
 -- Server version: 8.0.46-0ubuntu0.24.04.3
 -- PHP Version: 8.3.6
 
@@ -101,7 +101,7 @@ CREATE TABLE `bookings` (
 
 INSERT INTO `bookings` (`id`, `customer_id`, `vehicle_id`, `franchisee_id`, `package_id`, `booking_date`, `slot_time`, `status`, `payment_status`, `payment_method`, `total_price`, `created_at`, `updated_at`) VALUES
 (5, 31, 9, 2, 3, '2026-06-26', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'cod', 399.00, '2026-06-25 13:56:57', '2026-06-25 13:56:57'),
-(6, 33, 10, 2, 3, '2026-07-01', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'online', 399.00, '2026-06-30 19:06:01', '2026-06-30 19:06:01');
+(6, 33, 10, 2, 3, '2026-07-01', '09:00 AM - 11:00 AM', 'cancelled', 'unpaid', 'online', 399.00, '2026-06-30 19:06:01', '2026-07-14 05:23:20');
 
 -- --------------------------------------------------------
 
@@ -1636,7 +1636,9 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (27, '2026_07_04_161944_create_newsletter_subscribers_table', 18),
 (28, '2026_07_09_163831_add_agreement_fields_to_franchisees_table', 19),
 (29, '2026_07_09_170817_change_royalty_column_type_in_franchisees_table', 20),
-(30, '2026_07_13_120211_create_payment_gateways_table', 21);
+(30, '2026_07_13_120211_create_payment_gateways_table', 21),
+(31, '2026_07_14_110329_create_service_categories_table', 22),
+(32, '2026_07_14_110403_add_category_and_image_to_service_packages', 22);
 
 -- --------------------------------------------------------
 
@@ -1816,7 +1818,7 @@ INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `n
 (90, 'App\\Models\\User', 1, 'auth_token', '1eaadd9d954ed8f0343c87a5eb820f10c9a5eaac3763d83c516473ad1eef2a0e', '[\"*\"]', '2026-07-02 12:56:59', NULL, '2026-07-02 12:56:29', '2026-07-02 12:56:59'),
 (91, 'App\\Models\\User', 1, 'auth_token', 'c539ef174f204232fa0d00866f00eeae43220d322f960512fba154840a706e68', '[\"*\"]', NULL, NULL, '2026-07-02 13:12:15', '2026-07-02 13:12:15'),
 (92, 'App\\Models\\User', 1, 'auth_token', 'd24eb5e652985b5348a3c8e597c7346e453ea1499b713f17730cae401dbed39e', '[\"*\"]', '2026-07-09 20:00:03', NULL, '2026-07-04 10:18:48', '2026-07-09 20:00:03'),
-(97, 'App\\Models\\User', 1, 'auth_token', 'e6b55d9208c3c342c223a8b34d2c517ca92957c8a30146e53baeb805c68bd177', '[\"*\"]', '2026-07-13 06:37:14', NULL, '2026-07-13 04:52:13', '2026-07-13 06:37:14');
+(97, 'App\\Models\\User', 1, 'auth_token', 'e6b55d9208c3c342c223a8b34d2c517ca92957c8a30146e53baeb805c68bd177', '[\"*\"]', '2026-07-14 05:58:29', NULL, '2026-07-13 04:52:13', '2026-07-14 05:58:29');
 
 -- --------------------------------------------------------
 
@@ -1872,17 +1874,43 @@ CREATE TABLE `royalty_payments` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `service_categories`
+--
+
+CREATE TABLE `service_categories` (
+  `id` bigint UNSIGNED NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `service_categories`
+--
+
+INSERT INTO `service_categories` (`id`, `name`, `description`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'Exterior Wash', 'Comprehensive exterior washing services', 'active', '2026-07-14 05:42:58', '2026-07-14 05:42:58'),
+(2, 'Interior Cleaning', 'Deep cleaning for the vehicle interior', 'active', '2026-07-14 05:42:58', '2026-07-14 05:42:58'),
+(3, 'Full Detailing', 'Complete detailing service for the whole car', 'active', '2026-07-14 05:42:58', '2026-07-14 05:42:58');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `service_packages`
 --
 
 CREATE TABLE `service_packages` (
   `id` bigint UNSIGNED NOT NULL,
+  `category_id` bigint UNSIGNED DEFAULT NULL,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `vehicle_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `price` decimal(10,2) NOT NULL,
   `frequency_days` int NOT NULL DEFAULT '30',
   `max_bookings` int NOT NULL DEFAULT '4',
+  `image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1891,16 +1919,19 @@ CREATE TABLE `service_packages` (
 -- Dumping data for table `service_packages`
 --
 
-INSERT INTO `service_packages` (`id`, `name`, `description`, `vehicle_type`, `price`, `frequency_days`, `max_bookings`, `created_at`, `updated_at`) VALUES
-(1, 'Eco Hatchback Wash', 'Exterior waterless foam wash, tire dressing, and vacuuming.', 'hatchback', 299.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(2, 'Premium Hatchback Monthly', '4 detailed foam washes per month, deep interior vacuuming, dashboard polish.', 'hatchback', 999.00, 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(3, 'Eco Sedan Wash', 'Eco-friendly waterless pressure wash, interior vacuuming and perfume spray.', 'sedan', 399.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(4, 'Premium Sedan Monthly', '4 complete detailing washes, wax coating, deep carpet vacuuming and glass cleaning.', 'sedan', 1299.00, 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(5, 'Eco SUV Wash', 'Pressure wash, mud removal, underbody spray, vacuuming and tire glaze.', 'suv', 499.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(6, 'Premium SUV Monthly', '4 premium underbody & exterior washes, complete leather conditioning, and wheel detailing.', 'suv', 1499.00, 30, 4, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(7, 'Eco Commercial Wash', 'High-efficiency pressure wash for light commercial vans, cabin dusting, outer cleaning.', 'commercial', 699.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(8, 'Bus Wash Standard', 'Heavy duty exterior pressure wash, wheels wash, and basic windows spray.', 'bus', 1499.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(9, 'Volvo Bus Luxury Wash', 'Detailed multi-stage pressure wash, windshield buffing, side panel wax coating, interior deodorizing.', 'volvo_bus', 2499.00, 0, 1, '2026-06-02 02:48:13', '2026-06-02 02:48:13');
+INSERT INTO `service_packages` (`id`, `category_id`, `name`, `description`, `vehicle_type`, `price`, `frequency_days`, `max_bookings`, `image_path`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Eco Hatchback Wash', 'Exterior waterless foam wash, tire dressing, and vacuuming.', 'hatchback', 299.00, 1, 1, '0', '2026-06-02 02:48:13', '2026-07-14 05:58:29'),
+(2, NULL, 'Premium Hatchback Monthly', '4 detailed foam washes per month, deep interior vacuuming, dashboard polish.', 'hatchback', 999.00, 30, 4, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(3, NULL, 'Eco Sedan Wash', 'Eco-friendly waterless pressure wash, interior vacuuming and perfume spray.', 'sedan', 399.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(4, NULL, 'Premium Sedan Monthly', '4 complete detailing washes, wax coating, deep carpet vacuuming and glass cleaning.', 'sedan', 1299.00, 30, 4, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(5, NULL, 'Eco SUV Wash', 'Pressure wash, mud removal, underbody spray, vacuuming and tire glaze.', 'suv', 499.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(6, NULL, 'Premium SUV Monthly', '4 premium underbody & exterior washes, complete leather conditioning, and wheel detailing.', 'suv', 1499.00, 30, 4, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(7, NULL, 'Eco Commercial Wash', 'High-efficiency pressure wash for light commercial vans, cabin dusting, outer cleaning.', 'commercial', 699.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(8, NULL, 'Bus Wash Standard', 'Heavy duty exterior pressure wash, wheels wash, and basic windows spray.', 'bus', 1499.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(9, NULL, 'Volvo Bus Luxury Wash', 'Detailed multi-stage pressure wash, windshield buffing, side panel wax coating, interior deodorizing.', 'volvo_bus', 2499.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(10, 1, 'Basic Exterior Wash', 'Quick wash, tire shine, and exterior window wipe down.', 'sedan', 299.00, 7, 20, 'services/car_exterior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14'),
+(11, 1, 'Premium Exterior Wash', 'Includes basic exterior wash plus hand wax and rim cleaning.', 'suv', 499.00, 15, 15, 'services/car_exterior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14'),
+(12, 2, 'Interior Vacuum & Wipe', 'Vacuum carpets and seats, wipe dashboard and console.', 'hatchback', 199.00, 15, 20, 'services/car_interior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14');
 
 -- --------------------------------------------------------
 
@@ -2253,10 +2284,17 @@ ALTER TABLE `royalty_payments`
   ADD KEY `royalty_payments_franchisee_id_foreign` (`franchisee_id`);
 
 --
+-- Indexes for table `service_categories`
+--
+ALTER TABLE `service_categories`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `service_packages`
 --
 ALTER TABLE `service_packages`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `service_packages_category_id_foreign` (`category_id`);
 
 --
 -- Indexes for table `service_partners`
@@ -2391,7 +2429,7 @@ ALTER TABLE `master_slots`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `newsletter_subscribers`
@@ -2442,10 +2480,16 @@ ALTER TABLE `royalty_payments`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `service_categories`
+--
+ALTER TABLE `service_categories`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `service_packages`
 --
 ALTER TABLE `service_packages`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `service_partners`
@@ -2550,6 +2594,12 @@ ALTER TABLE `notifications_log`
 --
 ALTER TABLE `royalty_payments`
   ADD CONSTRAINT `royalty_payments_franchisee_id_foreign` FOREIGN KEY (`franchisee_id`) REFERENCES `franchisees` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `service_packages`
+--
+ALTER TABLE `service_packages`
+  ADD CONSTRAINT `service_packages_category_id_foreign` FOREIGN KEY (`category_id`) REFERENCES `service_categories` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `subscriptions`
