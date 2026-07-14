@@ -72,6 +72,7 @@ import CmsPrivacyPolicy from '@/views/super-admin/cms/CmsPrivacyPolicy.vue';
 import CmsTerms from '@/views/super-admin/cms/CmsTerms.vue';
 import CmsContact from '@/views/super-admin/cms/CmsContact.vue';
 import SuperAdminPaymentGateway from '@/views/super-admin/SuperAdminPaymentGateway.vue';
+import SuperAdminOrders from '@/views/super-admin/SuperAdminOrders.vue';
 
 export const routes = [
     // ── Public Pages ─────────────────────────────────────────────
@@ -177,7 +178,7 @@ export const routes = [
             { path: 'cms/contact', name: 'superadmin-cms-contact', component: CmsContact },
             // Super admin also has access to all admin sub-pages via their own routes
             { path: 'users', name: 'superadmin-users', component: AdminUsers },
-            { path: 'orders', name: 'superadmin-orders', component: AdminOrders },
+            { path: 'orders', name: 'superadmin-orders', component: SuperAdminOrders },
             { path: 'franchisees', name: 'superadmin-franchisees', component: AdminFranchisees },
             { path: 'packages', name: 'superadmin-packages', component: AdminPackages },
             { path: 'referrals', name: 'superadmin-referrals', component: AdminReferrals },

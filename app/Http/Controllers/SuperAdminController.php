@@ -148,7 +148,7 @@ class SuperAdminController extends Controller
 
     public function getAllUsers()
     {
-        return response()->json(User::with('franchisee')->orderBy('created_at', 'desc')->get());
+        return response()->json(User::with(['franchisee', 'vehicles'])->orderBy('created_at', 'desc')->get());
     }
 
     public function getAllOrders()
@@ -163,5 +163,91 @@ class SuperAdminController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate(50)
         );
+    }
+
+    public function createOrder(Request $request)
+    {
+        $request->validate([
+            'customer_id'   => 'required|exists:users,id',
+            'vehicle_id'    => 'required|exists:vehicles,id',
+            'package_id'    => 'nullable|exists:service_packages,id',
+            'franchisee_id' => 'nullable|exists:franchisees,id',
+            'booking_date'  => 'required|date',
+            'slot_time'     => 'required|string',
+            'total_price'   => 'required|numeric|min:0',
+            'payment_status'=> 'required|in:unpaid,paid',
+        ]);
+
+        $booking = Booking::create([
+            'customer_id'   => $request->customer_id,
+            'vehicle_id'    => $request->vehicle_id,
+            'package_id'    => $request->package_id,
+            'franchisee_id' => $request->franchisee_id,
+            'booking_date'  => $request->booking_date,
+            'slot_time'     => $request->slot_time,
+            'total_price'   => $request->total_price,
+            'payment_status'=> $request->payment_status,
+            'status'        => $request->franchisee_id ? 'assigned' : 'pending',
+            'payment_method'=> 'manual',
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Booking created successfully.',
+            'booking' => $booking->load(['customer', 'vehicle', 'franchisee', 'package'])
+        ], 201);
+    }
+
+    public function assignOrder(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+        $request->validate(['franchisee_id' => 'required|exists:franchisees,id']);
+        
+        $booking->update([
+            'franchisee_id' => $request->franchisee_id,
+            'status' => 'assigned'
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Booking assigned successfully.', 'booking' => $booking]);
+    }
+
+    public function rescheduleOrder(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+        $request->validate([
+            'booking_date' => 'required|date',
+            'slot_time'    => 'required|string'
+        ]);
+
+        $booking->update([
+            'booking_date' => $request->booking_date,
+            'slot_time'    => $request->slot_time,
+            'status'       => $booking->status === 'cancelled' ? 'pending' : ($booking->status === 'pending' ? 'pending' : 'postponed')
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Booking rescheduled successfully.', 'booking' => $booking]);
+    }
+
+    public function cancelOrder(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+        $booking->update(['status' => 'cancelled']);
+        return response()->json(['status' => 'success', 'message' => 'Booking cancelled successfully.', 'booking' => $booking]);
+    }
+
+    public function refundOrder(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+        if ($booking->status !== 'cancelled') {
+            return response()->json(['status' => 'error', 'message' => 'Only cancelled bookings can be refunded.'], 400);
+        }
+        $booking->update(['payment_status' => 'refunded']);
+        return response()->json(['status' => 'success', 'message' => 'Booking refunded successfully.', 'booking' => $booking]);
+    }
+
+    public function downloadInvoice($id)
+    {
+        $booking = Booking::with(['customer', 'vehicle', 'franchisee', 'package'])->findOrFail($id);
+        return view('invoice.booking', compact('booking'));
     }
 }

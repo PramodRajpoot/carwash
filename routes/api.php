@@ -231,6 +231,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Full Data Access
         Route::get('/users',        [SuperAdminController::class, 'getAllUsers']);
         Route::get('/orders',       [SuperAdminController::class, 'getAllOrders']);
+        Route::post('/orders',      [SuperAdminController::class, 'createOrder']);
+        Route::put('/orders/{id}/assign', [SuperAdminController::class, 'assignOrder']);
+        Route::put('/orders/{id}/reschedule', [SuperAdminController::class, 'rescheduleOrder']);
+        Route::put('/orders/{id}/cancel', [SuperAdminController::class, 'cancelOrder']);
+        Route::put('/orders/{id}/refund', [SuperAdminController::class, 'refundOrder']);
+        Route::get('/orders/{id}/invoice', [SuperAdminController::class, 'downloadInvoice']);
         Route::get('/wallet',       [SuperAdminController::class, 'getAllWalletTransactions']);
 
         // Master Slots Management
