@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -16,7 +16,9 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_BASE = 'http://10.10.14.248:8000';
+const API_BASE = 'https://carwash-api.loca.lt';
+axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'; // Keep just in case they switch back to ngrok
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -28,6 +30,15 @@ export default function RegisterScreen() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   
   const [loading, setLoading] = useState(false);
+
+  const nameInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      nameInputRef.current?.focus();
+    }, 400); // 400ms delay ensures screen transition is complete
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleRegister = async () => {
     if (!name || !email || !phone || !password || !passwordConfirm) {
@@ -89,9 +100,11 @@ export default function RegisterScreen() {
           {/* Form */}
           <View style={styles.formContainer}>
             <TextInput
+              ref={nameInputRef}
               style={styles.input}
               placeholder="Full Name"
               placeholderTextColor="#a0aec0"
+              autoFocus={true}
               value={name}
               onChangeText={setName}
             />

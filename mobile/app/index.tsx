@@ -16,9 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 
 // ── Your Laravel server URL ──
-// Using LAN IP since carwash.local won't resolve on the phone.
-// If phone can't reach this IP (different network), sample data is shown.
-const API_BASE = 'http://10.10.14.248:8000';
+const API_BASE = 'https://carwash-api.loca.lt';
 
 const { width } = Dimensions.get('window');
 
@@ -49,12 +47,17 @@ export default function ServicesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPackages = async () => {
     try {
       setError(null);
-      const res = await fetch(`${API_BASE}/api/packages`);
+      const res = await fetch(`${API_BASE}/api/packages`, {
+        headers: { 
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true'
+        }
+      });
       const data = await res.json();
       setPackages(data);
     } catch (e) {

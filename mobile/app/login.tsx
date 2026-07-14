@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,7 +17,9 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_BASE = 'http://10.10.14.248:8000';
+const API_BASE = 'https://carwash-api.loca.lt';
+axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'; // Keep just in case they switch back to ngrok
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -25,6 +27,15 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const emailInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      emailInputRef.current?.focus();
+    }, 400); // 400ms delay ensures screen transition is complete
+    return () => clearTimeout(timer);
+  }, []);
 
   // Toggle state for tabs (Email vs OTP)
   const [activeTab, setActiveTab] = useState<'email' | 'otp'>('email');
@@ -98,11 +109,13 @@ export default function LoginScreen() {
         {/* Form */}
         <View style={styles.formContainer}>
           <TextInput
+            ref={emailInputRef}
             style={styles.input}
             placeholder="Email address"
             placeholderTextColor="#a0aec0"
             autoCapitalize="none"
             keyboardType="email-address"
+            autoFocus={true}
             value={email}
             onChangeText={setEmail}
           />
