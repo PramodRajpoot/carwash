@@ -7,6 +7,29 @@
       </div>
     </div>
 
+    <!-- Filters -->
+    <div class="glass-card" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+      <div style="flex: 1; min-width: 250px;">
+        <input 
+          type="text" 
+          class="form-input" 
+          placeholder="Search by name, email, or phone..." 
+          v-model="filters.search"
+          @keyup.enter="fetchCustomers(1)"
+        >
+      </div>
+      <div>
+        <select class="form-input" v-model="filters.status" @change="fetchCustomers(1)">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+      <div>
+        <button class="btn btn-primary" @click="fetchCustomers(1)">Search</button>
+      </div>
+    </div>
+
     <!-- Customer List -->
     <div class="glass-card">
       <div class="table-responsive">
@@ -52,6 +75,27 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="pagination.last_page > 1" style="display: flex; justify-content: center; padding: 1.5rem; gap: 0.5rem; border-top: 1px solid var(--border-color);">
+        <button 
+          class="btn btn-sm btn-outline-primary" 
+          :disabled="pagination.current_page === 1"
+          @click="fetchCustomers(pagination.current_page - 1)"
+        >
+          Previous
+        </button>
+        <div style="display: flex; align-items: center; padding: 0 1rem; color: var(--text-muted); font-size: 0.9rem;">
+          Page {{ pagination.current_page }} of {{ pagination.last_page }}
+        </div>
+        <button 
+          class="btn btn-sm btn-outline-primary" 
+          :disabled="pagination.current_page === pagination.last_page"
+          @click="fetchCustomers(pagination.current_page + 1)"
+        >
+          Next
+        </button>
       </div>
     </div>
 
@@ -233,11 +277,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, reactive } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
 const customers = ref([]);
+const pagination = ref({
+  current_page: 1,
+  last_page: 1,
+  total: 0
+});
+
+const filters = reactive({
+  search: '',
+  status: ''
+});
+
 const isModalOpen = ref(false);
 const selectedCustomer = ref(null);
 const activeTab = ref('overview');
@@ -252,12 +307,25 @@ const tabs = [
   { id: 'complaints', label: 'Complaints/SOP' }
 ];
 
-const fetchCustomers = async () => {
+const fetchCustomers = async (page = 1) => {
   try {
+    const params = {
+      page: page,
+      search: filters.search,
+      status: filters.status
+    };
+    
     const res = await axios.get('/api/super-admin/customers', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      params
     });
-    customers.value = res.data;
+    
+    customers.value = res.data.data; // Laravel pagination wrapper
+    pagination.value = {
+      current_page: res.data.current_page,
+      last_page: res.data.last_page,
+      total: res.data.total
+    };
   } catch (error) {
     console.error('Error fetching customers:', error);
     Swal.fire('Error', 'Failed to load customers', 'error');

@@ -369,13 +369,24 @@ class SuperAdminController extends Controller
 
     public function getCustomers(Request $request)
     {
-        $customers = User::where('role', 'customer')
-            ->withCount(['bookings', 'supportTickets'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = User::where('role', 'customer')
+            ->withCount(['bookings', 'supportTickets']);
+
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
+        $customers = $query->orderBy('created_at', 'desc')->paginate(10);
             
-        // Calculate total wallet balance if needed or it's handled by wallet_balance column? 
-        // Wait, User table doesn't have wallet_balance column, it relies on WalletTransaction? Or maybe it's not a column. Let's just return the users for now.
         return response()->json($customers);
     }
 
