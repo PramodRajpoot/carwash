@@ -228,6 +228,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/settings',     [SuperAdminController::class, 'getSettings']);
         Route::post('/settings',    [SuperAdminController::class, 'updateSettings']);
 
+        // Services & Categories Management
+        Route::get('/categories', [SuperAdminController::class, 'getCategories']);
+        Route::post('/categories', [SuperAdminController::class, 'createCategory']);
+        Route::put('/categories/{id}', [SuperAdminController::class, 'updateCategory']);
+        Route::delete('/categories/{id}', [SuperAdminController::class, 'deleteCategory']);
+
+        Route::get('/services', [SuperAdminController::class, 'getServices']);
+        Route::post('/services', [SuperAdminController::class, 'createService']);
+        Route::post('/services/{id}', [SuperAdminController::class, 'updateService']); // Using POST to support multipart form data (method spoofing can also be used but POST is simpler for file upload)
+        Route::delete('/services/{id}', [SuperAdminController::class, 'deleteService']);
+
         // Full Data Access
         Route::get('/users',        [SuperAdminController::class, 'getAllUsers']);
         Route::get('/orders',       [SuperAdminController::class, 'getAllOrders']);

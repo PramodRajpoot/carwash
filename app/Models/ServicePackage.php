@@ -10,13 +10,20 @@ class ServicePackage extends Model
     use HasFactory;
 
     protected $fillable = [
+        'category_id',
         'name',
         'description',
         'vehicle_type',
         'price',
         'frequency_days',
         'max_bookings',
+        'image_path',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(ServiceCategory::class, 'category_id');
+    }
 
     public function subscriptions()
     {

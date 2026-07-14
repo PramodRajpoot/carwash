@@ -9,7 +9,10 @@ use App\Models\Booking;
 use App\Models\Subscription;
 use App\Models\WalletTransaction;
 use App\Models\PlatformSetting;
+use App\Models\ServiceCategory;
+use App\Models\ServicePackage;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class SuperAdminController extends Controller
@@ -249,5 +252,116 @@ class SuperAdminController extends Controller
     {
         $booking = Booking::with(['customer', 'vehicle', 'franchisee', 'package'])->findOrFail($id);
         return view('invoice.booking', compact('booking'));
+    }
+
+    // ─── Categories Management ──────────────────────────────────────────
+
+    public function getCategories()
+    {
+        return response()->json(ServiceCategory::all());
+    }
+
+    public function createCategory(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'required|in:active,inactive'
+        ]);
+
+        $category = ServiceCategory::create($request->all());
+        return response()->json(['status' => 'success', 'message' => 'Category created successfully.', 'category' => $category]);
+    }
+
+    public function updateCategory(Request $request, $id)
+    {
+        $category = ServiceCategory::findOrFail($id);
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'required|in:active,inactive'
+        ]);
+
+        $category->update($request->all());
+        return response()->json(['status' => 'success', 'message' => 'Category updated successfully.', 'category' => $category]);
+    }
+
+    public function deleteCategory($id)
+    {
+        $category = ServiceCategory::findOrFail($id);
+        $category->delete();
+        return response()->json(['status' => 'success', 'message' => 'Category deleted successfully.']);
+    }
+
+    // ─── Services Management ────────────────────────────────────────────
+
+    public function getServices()
+    {
+        return response()->json(ServicePackage::with('category')->get());
+    }
+
+    public function createService(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required|exists:service_categories,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'vehicle_type' => 'required|string|max:100',
+            'price' => 'required|numeric|min:0',
+            'frequency_days' => 'required|integer|min:1',
+            'max_bookings' => 'required|integer|min:1',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        $data = $request->except('image');
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('services', 'public');
+            $data['image_path'] = $path;
+        }
+
+        $service = ServicePackage::create($data);
+        return response()->json(['status' => 'success', 'message' => 'Service created successfully.', 'service' => $service->load('category')]);
+    }
+
+    public function updateService(Request $request, $id)
+    {
+        $service = ServicePackage::findOrFail($id);
+
+        $request->validate([
+            'category_id' => 'required|exists:service_categories,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'vehicle_type' => 'required|string|max:100',
+            'price' => 'required|numeric|min:0',
+            'frequency_days' => 'required|integer|min:1',
+            'max_bookings' => 'required|integer|min:1',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        $data = $request->except('image');
+
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($service->image_path) {
+                Storage::disk('public')->delete($service->image_path);
+            }
+            $path = $request->file('image')->store('services', 'public');
+            $data['image_path'] = $path;
+        }
+
+        $service->update($data);
+        return response()->json(['status' => 'success', 'message' => 'Service updated successfully.', 'service' => $service->load('category')]);
+    }
+
+    public function deleteService($id)
+    {
+        $service = ServicePackage::findOrFail($id);
+        if ($service->image_path) {
+            Storage::disk('public')->delete($service->image_path);
+        }
+        $service->delete();
+        return response()->json(['status' => 'success', 'message' => 'Service deleted successfully.']);
     }
 }
