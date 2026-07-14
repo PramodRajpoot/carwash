@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_BASE = 'http://10.10.14.248';
+const API_BASE = 'http://10.10.14.248:8000';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -57,7 +57,7 @@ export default function RegisterScreen() {
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
         
         Alert.alert('Success', 'Registration successful!', [
-          { text: 'OK', onPress: () => router.replace('/') }
+          { text: 'OK', onPress: () => router.replace('/dashboard') }
         ]);
       } else {
         Alert.alert('Registration Failed', response.data.message || 'Could not register');

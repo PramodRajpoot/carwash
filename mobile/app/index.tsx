@@ -18,7 +18,7 @@ import { useRouter } from 'expo-router';
 // ── Your Laravel server URL ──
 // Using LAN IP since carwash.local won't resolve on the phone.
 // If phone can't reach this IP (different network), sample data is shown.
-const API_BASE = 'http://10.10.14.248';
+const API_BASE = 'http://10.10.14.248:8000';
 
 const { width } = Dimensions.get('window');
 

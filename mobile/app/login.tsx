@@ -17,7 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_BASE = 'http://10.10.14.248';
+const API_BASE = 'http://10.10.14.248:8000';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -47,7 +47,7 @@ export default function LoginScreen() {
         await AsyncStorage.setItem('userToken', token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
         
-        router.replace('/');
+        router.replace('/dashboard');
       } else {
         Alert.alert('Login Failed', response.data.message || 'Invalid credentials');
       }
