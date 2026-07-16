@@ -103,13 +103,14 @@
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
               <td>
-                <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                  <button class="btn btn-outline btn-sm" @click="openAssignModal(o)" title="Assign Center">Assign</button>
-                  <button class="btn btn-outline btn-sm" @click="openRescheduleModal(o)" title="Reschedule">Reschedule</button>
-                  <button v-if="o.status !== 'cancelled' && o.status !== 'completed'" class="btn btn-outline btn-sm" style="border-color: var(--accent-rose); color: var(--accent-rose);" @click="cancelOrder(o.id)" title="Cancel Booking">Cancel</button>
-                  <button v-if="o.status === 'cancelled' && o.payment_status === 'paid'" class="btn btn-outline btn-sm" style="border-color: var(--accent-violet); color: var(--accent-violet);" @click="refundOrder(o.id)" title="Process Refund">Refund</button>
-                  <button class="btn btn-outline btn-sm" @click="downloadInvoice(o.id)" title="Download Invoice">Invoice</button>
-                </div>
+                <select class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
+                  <option value="">-- Actions --</option>
+                  <option value="assign">Assign Center</option>
+                  <option value="reschedule">Reschedule</option>
+                  <option value="cancel" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Cancel Booking</option>
+                  <option value="refund" v-if="o.status === 'cancelled' && o.payment_status === 'paid'">Process Refund</option>
+                  <option value="invoice">Download Invoice</option>
+                </select>
               </td>
             </tr>
           </tbody>
@@ -275,6 +276,7 @@
 
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
 export default {
   name: 'SuperAdminOrders',
   data() {
@@ -358,6 +360,24 @@ export default {
     }
   },
   methods: {
+    handleAction(event, o) {
+      const action = event.target.value;
+      event.target.value = ""; // reset dropdown
+      
+      if (!action) return;
+
+      if (action === 'assign') {
+        this.openAssignModal(o);
+      } else if (action === 'reschedule') {
+        this.openRescheduleModal(o);
+      } else if (action === 'cancel') {
+        this.cancelOrder(o.id);
+      } else if (action === 'refund') {
+        this.refundOrder(o.id);
+      } else if (action === 'invoice') {
+        this.downloadInvoice(o.id);
+      }
+    },
     clearFilters() {
       this.filters = { search: '', status: '', payment_status: '', franchisee_id: '', date: '' };
     },
@@ -448,22 +468,42 @@ export default {
       this.submitting = false;
     },
     async cancelOrder(id) {
-      if (confirm('Are you sure you want to cancel this booking?')) {
+      const result = await Swal.fire({
+        title: 'Confirm Cancellation',
+        text: 'Are you sure you want to cancel this booking?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--accent-rose)',
+        confirmButtonText: 'Yes, cancel it!'
+      });
+
+      if (result.isConfirmed) {
         try {
           await axios.put(`/api/super-admin/orders/${id}/cancel`);
           this.loadData();
+          Swal.fire('Cancelled!', 'The booking has been cancelled.', 'success');
         } catch (e) {
-          alert('Failed to cancel booking.');
+          Swal.fire('Error', 'Failed to cancel booking.', 'error');
         }
       }
     },
     async refundOrder(id) {
-      if (confirm('Mark this cancelled booking as refunded?')) {
+      const result = await Swal.fire({
+        title: 'Process Refund',
+        text: 'Mark this cancelled booking as refunded?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--accent-violet)',
+        confirmButtonText: 'Yes, process refund'
+      });
+
+      if (result.isConfirmed) {
         try {
           await axios.put(`/api/super-admin/orders/${id}/refund`);
           this.loadData();
+          Swal.fire('Refunded!', 'The booking has been marked as refunded.', 'success');
         } catch (e) {
-          alert(e.response?.data?.message || 'Failed to refund booking.');
+          Swal.fire('Error', e.response?.data?.message || 'Failed to refund booking.', 'error');
         }
       }
     },
