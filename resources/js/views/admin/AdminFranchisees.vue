@@ -78,6 +78,7 @@
                 <option value="suspend" v-if="f.status !== 'suspended'">Suspend</option>
                 <option value="renew">Renew Agreement</option>
                 <option value="upload">Upload Docs</option>
+                <option value="delete_doc" v-if="f.document_path" style="color: var(--accent-rose);">Delete Doc</option>
                 <option value="view">View / Slots</option>
                 <option value="edit">Edit</option>
               </select>
@@ -249,6 +250,8 @@ export default {
         this.renewAgreement(f);
       } else if (action === 'upload') {
         this.uploadDocument(f);
+      } else if (action === 'delete_doc') {
+        this.deleteDocument(f);
       }
     },
     async renewAgreement(f) {
@@ -305,6 +308,26 @@ export default {
           Swal.fire('Uploaded!', 'Document has been uploaded successfully.', 'success');
         } catch (error) {
           Swal.fire('Error', error.response?.data?.message || 'Failed to upload document.', 'error');
+        }
+      }
+    },
+    async deleteDocument(f) {
+      const result = await Swal.fire({
+        title: 'Delete Document',
+        text: `Are you sure you want to delete the document for ${f.center_name}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--accent-rose)',
+        confirmButtonText: 'Yes, delete it!'
+      });
+
+      if (result.isConfirmed) {
+        try {
+          await axios.delete(`/api/admin/franchisees/${f.id}/document`);
+          f.document_path = null;
+          Swal.fire('Deleted!', 'Document has been deleted.', 'success');
+        } catch (error) {
+          Swal.fire('Error', error.response?.data?.message || 'Failed to delete document', 'error');
         }
       }
     },

@@ -363,6 +363,19 @@ class AdminController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Document uploaded.', 'franchisee' => $franchisee]);
     }
 
+    public function deleteDocument($id)
+    {
+        $franchisee = Franchisee::findOrFail($id);
+        
+        if ($franchisee->document_path && file_exists(public_path($franchisee->document_path))) {
+            unlink(public_path($franchisee->document_path));
+        }
+        
+        $franchisee->update(['document_path' => null]);
+        
+        return response()->json(['status' => 'success', 'message' => 'Document deleted successfully.', 'franchisee' => $franchisee]);
+    }
+
     // ─── Package Management ──────────────────────────────────────
 
     public function getPackages()
