@@ -304,6 +304,22 @@ class SuperAdminController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Booking rescheduled successfully.', 'booking' => $booking]);
     }
 
+    public function changePlan(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+        $request->validate([
+            'package_id'  => 'required|exists:service_packages,id',
+            'total_price' => 'required|numeric|min:0'
+        ]);
+
+        $booking->update([
+            'package_id'  => $request->package_id,
+            'total_price' => $request->total_price
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Plan changed successfully.', 'booking' => $booking->load('package')]);
+    }
+
     public function cancelOrder(Request $request, $id)
     {
         $booking = Booking::findOrFail($id);

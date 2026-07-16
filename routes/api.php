@@ -251,6 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders',      [SuperAdminController::class, 'createOrder']);
         Route::put('/orders/{id}/assign', [SuperAdminController::class, 'assignOrder']);
         Route::put('/orders/{id}/reschedule', [SuperAdminController::class, 'rescheduleOrder']);
+        Route::put('/orders/{id}/change-plan', [SuperAdminController::class, 'changePlan']);
         Route::put('/orders/{id}/cancel', [SuperAdminController::class, 'cancelOrder']);
         Route::put('/orders/{id}/refund', [SuperAdminController::class, 'refundOrder']);
         Route::get('/orders/{id}/invoice', [SuperAdminController::class, 'downloadInvoice']);

@@ -107,6 +107,7 @@
                   <option value="">-- Actions --</option>
                   <option value="assign">Assign Center</option>
                   <option value="reschedule">Reschedule</option>
+                  <option value="change_plan" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Change / Customise Plan</option>
                   <option value="cancel" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Cancel Booking</option>
                   <option value="refund" v-if="o.status === 'cancelled' && o.payment_status === 'paid'">Process Refund</option>
                   <option value="invoice">Download Invoice</option>
@@ -271,6 +272,30 @@
       </div>
     </div>
 
+    <!-- Change Plan Modal -->
+    <div v-if="changePlanModalOrder" class="modal-overlay" @click.self="changePlanModalOrder = null">
+      <div class="modal-content">
+        <h3>Change / Customise Plan for Order #{{ changePlanModalOrder.id }}</h3>
+        <form @submit.prevent="submitChangePlan">
+          <div class="form-group">
+            <label>Select New Plan</label>
+            <select v-model="changePlanForm.package_id" class="form-select" @change="onChangePlanPackage" required>
+              <option value="">-- Select Plan --</option>
+              <option v-for="pkg in packages" :key="pkg.id" :value="pkg.id">{{ pkg.name }} - ₹{{ pkg.price }} ({{ pkg.vehicle_type }})</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Custom Price (₹)</label>
+            <input v-model="changePlanForm.total_price" type="number" step="0.01" class="form-input" required />
+          </div>
+          <div class="flex gap-2" style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary" :disabled="submitting">Update Plan</button>
+            <button type="button" class="btn btn-ghost" @click="changePlanModalOrder = null">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -314,7 +339,10 @@ export default {
       assignForm: { franchisee_id: '' },
 
       rescheduleModalOrder: null,
-      rescheduleForm: { booking_date: '', slot_time: '' }
+      rescheduleForm: { booking_date: '', slot_time: '' },
+
+      changePlanModalOrder: null,
+      changePlanForm: { package_id: '', total_price: 0 }
     };
   },
   computed: {
@@ -370,6 +398,8 @@ export default {
         this.openAssignModal(o);
       } else if (action === 'reschedule') {
         this.openRescheduleModal(o);
+      } else if (action === 'change_plan') {
+        this.openChangePlanModal(o);
       } else if (action === 'cancel') {
         this.cancelOrder(o.id);
       } else if (action === 'refund') {
@@ -463,7 +493,31 @@ export default {
         this.rescheduleModalOrder = null;
         this.loadData();
       } catch (e) {
-        alert(e.response?.data?.message || 'Failed to reschedule.');
+        alert(e.response?.data?.message || 'Failed to reschedule booking.');
+      }
+      this.submitting = false;
+    },
+    openChangePlanModal(o) {
+      this.changePlanModalOrder = o;
+      this.changePlanForm = {
+        package_id: o.package_id || '',
+        total_price: o.total_price || 0
+      };
+    },
+    onChangePlanPackage() {
+      if (this.changePlanForm.package_id) {
+        const pkg = this.packages.find(p => p.id === this.changePlanForm.package_id);
+        if (pkg) this.changePlanForm.total_price = pkg.price;
+      }
+    },
+    async submitChangePlan() {
+      this.submitting = true;
+      try {
+        await axios.put(`/api/super-admin/orders/${this.changePlanModalOrder.id}/change-plan`, this.changePlanForm);
+        this.changePlanModalOrder = null;
+        this.loadData();
+      } catch (e) {
+        alert(e.response?.data?.message || 'Failed to change plan.');
       }
       this.submitting = false;
     },
