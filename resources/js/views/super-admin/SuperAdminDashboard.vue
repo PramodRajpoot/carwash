@@ -8,55 +8,73 @@
     <!-- Cards Section -->
     <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Key Metrics</h3>
     <div class="grid grid-5 gap-3" style="margin-bottom: 2rem;">
-      <div class="stat-card">
+      <div class="stat-card" title="Gross Revenue">
         <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald)">💰</div>
         <div class="stat-value">₹{{ (stats.gross_revenue || 0).toLocaleString() }}</div>
         <div class="stat-label">Gross Revenue</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Total Bookings">
         <div class="stat-icon" style="background:rgba(59,130,246,0.15);color:var(--accent-blue)">📋</div>
         <div class="stat-value">{{ stats.total_bookings || 0 }}</div>
         <div class="stat-label">Total Bookings</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Pending Bookings">
         <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber)">⏳</div>
         <div class="stat-value">{{ stats.pending_bookings || 0 }}</div>
         <div class="stat-label">Pending Bookings</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Completed / Cancelled">
         <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet)">✅</div>
-        <div class="stat-value">{{ stats.completed_bookings || 0 }} / {{ stats.cancelled_bookings || 0 }}</div>
-        <div class="stat-label">Completed / Cancelled</div>
+        <div class="stat-value">
+          <span style="color: var(--accent-emerald)">{{ stats.completed_bookings || 0 }}</span> / 
+          <span style="color: var(--accent-rose)">{{ stats.cancelled_bookings || 0 }}</span>
+        </div>
+        <div class="stat-label">
+          <span style="color: var(--accent-emerald)">Completed</span> / 
+          <span style="color: var(--accent-rose)">Cancelled</span>
+        </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Total Subscriptions">
         <div class="stat-icon" style="background:rgba(236,72,153,0.15);color:var(--accent-pink)">⭐</div>
         <div class="stat-value">{{ stats.total_subscriptions || 0 }}</div>
         <div class="stat-label">Total Subscriptions</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Active / Inactive Cities">
         <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan)">🏙️</div>
-        <div class="stat-value">{{ stats.active_cities || 0 }} / {{ stats.inactive_cities || 0 }}</div>
-        <div class="stat-label">Active / Inactive Cities</div>
+        <div class="stat-value">
+          <span style="color: var(--accent-emerald)">{{ stats.active_cities || 0 }}</span> / 
+          <span style="color: var(--accent-rose)">{{ stats.inactive_cities || 0 }}</span>
+        </div>
+        <div class="stat-label">
+          <span style="color: var(--accent-emerald)">Active</span> / 
+          <span style="color: var(--accent-rose)">Inactive</span> Cities
+        </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Total Franchise">
         <div class="stat-icon" style="background:rgba(249,115,22,0.15);color:var(--accent-orange)">🏪</div>
         <div class="stat-value">{{ stats.total_franchise || 0 }}</div>
         <div class="stat-label">Total Franchise</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Total Wallet Balance">
         <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald)">💳</div>
         <div class="stat-value">₹{{ (stats.total_wallet_balance || 0).toLocaleString() }}</div>
         <div class="stat-label">Total Wallet Balance</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Total Referrals">
         <div class="stat-icon" style="background:rgba(99,102,241,0.15);color:var(--accent-indigo)">🔗</div>
         <div class="stat-value">{{ stats.total_referrals || 0 }}</div>
         <div class="stat-label">Total Referrals</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" title="Active / Inactive Partners">
         <div class="stat-icon" style="background:rgba(20,184,166,0.15);color:var(--accent-teal)">👥</div>
-        <div class="stat-value">{{ stats.active_franchise_partners || 0 }} / {{ stats.inactive_franchise_partners || 0 }}</div>
-        <div class="stat-label">Active/Inactive Partners</div>
+        <div class="stat-value">
+          <span style="color: var(--accent-emerald)">{{ stats.active_franchise_partners || 0 }}</span> / 
+          <span style="color: var(--accent-rose)">{{ stats.inactive_franchise_partners || 0 }}</span>
+        </div>
+        <div class="stat-label">
+          <span style="color: var(--accent-emerald)">Active</span> / 
+          <span style="color: var(--accent-rose)">Inactive</span> Partners
+        </div>
       </div>
     </div>
 
@@ -241,15 +259,6 @@ export default {
   width: 100%;
 }
 .grid-5 {
-  grid-template-columns: repeat(5, 1fr);
-}
-@media (max-width: 1200px) {
-  .grid-5 { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 768px) {
-  .grid-5 { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 480px) {
-  .grid-5 { grid-template-columns: 1fr; }
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 }
 </style>
