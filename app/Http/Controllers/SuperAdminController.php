@@ -21,15 +21,88 @@ class SuperAdminController extends Controller
 
     public function dashboard()
     {
+        $now = now();
+        $thirtyDaysAgo = now()->subDays(30);
+        
+        $credits = WalletTransaction::where('type', 'credit')->where('status', 'confirmed')->sum('amount');
+        $debits = WalletTransaction::where('type', 'debit')->where('status', 'confirmed')->sum('amount');
+        $total_wallet_balance = $credits - $debits;
+
+        // Daily Revenue (last 30 days)
+        $dailyRevenue = Booking::where('status', 'completed')
+            ->where('booking_date', '>=', $thirtyDaysAgo->toDateString())
+            ->groupBy('booking_date')
+            ->orderBy('booking_date')
+            ->selectRaw('DATE(booking_date) as date, sum(total_price) as revenue')
+            ->get();
+
+        // Monthly Revenue (current year)
+        $monthlyRevenue = Booking::where('status', 'completed')
+            ->whereYear('booking_date', $now->year)
+            ->groupByRaw('MONTH(booking_date)')
+            ->orderByRaw('MONTH(booking_date)')
+            ->selectRaw('MONTH(booking_date) as month, sum(total_price) as revenue')
+            ->get();
+
+        // Booking Analytics (Status Count)
+        $bookingAnalytics = Booking::groupBy('status')
+            ->selectRaw('status, count(*) as count')
+            ->get();
+
+        // Services & City wise Revenue
+        $serviceRevenue = Booking::where('bookings.status', 'completed')
+            ->join('service_packages', 'bookings.package_id', '=', 'service_packages.id')
+            ->groupBy('service_packages.name')
+            ->selectRaw('service_packages.name as service_name, sum(bookings.total_price) as revenue')
+            ->get();
+
+        $cityRevenue = Booking::where('bookings.status', 'completed')
+            ->join('franchisees', 'bookings.franchisee_id', '=', 'franchisees.id')
+            ->groupBy('franchisees.city')
+            ->selectRaw('franchisees.city as city, sum(bookings.total_price) as revenue')
+            ->get();
+
+        // Franchise wise Revenue
+        $franchiseRevenue = Booking::where('bookings.status', 'completed')
+            ->join('franchisees', 'bookings.franchisee_id', '=', 'franchisees.id')
+            ->groupBy('franchisees.center_name')
+            ->selectRaw('franchisees.center_name as center, sum(bookings.total_price) as revenue')
+            ->orderByDesc('revenue')
+            ->limit(10)
+            ->get();
+
+        // Partner Growth (new franchisees per month current year)
+        $partnerGrowth = User::where('role', 'franchisee')
+            ->whereYear('created_at', $now->year)
+            ->groupByRaw('MONTH(created_at)')
+            ->orderByRaw('MONTH(created_at)')
+            ->selectRaw('MONTH(created_at) as month, count(*) as count')
+            ->get();
+
         return response()->json([
-            'total_customers'   => User::where('role', 'customer')->count(),
-            'total_franchisees' => User::where('role', 'franchisee')->count(),
-            'total_admins'      => User::where('role', 'admin')->count(),
-            'total_orders'      => Booking::count(),
-            'active_subscriptions' => Subscription::where('status', 'active')->count(),
-            'total_wallet_credit' => WalletTransaction::where('type', 'credit')->where('status', 'confirmed')->sum('amount'),
-            'total_revenue'     => Booking::where('status', 'completed')->sum('total_price'),
-            'total_referrals'   => User::whereNotNull('referred_by')->count(),
+            // Cards
+            'gross_revenue' => Booking::where('status', 'completed')->sum('total_price'),
+            'total_bookings' => Booking::count(),
+            'pending_bookings' => Booking::where('status', 'pending')->count(),
+            'completed_bookings' => Booking::where('status', 'completed')->count(),
+            'cancelled_bookings' => Booking::where('status', 'cancelled')->count(),
+            'total_subscriptions' => Subscription::count(),
+            'active_cities' => Franchisee::whereHas('user', function($q) { $q->where('status', 'active'); })->distinct('city')->count('city'),
+            'inactive_cities' => Franchisee::whereHas('user', function($q) { $q->where('status', '!=', 'active'); })->distinct('city')->count('city'),
+            'total_franchise' => User::where('role', 'franchisee')->count(),
+            'total_wallet_balance' => $total_wallet_balance,
+            'total_referrals' => User::whereNotNull('referred_by')->count(),
+            'active_franchise_partners' => User::where('role', 'franchisee')->where('status', 'active')->count(),
+            'inactive_franchise_partners' => User::where('role', 'franchisee')->where('status', '!=', 'active')->count(),
+            
+            // Analytics
+            'daily_revenue' => $dailyRevenue,
+            'monthly_revenue' => $monthlyRevenue,
+            'booking_analytics' => $bookingAnalytics,
+            'service_revenue' => $serviceRevenue,
+            'city_revenue' => $cityRevenue,
+            'franchise_revenue' => $franchiseRevenue,
+            'partner_growth' => $partnerGrowth,
         ]);
     }
 
@@ -229,6 +302,22 @@ class SuperAdminController extends Controller
         ]);
 
         return response()->json(['status' => 'success', 'message' => 'Booking rescheduled successfully.', 'booking' => $booking]);
+    }
+
+    public function changePlan(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+        $request->validate([
+            'package_id'  => 'required|exists:service_packages,id',
+            'total_price' => 'required|numeric|min:0'
+        ]);
+
+        $booking->update([
+            'package_id'  => $request->package_id,
+            'total_price' => $request->total_price
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Plan changed successfully.', 'booking' => $booking->load('package')]);
     }
 
     public function cancelOrder(Request $request, $id)

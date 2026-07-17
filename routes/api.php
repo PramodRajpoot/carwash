@@ -179,6 +179,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/franchisees/{id}/status',      [AdminController::class, 'updateFranchiseeStatus']);
         Route::post('/franchisees/{id}/renew',      [AdminController::class, 'renewAgreement']);
         Route::post('/franchisees/{id}/upload-document', [AdminController::class, 'uploadDocument']);
+        Route::delete('/franchisees/{id}/document', [AdminController::class, 'deleteDocument']);
         Route::get('/franchisees/{id}/slots',       [SuperAdminSlotController::class, 'getAssignedSlots']);
         Route::post('/franchisees/{id}/slots',      [SuperAdminSlotController::class, 'assignSlots']);
 
@@ -250,6 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders',      [SuperAdminController::class, 'createOrder']);
         Route::put('/orders/{id}/assign', [SuperAdminController::class, 'assignOrder']);
         Route::put('/orders/{id}/reschedule', [SuperAdminController::class, 'rescheduleOrder']);
+        Route::put('/orders/{id}/change-plan', [SuperAdminController::class, 'changePlan']);
         Route::put('/orders/{id}/cancel', [SuperAdminController::class, 'cancelOrder']);
         Route::put('/orders/{id}/refund', [SuperAdminController::class, 'refundOrder']);
         Route::get('/orders/{id}/invoice', [SuperAdminController::class, 'downloadInvoice']);

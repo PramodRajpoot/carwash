@@ -48,8 +48,12 @@
                 <span v-if="f.agreement_expires_at">Exp: {{ f.agreement_expires_at }}</span>
                 <span v-else>No Date</span>
               </div>
-              <div style="margin-top: 0.25rem;">
-                <a v-if="f.document_path" :href="'/' + f.document_path" target="_blank" style="color:var(--accent-cyan); text-decoration:none;">View Doc</a>
+              <div style="margin-top: 0.25rem; display: flex; align-items: center; gap: 5px;">
+                <template v-if="f.document_path">
+                  <img v-if="f.document_path.match(/\.(jpeg|jpg|png|gif)$/i)" :src="'/' + f.document_path" style="height: 24px; width: 24px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);" />
+                  <span v-else style="font-size: 1.1rem; line-height: 1;">📄</span>
+                  <a href="#" @click.prevent="showDocumentPopup(f)" style="color:var(--accent-cyan); text-decoration:none;">View Doc</a>
+                </template>
                 <span v-else class="text-muted">No Doc</span>
               </div>
             </td>
@@ -78,6 +82,7 @@
                 <option value="suspend" v-if="f.status !== 'suspended'">Suspend</option>
                 <option value="renew">Renew Agreement</option>
                 <option value="upload">Upload Docs</option>
+                <option value="delete_doc" v-if="f.document_path" style="color: var(--accent-rose);">Delete Doc</option>
                 <option value="view">View / Slots</option>
                 <option value="edit">Edit</option>
               </select>
@@ -249,6 +254,8 @@ export default {
         this.renewAgreement(f);
       } else if (action === 'upload') {
         this.uploadDocument(f);
+      } else if (action === 'delete_doc') {
+        this.deleteDocument(f);
       }
     },
     async renewAgreement(f) {
@@ -306,6 +313,50 @@ export default {
         } catch (error) {
           Swal.fire('Error', error.response?.data?.message || 'Failed to upload document.', 'error');
         }
+      }
+    },
+    async deleteDocument(f) {
+      const result = await Swal.fire({
+        title: 'Delete Document',
+        text: `Are you sure you want to delete the document for ${f.center_name}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--accent-rose)',
+        confirmButtonText: 'Yes, delete it!'
+      });
+
+      if (result.isConfirmed) {
+        try {
+          await axios.delete(`/api/admin/franchisees/${f.id}/document`);
+          f.document_path = null;
+          Swal.fire('Deleted!', 'Document has been deleted.', 'success');
+        } catch (error) {
+          Swal.fire('Error', error.response?.data?.message || 'Failed to delete document', 'error');
+        }
+      }
+    },
+    showDocumentPopup(f) {
+      if (!f.document_path) return;
+      const isImage = f.document_path.match(/\.(jpeg|jpg|png|gif)$/i);
+      
+      if (isImage) {
+        Swal.fire({
+          title: 'Franchise Document',
+          imageUrl: '/' + f.document_path,
+          imageAlt: 'Document',
+          width: '80%',
+          showCloseButton: true,
+          showConfirmButton: false
+        });
+      } else {
+        Swal.fire({
+          title: 'Franchise Document',
+          html: `<iframe src="/${f.document_path}" style="width:100%; height:75vh; border:none;"></iframe>`,
+          width: '80%',
+          showCloseButton: true,
+          showConfirmButton: false,
+          customClass: { popup: 'swal2-no-padding' }
+        });
       }
     },
     async openEditModal(f) {
