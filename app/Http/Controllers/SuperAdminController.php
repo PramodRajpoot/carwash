@@ -411,6 +411,7 @@ class SuperAdminController extends Controller
             'price' => 'required|numeric|min:0',
             'frequency_days' => 'required|integer|min:1',
             'max_bookings' => 'required|integer|min:1',
+            'custom_badge' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
@@ -437,6 +438,7 @@ class SuperAdminController extends Controller
             'price' => 'required|numeric|min:0',
             'frequency_days' => 'required|integer|min:1',
             'max_bookings' => 'required|integer|min:1',
+            'custom_badge' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 

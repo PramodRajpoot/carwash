@@ -160,6 +160,12 @@
           </div>
 
           <div class="form-group">
+            <label>Promotional Badge (Optional)</label>
+            <input v-model="serviceForm.custom_badge" type="text" class="form-input" placeholder="e.g. Free Interior Polish, 10% Off">
+            <small style="color: var(--text-muted); margin-top: 0.25rem; font-size: 0.8rem;">Highlight a special offer or feature on the service card.</small>
+          </div>
+
+          <div class="form-group">
             <label>Service Image</label>
             <div v-if="editingService && serviceForm.image_path" class="mb-2">
               <img :src="'/storage/' + serviceForm.image_path" alt="Current Image" style="height: 50px; border-radius: 4px;">
@@ -236,6 +242,7 @@ export default {
         price: '',
         frequency_days: '',
         max_bookings: '',
+        custom_badge: '',
         image_path: ''
       },
       serviceImageFile: null,
@@ -328,6 +335,7 @@ export default {
           price: '',
           frequency_days: 15,
           max_bookings: 10,
+          custom_badge: '',
           image_path: ''
         };
       }

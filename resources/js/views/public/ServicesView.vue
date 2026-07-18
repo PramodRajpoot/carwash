@@ -10,9 +10,10 @@
         <div v-else class="grid grid-3 gap-3">
           <div v-for="pkg in filteredPackages" :key="pkg.id" class="glass-card">
             <div class="flex justify-between items-center" style="margin-bottom:0.75rem">
-              <span class="badge badge-cyan">{{ pkg.vehicle_type }}</span>
+              <span class="badge badge-cyan" style="text-transform: uppercase;">{{ pkg.vehicle_type }}</span>
               <span v-if="pkg.frequency_days > 0" class="badge badge-emerald">Monthly</span>
               <span v-else class="badge badge-violet">One-Time</span>
+              <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white; margin-left: auto;">{{ pkg.custom_badge }}</span>
             </div>
             <h4 style="margin-bottom:0.5rem">{{ pkg.name }}</h4>
             <p class="text-muted" style="font-size:0.85rem;line-height:1.6;margin-bottom:1rem">{{ pkg.description }}</p>
