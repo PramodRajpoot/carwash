@@ -30,9 +30,9 @@ class CustomerController extends Controller
             ->count();
 
         $upcomingServices = Booking::where('customer_id', $user->id)
-            ->whereIn('status', ['pending', 'assigned', 'ongoing'])
-            ->with(['vehicle', 'franchisee'])
-            ->orderBy('booking_date', 'asc')
+            ->whereIn('status', ['pending', 'assigned', 'ongoing', 'completed', 'cancelled', 'postponed'])
+            ->with(['vehicle', 'franchisee', 'package'])
+            ->orderBy('booking_date', 'desc')
             ->get();
 
         $wishlistCount = Wishlist::where('customer_id', $user->id)->count();

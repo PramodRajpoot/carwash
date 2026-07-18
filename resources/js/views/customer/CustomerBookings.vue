@@ -12,7 +12,14 @@
             <td>{{ b.booking_date }}</td>
             <td>{{ b.slot_time }}</td>
             <td>{{ b.vehicle?.make_model }}</td>
-            <td>{{ b.package?.name || '-' }}</td>
+            <td>
+              <div>{{ b.package?.name || '-' }}</div>
+              <div v-if="getAddons(b).length" style="font-size: 0.75rem; color: var(--accent-cyan); margin-top: 2px;">
+                <span v-for="(addon, i) in getAddons(b)" :key="i">
+                  + {{ addon.name }}<br v-if="i < getAddons(b).length - 1">
+                </span>
+              </div>
+            </td>
             <td>₹{{ b.total_price }}</td>
             <td><span class="badge" :class="statusBadge(b.status)">{{ b.status }}</span></td>
             <td>
@@ -167,6 +174,13 @@ export default {
     }
   },
   methods: {
+    getAddons(b) {
+      if (!b.addon_services) return [];
+      if (typeof b.addon_services === 'string') {
+        try { return JSON.parse(b.addon_services); } catch (e) { return []; }
+      }
+      return Array.isArray(b.addon_services) ? b.addon_services : [];
+    },
     isAddonSelected(id) { return this.bf.addon_ids.includes(id); },
     toggleAddon(pkg) {
       if (this.isAddonSelected(pkg.id)) {
