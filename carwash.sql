@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 18, 2026 at 03:50 PM
+-- Generation Time: Jul 18, 2026 at 04:29 PM
 -- Server version: 8.0.46-0ubuntu0.22.04.3
 -- PHP Version: 8.3.30
 
@@ -1642,7 +1642,9 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (31, '2026_07_14_110329_create_service_categories_table', 22),
 (32, '2026_07_14_110403_add_category_and_image_to_service_packages', 22),
 (33, '2026_07_18_145019_add_addon_fields_to_bookings_table', 23),
-(34, '2026_07_18_152345_add_custom_badge_to_service_packages_table', 24);
+(34, '2026_07_18_152345_add_custom_badge_to_service_packages_table', 24),
+(35, '2026_07_18_162215_create_user_bank_details_table', 25),
+(36, '2026_07_18_162215_create_withdrawal_requests_table', 25);
 
 -- --------------------------------------------------------
 
@@ -1817,12 +1819,12 @@ INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `n
 (52, 'App\\Models\\User', 1, 'auth_token', '5e14207fdeb208b07a5063b06d958555abff0d4ca2b670d1be2640c9e7da04f5', '[\"*\"]', '2026-06-25 09:30:08', NULL, '2026-06-25 09:30:03', '2026-06-25 09:30:08'),
 (57, 'App\\Models\\User', 31, 'auth_token', 'dddd05015d1a239c0a3bd39cb7d10522306839f02f5e3015d9b82099ee3ec939', '[\"*\"]', '2026-06-25 13:56:57', NULL, '2026-06-25 13:12:07', '2026-06-25 13:56:57'),
 (81, 'App\\Models\\User', 3, 'test', '8b59e08f7854728cf4809718cc25f244b6b9f450eea643a73fccdfbd370c4beb', '[\"*\"]', '2026-06-30 19:43:37', NULL, '2026-06-30 19:41:48', '2026-06-30 19:43:37'),
-(88, 'App\\Models\\User', 1, 'auth_token', '06a65ddf228064da7861953e2014484a078ef93540959ff56fc3cd231f968b2e', '[\"*\"]', '2026-07-18 09:44:33', NULL, '2026-07-02 12:32:41', '2026-07-18 09:44:33'),
+(88, 'App\\Models\\User', 1, 'auth_token', '06a65ddf228064da7861953e2014484a078ef93540959ff56fc3cd231f968b2e', '[\"*\"]', '2026-07-18 10:43:45', NULL, '2026-07-02 12:32:41', '2026-07-18 10:43:45'),
 (89, 'App\\Models\\User', 1, 'auth_token', '3c963d69b9073daa63b9c59c5571a8529105a8b7d262e3245c1d2df1fba20f53', '[\"*\"]', NULL, NULL, '2026-07-02 12:56:19', '2026-07-02 12:56:19'),
 (90, 'App\\Models\\User', 1, 'auth_token', '1eaadd9d954ed8f0343c87a5eb820f10c9a5eaac3763d83c516473ad1eef2a0e', '[\"*\"]', '2026-07-02 12:56:59', NULL, '2026-07-02 12:56:29', '2026-07-02 12:56:59'),
 (91, 'App\\Models\\User', 1, 'auth_token', 'c539ef174f204232fa0d00866f00eeae43220d322f960512fba154840a706e68', '[\"*\"]', NULL, NULL, '2026-07-02 13:12:15', '2026-07-02 13:12:15'),
-(92, 'App\\Models\\User', 1, 'auth_token', 'd24eb5e652985b5348a3c8e597c7346e453ea1499b713f17730cae401dbed39e', '[\"*\"]', '2026-07-18 10:17:05', NULL, '2026-07-04 10:18:48', '2026-07-18 10:17:05'),
-(97, 'App\\Models\\User', 1, 'auth_token', 'e6b55d9208c3c342c223a8b34d2c517ca92957c8a30146e53baeb805c68bd177', '[\"*\"]', '2026-07-14 05:58:29', NULL, '2026-07-13 04:52:13', '2026-07-14 05:58:29');
+(97, 'App\\Models\\User', 1, 'auth_token', 'e6b55d9208c3c342c223a8b34d2c517ca92957c8a30146e53baeb805c68bd177', '[\"*\"]', '2026-07-14 05:58:29', NULL, '2026-07-13 04:52:13', '2026-07-14 05:58:29'),
+(100, 'App\\Models\\User', 1, 'auth_token', '95182eb21c832b21abb780de45e04289bb7bc3758655e84799159f6fd56f236e', '[\"*\"]', '2026-07-18 10:58:38', NULL, '2026-07-18 10:56:21', '2026-07-18 10:58:38');
 
 -- --------------------------------------------------------
 
@@ -2086,6 +2088,31 @@ INSERT INTO `users` (`id`, `name`, `email`, `google_id`, `phone`, `email_verifie
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `user_bank_details`
+--
+
+CREATE TABLE `user_bank_details` (
+  `id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `account_holder_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bank_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `account_number` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ifsc_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `upi_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `user_bank_details`
+--
+
+INSERT INTO `user_bank_details` (`id`, `user_id`, `account_holder_name`, `bank_name`, `account_number`, `ifsc_code`, `upi_id`, `created_at`, `updated_at`) VALUES
+(1, 34, 'Similique necessitat', 'Rerum laborum corrup', 'Et quo neque nihil i', 'Alias facilis esse', 'Rerum dolor eiusmod', '2026-07-18 10:55:57', '2026-07-18 10:55:57');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `vehicles`
 --
 
@@ -2136,6 +2163,22 @@ CREATE TABLE `wishlists` (
   `id` bigint UNSIGNED NOT NULL,
   `customer_id` bigint UNSIGNED NOT NULL,
   `package_id` bigint UNSIGNED NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `withdrawal_requests`
+--
+
+CREATE TABLE `withdrawal_requests` (
+  `id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `status` enum('pending','approved','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `admin_notes` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -2341,6 +2384,13 @@ ALTER TABLE `users`
   ADD KEY `users_referred_by_foreign` (`referred_by`);
 
 --
+-- Indexes for table `user_bank_details`
+--
+ALTER TABLE `user_bank_details`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_bank_details_user_id_foreign` (`user_id`);
+
+--
 -- Indexes for table `vehicles`
 --
 ALTER TABLE `vehicles`
@@ -2361,6 +2411,13 @@ ALTER TABLE `wishlists`
   ADD PRIMARY KEY (`id`),
   ADD KEY `wishlists_customer_id_foreign` (`customer_id`),
   ADD KEY `wishlists_package_id_foreign` (`package_id`);
+
+--
+-- Indexes for table `withdrawal_requests`
+--
+ALTER TABLE `withdrawal_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `withdrawal_requests_user_id_foreign` (`user_id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -2436,7 +2493,7 @@ ALTER TABLE `master_slots`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `newsletter_subscribers`
@@ -2472,7 +2529,7 @@ ALTER TABLE `payment_gateways`
 -- AUTO_INCREMENT for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=98;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
 
 --
 -- AUTO_INCREMENT for table `platform_settings`
@@ -2529,6 +2586,12 @@ ALTER TABLE `users`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
+-- AUTO_INCREMENT for table `user_bank_details`
+--
+ALTER TABLE `user_bank_details`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `vehicles`
 --
 ALTER TABLE `vehicles`
@@ -2545,6 +2608,12 @@ ALTER TABLE `wallet_transactions`
 --
 ALTER TABLE `wishlists`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `withdrawal_requests`
+--
+ALTER TABLE `withdrawal_requests`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
@@ -2628,6 +2697,12 @@ ALTER TABLE `users`
   ADD CONSTRAINT `users_referred_by_foreign` FOREIGN KEY (`referred_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
+-- Constraints for table `user_bank_details`
+--
+ALTER TABLE `user_bank_details`
+  ADD CONSTRAINT `user_bank_details_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `vehicles`
 --
 ALTER TABLE `vehicles`
@@ -2645,6 +2720,12 @@ ALTER TABLE `wallet_transactions`
 ALTER TABLE `wishlists`
   ADD CONSTRAINT `wishlists_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `wishlists_package_id_foreign` FOREIGN KEY (`package_id`) REFERENCES `service_packages` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `withdrawal_requests`
+--
+ALTER TABLE `withdrawal_requests`
+  ADD CONSTRAINT `withdrawal_requests_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
