@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 18, 2026 at 04:29 PM
+-- Generation Time: Jul 18, 2026 at 05:20 PM
 -- Server version: 8.0.46-0ubuntu0.22.04.3
 -- PHP Version: 8.3.30
 
@@ -103,7 +103,11 @@ CREATE TABLE `bookings` (
 
 INSERT INTO `bookings` (`id`, `customer_id`, `vehicle_id`, `franchisee_id`, `package_id`, `booking_date`, `slot_time`, `status`, `payment_status`, `payment_method`, `total_price`, `addon_services`, `addon_price`, `created_at`, `updated_at`) VALUES
 (5, 31, 9, 4, 3, '2026-06-27', '01:00 PM - 03:00 PM', 'pending', 'unpaid', 'cod', '399.00', NULL, '0.00', '2026-06-25 13:56:57', '2026-07-16 12:18:51'),
-(6, 33, 10, 3, NULL, '2026-07-01', '09:00 AM - 11:00 AM', 'assigned', 'unpaid', 'online', '299.00', '[]', '0.00', '2026-06-30 19:06:01', '2026-07-18 09:44:33');
+(6, 33, 10, 3, NULL, '2026-07-01', '09:00 AM - 11:00 AM', 'assigned', 'unpaid', 'online', '299.00', '[]', '0.00', '2026-06-30 19:06:01', '2026-07-18 09:44:33'),
+(7, 34, 11, 3, 3, '2026-07-19', '09:00 AM - 11:00 AM', 'cancelled', 'unpaid', 'cod', '399.00', NULL, '0.00', '2026-07-18 11:03:18', '2026-07-18 11:19:54'),
+(8, 34, 11, 3, 15, '2026-07-18', '09:00 AM - 11:00 AM', 'cancelled', 'unpaid', 'online', '403.00', '\"[{\\\"id\\\":3,\\\"name\\\":\\\"Eco Sedan Wash\\\",\\\"price\\\":399}]\"', '399.00', '2026-07-18 11:25:24', '2026-07-18 11:37:15'),
+(9, 34, 11, 3, 15, '2026-07-18', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'online', '2001.00', '\"[{\\\"id\\\":3,\\\"name\\\":\\\"Eco Sedan Wash\\\",\\\"price\\\":399},{\\\"id\\\":4,\\\"name\\\":\\\"Premium Sedan Monthly\\\",\\\"price\\\":1299},{\\\"id\\\":10,\\\"name\\\":\\\"Basic Exterior Wash\\\",\\\"price\\\":299}]\"', '1997.00', '2026-07-18 11:25:45', '2026-07-18 11:25:45'),
+(10, 34, 11, 3, 3, '2026-07-18', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'cod', '1997.00', '\"[{\\\"id\\\":4,\\\"name\\\":\\\"Premium Sedan Monthly\\\",\\\"price\\\":1299},{\\\"id\\\":10,\\\"name\\\":\\\"Basic Exterior Wash\\\",\\\"price\\\":299}]\"', '1598.00', '2026-07-18 11:29:07', '2026-07-18 11:29:07');
 
 -- --------------------------------------------------------
 
@@ -1059,10 +1063,10 @@ INSERT INTO `franchisee_master_slot` (`id`, `franchisee_id`, `date`, `time_range
 (813, 3, '2026-07-17', '09:00 AM - 11:00 AM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
 (814, 3, '2026-07-17', '11:00 AM - 01:00 PM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
 (815, 3, '2026-07-17', '01:00 PM - 03:00 PM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
-(816, 3, '2026-07-18', '09:00 AM - 11:00 AM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
+(816, 3, '2026-07-18', '09:00 AM - 11:00 AM', 5, 2, 1, '2026-06-30 19:04:40', '2026-07-18 11:37:15', 'active'),
 (817, 3, '2026-07-18', '11:00 AM - 01:00 PM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
 (818, 3, '2026-07-18', '01:00 PM - 03:00 PM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
-(819, 3, '2026-07-19', '09:00 AM - 11:00 AM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
+(819, 3, '2026-07-19', '09:00 AM - 11:00 AM', 5, 0, 1, '2026-06-30 19:04:40', '2026-07-18 11:19:54', 'active'),
 (820, 3, '2026-07-19', '11:00 AM - 01:00 PM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
 (821, 3, '2026-07-19', '01:00 PM - 03:00 PM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
 (822, 3, '2026-07-20', '09:00 AM - 11:00 AM', 5, 0, 1, '2026-06-30 19:04:40', '2026-06-30 19:04:40', 'active'),
@@ -1644,7 +1648,8 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (33, '2026_07_18_145019_add_addon_fields_to_bookings_table', 23),
 (34, '2026_07_18_152345_add_custom_badge_to_service_packages_table', 24),
 (35, '2026_07_18_162215_create_user_bank_details_table', 25),
-(36, '2026_07_18_162215_create_withdrawal_requests_table', 25);
+(36, '2026_07_18_162215_create_withdrawal_requests_table', 25),
+(37, '2026_07_18_171156_make_plate_number_nullable_in_vehicles_table', 26);
 
 -- --------------------------------------------------------
 
@@ -1824,7 +1829,7 @@ INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `n
 (90, 'App\\Models\\User', 1, 'auth_token', '1eaadd9d954ed8f0343c87a5eb820f10c9a5eaac3763d83c516473ad1eef2a0e', '[\"*\"]', '2026-07-02 12:56:59', NULL, '2026-07-02 12:56:29', '2026-07-02 12:56:59'),
 (91, 'App\\Models\\User', 1, 'auth_token', 'c539ef174f204232fa0d00866f00eeae43220d322f960512fba154840a706e68', '[\"*\"]', NULL, NULL, '2026-07-02 13:12:15', '2026-07-02 13:12:15'),
 (97, 'App\\Models\\User', 1, 'auth_token', 'e6b55d9208c3c342c223a8b34d2c517ca92957c8a30146e53baeb805c68bd177', '[\"*\"]', '2026-07-14 05:58:29', NULL, '2026-07-13 04:52:13', '2026-07-14 05:58:29'),
-(100, 'App\\Models\\User', 1, 'auth_token', '95182eb21c832b21abb780de45e04289bb7bc3758655e84799159f6fd56f236e', '[\"*\"]', '2026-07-18 10:58:38', NULL, '2026-07-18 10:56:21', '2026-07-18 10:58:38');
+(104, 'App\\Models\\User', 34, 'auth_token', '356e07418937b5b735112e975f03bde297c67120b25df3457a3a0f28978c4669', '[\"*\"]', '2026-07-18 11:50:02', NULL, '2026-07-18 11:24:38', '2026-07-18 11:50:02');
 
 -- --------------------------------------------------------
 
@@ -2121,7 +2126,7 @@ CREATE TABLE `vehicles` (
   `customer_id` bigint UNSIGNED NOT NULL,
   `vehicle_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `make_model` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `plate_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `plate_number` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -2133,7 +2138,9 @@ CREATE TABLE `vehicles` (
 INSERT INTO `vehicles` (`id`, `customer_id`, `vehicle_type`, `make_model`, `plate_number`, `created_at`, `updated_at`) VALUES
 (8, 25, 'sedan', 'Splendor', 'UP13CA3358', '2026-06-25 09:29:24', '2026-06-25 09:29:24'),
 (9, 31, 'sedan', 'ioyuiy', 'hjhjkhj', '2026-06-25 13:12:31', '2026-06-25 13:12:31'),
-(10, 33, 'sedan', 'dwads', 'wqdq', '2026-06-30 19:01:34', '2026-06-30 19:01:34');
+(10, 33, 'sedan', 'dwads', 'wqdq', '2026-06-30 19:01:34', '2026-06-30 19:01:34'),
+(11, 34, 'sedan', 'Laborum Quia quis r', 'Fugiat quo debitis', '2026-07-18 11:02:35', '2026-07-18 11:02:35'),
+(12, 34, 'sedan', 'dfdgdf', NULL, '2026-07-18 11:43:59', '2026-07-18 11:43:59');
 
 -- --------------------------------------------------------
 
@@ -2439,7 +2446,7 @@ ALTER TABLE `blog_posts`
 -- AUTO_INCREMENT for table `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `coupons`
@@ -2493,7 +2500,7 @@ ALTER TABLE `master_slots`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
 
 --
 -- AUTO_INCREMENT for table `newsletter_subscribers`
@@ -2529,7 +2536,7 @@ ALTER TABLE `payment_gateways`
 -- AUTO_INCREMENT for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- AUTO_INCREMENT for table `platform_settings`
@@ -2595,7 +2602,7 @@ ALTER TABLE `user_bank_details`
 -- AUTO_INCREMENT for table `vehicles`
 --
 ALTER TABLE `vehicles`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `wallet_transactions`
