@@ -82,7 +82,6 @@
           <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Refferal Program</router-link></li>
           <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Setting</router-link></li>
           <li><router-link to="/super-admin/tickets"><span class="nav-icon">🎫</span> Supports</router-link></li>
-          <li><router-link to="/super-admin/notifications"><span class="nav-icon">🔔</span> Notification</router-link></li>
         </template>
       </ul>
       <div style="padding:0 1.5rem;margin-top:auto;border-top:1px solid var(--border-color);padding-top:1rem">

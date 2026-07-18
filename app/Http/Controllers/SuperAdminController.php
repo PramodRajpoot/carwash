@@ -308,16 +308,27 @@ class SuperAdminController extends Controller
     {
         $booking = Booking::findOrFail($id);
         $request->validate([
-            'package_id'  => 'required|exists:service_packages,id',
-            'total_price' => 'required|numeric|min:0'
+            'package_id'      => 'required|exists:service_packages,id',
+            'total_price'     => 'required|numeric|min:0',
+            'addon_services'  => 'nullable|array',
+            'addon_services.*.name'  => 'required_with:addon_services|string',
+            'addon_services.*.price' => 'required_with:addon_services|numeric|min:0',
+            'addon_price'     => 'nullable|numeric|min:0',
         ]);
 
-        $booking->update([
+        $updateData = [
             'package_id'  => $request->package_id,
-            'total_price' => $request->total_price
-        ]);
+            'total_price' => $request->total_price,
+        ];
 
-        return response()->json(['status' => 'success', 'message' => 'Plan changed successfully.', 'booking' => $booking->load('package')]);
+        if ($request->has('addon_services')) {
+            $updateData['addon_services'] = $request->addon_services;
+            $updateData['addon_price'] = $request->addon_price ?? 0;
+        }
+
+        $booking->update($updateData);
+
+        return response()->json(['status' => 'success', 'message' => 'Plan updated successfully.', 'booking' => $booking->load('package')]);
     }
 
     public function cancelOrder(Request $request, $id)

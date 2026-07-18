@@ -20,6 +20,12 @@ class Booking extends Model
         'payment_status',
         'payment_method',
         'total_price',
+        'addon_services',
+        'addon_price',
+    ];
+
+    protected $casts = [
+        'addon_services' => 'array',
     ];
 
     public function customer()
