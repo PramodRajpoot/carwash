@@ -75,6 +75,7 @@ import SuperAdminPaymentGateway from '@/views/super-admin/SuperAdminPaymentGatew
 import SuperAdminOrders from '@/views/super-admin/SuperAdminOrders.vue';
 import SuperAdminServices from '@/views/super-admin/SuperAdminServices.vue';
 import SuperAdminMarketing from '@/views/super-admin/SuperAdminMarketing.vue';
+import SuperAdminWithdrawals from '@/views/super-admin/SuperAdminWithdrawals.vue';
 
 export const routes = [
     // ── Public Pages ─────────────────────────────────────────────
@@ -192,7 +193,8 @@ export const routes = [
             { path: 'partners', name: 'superadmin-partners', component: AdminPartners },
             { path: 'reports', name: 'superadmin-reports', component: AdminReports },
             { path: 'payment-gateway', name: 'superadmin-payment-gateway', component: SuperAdminPaymentGateway },
-            { path: 'marketing', name: 'superadmin-marketing', component: SuperAdminMarketing }
+            { path: 'marketing', name: 'superadmin-marketing', component: SuperAdminMarketing },
+            { path: 'withdrawals', name: 'superadmin-withdrawals', component: SuperAdminWithdrawals }
         ],
     },
 

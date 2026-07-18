@@ -184,7 +184,41 @@
 
             <!-- Wallet Tab -->
             <div v-if="activeTab === 'wallet'">
-              <!-- Calculate wallet balance from transactions or just show transactions -->
+              <!-- Bank Details -->
+              <div class="glass-card" style="margin-bottom: 1.5rem;" v-if="selectedCustomer.bank_detail">
+                <h4 style="margin-top:0; margin-bottom: 1rem;">Saved Bank / UPI Details</h4>
+                <div class="grid grid-2 gap-3" style="font-size: 0.9rem;">
+                  <div><span class="text-muted">Account Name:</span> <br/><strong>{{ selectedCustomer.bank_detail.account_holder_name || '-' }}</strong></div>
+                  <div><span class="text-muted">Bank Name:</span> <br/><strong>{{ selectedCustomer.bank_detail.bank_name || '-' }}</strong></div>
+                  <div><span class="text-muted">Account No:</span> <br/><strong>{{ selectedCustomer.bank_detail.account_number || '-' }}</strong></div>
+                  <div><span class="text-muted">IFSC Code:</span> <br/><strong>{{ selectedCustomer.bank_detail.ifsc_code || '-' }}</strong></div>
+                  <div style="grid-column: span 2;"><span class="text-muted">UPI ID:</span> <br/><strong>{{ selectedCustomer.bank_detail.upi_id || '-' }}</strong></div>
+                </div>
+              </div>
+              <div class="glass-card" style="margin-bottom: 1.5rem;" v-else>
+                <div class="text-center text-muted" style="padding: 1rem;">No bank details saved by customer.</div>
+              </div>
+
+              <!-- Withdrawal Requests -->
+              <div style="margin-bottom: 1rem;" v-if="selectedCustomer.withdrawal_requests?.length">
+                <h4 style="margin: 0;">Withdrawal Requests</h4>
+              </div>
+              <div v-if="selectedCustomer.withdrawal_requests?.length" style="margin-bottom: 1.5rem;">
+                <table class="table text-sm">
+                  <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr v-for="req in selectedCustomer.withdrawal_requests" :key="req.id">
+                      <td>{{ formatDate(req.created_at) }}</td>
+                      <td>{{ req.amount }} pts</td>
+                      <td>
+                        <span :class="['badge', req.status === 'approved' ? 'badge-success' : (req.status === 'rejected' ? 'badge-danger' : 'badge-warning')]">{{ req.status }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Transaction History -->
               <div style="margin-bottom: 1rem;">
                 <h4 style="margin: 0;">Transaction History</h4>
               </div>
@@ -199,7 +233,7 @@
                           {{ trx.type === 'credit' ? '+' : '-' }}
                         </span>
                       </td>
-                      <td>₹{{ trx.amount }}</td>
+                      <td>{{ trx.amount }} pts</td>
                       <td>{{ trx.description }}</td>
                     </tr>
                   </tbody>

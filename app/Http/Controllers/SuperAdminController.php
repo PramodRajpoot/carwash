@@ -505,7 +505,9 @@ class SuperAdminController extends Controller
                 'walletTransactions' => function($q) { $q->orderBy('created_at', 'desc'); },
                 'supportTickets' => function($q) { $q->orderBy('created_at', 'desc'); },
                 'referrals',
-                'referrer'
+                'referrer',
+                'bankDetail',
+                'withdrawalRequests' => function($q) { $q->orderBy('created_at', 'desc'); }
             ])
             ->findOrFail($id);
             
