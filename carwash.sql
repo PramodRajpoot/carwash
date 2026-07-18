@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1deb3
+-- version 5.1.1deb5ubuntu1
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 14, 2026 at 11:28 AM
--- Server version: 8.0.46-0ubuntu0.24.04.3
--- PHP Version: 8.3.6
+-- Generation Time: Jul 18, 2026 at 03:50 PM
+-- Server version: 8.0.46-0ubuntu0.22.04.3
+-- PHP Version: 8.3.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -91,6 +91,8 @@ CREATE TABLE `bookings` (
   `payment_status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'unpaid',
   `payment_method` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'cod',
   `total_price` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `addon_services` json DEFAULT NULL,
+  `addon_price` decimal(10,2) NOT NULL DEFAULT '0.00',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -99,9 +101,9 @@ CREATE TABLE `bookings` (
 -- Dumping data for table `bookings`
 --
 
-INSERT INTO `bookings` (`id`, `customer_id`, `vehicle_id`, `franchisee_id`, `package_id`, `booking_date`, `slot_time`, `status`, `payment_status`, `payment_method`, `total_price`, `created_at`, `updated_at`) VALUES
-(5, 31, 9, 2, 3, '2026-06-26', '09:00 AM - 11:00 AM', 'pending', 'unpaid', 'cod', 399.00, '2026-06-25 13:56:57', '2026-06-25 13:56:57'),
-(6, 33, 10, 2, 3, '2026-07-01', '09:00 AM - 11:00 AM', 'cancelled', 'unpaid', 'online', 399.00, '2026-06-30 19:06:01', '2026-07-14 05:23:20');
+INSERT INTO `bookings` (`id`, `customer_id`, `vehicle_id`, `franchisee_id`, `package_id`, `booking_date`, `slot_time`, `status`, `payment_status`, `payment_method`, `total_price`, `addon_services`, `addon_price`, `created_at`, `updated_at`) VALUES
+(5, 31, 9, 4, 3, '2026-06-27', '01:00 PM - 03:00 PM', 'pending', 'unpaid', 'cod', '399.00', NULL, '0.00', '2026-06-25 13:56:57', '2026-07-16 12:18:51'),
+(6, 33, 10, 3, NULL, '2026-07-01', '09:00 AM - 11:00 AM', 'assigned', 'unpaid', 'online', '299.00', '[]', '0.00', '2026-06-30 19:06:01', '2026-07-18 09:44:33');
 
 -- --------------------------------------------------------
 
@@ -125,9 +127,9 @@ CREATE TABLE `coupons` (
 --
 
 INSERT INTO `coupons` (`id`, `code`, `discount_type`, `discount_value`, `expires_at`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'WELCOME10', 'percentage', 10.00, '2026-07-02', 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(2, 'CLEAN50', 'fixed', 50.00, '2026-07-02', 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(3, 'WELCOME20', 'percentage', 20.00, NULL, 'active', '2026-07-01 13:03:14', '2026-07-01 13:03:14');
+(1, 'WELCOME10', 'percentage', '10.00', '2026-07-02', 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(2, 'CLEAN50', 'fixed', '50.00', '2026-07-02', 'active', '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(3, 'WELCOME20', 'percentage', '20.00', NULL, 'active', '2026-07-01 13:03:14', '2026-07-01 13:03:14');
 
 -- --------------------------------------------------------
 
@@ -234,9 +236,9 @@ CREATE TABLE `franchisees` (
 --
 
 INSERT INTO `franchisees` (`id`, `user_id`, `center_name`, `address`, `city`, `latitude`, `longitude`, `royalty_percentage`, `status`, `agreement_expires_at`, `document_path`, `created_at`, `updated_at`) VALUES
-(2, 30, 'Pramod Chauhan\'s Center', 'Pending Setup', 'noida', NULL, NULL, 110.00, 'suspended', '2026-07-16', 'franchise_documents/1783616179_hero.png', '2026-06-25 13:10:30', '2026-07-13 00:10:03'),
-(3, 32, 'rahul kumar\'s Center', 'Pending Setup', 'Ex sint elit ut ex', NULL, NULL, 10.00, 'active', NULL, NULL, '2026-06-30 10:29:16', '2026-06-30 10:29:16'),
-(4, 3, 'CleanAt Downtown Center', '123 Main Street', 'Delhi', NULL, NULL, 10.00, 'active', NULL, NULL, '2026-07-01 00:55:35', '2026-07-01 00:55:35');
+(2, 30, 'Pramod Chauhan\'s Center', 'Pending Setup', 'noida', NULL, NULL, '110.00', 'suspended', '2026-07-16', 'franchise_documents/1784225521_Screenshot from 2026-07-16 23-41-02.png', '2026-06-25 13:10:30', '2026-07-16 12:42:01'),
+(3, 32, 'rahul kumar\'s Center', 'Pending Setup', 'Ex sint elit ut ex', NULL, NULL, '10.00', 'active', NULL, NULL, '2026-06-30 10:29:16', '2026-07-16 12:45:42'),
+(4, 3, 'CleanAt Downtown Center', '123 Main Street', 'Delhi', NULL, NULL, '10.00', 'active', NULL, NULL, '2026-07-01 00:55:35', '2026-07-01 00:55:35');
 
 -- --------------------------------------------------------
 
@@ -1638,7 +1640,9 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (29, '2026_07_09_170817_change_royalty_column_type_in_franchisees_table', 20),
 (30, '2026_07_13_120211_create_payment_gateways_table', 21),
 (31, '2026_07_14_110329_create_service_categories_table', 22),
-(32, '2026_07_14_110403_add_category_and_image_to_service_packages', 22);
+(32, '2026_07_14_110403_add_category_and_image_to_service_packages', 22),
+(33, '2026_07_18_145019_add_addon_fields_to_bookings_table', 23),
+(34, '2026_07_18_152345_add_custom_badge_to_service_packages_table', 24);
 
 -- --------------------------------------------------------
 
@@ -1766,8 +1770,8 @@ CREATE TABLE `password_reset_tokens` (
 
 CREATE TABLE `payment_gateways` (
   `id` bigint UNSIGNED NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `slug` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `config` json DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '0',
   `is_default` tinyint(1) NOT NULL DEFAULT '0',
@@ -1813,11 +1817,11 @@ INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `n
 (52, 'App\\Models\\User', 1, 'auth_token', '5e14207fdeb208b07a5063b06d958555abff0d4ca2b670d1be2640c9e7da04f5', '[\"*\"]', '2026-06-25 09:30:08', NULL, '2026-06-25 09:30:03', '2026-06-25 09:30:08'),
 (57, 'App\\Models\\User', 31, 'auth_token', 'dddd05015d1a239c0a3bd39cb7d10522306839f02f5e3015d9b82099ee3ec939', '[\"*\"]', '2026-06-25 13:56:57', NULL, '2026-06-25 13:12:07', '2026-06-25 13:56:57'),
 (81, 'App\\Models\\User', 3, 'test', '8b59e08f7854728cf4809718cc25f244b6b9f450eea643a73fccdfbd370c4beb', '[\"*\"]', '2026-06-30 19:43:37', NULL, '2026-06-30 19:41:48', '2026-06-30 19:43:37'),
-(88, 'App\\Models\\User', 1, 'auth_token', '06a65ddf228064da7861953e2014484a078ef93540959ff56fc3cd231f968b2e', '[\"*\"]', '2026-07-04 10:40:39', NULL, '2026-07-02 12:32:41', '2026-07-04 10:40:39'),
+(88, 'App\\Models\\User', 1, 'auth_token', '06a65ddf228064da7861953e2014484a078ef93540959ff56fc3cd231f968b2e', '[\"*\"]', '2026-07-18 09:44:33', NULL, '2026-07-02 12:32:41', '2026-07-18 09:44:33'),
 (89, 'App\\Models\\User', 1, 'auth_token', '3c963d69b9073daa63b9c59c5571a8529105a8b7d262e3245c1d2df1fba20f53', '[\"*\"]', NULL, NULL, '2026-07-02 12:56:19', '2026-07-02 12:56:19'),
 (90, 'App\\Models\\User', 1, 'auth_token', '1eaadd9d954ed8f0343c87a5eb820f10c9a5eaac3763d83c516473ad1eef2a0e', '[\"*\"]', '2026-07-02 12:56:59', NULL, '2026-07-02 12:56:29', '2026-07-02 12:56:59'),
 (91, 'App\\Models\\User', 1, 'auth_token', 'c539ef174f204232fa0d00866f00eeae43220d322f960512fba154840a706e68', '[\"*\"]', NULL, NULL, '2026-07-02 13:12:15', '2026-07-02 13:12:15'),
-(92, 'App\\Models\\User', 1, 'auth_token', 'd24eb5e652985b5348a3c8e597c7346e453ea1499b713f17730cae401dbed39e', '[\"*\"]', '2026-07-09 20:00:03', NULL, '2026-07-04 10:18:48', '2026-07-09 20:00:03'),
+(92, 'App\\Models\\User', 1, 'auth_token', 'd24eb5e652985b5348a3c8e597c7346e453ea1499b713f17730cae401dbed39e', '[\"*\"]', '2026-07-18 10:17:05', NULL, '2026-07-04 10:18:48', '2026-07-18 10:17:05'),
 (97, 'App\\Models\\User', 1, 'auth_token', 'e6b55d9208c3c342c223a8b34d2c517ca92957c8a30146e53baeb805c68bd177', '[\"*\"]', '2026-07-14 05:58:29', NULL, '2026-07-13 04:52:13', '2026-07-14 05:58:29');
 
 -- --------------------------------------------------------
@@ -1879,9 +1883,9 @@ CREATE TABLE `royalty_payments` (
 
 CREATE TABLE `service_categories` (
   `id` bigint UNSIGNED NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `description` text COLLATE utf8mb4_unicode_ci,
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1910,7 +1914,8 @@ CREATE TABLE `service_packages` (
   `price` decimal(10,2) NOT NULL,
   `frequency_days` int NOT NULL DEFAULT '30',
   `max_bookings` int NOT NULL DEFAULT '4',
-  `image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `custom_badge` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `image_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1919,19 +1924,21 @@ CREATE TABLE `service_packages` (
 -- Dumping data for table `service_packages`
 --
 
-INSERT INTO `service_packages` (`id`, `category_id`, `name`, `description`, `vehicle_type`, `price`, `frequency_days`, `max_bookings`, `image_path`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Eco Hatchback Wash', 'Exterior waterless foam wash, tire dressing, and vacuuming.', 'hatchback', 299.00, 1, 1, '0', '2026-06-02 02:48:13', '2026-07-14 05:58:29'),
-(2, NULL, 'Premium Hatchback Monthly', '4 detailed foam washes per month, deep interior vacuuming, dashboard polish.', 'hatchback', 999.00, 30, 4, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(3, NULL, 'Eco Sedan Wash', 'Eco-friendly waterless pressure wash, interior vacuuming and perfume spray.', 'sedan', 399.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(4, NULL, 'Premium Sedan Monthly', '4 complete detailing washes, wax coating, deep carpet vacuuming and glass cleaning.', 'sedan', 1299.00, 30, 4, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(5, NULL, 'Eco SUV Wash', 'Pressure wash, mud removal, underbody spray, vacuuming and tire glaze.', 'suv', 499.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(6, NULL, 'Premium SUV Monthly', '4 premium underbody & exterior washes, complete leather conditioning, and wheel detailing.', 'suv', 1499.00, 30, 4, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(7, NULL, 'Eco Commercial Wash', 'High-efficiency pressure wash for light commercial vans, cabin dusting, outer cleaning.', 'commercial', 699.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(8, NULL, 'Bus Wash Standard', 'Heavy duty exterior pressure wash, wheels wash, and basic windows spray.', 'bus', 1499.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(9, NULL, 'Volvo Bus Luxury Wash', 'Detailed multi-stage pressure wash, windshield buffing, side panel wax coating, interior deodorizing.', 'volvo_bus', 2499.00, 0, 1, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
-(10, 1, 'Basic Exterior Wash', 'Quick wash, tire shine, and exterior window wipe down.', 'sedan', 299.00, 7, 20, 'services/car_exterior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14'),
-(11, 1, 'Premium Exterior Wash', 'Includes basic exterior wash plus hand wax and rim cleaning.', 'suv', 499.00, 15, 15, 'services/car_exterior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14'),
-(12, 2, 'Interior Vacuum & Wipe', 'Vacuum carpets and seats, wipe dashboard and console.', 'hatchback', 199.00, 15, 20, 'services/car_interior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14');
+INSERT INTO `service_packages` (`id`, `category_id`, `name`, `description`, `vehicle_type`, `price`, `frequency_days`, `max_bookings`, `custom_badge`, `image_path`, `created_at`, `updated_at`) VALUES
+(2, NULL, 'Premium Hatchback Monthly', '4 detailed foam washes per month, deep interior vacuuming, dashboard polish.', 'hatchback', '999.00', 30, 4, 'Free Detailing Demo', NULL, '2026-06-02 02:48:13', '2026-07-18 10:10:06'),
+(3, 1, 'Eco Sedan Wash', 'Eco-friendly waterless pressure wash, interior vacuuming and perfume spray.', 'sedan', '399.00', 4, 1, NULL, NULL, '2026-06-02 02:48:13', '2026-07-18 09:57:45'),
+(4, NULL, 'Premium Sedan Monthly', '4 complete detailing washes, wax coating, deep carpet vacuuming and glass cleaning.', 'sedan', '1299.00', 30, 4, 'Free Detailing Demo', NULL, '2026-06-02 02:48:13', '2026-07-18 10:10:06'),
+(5, NULL, 'Eco SUV Wash', 'Pressure wash, mud removal, underbody spray, vacuuming and tire glaze.', 'suv', '499.00', 0, 1, NULL, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(6, NULL, 'Premium SUV Monthly', '4 premium underbody & exterior washes, complete leather conditioning, and wheel detailing.', 'suv', '1499.00', 30, 4, 'Free Detailing Demo', NULL, '2026-06-02 02:48:13', '2026-07-18 10:10:06'),
+(7, NULL, 'Eco Commercial Wash', 'High-efficiency pressure wash for light commercial vans, cabin dusting, outer cleaning.', 'commercial', '699.00', 0, 1, NULL, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(8, NULL, 'Bus Wash Standard', 'Heavy duty exterior pressure wash, wheels wash, and basic windows spray.', 'bus', '1499.00', 0, 1, NULL, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(9, NULL, 'Volvo Bus Luxury Wash', 'Detailed multi-stage pressure wash, windshield buffing, side panel wax coating, interior deodorizing.', 'volvo_bus', '2499.00', 0, 1, NULL, NULL, '2026-06-02 02:48:13', '2026-06-02 02:48:13'),
+(10, 1, 'Basic Exterior Wash', 'Quick wash, tire shine, and exterior window wipe down.', 'sedan', '299.00', 7, 20, NULL, 'services/car_exterior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14'),
+(11, 1, 'Premium Exterior Wash', 'Includes basic exterior wash plus hand wax and rim cleaning.', 'suv', '499.00', 15, 15, NULL, 'services/car_exterior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14'),
+(12, 2, 'Interior Vacuum & Wipe', 'Vacuum carpets and seats, wipe dashboard and console.', 'hatchback', '199.00', 15, 20, NULL, 'services/car_interior.png', '2026-07-14 05:42:58', '2026-07-14 05:44:14'),
+(13, 1, 'zxcz', 'zxcz', 'sedan', '25.00', 8, 10, NULL, 'services/DhnPiGL0TytjHyRhsed3WVsFfbun2D1ubEngrMBa.jpg', '2026-07-18 09:51:41', '2026-07-18 09:51:41'),
+(14, 1, 'asAS', 'ASs', 'sedan', '231.00', 15, 10, NULL, 'services/Gxp1j8YKXyN0ZSO59fcWYMgr0Aki223RvqXuyOLH.jpg', '2026-07-18 09:56:35', '2026-07-18 10:10:28'),
+(15, 1, 'dfsf', 'sf', 'sedan', '4.00', 15, 10, 'dsc', 'services/qvJdLLtGKBv8kQlIKFe3d9vKDxykG4s3DDcdvXhe.jpg', '2026-07-18 10:12:10', '2026-07-18 10:12:10');
 
 -- --------------------------------------------------------
 
@@ -2429,7 +2436,7 @@ ALTER TABLE `master_slots`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `newsletter_subscribers`
@@ -2489,7 +2496,7 @@ ALTER TABLE `service_categories`
 -- AUTO_INCREMENT for table `service_packages`
 --
 ALTER TABLE `service_packages`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `service_partners`
