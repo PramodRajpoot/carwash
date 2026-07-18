@@ -168,6 +168,7 @@ export default {
         'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
         'superadmin-orders': 'Booking Management', 'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
+        'superadmin-marketing': 'Marketing',
       };
       return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },
