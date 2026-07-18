@@ -69,7 +69,6 @@
             <svg style="transition: transform 0.2s; width: 14px; height: 14px;" :style="{ transform: isCmsOpen ? 'rotate(90deg)' : 'rotate(0deg)' }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </li>
           <template v-if="isCmsOpen">
-            <li><router-link to="/super-admin/cms/homepage"><span class="nav-icon">🏠</span> Homepage</router-link></li>
             <li><router-link to="/super-admin/cms/about"><span class="nav-icon">ℹ️</span> About Us</router-link></li>
             <li><router-link to="/super-admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
             <li><router-link to="/super-admin/faqs"><span class="nav-icon">❓</span> FAQs</router-link></li>
