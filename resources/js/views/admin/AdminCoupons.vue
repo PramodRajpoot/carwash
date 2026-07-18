@@ -25,7 +25,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in coupons" :key="c.id">
+            <tr v-for="c in paginatedCoupons" :key="c.id">
               <td style="font-family: monospace; font-weight: 700; font-size: 1.1rem; color: var(--accent-cyan);">
                 🎟️ {{ c.code }}
               </td>
@@ -44,6 +44,26 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="coupons.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, coupons.length) }} of {{ coupons.length }}
+          </span>
+        </div>
+        <div class="flex gap-1" v-if="totalPages > 1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
       </div>
       <div v-else class="empty-state">
         <p>No active promotional coupons defined on the platform.</p>
@@ -104,6 +124,8 @@ export default {
       showAddModal: false,
       submitting: false,
       error: '',
+      currentPage: 1,
+      itemsPerPage: 10,
       form: {
         code: '',
         discount_type: 'percentage',
@@ -111,6 +133,15 @@ export default {
         expires_at: ''
       }
     };
+  },
+  computed: {
+    paginatedCoupons() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.coupons.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.coupons.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     formatDate(d) {

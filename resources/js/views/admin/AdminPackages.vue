@@ -20,7 +20,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in packages" :key="p.id" style="border-bottom:1px solid var(--border-color)">
+          <tr v-for="p in paginatedPackages" :key="p.id" style="border-bottom:1px solid var(--border-color)">
             <td style="padding:0.7rem 0.5rem">
               <div style="font-weight:600">{{ p.name }}</div>
               <div class="text-muted" style="font-size:0.78rem">{{ p.description }}</div>
@@ -36,6 +36,26 @@
           </tr>
         </tbody>
       </table>
+      <div v-if="packages.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, packages.length) }} of {{ packages.length }}
+          </span>
+        </div>
+        <div class="flex gap-1" v-if="totalPages > 1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal -->
@@ -70,12 +90,22 @@ export default {
   data() {
     return {
       packages: [], loading: true, modal: false, saving: false,
+      currentPage: 1, itemsPerPage: 10,
       form: { id: null, name: '', description: '', vehicle_type: '', price: '', max_bookings: '', frequency_days: 30 },
       vehicleTypes: [
         { val: 'hatchback', label: 'Hatchback' }, { val: 'sedan', label: 'Sedan' }, { val: 'suv', label: 'SUV' },
         { val: 'commercial', label: 'Commercial' }, { val: 'bus', label: 'Bus' }, { val: 'volvo_bus', label: 'Volvo Bus' },
       ],
     };
+  },
+  computed: {
+    paginatedPackages() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.packages.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.packages.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     openCreate() { this.form = { id: null, name: '', description: '', vehicle_type: '', price: '', max_bookings: '', frequency_days: 30 }; this.modal = true; },

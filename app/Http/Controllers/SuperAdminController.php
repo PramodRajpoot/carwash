@@ -487,7 +487,8 @@ class SuperAdminController extends Controller
             $query->where('status', $request->status);
         }
 
-        $customers = $query->orderBy('created_at', 'desc')->paginate(10);
+        $perPage = $request->input('per_page', 10);
+        $customers = $query->orderBy('created_at', 'desc')->paginate($perPage);
             
         return response()->json($customers);
     }

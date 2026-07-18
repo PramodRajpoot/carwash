@@ -78,24 +78,25 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination.last_page > 1" style="display: flex; justify-content: center; padding: 1.5rem; gap: 0.5rem; border-top: 1px solid var(--border-color);">
-        <button 
-          class="btn btn-sm btn-outline-primary" 
-          :disabled="pagination.current_page === 1"
-          @click="fetchCustomers(pagination.current_page - 1)"
-        >
-          Previous
-        </button>
-        <div style="display: flex; align-items: center; padding: 0 1rem; color: var(--text-muted); font-size: 0.9rem;">
-          Page {{ pagination.current_page }} of {{ pagination.last_page }}
+      <div v-if="pagination.total > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem; border-top: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="pagination.per_page" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="fetchCustomers(1)">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (pagination.current_page - 1) * pagination.per_page + 1 }} to {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }} of {{ pagination.total }}
+          </span>
         </div>
-        <button 
-          class="btn btn-sm btn-outline-primary" 
-          :disabled="pagination.current_page === pagination.last_page"
-          @click="fetchCustomers(pagination.current_page + 1)"
-        >
-          Next
-        </button>
+        <div class="flex gap-1" v-if="pagination.last_page > 1">
+          <button class="btn btn-sm btn-outline-primary" :disabled="pagination.current_page === 1" @click="fetchCustomers(pagination.current_page - 1)">Previous</button>
+          <button class="btn btn-sm btn-outline-primary" :disabled="pagination.current_page === pagination.last_page" @click="fetchCustomers(pagination.current_page + 1)">Next</button>
+        </div>
       </div>
     </div>
 
@@ -285,7 +286,8 @@ const customers = ref([]);
 const pagination = ref({
   current_page: 1,
   last_page: 1,
-  total: 0
+  total: 0,
+  per_page: 10
 });
 
 const filters = reactive({
@@ -312,7 +314,8 @@ const fetchCustomers = async (page = 1) => {
     const params = {
       page: page,
       search: filters.search,
-      status: filters.status
+      status: filters.status,
+      per_page: pagination.value.per_page
     };
     
     const res = await axios.get('/api/super-admin/customers', {
@@ -324,7 +327,8 @@ const fetchCustomers = async (page = 1) => {
     pagination.value = {
       current_page: res.data.current_page,
       last_page: res.data.last_page,
-      total: res.data.total
+      total: res.data.total,
+      per_page: parseInt(res.data.per_page) || pagination.value.per_page
     };
   } catch (error) {
     console.error('Error fetching customers:', error);

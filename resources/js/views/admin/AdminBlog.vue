@@ -9,7 +9,7 @@
       <div v-if="loading" class="text-muted" style="text-align:center;padding:2rem">Loading…</div>
       <div v-else-if="posts.length === 0" class="text-muted" style="text-align:center;padding:2rem">No posts yet. Write your first one!</div>
       <div v-else>
-        <div v-for="p in posts" :key="p.id" class="flex justify-between items-center" style="padding:0.85rem 0;border-bottom:1px solid var(--border-color)">
+        <div v-for="p in paginatedPosts" :key="p.id" class="flex justify-between items-center" style="padding:0.85rem 0;border-bottom:1px solid var(--border-color)">
           <div>
             <div style="font-weight:600">{{ p.title }}</div>
             <div class="flex gap-2" style="margin-top:0.25rem">
@@ -21,6 +21,26 @@
             <button class="btn btn-sm btn-ghost" @click="openEdit(p)">Edit</button>
             <button class="btn btn-sm" style="background:rgba(239,68,68,0.15);color:#ef4444" @click="del(p)">Delete</button>
           </div>
+        </div>
+      </div>
+      <div v-if="posts.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, posts.length) }} of {{ posts.length }}
+          </span>
+        </div>
+        <div class="flex gap-1" v-if="totalPages > 1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
         </div>
       </div>
     </div>
@@ -52,8 +72,18 @@ export default {
   data() {
     return {
       posts: [], loading: true, modal: false, saving: false,
+      currentPage: 1, itemsPerPage: 10,
       form: { id: null, title: '', content: '', status: 'draft' },
     };
+  },
+  computed: {
+    paginatedPosts() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.posts.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.posts.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },

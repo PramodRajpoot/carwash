@@ -8,7 +8,7 @@
       <table>
         <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
-          <tr v-for="b in bookings" :key="b.id">
+          <tr v-for="b in paginatedBookings" :key="b.id">
             <td>{{ b.booking_date }}</td>
             <td>{{ b.slot_time }}</td>
             <td>{{ b.vehicle?.make_model }}</td>
@@ -24,6 +24,26 @@
           </tr>
         </tbody>
       </table>
+    </div>
+    <div v-if="bookings.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+        <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="75">75</option>
+          <option :value="100">100</option>
+          <option :value="200">200</option>
+        </select>
+        <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, bookings.length) }} of {{ bookings.length }}
+        </span>
+      </div>
+      <div class="flex gap-1" v-if="totalPages > 1">
+        <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+        <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+      </div>
     </div>
     <div v-else class="empty-state"><div class="empty-icon">📅</div><p>No bookings yet.</p></div>
 
@@ -90,7 +110,16 @@
 import axios from 'axios';
 export default {
   name: 'CustomerBookings',
-  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'cod', coupon_code: '' }, pf: { booking_date: '', slot_time: '' } }; },
+  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'cod', coupon_code: '' }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10 }; },
+  computed: {
+    paginatedBookings() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.bookings.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.bookings.length / this.itemsPerPage) || 1;
+    }
+  },
   methods: {
     statusBadge(s) { return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan'; },
     canCancel(b) { return ['pending', 'assigned'].includes(b.status); },

@@ -27,7 +27,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="s in slots" :key="s.id">
+            <tr v-for="s in paginatedSlots" :key="s.id">
               <td style="font-weight:600; color:var(--text-primary);">{{ s.franchisee?.center_name }}</td>
               <td>{{ s.date }}</td>
               <td style="font-family: monospace;">{{ s.time_range }}</td>
@@ -48,6 +48,26 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="slots.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, slots.length) }} of {{ slots.length }}
+          </span>
+        </div>
+        <div class="flex gap-1" v-if="totalPages > 1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
       </div>
       <div v-else class="empty-state">
         <p>No customized booking capacity profiles saved. Default is 3 washes per slot.</p>
@@ -162,6 +182,8 @@ export default {
       error: '',
       availableTimeRanges: [],
       fetchingSlots: false,
+      currentPage: 1,
+      itemsPerPage: 10,
       form: {
         franchisee_id: '',
         start_date: new Date().toISOString().substr(0, 10),
@@ -174,6 +196,15 @@ export default {
       editError: '',
       editForm: { id: null, max_bookings: 3, status: 'active' }
     };
+  },
+  computed: {
+    paginatedSlots() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.slots.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.slots.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     async loadData() {

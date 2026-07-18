@@ -24,7 +24,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="slot in masterSlots" :key="slot.id">
+            <tr v-for="slot in paginatedMasterSlots" :key="slot.id">
               <td>{{ slot.id }}</td>
               <td style="font-weight:600">{{ slot.name }}</td>
               <td style="font-family: monospace;">{{ slot.time_range }}</td>
@@ -41,6 +41,26 @@
             </tr>
           </tbody>
         </table>
+        <div class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+            <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="75">75</option>
+              <option :value="100">100</option>
+              <option :value="200">200</option>
+            </select>
+            <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+              Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, masterSlots.length) }} of {{ masterSlots.length }}
+            </span>
+          </div>
+          <div class="flex gap-1">
+            <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+            <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -99,8 +119,19 @@ export default {
       submitting: false,
       isEditing: false,
       error: '',
-      form: { id: null, name: '', time_range: '', default_max_bookings: 3, status: 'active' }
+      form: { id: null, name: '', time_range: '', default_max_bookings: 3, status: 'active' },
+      currentPage: 1,
+      itemsPerPage: 10
     };
+  },
+  computed: {
+    paginatedMasterSlots() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.masterSlots.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.masterSlots.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     async loadSlots() {

@@ -11,7 +11,7 @@
       <div v-if="loading" class="text-muted" style="text-align:center;padding:2rem">Loading…</div>
       <div v-else-if="filtered.length === 0" class="text-muted" style="text-align:center;padding:2rem">No tickets with this status.</div>
       <div v-else>
-        <div v-for="t in filtered" :key="t.id" class="glass-card" style="margin-bottom:0.75rem">
+        <div v-for="t in paginatedTickets" :key="t.id" class="glass-card" style="margin-bottom:0.75rem">
           <div class="flex justify-between items-start" style="margin-bottom:0.75rem">
             <div>
               <div style="font-weight:600">{{ t.subject }}</div>
@@ -32,6 +32,26 @@
             <button class="btn btn-primary btn-sm" @click="reply(t)">Reply</button>
           </div>
         </div>
+        <div v-if="filtered.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+            <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="75">75</option>
+              <option :value="100">100</option>
+              <option :value="200">200</option>
+            </select>
+            <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+              Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filtered.length) }} of {{ filtered.length }}
+            </span>
+          </div>
+          <div class="flex gap-1" v-if="totalPages > 1">
+            <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+            <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -43,11 +63,24 @@ export default {
   data() {
     return {
       tickets: [], loading: true, filter: 'open',
+      currentPage: 1, itemsPerPage: 10,
       statuses: [{ val: 'open', label: 'Open' }, { val: 'in_progress', label: 'In Progress' }, { val: 'closed', label: 'Closed' }],
     };
   },
   computed: {
     filtered() { return this.tickets.filter(t => t.status === this.filter); },
+    paginatedTickets() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.filtered.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.filtered.length / this.itemsPerPage) || 1;
+    }
+  },
+  watch: {
+    filter() {
+      this.currentPage = 1;
+    }
   },
   methods: {
     count(s) { return this.tickets.filter(t => t.status === s).length; },

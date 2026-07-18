@@ -40,7 +40,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="c in coupons" :key="c.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+              <tr v-for="c in paginatedCoupons" :key="c.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
                 <td style="padding: 1rem 0.75rem; font-family: monospace; font-weight: 700; font-size: 1.1rem; color: var(--accent-cyan);">
                   🎟️ {{ c.code }}
                 </td>
@@ -59,6 +59,26 @@
               </tr>
             </tbody>
           </table>
+          <div class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+              <select v-model="couponsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="couponsCurrentPage = 1">
+                <option :value="10">10</option>
+                <option :value="20">20</option>
+                <option :value="50">50</option>
+                <option :value="75">75</option>
+                <option :value="100">100</option>
+                <option :value="200">200</option>
+              </select>
+              <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+                Showing {{ (couponsCurrentPage - 1) * couponsPerPage + 1 }} to {{ Math.min(couponsCurrentPage * couponsPerPage, coupons.length) }} of {{ coupons.length }}
+              </span>
+            </div>
+            <div class="flex gap-1">
+              <button class="btn btn-sm btn-outline" :disabled="couponsCurrentPage === 1" @click="couponsCurrentPage--">Prev</button>
+              <button class="btn btn-sm btn-outline" :disabled="couponsCurrentPage === totalCouponsPages" @click="couponsCurrentPage++">Next</button>
+            </div>
+          </div>
         </div>
         <div v-else class="glass-card" style="padding: 3rem; text-align: center;">
           <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🎟️</div>
@@ -255,11 +275,22 @@ export default {
         discount_value: '',
         expires_at: ''
       },
+      couponsCurrentPage: 1,
+      couponsPerPage: 10,
 
       // Referrals
       referralStats: {},
       referralsLoading: true,
     };
+  },
+  computed: {
+    paginatedCoupons() {
+      const start = (this.couponsCurrentPage - 1) * this.couponsPerPage;
+      return this.coupons.slice(start, start + this.couponsPerPage);
+    },
+    totalCouponsPages() {
+      return Math.ceil(this.coupons.length / this.couponsPerPage) || 1;
+    }
   },
   watch: {
     activeTab(val) {
