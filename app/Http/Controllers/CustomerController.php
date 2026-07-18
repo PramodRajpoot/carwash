@@ -76,7 +76,7 @@ class CustomerController extends Controller
         $request->validate([
             'vehicle_type' => 'required|string|in:hatchback,sedan,suv,commercial,bus,volvo_bus',
             'make_model'   => 'required|string|max:255',
-            'plate_number' => 'required|string|max:50',
+            'plate_number' => 'nullable|string|max:50',
         ]);
 
         $vehicle = Vehicle::create([

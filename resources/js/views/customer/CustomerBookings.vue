@@ -142,6 +142,8 @@
 </template>
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
+
 export default {
   name: 'CustomerBookings',
   data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'cod', coupon_code: '', addon_ids: [] }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10 }; },
@@ -246,8 +248,26 @@ export default {
       this.bookingLoading = false;
     },
     async cancel(id) {
-      if (!confirm('Cancel this booking?')) return;
-      try { await axios.post(`/api/bookings/${id}/cancel`); this.loadData(); } catch (e) { alert(e.response?.data?.message || 'Failed'); }
+      const result = await Swal.fire({
+        title: 'Cancel Booking?',
+        text: 'Are you sure you want to cancel this booking? The slot booking amount or any payment you have made will not be refunded.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No'
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        await axios.post(`/api/bookings/${id}/cancel`);
+        Swal.fire('Cancelled!', 'Your booking has been cancelled.', 'success');
+        this.loadData();
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Failed to cancel booking', 'error');
+      }
     },
     openPostpone(b) { this.postponeBooking = b; this.pf.booking_date = ''; this.pf.slot_time = ''; this.postponeSlots = []; },
     async submitPostpone() {
