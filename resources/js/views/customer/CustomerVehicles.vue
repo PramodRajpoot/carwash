@@ -13,23 +13,59 @@
     </div>
     
     <div v-else>
-      <div v-if="vehicles.length" class="grid grid-3 gap-3">
-        <div v-for="v in vehicles" :key="v.id" class="glass-card flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-center" style="margin-bottom: 0.75rem;">
-              <span class="badge badge-cyan">{{ formatType(v.vehicle_type) }}</span>
-              <button class="btn btn-ghost btn-sm text-danger" style="padding:0.25rem 0.5rem;" @click="deleteVehicle(v.id)">🗑️</button>
-            </div>
-            <h4 style="margin-bottom: 0.25rem;">{{ v.make_model }}</h4>
-            <p class="text-secondary" style="font-family: monospace; font-size: 1rem; letter-spacing: 0.5px; background: var(--bg-secondary); padding: 0.4rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: inline-block;">
-              {{ v.plate_number }}
-            </p>
-          </div>
-          <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;" class="flex justify-between items-center">
-            <span class="text-muted" style="font-size: 0.75rem;">Registered {{ formatDate(v.created_at) }}</span>
-            <router-link to="/customer/bookings" class="btn btn-ghost btn-sm" style="color: var(--accent-emerald);">Book Wash</router-link>
-          </div>
+      <div v-if="vehicles.length">
+        <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Make & Model</th>
+              <th>License Plate</th>
+              <th>Registered</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="v in paginatedVehicles" :key="v.id">
+              <td><span class="badge badge-cyan">{{ formatType(v.vehicle_type) }}</span></td>
+              <td style="font-weight: 600;">{{ v.make_model }}</td>
+              <td>
+                <span v-if="v.plate_number" style="font-family: monospace; background: var(--bg-secondary); padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                  {{ v.plate_number }}
+                </span>
+                <span v-else class="text-muted">-</span>
+              </td>
+              <td class="text-muted" style="font-size: 0.85rem;">{{ formatDate(v.created_at) }}</td>
+              <td>
+                <div class="flex gap-1">
+                  <router-link to="/customer/bookings" class="btn btn-sm btn-outline">Book Wash</router-link>
+                  <button class="btn btn-sm btn-danger" @click="deleteVehicle(v.id)">Delete</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">Showing {{ vehicles.length ? (currentPage - 1) * itemsPerPage + 1 : 0 }} to {{ Math.min(currentPage * itemsPerPage, vehicles.length) }} of {{ vehicles.length }}</span>
         </div>
+        <div class="flex gap-2" style="align-items: center;" v-if="totalPages > 1">
+          <button class="btn btn-ghost btn-sm" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <span style="font-size: 0.85rem; padding: 0.2rem 0.5rem;">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="btn btn-ghost btn-sm" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
+      </div>
       </div>
       <div v-else class="empty-state">
         <div class="empty-icon">🚗</div>
@@ -59,8 +95,8 @@
             <input v-model="form.make_model" class="form-input" placeholder="e.g. Hyundai i20 / Honda City" required />
           </div>
           <div class="form-group">
-            <label>License Plate Number</label>
-            <input v-model="form.plate_number" class="form-input" placeholder="e.g. MH 12 AB 1234" required />
+            <label>License Plate Number <span class="text-muted" style="font-size: 0.8rem; font-weight: normal;">(Optional)</span></label>
+            <input v-model="form.plate_number" class="form-input" placeholder="e.g. MH 12 AB 1234" />
           </div>
           <div class="flex gap-2" style="margin-top: 1rem;">
             <button type="submit" class="btn btn-primary" :disabled="submitting">
@@ -89,8 +125,24 @@ export default {
         vehicle_type: 'sedan',
         make_model: '',
         plate_number: ''
-      }
+      },
+      currentPage: 1,
+      itemsPerPage: 10
     };
+  },
+  computed: {
+    totalPages() {
+      return Math.ceil(this.vehicles.length / this.itemsPerPage) || 1;
+    },
+    paginatedVehicles() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.vehicles.slice(start, start + this.itemsPerPage);
+    }
+  },
+  watch: {
+    itemsPerPage() {
+      this.currentPage = 1;
+    }
   },
   methods: {
     formatType(t) {

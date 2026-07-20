@@ -17,6 +17,7 @@ class ServicePackage extends Model
         'price',
         'frequency_days',
         'max_bookings',
+        'custom_badge',
         'image_path',
     ];
 

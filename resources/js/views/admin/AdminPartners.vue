@@ -1,31 +1,31 @@
 <template>
   <div>
-    <!-- Compact Stats Row -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
-      <div class="stat-card" style="position: relative; padding: 0.75rem; min-height: 60px;">
-        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">📋</div>
-        <div class="stat-value" style="font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.total || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Total Applications</div>
+    <!-- Stats Row -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      <div class="stat-card" title="Total Applications">
+        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan)">📋</div>
+        <div class="stat-value">{{ stats.total || 0 }}</div>
+        <div class="stat-label">Total Applications</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-amber); position: relative; padding: 0.75rem; min-height: 60px;">
-        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">🆕</div>
-        <div class="stat-value" style="color:var(--accent-amber); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.new || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">New (Unread)</div>
+      <div class="stat-card" title="New (Unread)">
+        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber)">🆕</div>
+        <div class="stat-value" style="color:var(--accent-amber)">{{ stats.new || 0 }}</div>
+        <div class="stat-label">New (Unread)</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-emerald); position: relative; padding: 0.75rem; min-height: 60px;">
-        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">✅</div>
-        <div class="stat-value" style="color:var(--accent-emerald); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.approved || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Approved</div>
+      <div class="stat-card" title="Approved">
+        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald)">✅</div>
+        <div class="stat-value" style="color:var(--accent-emerald)">{{ stats.approved || 0 }}</div>
+        <div class="stat-label">Approved</div>
       </div>
-      <div class="stat-card" style="position: relative; padding: 0.75rem; min-height: 60px;">
-        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">📞</div>
-        <div class="stat-value" style="font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.contacted || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Contacted</div>
+      <div class="stat-card" title="Contacted">
+        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet)">📞</div>
+        <div class="stat-value">{{ stats.contacted || 0 }}</div>
+        <div class="stat-label">Contacted</div>
       </div>
-      <div class="stat-card" style="border:1px solid var(--accent-rose); position: relative; padding: 0.75rem; min-height: 60px;">
-        <div class="stat-icon" style="background:rgba(244,63,94,0.15);color:var(--accent-rose); width: 28px; height: 28px; font-size: 0.8rem; margin-bottom: 0;">❌</div>
-        <div class="stat-value" style="color:var(--accent-rose); font-size: 1.25rem; margin-top: 0.15rem;">{{ stats.rejected || 0 }}</div>
-        <div class="stat-label" style="position: absolute; top: 0.75rem; right: 0.75rem; margin: 0; text-align: right; font-size: 0.75rem;">Rejected</div>
+      <div class="stat-card" title="Rejected">
+        <div class="stat-icon" style="background:rgba(244,63,94,0.15);color:var(--accent-rose)">❌</div>
+        <div class="stat-value" style="color:var(--accent-rose)">{{ stats.rejected || 0 }}</div>
+        <div class="stat-label">Rejected</div>
       </div>
     </div>
 
@@ -112,11 +112,22 @@
       </table>
       
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem;">
-        <div class="text-muted" style="font-size: 0.85rem;">
-          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredInquiries.length) }} of {{ filteredInquiries.length }} entries
+      <div v-if="filteredInquiries.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredInquiries.length) }} of {{ filteredInquiries.length }} entries
+          </span>
         </div>
-        <div class="flex gap-1">
+        <div class="flex gap-1" v-if="totalPages > 1">
           <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
           
           <template v-for="page in totalPages" :key="page">

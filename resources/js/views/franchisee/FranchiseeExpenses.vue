@@ -25,7 +25,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="e in expenses" :key="e.id">
+            <tr v-for="e in paginatedExpenses" :key="e.id">
               <td>{{ e.expense_date }}</td>
               <td><span class="badge" :class="categoryBadge(e.category)">{{ e.category }}</span></td>
               <td>{{ e.description || 'No details provided' }}</td>
@@ -36,6 +36,26 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="expenses.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, expenses.length) }} of {{ expenses.length }}
+          </span>
+        </div>
+        <div class="flex gap-1" v-if="totalPages > 1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
       </div>
       <div v-else class="empty-state">
         <div class="empty-icon">💰</div>
@@ -98,6 +118,8 @@ export default {
       showAddModal: false,
       submitting: false,
       error: '',
+      currentPage: 1,
+      itemsPerPage: 10,
       form: {
         category: 'chemical',
         amount: '',
@@ -105,6 +127,15 @@ export default {
         description: ''
       }
     };
+  },
+  computed: {
+    paginatedExpenses() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.expenses.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.expenses.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     categoryBadge(c) {

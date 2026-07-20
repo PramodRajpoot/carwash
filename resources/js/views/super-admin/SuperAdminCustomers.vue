@@ -78,24 +78,25 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination.last_page > 1" style="display: flex; justify-content: center; padding: 1.5rem; gap: 0.5rem; border-top: 1px solid var(--border-color);">
-        <button 
-          class="btn btn-sm btn-outline-primary" 
-          :disabled="pagination.current_page === 1"
-          @click="fetchCustomers(pagination.current_page - 1)"
-        >
-          Previous
-        </button>
-        <div style="display: flex; align-items: center; padding: 0 1rem; color: var(--text-muted); font-size: 0.9rem;">
-          Page {{ pagination.current_page }} of {{ pagination.last_page }}
+      <div v-if="pagination.total > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem; border-top: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="pagination.per_page" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="fetchCustomers(1)">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (pagination.current_page - 1) * pagination.per_page + 1 }} to {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }} of {{ pagination.total }}
+          </span>
         </div>
-        <button 
-          class="btn btn-sm btn-outline-primary" 
-          :disabled="pagination.current_page === pagination.last_page"
-          @click="fetchCustomers(pagination.current_page + 1)"
-        >
-          Next
-        </button>
+        <div class="flex gap-1" v-if="pagination.last_page > 1">
+          <button class="btn btn-sm btn-outline-primary" :disabled="pagination.current_page === 1" @click="fetchCustomers(pagination.current_page - 1)">Previous</button>
+          <button class="btn btn-sm btn-outline-primary" :disabled="pagination.current_page === pagination.last_page" @click="fetchCustomers(pagination.current_page + 1)">Next</button>
+        </div>
       </div>
     </div>
 
@@ -183,7 +184,41 @@
 
             <!-- Wallet Tab -->
             <div v-if="activeTab === 'wallet'">
-              <!-- Calculate wallet balance from transactions or just show transactions -->
+              <!-- Bank Details -->
+              <div class="glass-card" style="margin-bottom: 1.5rem;" v-if="selectedCustomer.bank_detail">
+                <h4 style="margin-top:0; margin-bottom: 1rem;">Saved Bank / UPI Details</h4>
+                <div class="grid grid-2 gap-3" style="font-size: 0.9rem;">
+                  <div><span class="text-muted">Account Name:</span> <br/><strong>{{ selectedCustomer.bank_detail.account_holder_name || '-' }}</strong></div>
+                  <div><span class="text-muted">Bank Name:</span> <br/><strong>{{ selectedCustomer.bank_detail.bank_name || '-' }}</strong></div>
+                  <div><span class="text-muted">Account No:</span> <br/><strong>{{ selectedCustomer.bank_detail.account_number || '-' }}</strong></div>
+                  <div><span class="text-muted">IFSC Code:</span> <br/><strong>{{ selectedCustomer.bank_detail.ifsc_code || '-' }}</strong></div>
+                  <div style="grid-column: span 2;"><span class="text-muted">UPI ID:</span> <br/><strong>{{ selectedCustomer.bank_detail.upi_id || '-' }}</strong></div>
+                </div>
+              </div>
+              <div class="glass-card" style="margin-bottom: 1.5rem;" v-else>
+                <div class="text-center text-muted" style="padding: 1rem;">No bank details saved by customer.</div>
+              </div>
+
+              <!-- Withdrawal Requests -->
+              <div style="margin-bottom: 1rem;" v-if="selectedCustomer.withdrawal_requests?.length">
+                <h4 style="margin: 0;">Withdrawal Requests</h4>
+              </div>
+              <div v-if="selectedCustomer.withdrawal_requests?.length" style="margin-bottom: 1.5rem;">
+                <table class="table text-sm">
+                  <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr v-for="req in selectedCustomer.withdrawal_requests" :key="req.id">
+                      <td>{{ formatDate(req.created_at) }}</td>
+                      <td>{{ req.amount }} pts</td>
+                      <td>
+                        <span :class="['badge', req.status === 'approved' ? 'badge-success' : (req.status === 'rejected' ? 'badge-danger' : 'badge-warning')]">{{ req.status }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Transaction History -->
               <div style="margin-bottom: 1rem;">
                 <h4 style="margin: 0;">Transaction History</h4>
               </div>
@@ -198,7 +233,7 @@
                           {{ trx.type === 'credit' ? '+' : '-' }}
                         </span>
                       </td>
-                      <td>₹{{ trx.amount }}</td>
+                      <td>{{ trx.amount }} pts</td>
                       <td>{{ trx.description }}</td>
                     </tr>
                   </tbody>
@@ -285,7 +320,8 @@ const customers = ref([]);
 const pagination = ref({
   current_page: 1,
   last_page: 1,
-  total: 0
+  total: 0,
+  per_page: 10
 });
 
 const filters = reactive({
@@ -312,7 +348,8 @@ const fetchCustomers = async (page = 1) => {
     const params = {
       page: page,
       search: filters.search,
-      status: filters.status
+      status: filters.status,
+      per_page: pagination.value.per_page
     };
     
     const res = await axios.get('/api/super-admin/customers', {
@@ -324,7 +361,8 @@ const fetchCustomers = async (page = 1) => {
     pagination.value = {
       current_page: res.data.current_page,
       last_page: res.data.last_page,
-      total: res.data.total
+      total: res.data.total,
+      per_page: parseInt(res.data.per_page) || pagination.value.per_page
     };
   } catch (error) {
     console.error('Error fetching customers:', error);

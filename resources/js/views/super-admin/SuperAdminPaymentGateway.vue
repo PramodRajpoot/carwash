@@ -27,7 +27,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="gateway in gateways" :key="gateway.slug" class="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+            <tr v-for="gateway in paginatedGateways" :key="gateway.slug" class="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
               <td class="py-4 px-5">
                 <div class="font-bold text-lg" style="color: var(--text-primary);">{{ gateway.name }}</div>
                 <div class="text-xs text-muted">{{ gateway.slug }}</div>
@@ -58,6 +58,28 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div v-if="gateways.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, gateways.length) }} of {{ gateways.length }}
+          </span>
+        </div>
+        <div class="flex gap-1" v-if="totalPages > 1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
       </div>
       
       <div v-if="message" class="p-4 bg-green-50 text-green-700 border-t border-green-100 text-center font-medium">
@@ -135,8 +157,19 @@ export default {
         name: '',
         config: {},
         is_default: false
-      }
+      },
+      currentPage: 1,
+      itemsPerPage: 10
     };
+  },
+  computed: {
+    paginatedGateways() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.gateways.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.gateways.length / this.itemsPerPage) || 1;
+    }
   },
   mounted() {
     this.fetchGateways();

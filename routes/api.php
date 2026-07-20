@@ -118,6 +118,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/balance',   [WalletController::class, 'balance']);
         Route::get('/history',   [WalletController::class, 'history']);
         Route::post('/redeem',   [WalletController::class, 'redeem']);
+        Route::get('/bank-details', [\App\Http\Controllers\Customer\WalletController::class, 'getBankDetails']);
+        Route::post('/bank-details', [\App\Http\Controllers\Customer\WalletController::class, 'updateBankDetails']);
+        Route::post('/withdraw', [\App\Http\Controllers\Customer\WalletController::class, 'requestWithdrawal']);
+        Route::get('/withdrawals', [\App\Http\Controllers\Customer\WalletController::class, 'getWithdrawalHistory']);
     });
 
     // Customer Support Tickets
@@ -309,5 +313,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/payment-gateways/{slug}', [PaymentGatewayController::class, 'update']);
         Route::put('/payment-gateways/{slug}/activate', [PaymentGatewayController::class, 'activate']);
         Route::delete('/payment-gateways/{slug}', [PaymentGatewayController::class, 'destroy']);
+
+        // Payouts & Withdrawals
+        Route::get('/withdrawals', [\App\Http\Controllers\SuperAdmin\PayoutController::class, 'getWithdrawalRequests']);
+        Route::post('/withdrawals/{id}/process', [\App\Http\Controllers\SuperAdmin\PayoutController::class, 'processWithdrawal']);
     });
 });

@@ -15,7 +15,7 @@
           <th style="text-align:right;padding:0.6rem 0.5rem;color:var(--text-muted);white-space:nowrap;">Actions</th>
         </tr></thead>
         <tbody>
-          <tr v-for="a in admins" :key="a.id" style="border-bottom:1px solid var(--border-color)">
+          <tr v-for="a in paginatedAdmins" :key="a.id" style="border-bottom:1px solid var(--border-color)">
             <td style="padding:0.7rem 0.5rem;font-weight:600;white-space:nowrap;">{{ a.name }}</td>
             <td style="padding:0.7rem 0.5rem" class="text-muted">{{ a.email }}</td>
             <td style="padding:0.7rem 0.5rem;white-space:nowrap;"><span class="badge" :class="a.role === 'super_admin' ? 'badge-violet' : 'badge-cyan'" style="font-size:0.73rem">{{ a.role }}</span></td>
@@ -27,6 +27,28 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- Pagination -->
+      <div v-if="admins.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+          <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="75">75</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+          <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, admins.length) }} of {{ admins.length }}
+          </span>
+        </div>
+        <div class="flex gap-1">
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal -->
@@ -60,7 +82,16 @@ import axios from 'axios';
 export default {
   name: 'SuperAdminAdmins',
   data() {
-    return { admins: [], loading: true, modal: false, saving: false, form: { id: null, name: '', email: '', phone: '', password: '', role: 'admin', status: 'active' } };
+    return { admins: [], loading: true, modal: false, saving: false, form: { id: null, name: '', email: '', phone: '', password: '', role: 'admin', status: 'active' }, currentPage: 1, itemsPerPage: 10 };
+  },
+  computed: {
+    paginatedAdmins() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.admins.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.admins.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     openCreate() { this.form = { id: null, name: '', email: '', phone: '', password: '', role: 'admin', status: 'active' }; this.modal = true; },

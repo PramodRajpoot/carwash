@@ -8,22 +8,48 @@
       <table>
         <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
-          <tr v-for="b in bookings" :key="b.id">
+          <tr v-for="b in paginatedBookings" :key="b.id">
             <td>{{ b.booking_date }}</td>
             <td>{{ b.slot_time }}</td>
             <td>{{ b.vehicle?.make_model }}</td>
-            <td>{{ b.package?.name || '-' }}</td>
+            <td>
+              <div>{{ b.package?.name || '-' }}</div>
+              <div v-if="getAddons(b).length" style="font-size: 0.75rem; color: var(--accent-cyan); margin-top: 2px;">
+                <span v-for="(addon, i) in getAddons(b)" :key="i">
+                  + {{ addon.name }}<br v-if="i < getAddons(b).length - 1">
+                </span>
+              </div>
+            </td>
             <td>₹{{ b.total_price }}</td>
             <td><span class="badge" :class="statusBadge(b.status)">{{ b.status }}</span></td>
             <td>
               <div class="flex gap-1">
                 <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
-                <button v-if="canPostpone(b)" class="btn btn-sm btn-outline" @click="openPostpone(b)">Postpone</button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <div v-if="bookings.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+        <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="75">75</option>
+          <option :value="100">100</option>
+          <option :value="200">200</option>
+        </select>
+        <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, bookings.length) }} of {{ bookings.length }}
+        </span>
+      </div>
+      <div class="flex gap-1" v-if="totalPages > 1">
+        <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+        <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+      </div>
     </div>
     <div v-else class="empty-state"><div class="empty-icon">📅</div><p>No bookings yet.</p></div>
 
@@ -40,8 +66,54 @@
             <select v-model="bf.franchisee_id" class="form-select" required @change="fetchSlots"><option value="">Select Center</option><option v-for="c in centers" :key="c.id" :value="c.id">{{ c.center_name }} — {{ c.city }}</option></select>
           </div>
           <div class="form-group"><label>Package</label>
-            <select v-model="bf.package_id" class="form-select" required><option value="">Select Package</option><option v-for="p in packages" :key="p.id" :value="p.id">{{ p.name }} (₹{{ p.price }})</option></select>
+            <select v-model="bf.package_id" class="form-select" required @change="bf.addon_ids = []"><option value="">Select Package</option><option v-for="p in packages" :key="p.id" :value="p.id">{{ p.name }} (₹{{ p.price }})</option></select>
           </div>
+          
+          <!-- Add-ons & Price Breakdown -->
+          <div v-if="bf.package_id" style="margin-bottom: 1rem;">
+            <!-- Add-on Services Section -->
+            <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
+              ➕ Add-on Services <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">(pick from other packages)</span>
+            </label>
+            <div v-if="!bf.vehicle_id" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
+              Please select a vehicle first to see available add-ons.
+            </div>
+            <div v-else-if="addonPackages.length === 0" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
+              No add-ons available for this vehicle type.
+            </div>
+            <div v-else style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem; margin-bottom: 1rem;">
+              <div v-for="pkg in addonPackages" :key="pkg.id"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border-color); cursor: pointer;"
+                :style="{ background: isAddonSelected(pkg.id) ? 'rgba(16,185,129,0.08)' : 'transparent' }"
+                @click="toggleAddon(pkg)">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="checkbox" :checked="isAddonSelected(pkg.id)" style="accent-color: var(--accent-emerald); width: 16px; height: 16px; pointer-events: none;" />
+                  <div>
+                    <div style="font-weight: 600; font-size: 0.88rem;">{{ pkg.name }}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">{{ pkg.vehicle_type }}</div>
+                  </div>
+                </div>
+                <div style="font-weight: 700; color: var(--accent-cyan); font-size: 0.9rem; white-space: nowrap;">+ ₹{{ pkg.price }}</div>
+              </div>
+            </div>
+
+            <!-- Price Breakdown -->
+            <div style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color);">
+              <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem;">
+                <span>Base Plan Price</span>
+                <span>₹{{ selectedBasePlan ? selectedBasePlan.price : '0.00' }}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-cyan);">
+                <span>Add-ons ({{ bf.addon_ids.length }} items)</span>
+                <span>+ ₹{{ addonTotal.toFixed(2) }}</span>
+              </div>
+              <div style="border-top: 1px dashed var(--border-color); margin: 0.5rem 0; padding-top: 0.5rem; display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem;">
+                <span>Total</span>
+                <span style="color: var(--accent-emerald);">₹{{ calculatedTotal.toFixed(2) }}</span>
+              </div>
+            </div>
+          </div>
+          
           <div class="grid grid-2 gap-2">
             <div class="form-group"><label>Date</label><input v-model="bf.booking_date" type="date" class="form-input" required @change="fetchSlots"></div>
             <div class="form-group"><label>Slot</label>
@@ -66,32 +138,59 @@
       </div>
     </div>
 
-    <!-- Postpone Modal -->
-    <div v-if="postponeBooking" class="modal-overlay" @click.self="postponeBooking = null">
-      <div class="modal-content">
-        <h3>Postpone Booking</h3>
-        <form @submit.prevent="submitPostpone">
-          <div class="form-group"><label>New Date</label><input v-model="pf.booking_date" type="date" class="form-input" required @change="fetchPostponeSlots"></div>
-          <div class="form-group"><label>New Slot</label>
-            <select v-model="pf.slot_time" class="form-select" required :disabled="postponeSlotsLoading || postponeSlots.length === 0">
-              <option value="" v-if="postponeSlotsLoading">Loading slots...</option>
-              <option value="" v-else-if="!pf.booking_date">Select date first</option>
-              <option value="" v-else-if="postponeSlots.length === 0">No slots available</option>
-              <option v-for="s in postponeSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings">{{ s.time_range }} {{ s.current_bookings >= s.max_bookings ? '(Full)' : '' }}</option>
-            </select>
-          </div>
-          <div class="flex gap-2"><button type="submit" class="btn btn-primary">Postpone</button><button type="button" class="btn btn-ghost" @click="postponeBooking = null">Cancel</button></div>
-        </form>
-      </div>
-    </div>
   </div>
 </template>
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
+
 export default {
   name: 'CustomerBookings',
-  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'cod', coupon_code: '' }, pf: { booking_date: '', slot_time: '' } }; },
+  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'cod', coupon_code: '', addon_ids: [] }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10 }; },
+  computed: {
+    paginatedBookings() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.bookings.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.bookings.length / this.itemsPerPage) || 1;
+    },
+    selectedBasePlan() {
+      return this.packages.find(p => p.id == this.bf.package_id) || null;
+    },
+    addonPackages() {
+      if (!this.selectedBasePlan || !this.bf.vehicle_id) return [];
+      const v = this.vehicles.find(vh => vh.id == this.bf.vehicle_id);
+      if (!v) return [];
+      return this.packages.filter(p => p.id != this.bf.package_id && p.vehicle_type === v.vehicle_type);
+    },
+    selectedAddons() {
+      return this.packages.filter(p => this.bf.addon_ids.includes(p.id));
+    },
+    addonTotal() {
+      return this.selectedAddons.reduce((sum, a) => sum + parseFloat(a.price), 0);
+    },
+    calculatedTotal() {
+      const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
+      return base + this.addonTotal;
+    }
+  },
   methods: {
+    getAddons(b) {
+      if (!b.addon_services) return [];
+      if (typeof b.addon_services === 'string') {
+        try { return JSON.parse(b.addon_services); } catch (e) { return []; }
+      }
+      return Array.isArray(b.addon_services) ? b.addon_services : [];
+    },
+    isAddonSelected(id) { return this.bf.addon_ids.includes(id); },
+    toggleAddon(pkg) {
+      if (this.isAddonSelected(pkg.id)) {
+        this.bf.addon_ids = this.bf.addon_ids.filter(id => id !== pkg.id);
+      } else {
+        this.bf.addon_ids.push(pkg.id);
+      }
+    },
     statusBadge(s) { return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan'; },
     canCancel(b) { return ['pending', 'assigned'].includes(b.status); },
     canPostpone(b) { return ['pending', 'assigned'].includes(b.status); },
@@ -149,8 +248,26 @@ export default {
       this.bookingLoading = false;
     },
     async cancel(id) {
-      if (!confirm('Cancel this booking?')) return;
-      try { await axios.post(`/api/bookings/${id}/cancel`); this.loadData(); } catch (e) { alert(e.response?.data?.message || 'Failed'); }
+      const result = await Swal.fire({
+        title: 'Cancel Booking?',
+        text: 'Are you sure you want to cancel this booking? The slot booking amount or any payment you have made will not be refunded.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No'
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        await axios.post(`/api/bookings/${id}/cancel`);
+        Swal.fire('Cancelled!', 'Your booking has been cancelled.', 'success');
+        this.loadData();
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Failed to cancel booking', 'error');
+      }
     },
     openPostpone(b) { this.postponeBooking = b; this.pf.booking_date = ''; this.pf.slot_time = ''; this.postponeSlots = []; },
     async submitPostpone() {

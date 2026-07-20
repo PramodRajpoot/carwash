@@ -68,7 +68,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="fb in report.franchisee_breakdown" :key="fb.franchisee_id">
+              <tr v-for="fb in paginatedBreakdown" :key="fb.franchisee_id">
                 <td style="font-weight: 600; color: var(--text-primary);">
                   {{ fb.franchisee?.center_name || 'System Hub' }}
                 </td>
@@ -80,6 +80,26 @@
               </tr>
             </tbody>
           </table>
+          <div v-if="report.franchisee_breakdown && report.franchisee_breakdown.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+              <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
+                <option :value="10">10</option>
+                <option :value="20">20</option>
+                <option :value="50">50</option>
+                <option :value="75">75</option>
+                <option :value="100">100</option>
+                <option :value="200">200</option>
+              </select>
+              <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, report.franchisee_breakdown.length) }} of {{ report.franchisee_breakdown.length }}
+              </span>
+            </div>
+            <div class="flex gap-1" v-if="totalPages > 1">
+              <button class="btn btn-sm btn-outline" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+              <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+            </div>
+          </div>
         </div>
         <div v-else class="text-muted" style="padding: 1.5rem 0; text-align: center;">
           No center transaction metrics match the active filter criteria.
@@ -102,8 +122,21 @@ export default {
         franchisee_id: '',
         start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substr(0, 10),
         end_date: new Date().toISOString().substr(0, 10)
-      }
+      },
+      currentPage: 1,
+      itemsPerPage: 10
     };
+  },
+  computed: {
+    paginatedBreakdown() {
+      if (!this.report.franchisee_breakdown) return [];
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.report.franchisee_breakdown.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      if (!this.report.franchisee_breakdown) return 1;
+      return Math.ceil(this.report.franchisee_breakdown.length / this.itemsPerPage) || 1;
+    }
   },
   methods: {
     async loadReport() {

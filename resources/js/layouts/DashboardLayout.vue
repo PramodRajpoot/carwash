@@ -62,6 +62,7 @@
           <li><router-link to="/super-admin/services"><span class="nav-icon">🚗</span> Services management</router-link></li>
           <li><router-link to="/super-admin/packages"><span class="nav-icon">📦</span> Subscription plan</router-link></li>
           <li><router-link to="/super-admin/partners"><span class="nav-icon">❓</span> (Partner app) Franchise queries</router-link></li>
+          <li><router-link to="/super-admin/withdrawals"><span class="nav-icon">💸</span> Payouts & Withdrawals</router-link></li>
           <li><router-link to="/super-admin/reports"><span class="nav-icon">📈</span> Reports & Analytics</router-link></li>
           <li><router-link to="/super-admin/marketing"><span class="nav-icon">📢</span> Marketing</router-link></li>
           <li @click="isCmsOpen = !isCmsOpen" style="cursor: pointer; padding:0.5rem 1.5rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border-color);margin-top:0.5rem; display: flex; justify-content: space-between; align-items: center; user-select: none;">
@@ -69,7 +70,6 @@
             <svg style="transition: transform 0.2s; width: 14px; height: 14px;" :style="{ transform: isCmsOpen ? 'rotate(90deg)' : 'rotate(0deg)' }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </li>
           <template v-if="isCmsOpen">
-            <li><router-link to="/super-admin/cms/homepage"><span class="nav-icon">🏠</span> Homepage</router-link></li>
             <li><router-link to="/super-admin/cms/about"><span class="nav-icon">ℹ️</span> About Us</router-link></li>
             <li><router-link to="/super-admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
             <li><router-link to="/super-admin/faqs"><span class="nav-icon">❓</span> FAQs</router-link></li>
@@ -83,7 +83,6 @@
           <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Refferal Program</router-link></li>
           <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Setting</router-link></li>
           <li><router-link to="/super-admin/tickets"><span class="nav-icon">🎫</span> Supports</router-link></li>
-          <li><router-link to="/super-admin/notifications"><span class="nav-icon">🔔</span> Notification</router-link></li>
         </template>
       </ul>
       <div style="padding:0 1.5rem;margin-top:auto;border-top:1px solid var(--border-color);padding-top:1rem">
@@ -168,6 +167,7 @@ export default {
         'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
         'superadmin-orders': 'Booking Management', 'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
+        'superadmin-marketing': 'Marketing', 'superadmin-withdrawals': 'Payouts & Withdrawals',
       };
       return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },

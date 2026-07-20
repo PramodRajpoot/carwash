@@ -30,9 +30,9 @@ class CustomerController extends Controller
             ->count();
 
         $upcomingServices = Booking::where('customer_id', $user->id)
-            ->whereIn('status', ['pending', 'assigned', 'ongoing'])
-            ->with(['vehicle', 'franchisee'])
-            ->orderBy('booking_date', 'asc')
+            ->whereIn('status', ['pending', 'assigned', 'ongoing', 'completed', 'cancelled', 'postponed'])
+            ->with(['vehicle', 'franchisee', 'package'])
+            ->orderBy('booking_date', 'desc')
             ->get();
 
         $wishlistCount = Wishlist::where('customer_id', $user->id)->count();
@@ -76,7 +76,7 @@ class CustomerController extends Controller
         $request->validate([
             'vehicle_type' => 'required|string|in:hatchback,sedan,suv,commercial,bus,volvo_bus',
             'make_model'   => 'required|string|max:255',
-            'plate_number' => 'required|string|max:50',
+            'plate_number' => 'nullable|string|max:50',
         ]);
 
         $vehicle = Vehicle::create([

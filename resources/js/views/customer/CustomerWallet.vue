@@ -19,26 +19,70 @@
       </div>
     </div>
 
-    <!-- Redemption -->
-    <div class="glass-card" style="margin-bottom:1.5rem">
-      <h4 style="margin-bottom:0.75rem">Redeem E-Points</h4>
-      <div class="text-muted" style="font-size:0.85rem;margin-bottom:1rem">
-        Minimum <strong style="color:var(--accent-cyan)">1000 confirmed E-Points</strong> required to redeem.
-      </div>
-      <div style="background:var(--bg-secondary);border-radius:var(--radius-md);height:8px;margin-bottom:0.5rem">
-        <div :style="{ width: Math.min((balance.e_points / 1000) * 100, 100) + '%', background: balance.can_redeem ? 'var(--gradient-btn)' : 'linear-gradient(135deg,#ef4444,#f97316)', borderRadius: 'var(--radius-md)', height: '100%', transition: 'width 0.4s' }"></div>
-      </div>
-      <div class="flex justify-between" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1rem">
-        <span>{{ balance.e_points }} pts</span><span>1000 pts</span>
-      </div>
-      <div v-if="balance.can_redeem" class="flex gap-2 items-end">
-        <div style="flex:1">
-          <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Amount to Redeem</label>
-          <input type="number" v-model="redeemAmount" :min="1000" :max="balance.e_points" step="100" class="form-input" placeholder="1000" />
+    <div class="grid grid-2 gap-4" style="margin-bottom:1.5rem">
+      <!-- Bank & UPI Details -->
+      <div class="glass-card">
+        <h4 style="margin-bottom:1rem">Bank & UPI Details</h4>
+        <div class="text-muted" style="font-size:0.85rem;margin-bottom:1rem">
+          Add your bank details or UPI ID to receive payouts for your E-Points.
         </div>
-        <button class="btn btn-primary" @click="redeem" :disabled="redeeming">{{ redeeming ? 'Redeeming…' : 'Redeem' }}</button>
+        <form @submit.prevent="saveBankDetails">
+          <div style="margin-bottom:1rem">
+            <label class="form-label">Account Holder Name</label>
+            <input type="text" v-model="bankDetails.account_holder_name" class="form-input" placeholder="Name as per bank account" />
+          </div>
+          <div class="grid grid-2 gap-2" style="margin-bottom:1rem">
+            <div>
+              <label class="form-label">Bank Name</label>
+              <input type="text" v-model="bankDetails.bank_name" class="form-input" placeholder="e.g. HDFC Bank" />
+            </div>
+            <div>
+              <label class="form-label">IFSC Code</label>
+              <input type="text" v-model="bankDetails.ifsc_code" class="form-input" placeholder="IFSC Code" />
+            </div>
+          </div>
+          <div style="margin-bottom:1rem">
+            <label class="form-label">Account Number</label>
+            <input type="text" v-model="bankDetails.account_number" class="form-input" placeholder="Account Number" />
+          </div>
+          <div style="margin-bottom:1rem">
+            <label class="form-label">UPI ID (Optional)</label>
+            <input type="text" v-model="bankDetails.upi_id" class="form-input" placeholder="yourname@upi" />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%" :disabled="savingBank">
+            {{ savingBank ? 'Saving...' : 'Save Bank Details' }}
+          </button>
+        </form>
       </div>
-      <div v-else class="text-muted" style="font-size:0.85rem">You need {{ 1000 - balance.e_points }} more confirmed E-Points to unlock redemption.</div>
+
+      <!-- Redemption -->
+      <div class="glass-card">
+        <h4 style="margin-bottom:0.75rem">Withdraw E-Points</h4>
+        <div class="text-muted" style="font-size:0.85rem;margin-bottom:1rem">
+          Request a withdrawal to your bank account. <br/>
+          Minimum <strong style="color:var(--accent-cyan)">1000 confirmed E-Points</strong> required.
+        </div>
+        
+        <div v-if="!hasBankDetails" class="alert alert-warning" style="margin-bottom:1rem">
+          Please save your bank details first before requesting a withdrawal.
+        </div>
+
+        <div style="background:var(--bg-secondary);border-radius:var(--radius-md);height:8px;margin-bottom:0.5rem">
+          <div :style="{ width: Math.min((balance.e_points / 1000) * 100, 100) + '%', background: balance.can_redeem ? 'var(--gradient-btn)' : 'linear-gradient(135deg,#ef4444,#f97316)', borderRadius: 'var(--radius-md)', height: '100%', transition: 'width 0.4s' }"></div>
+        </div>
+        <div class="flex justify-between" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem">
+          <span>{{ balance.e_points }} pts</span><span>1000 pts</span>
+        </div>
+
+        <div v-if="balance.can_redeem" class="flex gap-2 items-end">
+          <div style="flex:1">
+            <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Amount to Withdraw (Pts)</label>
+            <input type="number" v-model="redeemAmount" :min="1000" :max="balance.e_points" step="100" class="form-input" placeholder="1000" />
+          </div>
+          <button class="btn btn-primary" @click="requestWithdrawal" :disabled="redeeming || !hasBankDetails">{{ redeeming ? 'Requesting…' : 'Withdraw' }}</button>
+        </div>
+        <div v-else class="text-muted" style="font-size:0.85rem">You need {{ 1000 - balance.e_points }} more confirmed E-Points to unlock withdrawals.</div>
+      </div>
     </div>
 
     <!-- Transaction History -->
@@ -51,7 +95,7 @@
           <div>
             <div style="font-weight:500;font-size:0.9rem">{{ t.description }}</div>
             <div class="flex gap-2" style="margin-top:0.25rem">
-              <span class="badge" :class="t.status === 'confirmed' ? 'badge-emerald' : 'badge-rose'" style="font-size:0.7rem">{{ t.status }}</span>
+              <span class="badge" :class="t.status === 'confirmed' || t.status === 'completed' ? 'badge-emerald' : (t.status === 'failed' || t.status === 'rejected' ? 'badge-rose' : 'badge-amber')" style="font-size:0.7rem">{{ t.status }}</span>
               <span class="text-muted" style="font-size:0.78rem">{{ formatDate(t.created_at) }}</span>
             </div>
           </div>
@@ -63,29 +107,101 @@
     </div>
   </div>
 </template>
+
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
+
 export default {
   name: 'CustomerWallet',
-  data() { return { balance: {}, transactions: [], loading: true, redeemAmount: 1000, redeeming: false }; },
+  data() {
+    return {
+      balance: {},
+      transactions: [],
+      bankDetails: {
+        account_holder_name: '',
+        bank_name: '',
+        account_number: '',
+        ifsc_code: '',
+        upi_id: '',
+      },
+      loading: true,
+      redeemAmount: 1000,
+      redeeming: false,
+      savingBank: false
+    };
+  },
+  computed: {
+    hasBankDetails() {
+      return this.bankDetails && ((this.bankDetails.account_number && this.bankDetails.ifsc_code) || this.bankDetails.upi_id);
+    }
+  },
   methods: {
-    formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },
-    async redeem() {
+    formatDate(d) {
+      return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    },
+    async saveBankDetails() {
+      this.savingBank = true;
+      try {
+        const res = await axios.post('/api/wallet/bank-details', this.bankDetails);
+        this.bankDetails = res.data.data;
+        Swal.fire({ icon: 'success', title: 'Saved!', text: 'Bank details saved successfully.', timer: 1500, showConfirmButton: false });
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Failed to save bank details.', 'error');
+      } finally {
+        this.savingBank = false;
+      }
+    },
+    async requestWithdrawal() {
+      if (!this.hasBankDetails) {
+        Swal.fire('Error', 'Please save your bank details first.', 'error');
+        return;
+      }
       if (this.redeemAmount < 1000 || this.redeemAmount > this.balance.e_points) return;
+      
       this.redeeming = true;
       try {
-        await axios.post('/api/wallet/redeem', { amount: this.redeemAmount });
+        await axios.post('/api/wallet/withdraw', { amount: this.redeemAmount });
+        Swal.fire({ icon: 'success', title: 'Success', text: 'Withdrawal request submitted successfully.', timer: 2000, showConfirmButton: false });
         await this.load();
-      } catch (e) { alert(e.response?.data?.message || 'Redemption failed.'); }
-      finally { this.redeeming = false; }
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Request failed.', 'error');
+      } finally {
+        this.redeeming = false;
+      }
     },
     async load() {
-      const [bal, hist] = await Promise.all([axios.get('/api/wallet/balance'), axios.get('/api/wallet/history')]);
-      this.balance = bal.data;
-      this.transactions = hist.data.data || [];
-      this.loading = false;
+      try {
+        const [bal, hist, bank] = await Promise.all([
+          axios.get('/api/wallet/balance'),
+          axios.get('/api/wallet/history'),
+          axios.get('/api/wallet/bank-details')
+        ]);
+        this.balance = bal.data;
+        this.transactions = hist.data.data || [];
+        if (bank.data) {
+            this.bankDetails = Object.assign(this.bankDetails, bank.data);
+        }
+        this.loading = false;
+      } catch (e) {
+        console.error(e);
+        this.loading = false;
+      }
     },
   },
-  mounted() { this.load(); },
+  mounted() {
+    this.load();
+  },
 };
 </script>
+
+<style scoped>
+.alert-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  font-size: 0.85rem;
+}
+</style>

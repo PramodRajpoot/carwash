@@ -308,16 +308,27 @@ class SuperAdminController extends Controller
     {
         $booking = Booking::findOrFail($id);
         $request->validate([
-            'package_id'  => 'required|exists:service_packages,id',
-            'total_price' => 'required|numeric|min:0'
+            'package_id'      => 'required|exists:service_packages,id',
+            'total_price'     => 'required|numeric|min:0',
+            'addon_services'  => 'nullable|array',
+            'addon_services.*.name'  => 'required_with:addon_services|string',
+            'addon_services.*.price' => 'required_with:addon_services|numeric|min:0',
+            'addon_price'     => 'nullable|numeric|min:0',
         ]);
 
-        $booking->update([
+        $updateData = [
             'package_id'  => $request->package_id,
-            'total_price' => $request->total_price
-        ]);
+            'total_price' => $request->total_price,
+        ];
 
-        return response()->json(['status' => 'success', 'message' => 'Plan changed successfully.', 'booking' => $booking->load('package')]);
+        if ($request->has('addon_services')) {
+            $updateData['addon_services'] = $request->addon_services;
+            $updateData['addon_price'] = $request->addon_price ?? 0;
+        }
+
+        $booking->update($updateData);
+
+        return response()->json(['status' => 'success', 'message' => 'Plan updated successfully.', 'booking' => $booking->load('package')]);
     }
 
     public function cancelOrder(Request $request, $id)
@@ -400,6 +411,7 @@ class SuperAdminController extends Controller
             'price' => 'required|numeric|min:0',
             'frequency_days' => 'required|integer|min:1',
             'max_bookings' => 'required|integer|min:1',
+            'custom_badge' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
@@ -426,6 +438,7 @@ class SuperAdminController extends Controller
             'price' => 'required|numeric|min:0',
             'frequency_days' => 'required|integer|min:1',
             'max_bookings' => 'required|integer|min:1',
+            'custom_badge' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
@@ -474,7 +487,8 @@ class SuperAdminController extends Controller
             $query->where('status', $request->status);
         }
 
-        $customers = $query->orderBy('created_at', 'desc')->paginate(10);
+        $perPage = $request->input('per_page', 10);
+        $customers = $query->orderBy('created_at', 'desc')->paginate($perPage);
             
         return response()->json($customers);
     }
@@ -491,7 +505,9 @@ class SuperAdminController extends Controller
                 'walletTransactions' => function($q) { $q->orderBy('created_at', 'desc'); },
                 'supportTickets' => function($q) { $q->orderBy('created_at', 'desc'); },
                 'referrals',
-                'referrer'
+                'referrer',
+                'bankDetail',
+                'withdrawalRequests' => function($q) { $q->orderBy('created_at', 'desc'); }
             ])
             ->findOrFail($id);
             

@@ -38,7 +38,7 @@
             <tr v-if="services.length === 0">
               <td colspan="7" class="text-center" style="padding: 2rem;">No services found.</td>
             </tr>
-            <tr v-for="service in services" :key="service.id" style="border-bottom: 1px solid var(--border-color);">
+            <tr v-for="service in paginatedServices" :key="service.id" style="border-bottom: 1px solid var(--border-color);">
               <td style="padding: 1rem;">
                 <img v-if="service.image_path" :src="'/storage/' + service.image_path" class="service-img" alt="Service Image">
                 <div v-else class="service-img placeholder-img">No Img</div>
@@ -62,6 +62,26 @@
             </tr>
           </tbody>
         </table>
+        <div class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+            <select v-model="servicesPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="servicesCurrentPage = 1">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="75">75</option>
+              <option :value="100">100</option>
+              <option :value="200">200</option>
+            </select>
+            <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+              Showing {{ (servicesCurrentPage - 1) * servicesPerPage + 1 }} to {{ Math.min(servicesCurrentPage * servicesPerPage, services.length) }} of {{ services.length }}
+            </span>
+          </div>
+          <div class="flex gap-1">
+            <button class="btn btn-sm btn-outline" :disabled="servicesCurrentPage === 1" @click="servicesCurrentPage--">Prev</button>
+            <button class="btn btn-sm btn-outline" :disabled="servicesCurrentPage === totalServicesPages" @click="servicesCurrentPage++">Next</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -87,7 +107,7 @@
             <tr v-if="categories.length === 0">
               <td colspan="5" class="text-center" style="padding: 2rem;">No categories found.</td>
             </tr>
-            <tr v-for="category in categories" :key="category.id" style="border-bottom: 1px solid var(--border-color);">
+            <tr v-for="category in paginatedCategories" :key="category.id" style="border-bottom: 1px solid var(--border-color);">
               <td style="padding: 1rem;">#{{ category.id }}</td>
               <td style="padding: 1rem; font-weight: 600;">{{ category.name }}</td>
               <td style="padding: 1rem; color: var(--text-muted); font-size: 0.85rem;">{{ category.description }}</td>
@@ -105,6 +125,26 @@
             </tr>
           </tbody>
         </table>
+        <div class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+            <select v-model="categoriesPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="categoriesCurrentPage = 1">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="75">75</option>
+              <option :value="100">100</option>
+              <option :value="200">200</option>
+            </select>
+            <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+              Showing {{ (categoriesCurrentPage - 1) * categoriesPerPage + 1 }} to {{ Math.min(categoriesCurrentPage * categoriesPerPage, categories.length) }} of {{ categories.length }}
+            </span>
+          </div>
+          <div class="flex gap-1">
+            <button class="btn btn-sm btn-outline" :disabled="categoriesCurrentPage === 1" @click="categoriesCurrentPage--">Prev</button>
+            <button class="btn btn-sm btn-outline" :disabled="categoriesCurrentPage === totalCategoriesPages" @click="categoriesCurrentPage++">Next</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -157,6 +197,12 @@
               <label>Max Bookings per Day *</label>
               <input v-model="serviceForm.max_bookings" type="number" class="form-input" required>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label>Promotional Badge (Optional)</label>
+            <input v-model="serviceForm.custom_badge" type="text" class="form-input" placeholder="e.g. Free Interior Polish, 10% Off">
+            <small style="color: var(--text-muted); margin-top: 0.25rem; font-size: 0.8rem;">Highlight a special offer or feature on the service card.</small>
           </div>
 
           <div class="form-group">
@@ -236,6 +282,7 @@ export default {
         price: '',
         frequency_days: '',
         max_bookings: '',
+        custom_badge: '',
         image_path: ''
       },
       serviceImageFile: null,
@@ -248,12 +295,30 @@ export default {
         status: 'active'
       },
 
-      isSubmitting: false
+      isSubmitting: false,
+      servicesCurrentPage: 1,
+      servicesPerPage: 10,
+      categoriesCurrentPage: 1,
+      categoriesPerPage: 10
     }
   },
   computed: {
     activeCategories() {
       return this.categories.filter(c => c.status === 'active');
+    },
+    paginatedServices() {
+      const start = (this.servicesCurrentPage - 1) * this.servicesPerPage;
+      return this.services.slice(start, start + this.servicesPerPage);
+    },
+    totalServicesPages() {
+      return Math.ceil(this.services.length / this.servicesPerPage) || 1;
+    },
+    paginatedCategories() {
+      const start = (this.categoriesCurrentPage - 1) * this.categoriesPerPage;
+      return this.categories.slice(start, start + this.categoriesPerPage);
+    },
+    totalCategoriesPages() {
+      return Math.ceil(this.categories.length / this.categoriesPerPage) || 1;
     }
   },
   methods: {
@@ -328,6 +393,7 @@ export default {
           price: '',
           frequency_days: 15,
           max_bookings: 10,
+          custom_badge: '',
           image_path: ''
         };
       }

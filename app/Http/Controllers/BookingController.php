@@ -68,6 +68,8 @@ class BookingController extends Controller
             'slot_time' => 'required|string',
             'payment_method' => 'required|string|in:online,cod,subscription',
             'coupon_code' => 'nullable|string',
+            'addon_ids' => 'nullable|array',
+            'addon_ids.*' => 'exists:service_packages,id',
         ]);
 
         $vehicle = Vehicle::where('customer_id', $user->id)->findOrFail($request->vehicle_id);
@@ -105,6 +107,23 @@ class BookingController extends Controller
         // Initialize price
         $price = $package->price;
         $paymentStatus = 'unpaid';
+
+        $addonPrice = 0;
+        $addonServices = [];
+
+        if ($request->filled('addon_ids')) {
+            $addons = ServicePackage::whereIn('id', $request->addon_ids)->get();
+            foreach ($addons as $addon) {
+                $addonPrice += $addon->price;
+                $addonServices[] = [
+                    'id' => $addon->id,
+                    'name' => $addon->name,
+                    'price' => (float)$addon->price
+                ];
+            }
+        }
+
+        $price += $addonPrice;
 
         // Check payment details
         if ($request->payment_method === 'subscription') {
@@ -180,6 +199,8 @@ class BookingController extends Controller
             'payment_status' => $paymentStatus,
             'payment_method' => $request->payment_method,
             'total_price' => $price,
+            'addon_price' => $addonPrice,
+            'addon_services' => empty($addonServices) ? null : json_encode($addonServices),
         ]);
 
         return response()->json([

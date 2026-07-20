@@ -105,4 +105,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(BlogPost::class, 'author_id');
     }
+
+    public function bankDetail()
+    {
+        return $this->hasOne(UserBankDetail::class);
+    }
+
+    public function withdrawalRequests()
+    {
+        return $this->hasMany(WithdrawalRequest::class);
+    }
 }
