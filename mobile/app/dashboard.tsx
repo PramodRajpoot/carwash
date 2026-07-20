@@ -31,7 +31,7 @@ export default function DashboardScreen() {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('userToken');
     await AsyncStorage.removeItem('userData');
-    router.replace('/login');
+    router.replace('/');
   };
 
   if (loading) {
