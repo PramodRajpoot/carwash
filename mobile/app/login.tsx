@@ -17,7 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_BASE = 'https://carwash-api.loca.lt';
+const API_BASE = 'https://fresh-fox-61.loca.lt';
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'; // Keep just in case they switch back to ngrok
 

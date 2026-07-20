@@ -79,7 +79,7 @@ class AuthController extends Controller
             'name'                  => $request->name,
             'email'                 => $request->email,
             'phone'                 => $request->phone,
-            'password'              => Hash::make($request->password),
+            'password'              => $request->password,
             'role'                  => $request->role ?? 'customer',
             'referral_code'         => $referralCode,
             'referred_by'           => $referredBy,
@@ -194,7 +194,7 @@ class AuthController extends Controller
         $status = \Illuminate\Support\Facades\Password::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
-                $user->password = Hash::make($password);
+                $user->password = $password;
                 $user->save();
             }
         );
@@ -258,7 +258,7 @@ class AuthController extends Controller
             ], 400);
         }
 
-        $user->update(['password' => Hash::make($request->password)]);
+        $user->update(['password' => $request->password]);
 
         return response()->json([
             'status'  => 'success',

@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_BASE = 'https://carwash-api.loca.lt';
+const API_BASE = 'https://fresh-fox-61.loca.lt';
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'; // Keep just in case they switch back to ngrok
 
@@ -28,6 +28,8 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   
   const [loading, setLoading] = useState(false);
 
@@ -75,7 +77,14 @@ export default function RegisterScreen() {
       }
     } catch (error: any) {
       console.error(error);
-      const msg = error.response?.data?.message || 'Network error, please try again.';
+      let msg = 'Network error, please try again.';
+      if (error.response?.data?.errors) {
+        // Laravel validation returns errors as an object of field: [messages]
+        const errors = error.response.data.errors;
+        msg = Object.values(errors).flat().join('\n');
+      } else if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      }
       Alert.alert('Registration Failed', msg);
     } finally {
       setLoading(false);
@@ -134,10 +143,13 @@ export default function RegisterScreen() {
                 style={styles.passwordInput}
                 placeholder="Password"
                 placeholderTextColor="#a0aec0"
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
               />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.passwordContainer}>
@@ -145,10 +157,13 @@ export default function RegisterScreen() {
                 style={styles.passwordInput}
                 placeholder="Confirm Password"
                 placeholderTextColor="#a0aec0"
-                secureTextEntry
+                secureTextEntry={!showPasswordConfirm}
                 value={passwordConfirm}
                 onChangeText={setPasswordConfirm}
               />
+              <TouchableOpacity onPress={() => setShowPasswordConfirm(!showPasswordConfirm)} style={styles.eyeButton}>
+                <Text style={styles.eyeIcon}>{showPasswordConfirm ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity 
@@ -238,6 +253,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     color: '#2d3748',
+  },
+  eyeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eyeIcon: {
+    color: '#a0aec0',
+    fontSize: 18,
   },
   registerButton: {
     backgroundColor: '#0bb79e', 

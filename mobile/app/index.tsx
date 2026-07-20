@@ -13,10 +13,11 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ── Your Laravel server URL ──
-const API_BASE = 'https://carwash-api.loca.lt';
+const API_BASE = 'https://fresh-fox-61.loca.lt';
 
 const { width } = Dimensions.get('window');
 
@@ -48,6 +49,17 @@ export default function ServicesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkAuth = async () => {
+        const token = await AsyncStorage.getItem('userToken');
+        setIsLoggedIn(!!token);
+      };
+      checkAuth();
+    }, [])
+  );
 
   const fetchPackages = async () => {
     try {
@@ -114,8 +126,13 @@ export default function ServicesScreen() {
           <Text style={styles.headerTitle}>🚗 CleanAtDoorstep</Text>
           <Text style={styles.headerSubtitle}>Professional Vehicle Detailing</Text>
         </View>
-        <TouchableOpacity style={styles.loginBtnHeader} onPress={() => router.push('/login')}>
-          <Text style={styles.loginBtnHeaderText}>Login</Text>
+        <TouchableOpacity 
+          style={styles.loginBtnHeader} 
+          onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
+        >
+          <Text style={styles.loginBtnHeaderText}>
+            {isLoggedIn ? 'Dashboard' : 'Login'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -226,7 +243,10 @@ export default function ServicesScreen() {
                     </Text>
                   )}
                 </View>
-                <TouchableOpacity style={styles.bookBtn}>
+                <TouchableOpacity 
+                  style={styles.bookBtn}
+                  onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
+                >
                   <Text style={styles.bookBtnText}>Book Now</Text>
                 </TouchableOpacity>
               </View>
