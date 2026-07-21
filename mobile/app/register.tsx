@@ -15,10 +15,10 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { API_BASE } from '../constants/api';
 
-const API_BASE = 'https://fresh-fox-61.loca.lt';
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
-axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'; // Keep just in case they switch back to ngrok
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 
 export default function RegisterScreen() {
   const router = useRouter();
