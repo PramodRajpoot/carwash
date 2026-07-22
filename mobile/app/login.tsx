@@ -54,9 +54,20 @@ export default function LoginScreen() {
       });
 
       if (response.data.status === 'success') {
+        const user = response.data.user;
+
+        // Only customers are allowed to login via the mobile app
+        if (user.role !== 'customer') {
+          Alert.alert(
+            'Access Denied',
+            'Only customers can login to the mobile app. Please use the web portal for admin or franchise access.'
+          );
+          return;
+        }
+
         const token = response.data.access_token;
         await AsyncStorage.setItem('userToken', token);
-        await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
+        await AsyncStorage.setItem('userData', JSON.stringify(user));
         
         router.replace('/dashboard');
       } else {
