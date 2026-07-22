@@ -54,9 +54,16 @@ export default function LoginScreen() {
       });
 
       if (response.data.status === 'success') {
+        const user = response.data.user;
+        
+        if (user.role !== 'customer') {
+          Alert.alert('Access Denied', 'Only customers can login to the mobile app.');
+          return;
+        }
+
         const token = response.data.access_token;
         await AsyncStorage.setItem('userToken', token);
-        await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
+        await AsyncStorage.setItem('userData', JSON.stringify(user));
         
         router.replace('/dashboard');
       } else {
