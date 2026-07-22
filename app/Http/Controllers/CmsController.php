@@ -13,13 +13,34 @@ class CmsController extends Controller
         
         if (!$aboutUs) {
             $data = [
-                'title' => 'About <span class="text-gradient">CleanAtDoorstep</span>',
-                'description' => 'We are India\'s most trusted doorstep car wash and detailing service. Since our inception, we have been committed to providing top-tier vehicle care while saving millions of liters of water using our advanced eco-friendly solutions.',
-                'image_url' => 'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800',
-                'points' => [
-                    '✅ Trained & Verified Professionals',
-                    '✅ Eco-Friendly & Water Efficient',
-                    '✅ No Hidden Charges or Hassle'
+                'title' => 'India\'s Trusted Doorstep Car Care Network',
+                'description' => 'Cleanatdoorstep brings professional car wash and detailing services right to your doorstep. Backed by a growing franchise network, we deliver consistent quality, convenience and trust across the country.',
+                'images' => [
+                    'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800',
+                    'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800',
+                    'https://images.unsplash.com/photo-1600661653561-629509216228?auto=format&fit=crop&q=80&w=800'
+                ],
+                'features' => [
+                    [
+                        'icon' => 'truck',
+                        'title' => 'Doorstep Service',
+                        'description' => 'We come to your home or office.'
+                    ],
+                    [
+                        'icon' => 'shield',
+                        'title' => 'Trained Professionals',
+                        'description' => 'Verified and trained washers.'
+                    ],
+                    [
+                        'icon' => 'users',
+                        'title' => 'Nationwide Network',
+                        'description' => 'Franchise partners across India.'
+                    ],
+                    [
+                        'icon' => 'sparkles',
+                        'title' => 'Quality Products',
+                        'description' => 'Company-approved chemicals.'
+                    ]
                 ]
             ];
         } else {
@@ -33,17 +54,35 @@ class CmsController extends Controller
     {
         $request->validate([
             'title' => 'required|string',
-            'description' => 'required|string',
-            'image_url' => 'required|url',
-            'points' => 'array',
-            'points.*' => 'string'
+            'description' => 'required|string'
         ]);
+
+        $features = $request->input('features');
+        if (is_string($features)) {
+            $features = json_decode($features, true);
+        }
+
+        $images = [];
+        for ($i = 0; $i < 3; $i++) {
+            if ($request->hasFile("image_$i")) {
+                $file = $request->file("image_$i");
+                $filename = time() . "_about_$i." . $file->getClientOriginalExtension();
+                $destinationPath = public_path('images/cms');
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0777, true);
+                }
+                $file->move($destinationPath, $filename);
+                $images[$i] = '/images/cms/' . $filename;
+            } else {
+                $images[$i] = $request->input("image_$i", '');
+            }
+        }
 
         $data = [
             'title' => $request->title,
             'description' => $request->description,
-            'image_url' => $request->image_url,
-            'points' => $request->points ?? []
+            'images' => $images,
+            'features' => $features ?? []
         ];
 
         PlatformSetting::set('cms_about_us', json_encode($data), 'cms');

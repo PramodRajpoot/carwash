@@ -17,7 +17,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ── Your Laravel server URL ──
-const API_BASE = 'https://fresh-fox-61.loca.lt';
+import { API_BASE } from '../constants/api';
 
 const { width } = Dimensions.get('window');
 

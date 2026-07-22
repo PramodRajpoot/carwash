@@ -36,6 +36,21 @@
         • You earn <strong style="color:var(--accent-emerald)">10 E-Points (pending)</strong> instantly<br>
         • Points are <strong style="color:var(--accent-emerald)">confirmed</strong> after their first completed service
       </p>
+
+      <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);">
+        <div style="font-size: 0.85rem; margin-bottom: 0.75rem; font-weight: 600;">Share via:</div>
+        <div class="flex gap-2">
+          <a :href="'https://api.whatsapp.com/send?text=' + encodeURIComponent('Join me on CleanAt Doorstep! Use my referral code ' + data.referral_code + ' to get rewarded.')" target="_blank" class="btn btn-sm" style="background: #25D366; color: white; border: none; flex: 1; justify-content: center;">
+            WhatsApp
+          </a>
+          <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(appUrl) + '&quote=' + encodeURIComponent('Join me on CleanAt Doorstep! Use my referral code ' + data.referral_code + ' to get rewarded.')" target="_blank" class="btn btn-sm" style="background: #1877F2; color: white; border: none; flex: 1; justify-content: center;">
+            Facebook
+          </a>
+          <a href="https://www.instagram.com/" target="_blank" class="btn btn-sm" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white; border: none; flex: 1; justify-content: center;">
+            Instagram
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- Referral Tree -->
@@ -75,6 +90,9 @@ import axios from 'axios';
 export default {
   name: 'CustomerReferrals',
   data() { return { data: {}, loading: true }; },
+  computed: {
+    appUrl() { return window.location.origin; }
+  },
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },
     copy() { navigator.clipboard?.writeText(this.data.referral_code); },
