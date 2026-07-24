@@ -55,9 +55,13 @@ export default function LoginScreen() {
 
       if (response.data.status === 'success') {
         const user = response.data.user;
-        
+
+        // Only customers are allowed to login via the mobile app
         if (user.role !== 'customer') {
-          Alert.alert('Access Denied', 'Only customers can login to the mobile app.');
+          Alert.alert(
+            'Access Denied',
+            'Only customers can login to the mobile app. Please use the web portal for admin or franchise access.'
+          );
           return;
         }
 

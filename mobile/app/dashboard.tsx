@@ -18,6 +18,14 @@ export default function DashboardScreen() {
         const storedToken = await AsyncStorage.getItem('userToken');
         const storedUser = await AsyncStorage.getItem('userData');
         if (storedToken && storedUser) {
+          // Ensure only customers can access the dashboard
+          const user = JSON.parse(storedUser);
+          if (user.role !== 'customer') {
+            await AsyncStorage.removeItem('userToken');
+            await AsyncStorage.removeItem('userData');
+            router.replace('/login');
+            return;
+          }
           setToken(storedToken);
           setUserData(storedUser);
         } else {
