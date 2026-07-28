@@ -30,12 +30,42 @@ export default function LoginScreen() {
   
   const emailInputRef = useRef<TextInput>(null);
 
+  const [identifier, setIdentifier] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [resendCount, setResendCount] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       emailInputRef.current?.focus();
     }, 400); // 400ms delay ensures screen transition is complete
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const startCountdown = () => {
+    setCountdown(120);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   // Toggle state for tabs (Email vs OTP)
   const [activeTab, setActiveTab] = useState<'email' | 'otp'>('email');
@@ -82,6 +112,52 @@ export default function LoginScreen() {
     }
   };
 
+  const handleSendOtp = async (isResend = false) => {
+    if (!identifier) {
+      Alert.alert('Error', 'Please enter a valid mobile number or email.');
+      return;
+    }
+    if (isResend && resendCount >= 2) return;
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE}/api/auth/otp/send`, { identifier });
+      setOtpSent(true);
+      if (isResend) setResendCount(prev => prev + 1);
+      startCountdown();
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to send OTP.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!identifier || !otp) {
+      Alert.alert('Error', 'Please enter the OTP.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE}/api/auth/otp/verify`, { identifier, otp });
+      if (response.data.status === 'success') {
+        const user = response.data.user;
+        if (user.role !== 'customer') {
+          Alert.alert('Access Denied', 'Only customers can login to the mobile app.');
+          return;
+        }
+        await AsyncStorage.setItem('userToken', response.data.access_token);
+        await AsyncStorage.setItem('userData', JSON.stringify(user));
+        router.replace('/dashboard');
+      }
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert('Error', error.response?.data?.message || 'Invalid OTP.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -119,47 +195,100 @@ export default function LoginScreen() {
 
         {/* Form */}
         <View style={styles.formContainer}>
-          <TextInput
-            ref={emailInputRef}
-            style={styles.input}
-            placeholder="Email address"
-            placeholderTextColor="#a0aec0"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoFocus={true}
-            value={email}
-            onChangeText={setEmail}
-          />
-          
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Password"
-              placeholderTextColor="#a0aec0"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-              <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
-            </TouchableOpacity>
-          </View>
+          {activeTab === 'email' ? (
+            <>
+              <TextInput
+                ref={emailInputRef}
+                style={styles.input}
+                placeholder="Email address"
+                placeholderTextColor="#a0aec0"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoFocus={true}
+                value={email}
+                onChangeText={setEmail}
+              />
+              
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Password"
+                  placeholderTextColor="#a0aec0"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                  <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                </TouchableOpacity>
+              </View>
 
-          <TouchableOpacity style={styles.forgotContainer}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.forgotContainer}>
+                <Text style={styles.forgotText}>Forgot Password?</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.loginButton} 
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.loginButton} 
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Sign In</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {!otpSent ? (
+                <>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Mobile Number or Email"
+                    placeholderTextColor="#a0aec0"
+                    autoCapitalize="none"
+                    value={identifier}
+                    onChangeText={setIdentifier}
+                  />
+                  <TouchableOpacity style={styles.loginButton} onPress={() => handleSendOtp(false)} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginButtonText}>Send OTP</Text>}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={{ textAlign: 'center', marginBottom: 15, color: '#718096' }}>OTP sent to {identifier}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter 4-digit OTP"
+                    placeholderTextColor="#a0aec0"
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={otp}
+                    onChangeText={setOtp}
+                  />
+                  <TouchableOpacity style={styles.loginButton} onPress={handleVerifyOtp} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginButtonText}>Verify & Login</Text>}
+                  </TouchableOpacity>
+                  
+                  <View style={{ alignItems: 'center', marginTop: 10 }}>
+                    {countdown > 0 ? (
+                      <Text style={{ color: '#4a5568' }}>Resend OTP in {formatTime(countdown)}</Text>
+                    ) : (
+                      <TouchableOpacity onPress={() => handleSendOtp(true)} disabled={loading || resendCount >= 2}>
+                        <Text style={{ color: (loading || resendCount >= 2) ? '#a0aec0' : '#00b4d8', fontWeight: '600' }}>
+                          Resend OTP {resendCount < 2 ? `(${2 - resendCount} left)` : '(Limit reached)'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={{ marginTop: 15, paddingBottom: 15 }} onPress={() => { setOtpSent(false); setOtp(''); if (timerRef.current) clearInterval(timerRef.current); }}>
+                      <Text style={{ color: '#718096', textDecorationLine: 'underline' }}>Change Mobile/Email</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </>
+          )}
 
           <View style={styles.dividerContainer}>
             <View style={styles.divider} />

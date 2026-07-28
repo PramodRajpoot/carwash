@@ -59,9 +59,29 @@ class OtpController extends Controller
         if ($isEmail) {
             Mail::to($identifier)->send(new OtpMail($user, $otp));
         } else {
-            // In production: send via SMS API (Twilio, MSG91, etc.)
-            // For dev: log to Laravel log
-            \Log::info("OTP for {$identifier}: {$otp}");
+            // Send via MSG91 API
+            $authKey = env('MSG91_AUTH_KEY');
+            $templateId = env('MSG91_TEMPLATE_ID');
+
+            if ($authKey && $templateId) {
+                // Ensure mobile number has country code (default to 91 for India)
+                $mobile = strlen($identifier) == 10 ? '91' . $identifier : $identifier;
+                
+                try {
+                    \Illuminate\Support\Facades\Http::withHeaders([
+                        'authkey' => $authKey
+                    ])->get("https://control.msg91.com/api/v5/otp", [
+                        'template_id' => $templateId,
+                        'mobile' => $mobile,
+                        'otp' => $otp
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error("MSG91 OTP failed for {$identifier}: " . $e->getMessage());
+                }
+            } else {
+                // Fallback for dev if credentials are not set
+                \Log::info("OTP for {$identifier}: {$otp}");
+            }
         }
 
         return response()->json([
