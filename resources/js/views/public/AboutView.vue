@@ -59,6 +59,81 @@
       <div class="spinner"></div>
     </div>
 
+    <!-- Our Goals Section -->
+    <section class="section">
+      <div class="container">
+        <div class="section-title text-center" style="margin-bottom: 3rem;">
+          <span class="about-label" style="display: block; margin-bottom: 0.5rem; text-align: center;">OUR GOALS</span>
+          <h2 style="font-size:2.5rem;font-weight:800;color:var(--text-primary);">What We Strive For</h2>
+        </div>
+        
+        <div class="grid grid-3 gap-3">
+          <div class="card flex items-center gap-3" style="padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); background: #ffffff;">
+            <div style="width: 40px; height: 40px; background: #e0f2fe; color: #0284c7; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
+            </div>
+            <h4 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #1e293b;">Reliable Service Delivery</h4>
+          </div>
+
+          <div class="card flex items-center gap-3" style="padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); background: #ffffff;">
+            <div style="width: 40px; height: 40px; background: #e0f2fe; color: #0284c7; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
+            <h4 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #1e293b;">Nationwide Availability</h4>
+          </div>
+
+          <div class="card flex items-center gap-3" style="padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); background: #ffffff;">
+            <div style="width: 40px; height: 40px; background: #e0f2fe; color: #0284c7; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <h4 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #1e293b;">Customer Satisfaction</h4>
+          </div>
+
+          <div class="card flex items-center gap-3" style="padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); background: #ffffff;">
+            <div style="width: 40px; height: 40px; background: #e0f2fe; color: #0284c7; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+            </div>
+            <h4 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #1e293b;">Franchise Partner Growth</h4>
+          </div>
+
+          <div class="card flex items-center gap-3" style="padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); background: #ffffff;">
+            <div style="width: 40px; height: 40px; background: #e0f2fe; color: #0284c7; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>
+            </div>
+            <h4 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #1e293b;">Professional Standards</h4>
+          </div>
+
+          <div class="card flex items-center gap-3" style="padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); background: #ffffff;">
+            <div style="width: 40px; height: 40px; background: #e0f2fe; color: #0284c7; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+            </div>
+            <h4 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #1e293b;">Technology-based Convenience</h4>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section" v-if="testimonials && testimonials.length > 0">
+      <div class="container">
+        <div class="section-title text-center" style="margin-bottom: 3rem;">
+          <h2>Customer <span class="text-gradient">Testimonials</span></h2>
+          <p>What our happy customers say about CleanAtDoorstep.</p>
+        </div>
+        <div class="grid grid-3 gap-3">
+          <div v-for="(t, i) in testimonials" :key="i" class="glass-card fade-in-up" :class="'delay-' + (i+1)" style="position:relative; background: #ffffff; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+            <div style="font-size:3rem; color:var(--border-color); position:absolute; top:10px; right:20px; font-family:serif; line-height:1">""</div>
+            <div style="color:var(--accent-amber); font-size:1.1rem; margin-bottom:0.75rem;">⭐⭐⭐⭐⭐</div>
+            <p style="font-style:italic;margin-bottom:1.5rem;position:relative;z-index:1;color:var(--text-secondary);">"{{ t.text }}"</p>
+            <div class="flex items-center gap-2">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-btn);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.8rem">{{ t.name.charAt(0) }}</div>
+              <div><div style="font-weight:600;font-size:0.9rem">{{ t.name }}</div><div class="text-muted" style="font-size:0.75rem">{{ t.role }}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- App Download Section -->
     <section class="section" style="padding: 2rem 0; background: var(--bg-primary);">
       <div class="container">
@@ -118,10 +193,12 @@ export default {
   data() {
     return {
       aboutUs: null,
+      testimonials: [],
     };
   },
   mounted() {
     this.fetchAboutUs();
+    this.fetchTestimonials();
   },
   methods: {
     async fetchAboutUs() {
@@ -144,6 +221,16 @@ export default {
         }
       } catch (error) {
         console.error('Failed to fetch About Us:', error);
+      }
+    },
+    async fetchTestimonials() {
+      try {
+        const response = await fetch('/api/testimonials');
+        if (response.ok) {
+          this.testimonials = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch testimonials:', error);
       }
     }
   }
@@ -210,6 +297,7 @@ export default {
   color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 2rem;
+  white-space: pre-wrap;
 }
 .features-grid {
   display: grid;

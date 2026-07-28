@@ -71,6 +71,7 @@
           </li>
           <template v-if="isCmsOpen">
             <li><router-link to="/super-admin/cms/about"><span class="nav-icon">ℹ️</span> About Us</router-link></li>
+            <li><router-link to="/super-admin/testimonials"><span class="nav-icon">💬</span> Testimonials</router-link></li>
             <li><router-link to="/super-admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
             <li><router-link to="/super-admin/faqs"><span class="nav-icon">❓</span> FAQs</router-link></li>
             <li><router-link to="/super-admin/cms/privacy-policy"><span class="nav-icon">🔒</span> Privacy Policy</router-link></li>

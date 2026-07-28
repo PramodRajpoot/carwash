@@ -110,6 +110,27 @@
       </div>
     </section>
 
+    <!-- Testimonials -->
+    <section class="section" v-if="testimonials && testimonials.length > 0">
+      <div class="container">
+        <div class="section-title">
+          <h2>Customer <span class="text-gradient">Testimonials</span></h2>
+          <p>What our happy customers say about CleanAtDoorstep.</p>
+        </div>
+        <div class="grid grid-3 gap-3">
+          <div v-for="(t, i) in testimonials" :key="i" class="glass-card fade-in-up" :class="'delay-' + (i+1)" style="position:relative">
+            <div style="font-size:3rem; color:var(--border-color); position:absolute; top:10px; right:20px; font-family:serif; line-height:1">""</div>
+            <div style="color:var(--accent-amber); font-size:1.1rem; margin-bottom:0.75rem;">⭐⭐⭐⭐⭐</div>
+            <p style="font-style:italic;margin-bottom:1.5rem;position:relative;z-index:1;color:var(--text-secondary);">"{{ t.text }}"</p>
+            <div class="flex items-center gap-2">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-btn);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.8rem">{{ t.name.charAt(0) }}</div>
+              <div><div style="font-weight:600;font-size:0.9rem">{{ t.name }}</div><div class="text-muted" style="font-size:0.75rem">{{ t.role }}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Trusted by Customers Stats -->
     <section class="section" style="padding-top:0;">
       <div class="container">
@@ -249,27 +270,39 @@
       </div>
     </section>
 
-    <!-- Testimonials -->
+
+    <!-- Services -->
     <section class="section">
       <div class="container">
         <div class="section-title">
-          <h2>Customer <span class="text-gradient">Testimonials</span></h2>
-          <p>What our happy customers say about CleanAtDoorstep.</p>
+          <h2>Our <span class="text-gradient">Services</span></h2>
+          <p>Professional vehicle detailing packages for every need.</p>
         </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="(t, i) in testimonials" :key="i" class="glass-card fade-in-up" :class="'delay-' + (i+1)" style="position:relative">
-            <div style="font-size:3rem; color:var(--border-color); position:absolute; top:10px; right:20px; font-family:serif; line-height:1">""</div>
-            <div style="color:var(--accent-amber); font-size:1.1rem; margin-bottom:0.75rem;">⭐⭐⭐⭐⭐</div>
-            <p style="font-style:italic;margin-bottom:1.5rem;position:relative;z-index:1;color:var(--text-secondary);">"{{ t.text }}"</p>
-            <div class="flex items-center gap-2">
-              <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-btn);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.8rem">{{ t.name.charAt(0) }}</div>
-              <div><div style="font-weight:600;font-size:0.9rem">{{ t.name }}</div><div class="text-muted" style="font-size:0.75rem">{{ t.role }}</div></div>
+        <div class="flex gap-2 justify-center" style="margin-bottom:2rem;flex-wrap:wrap">
+          <button v-for="f in filters" :key="f.value" class="btn btn-sm" :class="activeFilter === f.value ? 'btn-primary' : 'btn-outline'" @click="activeFilter = f.value">{{ f.label }}</button>
+        </div>
+        <div v-if="loadingServices" class="text-center text-muted" style="padding:3rem">Loading packages...</div>
+        <div v-else class="grid grid-3 gap-3">
+          <div v-for="pkg in filteredPackages" :key="pkg.id" class="glass-card">
+            <div class="flex justify-between items-center" style="margin-bottom:0.75rem">
+              <span class="badge badge-cyan" style="text-transform: uppercase;">{{ pkg.vehicle_type }}</span>
+              <span v-if="pkg.frequency_days >= 30" class="badge badge-emerald">Monthly</span>
+              <span v-else class="badge badge-violet">One-Time</span>
+              <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white; margin-left: auto;">{{ pkg.custom_badge }}</span>
             </div>
+            <h4 style="margin-bottom:0.5rem">{{ pkg.name }}</h4>
+            <p class="text-muted" style="font-size:0.85rem;line-height:1.6;margin-bottom:1rem">{{ pkg.description }}</p>
+            <div class="flex justify-between items-center">
+              <div><span style="font-size:1.5rem;font-weight:700;color:var(--accent-cyan)">₹{{ pkg.price }}</span><span v-if="pkg.frequency_days >= 30" class="text-muted" style="font-size:0.8rem"> / month</span></div>
+              <router-link to="/register" class="btn btn-primary btn-sm">Book Now</router-link>
+            </div>
+            <div v-if="pkg.max_bookings > 1" class="text-muted" style="font-size:0.75rem;margin-top:0.5rem">Includes {{ pkg.max_bookings }} washes</div>
           </div>
         </div>
+        <div v-if="!loadingServices && filteredPackages.length === 0" class="empty-state"><div class="empty-icon">📦</div><p>No packages found for this category.</p></div>
       </div>
     </section>
-    
+
     <!-- Partner Feedback -->
     <section class="section" style="background:var(--bg-secondary)">
       <div class="container">
@@ -337,26 +370,6 @@
           </div>
         </div>
       </transition>
-    </section>
-
-    <!-- FAQ -->
-    <section class="section">
-      <div class="container" style="max-width:800px">
-        <div class="section-title">
-          <h2>Frequently Asked <span class="text-gradient">Questions</span></h2>
-          <p>Everything you need to know about our services.</p>
-        </div>
-        <div v-if="faqs.length > 0" style="display:flex;flex-direction:column;gap:1rem">
-          <div v-for="(faq, i) in faqs" :key="faq.id || i" class="glass-card" style="padding:1.25rem;cursor:pointer" @click="toggleFaq(i)">
-            <div class="flex justify-between items-center">
-              <h4 style="font-size:1.05rem;margin:0">{{ faq.question }}</h4>
-              <span style="font-size:1.5rem;color:var(--accent-cyan);transition:transform 0.3s" :style="{ transform: faq.open ? 'rotate(45deg)' : 'rotate(0)' }">+</span>
-            </div>
-            <p v-if="faq.open" class="text-secondary" style="margin-top:1rem;font-size:0.95rem;animation:fadeInUp 0.3s ease">{{ faq.answer }}</p>
-          </div>
-        </div>
-        <div v-else class="text-center text-muted" style="padding:2rem;">No FAQs available.</div>
-      </div>
     </section>
 
     <!-- Franchise Form -->
@@ -431,6 +444,26 @@
             </form>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="container" style="max-width:800px">
+        <div class="section-title">
+          <h2>Frequently Asked <span class="text-gradient">Questions</span></h2>
+          <p>Everything you need to know about our services.</p>
+        </div>
+        <div v-if="faqs.length > 0" style="display:flex;flex-direction:column;gap:1rem">
+          <div v-for="(faq, i) in faqs" :key="faq.id || i" class="glass-card" style="padding:1.25rem;cursor:pointer" @click="toggleFaq(i)">
+            <div class="flex justify-between items-center">
+              <h4 style="font-size:1.05rem;margin:0">{{ faq.question }}</h4>
+              <span style="font-size:1.5rem;color:var(--accent-cyan);transition:transform 0.3s" :style="{ transform: faq.open ? 'rotate(45deg)' : 'rotate(0)' }">+</span>
+            </div>
+            <p v-if="faq.open" class="text-secondary" style="margin-top:1rem;font-size:0.95rem;animation:fadeInUp 0.3s ease">{{ faq.answer }}</p>
+          </div>
+        </div>
+        <div v-else class="text-center text-muted" style="padding:2rem;">No FAQs available.</div>
       </div>
     </section>
 
@@ -513,9 +546,25 @@ export default {
   name: 'HomeView',
   computed: {
     // currentBanner removed as it is no longer used
+    filteredPackages() {
+      if (this.activeFilter === 'all') return this.packages;
+      return this.packages.filter(p => p.vehicle_type === this.activeFilter);
+    },
   },
   data() {
     return {
+      packages: [],
+      loadingServices: true,
+      activeFilter: 'all',
+      filters: [
+        { label: 'All', value: 'all' },
+        { label: 'Hatchback', value: 'hatchback' },
+        { label: 'Sedan', value: 'sedan' },
+        { label: 'SUV', value: 'suv' },
+        { label: 'Commercial', value: 'commercial' },
+        { label: 'Bus', value: 'bus' },
+        { label: 'Volvo Bus', value: 'volvo_bus' },
+      ],
       lightboxOpen: false,
       lightboxFeedback: null,
       partnerSubmitted: false,
@@ -546,6 +595,7 @@ export default {
     };
   },
   mounted() {
+    this.fetchPackages();
     this.fetchOffers();
     this.fetchBanners();
     this.fetchPartners();
@@ -555,6 +605,15 @@ export default {
     this.fetchAboutUs();
   },
   methods: {
+    async fetchPackages() {
+      try {
+        const { data } = await axios.get('/api/packages');
+        this.packages = data;
+      } catch (e) {
+        console.error('Failed to fetch packages:', e);
+      }
+      this.loadingServices = false;
+    },
     async fetchBanners() {
       try {
         const response = await fetch('/api/banners');
@@ -1423,6 +1482,7 @@ export default {
   color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 2rem;
+  white-space: pre-wrap;
 }
 .features-grid {
   display: grid;
