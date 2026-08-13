@@ -23,6 +23,7 @@ use App\Http\Controllers\FaqController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\PaymentGatewayController;
+use App\Http\Controllers\CashfreeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,6 +72,9 @@ Route::get('/blog',       [BlogController::class, 'index']);
 Route::post('/partner/apply', [PartnerController::class, 'store']);
 Route::get('/blog/{slug}', [BlogController::class, 'show']);
 
+// Cashfree return URL (public — redirect from Cashfree after checkout)
+Route::get('/cashfree/return', [CashfreeController::class, 'handleReturn']);
+
 // ── Protected Routes (Sanctum) ───────────────────────────────────────────
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -88,6 +92,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings',              [BookingController::class, 'createBooking']);
     Route::post('/bookings/{id}/cancel',  [BookingController::class, 'cancelBooking']);
     Route::post('/bookings/{id}/postpone',[BookingController::class, 'postponeBooking']);
+
+    // Cashfree Payment
+    Route::post('/cashfree/create-order',       [CashfreeController::class, 'createOrder']);
+    Route::get('/cashfree/verify/{orderId}',    [CashfreeController::class, 'verifyPayment']);
 
     // Feedback / Reviews
     Route::post('/feedback',                      [FeedbackController::class, 'store']);

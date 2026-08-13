@@ -22,6 +22,9 @@ class Booking extends Model
         'total_price',
         'addon_services',
         'addon_price',
+        'cashfree_order_id',
+        'cashfree_payment_session_id',
+        'cashfree_payment_id',
     ];
 
     protected $casts = [

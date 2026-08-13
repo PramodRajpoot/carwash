@@ -15,6 +15,9 @@ Route::get('/clear-cache-now', function () {
     return 'Cache cleared';
 });
 
+// Cashfree payment return — redirect back into SPA
+Route::get('/cashfree/return', [\App\Http\Controllers\CashfreeController::class, 'handleReturn']);
+
 Route::get('/{any}', function () {
     return view('app');
 })->where('any', '.*');
