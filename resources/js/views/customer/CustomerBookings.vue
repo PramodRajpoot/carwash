@@ -135,16 +135,9 @@
               </select>
             </div>
           </div>
-          <div class="form-group"><label>Payment Method</label>
-            <select v-model="bf.payment_method" class="form-select"><option value="cod">Cash on Delivery</option><option value="online">Pay Online (Cashfree)</option><option value="subscription">Subscription</option></select>
-          </div>
-          <div v-if="bf.payment_method === 'online'" style="background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(6,182,212,0.08)); border: 1px solid rgba(99,102,241,0.2); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.2rem;">🔒</span>
-            <span style="font-size: 0.85rem; color: var(--text-secondary);">You will be redirected to Cashfree's secure checkout to complete payment.</span>
-          </div>
           <div class="form-group"><label>Coupon Code</label><input v-model="bf.coupon_code" class="form-input" placeholder="e.g. WELCOME10"></div>
           <div class="flex gap-2" style="margin-top:0.5rem">
-            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">{{ bookingLoading ? 'Processing...' : (bf.payment_method === 'online' ? 'Book & Pay Now' : 'Confirm Booking') }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">{{ bookingLoading ? 'Processing...' : 'Book & Pay Now' }}</button>
             <button type="button" class="btn btn-ghost" @click="showBookingModal = false">Cancel</button>
           </div>
         </form>
@@ -159,7 +152,7 @@ import Swal from 'sweetalert2';
 
 export default {
   name: 'CustomerBookings',
-  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'cod', coupon_code: '', addon_ids: [] }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10 }; },
+  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [] }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10 }; },
   computed: {
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;

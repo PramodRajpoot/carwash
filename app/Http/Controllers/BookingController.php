@@ -66,7 +66,7 @@ class BookingController extends Controller
             'package_id' => 'required|exists:service_packages,id',
             'booking_date' => 'required|date|after_or_equal:today',
             'slot_time' => 'required|string',
-            'payment_method' => 'required|string|in:online,cod,subscription',
+            'payment_method' => 'required|string|in:online',
             'coupon_code' => 'nullable|string',
             'addon_ids' => 'nullable|array',
             'addon_ids.*' => 'exists:service_packages,id',
