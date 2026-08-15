@@ -354,8 +354,8 @@ export default {
         if (data.status === 'success' && data.payment_status === 'paid') {
           Swal.fire({
             icon: 'success',
-            title: 'Payment Successful! 🎉',
-            html: `<p>Your booking <strong>#${data.booking_id}</strong> has been confirmed.</p><p>Payment received via Cashfree.</p>`,
+            title: 'Booking Confirmed! 🎉',
+            html: `<p style="font-size:1.1rem; margin-bottom:0.5rem;">Your car wash is successfully registered!</p><p>Booking <strong>#${data.booking_id}</strong> has been confirmed.<br>Payment received successfully.</p>`,
             confirmButtonText: 'Great!',
             confirmButtonColor: '#10b981'
           });
@@ -404,14 +404,13 @@ export default {
   mounted() {
     this.loadData();
 
-    // Check if returning from Cashfree payment
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    // Check if returning from Cashfree payment (query param in history-mode URL)
+    const urlParams = new URLSearchParams(window.location.search);
     const cashfreeOrderId = urlParams.get('cashfree_order_id');
     if (cashfreeOrderId) {
       this.verifyCashfreePayment(cashfreeOrderId);
-      // Clean up the URL
-      const cleanHash = window.location.hash.split('?')[0];
-      history.replaceState(null, '', window.location.pathname + cleanHash);
+      // Clean up the URL — remove query params
+      history.replaceState(null, '', window.location.pathname);
     }
   },
 };

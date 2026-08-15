@@ -78,9 +78,16 @@ export default function DashboardScreen() {
   const handleNavigationStateChange = async (navState: any) => {
     setCanGoBack(navState.canGoBack);
 
-    // If the webview navigates back to the root or login page, it implies logout from the web app
+    // If the webview navigates back to the login page, it implies logout from the web app.
+    // Only treat exact root URL (no query/hash) as logout — payment redirects include query params.
     const url = navState.url;
-    if (url === `${API_BASE}/login` || url === `${API_BASE}/`) {
+    const isLoginPage = url === `${API_BASE}/login` || url === `${API_BASE}/login/`;
+    const isExactRoot = url === `${API_BASE}/` || url === API_BASE;
+
+    // Skip cashfree return URLs — these are part of the payment flow, not logout
+    const isCashfreeReturn = url.includes('/cashfree/return');
+
+    if (!isCashfreeReturn && (isLoginPage || isExactRoot)) {
       await AsyncStorage.removeItem('userToken');
       await AsyncStorage.removeItem('userData');
       router.replace('/');

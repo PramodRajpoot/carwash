@@ -232,6 +232,6 @@ class CashfreeController extends Controller
         }
 
         // Redirect back into the SPA with the order_id as a query param
-        return redirect('/#/customer/bookings?cashfree_order_id=' . urlencode($orderId));
+        return redirect('/customer/bookings?cashfree_order_id=' . urlencode($orderId));
     }
 }
