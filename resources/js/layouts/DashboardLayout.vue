@@ -99,6 +99,9 @@
           <h1>{{ pageTitle }}</h1>
         </div>
         <div class="user-info">
+          <button class="theme-toggle-inline" @click="toggleTheme" :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+            {{ isDark ? '☀️' : '🌙' }}
+          </button>
           <div class="user-menu-wrapper" style="position:relative">
             <div class="avatar avatar-btn" @click="showUserMenu = !showUserMenu" tabindex="0" @blur="delayCloseMenu">
               <img v-if="user.avatar" :src="'/' + user.avatar" class="avatar-img-header" alt="" />
@@ -121,9 +124,6 @@
               </div>
             </transition>
           </div>
-          <button class="theme-toggle-inline" @click="toggleTheme" :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-            {{ isDark ? '☀️' : '🌙' }}
-          </button>
         </div>
       </div>
       <router-view />
