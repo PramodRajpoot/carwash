@@ -85,10 +85,27 @@ class AuthController extends Controller
             'referred_by'           => $referredBy,
             'referral_coins'        => 0,
             'reward_coins'          => 0,
-            'e_points'              => 0,
+            'e_points'              => 50,
             'pending_epoints'       => 0,
             'first_booking_discount' => $firstBookingDiscount,
             'status'                => 'active',
+        ]);
+
+        // Award 50 confirmed E-Points as welcome bonus
+        WalletTransaction::create([
+            'user_id'     => $user->id,
+            'type'        => 'credit',
+            'amount'      => 50,
+            'source'      => 'welcome_bonus',
+            'status'      => 'confirmed',
+            'description' => 'Welcome bonus — 50 E-Points for joining CleanAtDoorstep!',
+        ]);
+
+        NotificationLog::create([
+            'user_id' => $user->id,
+            'type'    => 'wallet_credit',
+            'title'   => 'Welcome Bonus!',
+            'body'    => 'You earned 50 E-Points as a welcome bonus for joining CleanAtDoorstep!',
         ]);
 
         if ($user->role === 'franchisee') {
@@ -112,7 +129,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status'       => 'success',
-            'message'      => 'Registered successfully. Welcome to CleanAtDoorstep!',
+            'message'      => 'Registered successfully. Welcome to CleanAtDoorstep! You earned 50 E-Points as a welcome bonus!',
             'access_token' => $token,
             'token_type'   => 'Bearer',
             'user'         => $user,

@@ -46,9 +46,26 @@ class GoogleAuthController extends Controller
                     'role'          => 'customer',
                     'referral_code' => $referralCode,
                     'status'        => 'active',
-                    'e_points'      => 0,
+                    'e_points'      => 50,
                     'pending_epoints' => 0,
                     'avatar'        => $googleUser->getAvatar(),
+                ]);
+
+                // Award 50 confirmed E-Points as welcome bonus
+                \App\Models\WalletTransaction::create([
+                    'user_id'     => $user->id,
+                    'type'        => 'credit',
+                    'amount'      => 50,
+                    'source'      => 'welcome_bonus',
+                    'status'      => 'confirmed',
+                    'description' => 'Welcome bonus — 50 E-Points for joining CleanAtDoorstep!',
+                ]);
+
+                \App\Models\NotificationLog::create([
+                    'user_id' => $user->id,
+                    'type'    => 'wallet_credit',
+                    'title'   => 'Welcome Bonus!',
+                    'body'    => 'You earned 50 E-Points as a welcome bonus for joining CleanAtDoorstep!',
                 ]);
             } else {
                 // If user exists but google_id is not set, update it
