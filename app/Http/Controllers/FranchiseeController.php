@@ -30,9 +30,9 @@ class FranchiseeController extends Controller
         $monthly = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereYear('booking_date', $now->year)->whereMonth('booking_date', $now->month)->sum('total_price');
         $yearly  = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereYear('booking_date', $now->year)->sum('total_price');
 
-        $totalOrders     = Booking::where('franchisee_id', $franchisee->id)->count();
-        $pendingOrders   = Booking::where('franchisee_id', $franchisee->id)->whereIn('status', ['pending', 'assigned'])->count();
-        $completedOrders = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->count();
+        $totalOrders     = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->count();
+        $pendingOrders   = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->whereIn('status', ['pending', 'assigned'])->count();
+        $completedOrders = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->where('status', 'completed')->count();
 
         // Active subscriptions for customers who have bookings at this franchise
         $customerIds = Booking::where('franchisee_id', $franchisee->id)
@@ -85,6 +85,7 @@ class FranchiseeController extends Controller
         $franchisee = $this->getFranchisee($request);
 
         $orders = Booking::where('franchisee_id', $franchisee->id)
+            ->where('payment_status', 'paid')
             ->with(['customer:id,name,phone', 'vehicle'])
             ->orderBy('booking_date', 'desc')
             ->get();
@@ -113,10 +114,8 @@ class FranchiseeController extends Controller
                 if ($referrer) {
                     $commission = (int) round($booking->total_price * 0.10);
                     $referrer->increment('e_points', $commission);
-                    $referrer->decrement('pending_epoints', $commission);
-                    if ($referrer->pending_epoints < 0) {
-                        $referrer->update(['pending_epoints' => 0]);
-                    }
+                    $referrer->pending_epoints = max(0, $referrer->pending_epoints - $commission);
+                    $referrer->save();
 
                     \App\Models\WalletTransaction::create([
                         'user_id'     => $referrer->id,

@@ -263,10 +263,8 @@ class BookingController extends Controller
                 $referrer = User::find($booking->customer->referred_by);
                 if ($referrer) {
                     $pendingCommission = (int) round($booking->total_price * 0.10);
-                    $referrer->decrement('pending_epoints', $pendingCommission);
-                    if ($referrer->pending_epoints < 0) {
-                        $referrer->update(['pending_epoints' => 0]);
-                    }
+                    $referrer->pending_epoints = max(0, $referrer->pending_epoints - $pendingCommission);
+                    $referrer->save();
                 }
             }
         }

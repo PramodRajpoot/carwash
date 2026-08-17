@@ -103,13 +103,7 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label>Payment Status</label>
-            <select v-model="form.payment_status" class="form-select" required>
-              <option value="unpaid">Unpaid / Collect Cash</option>
-              <option value="paid">Paid</option>
-            </select>
-          </div>
+
 
           <!-- If postponed selected, show new inputs -->
           <div v-if="form.status === 'postponed'" style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
