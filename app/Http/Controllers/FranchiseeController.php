@@ -110,22 +110,28 @@ class FranchiseeController extends Controller
             $customer = $booking->customer;
             if ($customer && $customer->referred_by && $customer->first_booking_discount) {
                 $referrer = \App\Models\User::find($customer->referred_by);
-                if ($referrer && $referrer->pending_epoints >= 10) {
-                    $referrer->decrement('pending_epoints', 10);
-                    $referrer->increment('e_points', 10);
+                if ($referrer) {
+                    $commission = (int) round($booking->total_price * 0.10);
+                    $referrer->increment('e_points', $commission);
+                    $referrer->decrement('pending_epoints', $commission);
+                    if ($referrer->pending_epoints < 0) {
+                        $referrer->update(['pending_epoints' => 0]);
+                    }
 
-                    \App\Models\WalletTransaction::where('user_id', $referrer->id)
-                        ->where('source', 'referral')
-                        ->where('status', 'pending')
-                        ->latest()
-                        ->first()
-                        ?->update(['status' => 'confirmed']);
+                    \App\Models\WalletTransaction::create([
+                        'user_id'     => $referrer->id,
+                        'type'        => 'credit',
+                        'amount'      => $commission,
+                        'source'      => 'referral',
+                        'status'      => 'confirmed',
+                        'description' => "10% commission for referring {$customer->name}",
+                    ]);
 
                     \App\Models\NotificationLog::create([
                         'user_id' => $referrer->id,
                         'type'    => 'referral_reward',
-                        'title'   => 'E-Points Confirmed!',
-                        'body'    => "Your referred customer {$customer->name} completed their first booking. 10 E-Points added to your wallet!",
+                        'title'   => 'Commission Earned!',
+                        'body'    => "Your referred customer {$customer->name} completed their first booking. You earned {$commission} E-Points (10%)!",
                     ]);
                 }
 

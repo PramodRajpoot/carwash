@@ -178,7 +178,7 @@ export default function RegisterScreen() {
                 onChangeText={setReferralCode}
               />
               {referralCode.length > 0 && (
-                <Text style={styles.discountText}>🎉 10% discount applied on your first booking!</Text>
+                <Text style={styles.discountText}>🎉 10% discount on first booking + 50 E-Points bonus!</Text>
               )}
             </View>
 

@@ -33,8 +33,9 @@
       </div>
       <p class="text-muted" style="font-size:0.82rem;margin-top:0.6rem">
         When a friend registers with your code:<br>
-        • You earn <strong style="color:var(--accent-emerald)">10 E-Points (pending)</strong> instantly<br>
-        • Points are <strong style="color:var(--accent-emerald)">confirmed</strong> after their first completed service
+        • Your friend gets a <strong style="color:var(--accent-emerald)">10% discount</strong> and <strong style="color:var(--accent-emerald)">50 E-Points bonus</strong><br>
+        • You earn <strong style="color:var(--accent-emerald)">10% of their first booking value</strong> in E-Points<br>
+        • Points are <strong style="color:var(--accent-emerald)">credited to you</strong> after their first completed service
       </p>
 
       <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);">
