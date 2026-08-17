@@ -9,6 +9,17 @@ class PaymentGatewayController extends Controller
 {
     private $defaultGateways = [
         [
+            'name' => 'Cashfree',
+            'slug' => 'cashfree',
+            'config' => [
+                'client_id' => '',
+                'client_secret' => '',
+                'environment' => 'sandbox'
+            ],
+            'is_default' => true,
+            'is_active' => true
+        ],
+        [
             'name' => 'Stripe',
             'slug' => 'stripe',
             'config' => [
@@ -16,7 +27,7 @@ class PaymentGatewayController extends Controller
                 'secret_key' => ''
             ],
             'is_default' => true,
-            'is_active' => true
+            'is_active' => false
         ],
         [
             'name' => 'Razorpay',

@@ -30,6 +30,7 @@ export default function RegisterScreen() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
   
   const [loading, setLoading] = useState(false);
 
@@ -61,7 +62,8 @@ export default function RegisterScreen() {
         phone,
         password,
         password_confirmation: passwordConfirm,
-        role: 'customer'
+        role: 'customer',
+        referred_by_code: referralCode,
       });
 
       if (response.data.status === 'success') {
@@ -164,6 +166,20 @@ export default function RegisterScreen() {
               <TouchableOpacity onPress={() => setShowPasswordConfirm(!showPasswordConfirm)} style={styles.eyeButton}>
                 <Text style={styles.eyeIcon}>{showPasswordConfirm ? '🙈' : '👁️'}</Text>
               </TouchableOpacity>
+            </View>
+
+            <View style={styles.referralContainer}>
+              <TextInput
+                style={[styles.input, { marginBottom: referralCode ? 4 : 16 }]}
+                placeholder="Referral Code (Optional)"
+                placeholderTextColor="#a0aec0"
+                autoCapitalize="characters"
+                value={referralCode}
+                onChangeText={setReferralCode}
+              />
+              {referralCode.length > 0 && (
+                <Text style={styles.discountText}>🎉 10% discount applied on your first booking!</Text>
+              )}
             </View>
 
             <TouchableOpacity 
@@ -296,5 +312,14 @@ const styles = StyleSheet.create({
     color: '#00b4d8',
     fontSize: 14,
     fontWeight: '700',
+  },
+  referralContainer: {
+    marginBottom: 0,
+  },
+  discountText: {
+    fontSize: 12,
+    color: '#10b981', // Emerald green
+    marginBottom: 16,
+    marginLeft: 4,
   },
 });

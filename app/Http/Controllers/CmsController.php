@@ -13,8 +13,8 @@ class CmsController extends Controller
         
         if (!$aboutUs) {
             $data = [
-                'title' => 'India\'s Trusted Doorstep Car Care Network',
-                'description' => 'Cleanatdoorstep brings professional car wash and detailing services right to your doorstep. Backed by a growing franchise network, we deliver consistent quality, convenience and trust across the country.',
+                'title' => 'Professional Car Care, Delivered to Your Doorstep',
+                'description' => "Cleanatdoorstep is a nationwide doorstep car cleaning and car wash service company operating through a trusted franchise network. We help car owners save time by bringing professional, hygienic and reliable car care right where they are.\n\nWith a customer-first approach, standardised service processes and quality machinery & chemicals, we build convenience and trust in every visit — for both car owners and our franchise partners.",
                 'images' => [
                     'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800',
                     'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800',

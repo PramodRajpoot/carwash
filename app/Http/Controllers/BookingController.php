@@ -66,7 +66,7 @@ class BookingController extends Controller
             'package_id' => 'required|exists:service_packages,id',
             'booking_date' => 'required|date|after_or_equal:today',
             'slot_time' => 'required|string',
-            'payment_method' => 'required|string|in:online,cod,subscription',
+            'payment_method' => 'required|string|in:online',
             'coupon_code' => 'nullable|string',
             'addon_ids' => 'nullable|array',
             'addon_ids.*' => 'exists:service_packages,id',
@@ -188,6 +188,11 @@ class BookingController extends Controller
             ]);
         }
 
+        // For online payments, mark as pending_payment until Cashfree checkout completes
+        if ($request->payment_method === 'online') {
+            $paymentStatus = 'pending_payment';
+        }
+
         $booking = Booking::create([
             'customer_id' => $user->id,
             'vehicle_id' => $vehicle->id,
@@ -203,11 +208,19 @@ class BookingController extends Controller
             'addon_services' => empty($addonServices) ? null : json_encode($addonServices),
         ]);
 
-        return response()->json([
+        $responseData = [
             'status' => 'success',
             'message' => 'Booking placed successfully',
             'booking' => $booking
-        ], 201);
+        ];
+
+        // Signal frontend to initiate Cashfree checkout
+        if ($request->payment_method === 'online') {
+            $responseData['requires_payment'] = true;
+            $responseData['message'] = 'Booking created. Please complete payment.';
+        }
+
+        return response()->json($responseData, 201);
     }
 
     public function cancelBooking(Request $request, $id)

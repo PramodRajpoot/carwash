@@ -6,7 +6,7 @@
     </div>
     <div v-if="bookings.length" class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Price</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="b in paginatedBookings" :key="b.id">
             <td>{{ b.booking_date }}</td>
@@ -21,9 +21,18 @@
               </div>
             </td>
             <td>₹{{ b.total_price }}</td>
+            <td>
+              <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid</span>
+              <span v-else-if="b.payment_status === 'pending_payment'" class="badge badge-amber" style="font-size:0.7rem;">⏳ Pending</span>
+              <span v-else-if="b.payment_status === 'failed'" class="badge badge-rose" style="font-size:0.7rem;">✗ Failed</span>
+              <span v-else class="badge badge-cyan" style="font-size:0.7rem;">{{ b.payment_method === 'cod' ? 'COD' : 'Unpaid' }}</span>
+            </td>
             <td><span class="badge" :class="statusBadge(b.status)">{{ b.status }}</span></td>
             <td>
-              <div class="flex gap-1">
+              <div class="flex gap-1" style="flex-wrap: wrap;">
+                <button v-if="needsPayment(b)" class="btn btn-sm" style="background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; border: none; font-weight: 600;" @click="retryPayment(b)" :disabled="payingBookingId === b.id">
+                  {{ payingBookingId === b.id ? 'Processing...' : '💳 Pay Now' }}
+                </button>
                 <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
               </div>
             </td>
@@ -126,12 +135,9 @@
               </select>
             </div>
           </div>
-          <div class="form-group"><label>Payment Method</label>
-            <select v-model="bf.payment_method" class="form-select"><option value="cod">Cash on Delivery</option><option value="online">Online</option><option value="subscription">Subscription</option></select>
-          </div>
           <div class="form-group"><label>Coupon Code</label><input v-model="bf.coupon_code" class="form-input" placeholder="e.g. WELCOME10"></div>
           <div class="flex gap-2" style="margin-top:0.5rem">
-            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">{{ bookingLoading ? 'Booking...' : 'Confirm Booking' }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">{{ bookingLoading ? 'Processing...' : 'Book & Pay Now' }}</button>
             <button type="button" class="btn btn-ghost" @click="showBookingModal = false">Cancel</button>
           </div>
         </form>
@@ -146,7 +152,7 @@ import Swal from 'sweetalert2';
 
 export default {
   name: 'CustomerBookings',
-  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'cod', coupon_code: '', addon_ids: [] }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10 }; },
+  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [] }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10 }; },
   computed: {
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -194,6 +200,21 @@ export default {
     statusBadge(s) { return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan'; },
     canCancel(b) { return ['pending', 'assigned'].includes(b.status); },
     canPostpone(b) { return ['pending', 'assigned'].includes(b.status); },
+    needsPayment(b) {
+      return b.payment_method === 'online' && 
+             b.payment_status !== 'paid' && 
+             b.status !== 'cancelled';
+    },
+
+    /**
+     * Retry payment for an existing booking with pending payment.
+     */
+    async retryPayment(booking) {
+      this.payingBookingId = booking.id;
+      await this.initiateCashfreePayment(booking.id);
+      this.payingBookingId = null;
+    },
+
     async loadData() {
       try {
         const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
@@ -236,17 +257,123 @@ export default {
       } catch (e) { console.error(e); }
       this.postponeSlotsLoading = false;
     },
+
+    /**
+     * Create booking and initiate Cashfree checkout if online payment.
+     */
     async createBooking() {
       this.bookingMsg = ''; this.bookingLoading = true;
       try {
         const { data } = await axios.post('/api/bookings', this.bf);
+
+        // If online payment is required, initiate Cashfree checkout
+        if (data.requires_payment && data.booking) {
+          await this.initiateCashfreePayment(data.booking.id);
+          return; // bookingLoading will be reset inside the payment handler
+        }
+
+        // For COD / subscription, just show success
         this.bookingMsg = data.message;
         this.bookingError = false;
         this.showBookingModal = false;
+        Swal.fire({
+          icon: 'success',
+          title: 'Booking Confirmed!',
+          text: data.message,
+          timer: 3000,
+          showConfirmButton: false
+        });
         this.loadData();
-      } catch (e) { this.bookingMsg = e.response?.data?.message || 'Booking failed'; this.bookingError = true; }
+      } catch (e) {
+        this.bookingMsg = e.response?.data?.message || 'Booking failed';
+        this.bookingError = true;
+      }
       this.bookingLoading = false;
     },
+
+    /**
+     * Initiate Cashfree payment checkout.
+     */
+    async initiateCashfreePayment(bookingId) {
+      try {
+        // Step 1: Create Cashfree order on server
+        const { data } = await axios.post('/api/cashfree/create-order', {
+          booking_id: bookingId
+        });
+
+        if (data.status !== 'success' || !data.payment_session_id) {
+          Swal.fire('Payment Error', data.message || 'Could not initiate payment.', 'error');
+          this.bookingLoading = false;
+          return;
+        }
+
+        // Step 2: Open Cashfree Checkout using the JS SDK
+        const cashfreeMode = data.environment === 'production' ? 'production' : 'sandbox';
+
+        // eslint-disable-next-line no-undef
+        const cashfreeInstance = Cashfree({ mode: cashfreeMode });
+
+        this.showBookingModal = false;
+        this.bookingLoading = false;
+
+        cashfreeInstance.checkout({
+          paymentSessionId: data.payment_session_id,
+          redirectTarget: '_self',
+          returnUrl: window.location.origin + '/cashfree/return?order_id={order_id}',
+        }).then((result) => {
+          if (result.error) {
+            console.error('Cashfree checkout error:', result.error);
+            Swal.fire('Payment Error', result.error.message || 'Payment could not be completed.', 'error');
+          }
+          if (result.redirect) {
+            console.log('Redirecting to Cashfree...');
+          }
+        });
+
+      } catch (e) {
+        console.error('Cashfree payment error:', e);
+        Swal.fire('Payment Error', e.response?.data?.message || 'Failed to initiate payment. Please try again.', 'error');
+        this.bookingLoading = false;
+      }
+    },
+
+    /**
+     * Verify Cashfree payment after returning from checkout.
+     */
+    async verifyCashfreePayment(orderId) {
+      Swal.fire({
+        title: 'Verifying Payment...',
+        html: 'Please wait while we confirm your payment with Cashfree.',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      try {
+        const { data } = await axios.get(`/api/cashfree/verify/${orderId}`);
+
+        if (data.status === 'success' && data.payment_status === 'paid') {
+          Swal.fire({
+            icon: 'success',
+            title: 'Booking Confirmed! 🎉',
+            html: `<p style="font-size:1.1rem; margin-bottom:0.5rem;">Your car wash is successfully registered!</p><p>Booking <strong>#${data.booking_id}</strong> has been confirmed.<br>Payment received successfully.</p>`,
+            confirmButtonText: 'Great!',
+            confirmButtonColor: '#10b981'
+          });
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Payment Pending',
+            html: `<p>Order status: <strong>${data.order_status || 'Unknown'}</strong></p><p>If you completed the payment, it may take a moment to process. Please refresh the page in a few seconds.</p>`,
+            confirmButtonText: 'OK'
+          });
+        }
+      } catch (e) {
+        Swal.fire('Verification Failed', 'Unable to verify payment status. Please contact support if money was deducted.', 'error');
+      }
+
+      this.loadData();
+    },
+
     async cancel(id) {
       const result = await Swal.fire({
         title: 'Cancel Booking?',
@@ -274,6 +401,17 @@ export default {
       try { await axios.post(`/api/bookings/${this.postponeBooking.id}/postpone`, this.pf); this.postponeBooking = null; this.loadData(); } catch (e) { alert(e.response?.data?.message || 'Failed'); }
     },
   },
-  mounted() { this.loadData(); },
+  mounted() {
+    this.loadData();
+
+    // Check if returning from Cashfree payment (query param in history-mode URL)
+    const urlParams = new URLSearchParams(window.location.search);
+    const cashfreeOrderId = urlParams.get('cashfree_order_id');
+    if (cashfreeOrderId) {
+      this.verifyCashfreePayment(cashfreeOrderId);
+      // Clean up the URL — remove query params
+      history.replaceState(null, '', window.location.pathname);
+    }
+  },
 };
 </script>
