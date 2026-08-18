@@ -208,6 +208,18 @@ class BookingController extends Controller
             'addon_services' => empty($addonServices) ? null : json_encode($addonServices),
         ]);
 
+        // Reward pending e-points to the referrer if this is the customer's first booking
+        if ($user->referred_by && $user->first_booking_discount) {
+            $isFirstBooking = Booking::where('customer_id', $user->id)->count() === 1;
+            if ($isFirstBooking) {
+                $referrer = User::find($user->referred_by);
+                if ($referrer) {
+                    $pendingCommission = (int) round($booking->total_price * 0.10);
+                    $referrer->increment('pending_epoints', $pendingCommission);
+                }
+            }
+        }
+
         $responseData = [
             'status' => 'success',
             'message' => 'Booking placed successfully',
@@ -242,6 +254,20 @@ class BookingController extends Controller
 
         $booking->status = 'cancelled';
         $booking->save();
+
+        // If this was the first booking, revert the pending e-points from the referrer
+        if ($booking->customer->referred_by && $booking->customer->first_booking_discount) {
+            $isFirstBooking = Booking::where('customer_id', $booking->customer_id)
+                ->orderBy('id', 'asc')->first();
+            if ($isFirstBooking && $isFirstBooking->id === $booking->id) {
+                $referrer = User::find($booking->customer->referred_by);
+                if ($referrer) {
+                    $pendingCommission = (int) round($booking->total_price * 0.10);
+                    $referrer->pending_epoints = max(0, $referrer->pending_epoints - $pendingCommission);
+                    $referrer->save();
+                }
+            }
+        }
 
         // Decrement slot count
         $slot = Slot::where('franchisee_id', $booking->franchisee_id)

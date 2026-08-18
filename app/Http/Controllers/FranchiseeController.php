@@ -30,9 +30,9 @@ class FranchiseeController extends Controller
         $monthly = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereYear('booking_date', $now->year)->whereMonth('booking_date', $now->month)->sum('total_price');
         $yearly  = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereYear('booking_date', $now->year)->sum('total_price');
 
-        $totalOrders     = Booking::where('franchisee_id', $franchisee->id)->count();
-        $pendingOrders   = Booking::where('franchisee_id', $franchisee->id)->whereIn('status', ['pending', 'assigned'])->count();
-        $completedOrders = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->count();
+        $totalOrders     = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->count();
+        $pendingOrders   = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->whereIn('status', ['pending', 'assigned'])->count();
+        $completedOrders = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->where('status', 'completed')->count();
 
         // Active subscriptions for customers who have bookings at this franchise
         $customerIds = Booking::where('franchisee_id', $franchisee->id)
@@ -85,6 +85,7 @@ class FranchiseeController extends Controller
         $franchisee = $this->getFranchisee($request);
 
         $orders = Booking::where('franchisee_id', $franchisee->id)
+            ->where('payment_status', 'paid')
             ->with(['customer:id,name,phone', 'vehicle'])
             ->orderBy('booking_date', 'desc')
             ->get();
@@ -110,22 +111,26 @@ class FranchiseeController extends Controller
             $customer = $booking->customer;
             if ($customer && $customer->referred_by && $customer->first_booking_discount) {
                 $referrer = \App\Models\User::find($customer->referred_by);
-                if ($referrer && $referrer->pending_epoints >= 10) {
-                    $referrer->decrement('pending_epoints', 10);
-                    $referrer->increment('e_points', 10);
+                if ($referrer) {
+                    $commission = (int) round($booking->total_price * 0.10);
+                    $referrer->increment('e_points', $commission);
+                    $referrer->pending_epoints = max(0, $referrer->pending_epoints - $commission);
+                    $referrer->save();
 
-                    \App\Models\WalletTransaction::where('user_id', $referrer->id)
-                        ->where('source', 'referral')
-                        ->where('status', 'pending')
-                        ->latest()
-                        ->first()
-                        ?->update(['status' => 'confirmed']);
+                    \App\Models\WalletTransaction::create([
+                        'user_id'     => $referrer->id,
+                        'type'        => 'credit',
+                        'amount'      => $commission,
+                        'source'      => 'referral',
+                        'status'      => 'confirmed',
+                        'description' => "10% commission for referring {$customer->name}",
+                    ]);
 
                     \App\Models\NotificationLog::create([
                         'user_id' => $referrer->id,
                         'type'    => 'referral_reward',
-                        'title'   => 'E-Points Confirmed!',
-                        'body'    => "Your referred customer {$customer->name} completed their first booking. 10 E-Points added to your wallet!",
+                        'title'   => 'Commission Earned!',
+                        'body'    => "Your referred customer {$customer->name} completed their first booking. You earned {$commission} E-Points (10%)!",
                     ]);
                 }
 

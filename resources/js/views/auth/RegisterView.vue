@@ -58,7 +58,7 @@
         <div style="position:relative">
           <label class="reg-label" for="reg-referral">Referral Code <span class="opt-label">(optional)</span></label>
           <input v-model="form.referred_by_code" type="text" class="form-input" placeholder="Referral Code — get 10% off!" id="reg-referral" style="text-transform:uppercase" />
-          <div v-if="form.referred_by_code" style="font-size:0.75rem;color:var(--accent-emerald);margin-top:0.25rem">🎉 10% discount applied on your first booking!</div>
+          <div v-if="form.referred_by_code" style="font-size:0.75rem;color:var(--accent-emerald);margin-top:0.25rem">🎉 10% discount on your first booking + 50 E-Points bonus!</div>
         </div>
 
         <div v-if="serverError" style="color:#ef4444;font-size:0.85rem">{{ serverError }}</div>

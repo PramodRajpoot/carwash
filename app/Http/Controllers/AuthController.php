@@ -46,24 +46,6 @@ class AuthController extends Controller
             if ($referredUser) {
                 $referredBy = $referredUser->id;
 
-                // Referrer gets 10 PENDING E-Points (confirmed after referred user's first booking)
-                $referredUser->increment('pending_epoints', 10);
-                WalletTransaction::create([
-                    'user_id'     => $referredUser->id,
-                    'type'        => 'credit',
-                    'amount'      => 10,
-                    'source'      => 'referral',
-                    'status'      => 'pending',
-                    'description' => "Pending reward for referring {$request->name}",
-                ]);
-
-                NotificationLog::create([
-                    'user_id' => $referredUser->id,
-                    'type'    => 'referral_reward',
-                    'title'   => 'New Referral!',
-                    'body'    => "{$request->name} registered using your referral code. You'll earn 10 E-Points once they complete their first booking.",
-                ]);
-
                 // New customer gets 10% discount on first booking
                 $firstBookingDiscount = true;
             }
@@ -91,21 +73,13 @@ class AuthController extends Controller
             'status'                => 'active',
         ]);
 
-        // Award 50 confirmed E-Points as welcome bonus
         WalletTransaction::create([
             'user_id'     => $user->id,
             'type'        => 'credit',
             'amount'      => 50,
-            'source'      => 'welcome_bonus',
+            'source'      => 'admin', // or 'registration_bonus'
             'status'      => 'confirmed',
-            'description' => 'Welcome bonus — 50 E-Points for joining CleanAtDoorstep!',
-        ]);
-
-        NotificationLog::create([
-            'user_id' => $user->id,
-            'type'    => 'wallet_credit',
-            'title'   => 'Welcome Bonus!',
-            'body'    => 'You earned 50 E-Points as a welcome bonus for joining CleanAtDoorstep!',
+            'description' => "Welcome Bonus: 50 E-Points for registration",
         ]);
 
         if ($user->role === 'franchisee') {

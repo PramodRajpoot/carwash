@@ -74,7 +74,7 @@
           <span style="font-size:1.25rem;font-weight:700;color:var(--accent-cyan);letter-spacing:2px;flex:1">{{ data.referral_code || 'N/A' }}</span>
           <button class="btn btn-sm btn-outline" @click="copy(data.referral_code)">Copy</button>
         </div>
-        <p class="text-muted" style="font-size:0.8rem;margin-top:0.5rem">Share & earn 10 E-Points per successful referral!</p>
+        <p class="text-muted" style="font-size:0.8rem;margin-top:0.5rem">Share & earn 10% commission per successful referral!</p>
         <div class="flex gap-3" style="margin-top:0.75rem">
           <div style="text-align:center">
             <div style="font-size:1.1rem;font-weight:700;color:var(--accent-emerald)">{{ data.e_points }}</div>
