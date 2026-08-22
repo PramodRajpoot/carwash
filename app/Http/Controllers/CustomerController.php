@@ -71,6 +71,7 @@ class CustomerController extends Controller
             'active_coupons'        => $activeCoupons,
             'unread_notifications'  => $unreadNotifications,
             'first_booking_discount' => $user->first_booking_discount,
+            'earning_money'         => $user->earning_money,
         ]);
     }
 
@@ -233,6 +234,7 @@ class CustomerController extends Controller
             'reward_coins'        => $user->reward_coins,
             'e_points'            => $user->e_points,
             'pending_epoints'     => $user->pending_epoints,
+            'earning_money'       => $user->earning_money,
             'total_referrals'     => $referredUsers->count(),
             'pending_referrals'   => $pendingReferrals,
             'confirmed_referrals' => $confirmedReferrals,

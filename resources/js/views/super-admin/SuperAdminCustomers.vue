@@ -146,12 +146,16 @@
             <!-- Overview Tab -->
             <div v-if="activeTab === 'overview'" class="grid-2">
               <div class="stat-card glass-card">
-                <div class="text-muted text-sm" style="text-transform: uppercase;">Reward Points</div>
-                <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color);">{{ selectedCustomer.reward_coins || 0 }}</div>
+                <div class="text-muted text-sm" style="text-transform: uppercase;">Earning Money</div>
+                <div style="font-size: 1.5rem; font-weight: 600; color: var(--accent-cyan);">₹{{ parseFloat(selectedCustomer.earning_money || 0).toFixed(2) }}</div>
               </div>
               <div class="stat-card glass-card">
                 <div class="text-muted text-sm" style="text-transform: uppercase;">ePoints</div>
                 <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color);">{{ selectedCustomer.e_points || 0 }}</div>
+              </div>
+              <div class="stat-card glass-card">
+                <div class="text-muted text-sm" style="text-transform: uppercase;">Reward Points</div>
+                <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color);">{{ selectedCustomer.reward_coins || 0 }}</div>
               </div>
               <div class="stat-card glass-card">
                 <div class="text-muted text-sm" style="text-transform: uppercase;">Total Vehicles</div>
@@ -209,7 +213,11 @@
                   <tbody>
                     <tr v-for="req in selectedCustomer.withdrawal_requests" :key="req.id">
                       <td>{{ formatDate(req.created_at) }}</td>
-                      <td>{{ req.amount }} pts</td>
+                      <td>
+                        <span v-if="req.type === 'earning_money'">₹{{ parseFloat(req.amount).toFixed(2) }}</span>
+                        <span v-else>{{ req.amount }} pts</span>
+                        <span class="text-xs text-muted" style="margin-left: 0.25rem;">({{ req.type === 'earning_money' ? 'Earning Money' : 'E-Points' }})</span>
+                      </td>
                       <td>
                         <span :class="['badge', req.status === 'approved' ? 'badge-success' : (req.status === 'rejected' ? 'badge-danger' : 'badge-warning')]">{{ req.status }}</span>
                       </td>
@@ -233,7 +241,10 @@
                           {{ trx.type === 'credit' ? '+' : '-' }}
                         </span>
                       </td>
-                      <td>{{ trx.amount }} pts</td>
+                      <td>
+                        <span v-if="trx.source && (trx.source.includes('earning') || trx.source === 'referral_commission')">₹{{ trx.amount }}</span>
+                        <span v-else>{{ trx.amount }} pts</span>
+                      </td>
                       <td>{{ trx.description }}</td>
                     </tr>
                   </tbody>

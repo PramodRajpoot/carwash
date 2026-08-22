@@ -38,20 +38,24 @@ class WalletController extends Controller
     public function requestWithdrawal(Request $request)
     {
         $request->validate([
-            'amount' => 'required|numeric|min:1',
+            'amount' => 'required|numeric|min:2000',
         ]);
 
         $user = $request->user();
         $amount = $request->amount;
 
-        if ($user->e_points < $amount) {
-            return response()->json(['message' => 'Insufficient E-Points balance.'], 400);
+        if ($user->earning_money < $amount) {
+            return response()->json(['message' => 'Insufficient Earning Money balance.'], 400);
+        }
+
+        if ($amount < 2000) {
+            return response()->json(['message' => 'Minimum withdrawal amount is ₹2,000.'], 400);
         }
 
         DB::beginTransaction();
         try {
-            // Deduct the points immediately
-            $user->e_points -= $amount;
+            // Deduct earning money immediately
+            $user->earning_money -= $amount;
             $user->save();
 
             // Record transaction
@@ -59,9 +63,9 @@ class WalletController extends Controller
                 'user_id'     => $user->id,
                 'type'        => 'debit',
                 'amount'      => $amount,
-                'source'      => 'withdrawal',
+                'source'      => 'earning_withdrawal',
                 'status'      => 'pending',
-                'description' => "Requested withdrawal of {$amount} E-Points.",
+                'description' => "Requested withdrawal of ₹{$amount} Earning Money.",
             ]);
 
             // Create withdrawal request
@@ -69,6 +73,7 @@ class WalletController extends Controller
                 'user_id' => $user->id,
                 'amount'  => $amount,
                 'status'  => 'pending',
+                'type'    => 'earning_money',
             ]);
 
             DB::commit();

@@ -2,8 +2,8 @@
   <div class="withdrawals-page">
     <div class="page-header flex justify-between items-center" style="margin-bottom: 2rem;">
       <div>
-        <h1 style="font-size: 1.5rem; font-weight: 700; margin: 0; color: var(--text-color);">Payouts & Withdrawals</h1>
-        <p class="text-muted" style="margin: 0.25rem 0 0 0; font-size: 0.9rem;">Manage and process customer E-Points withdrawals.</p>
+        <h1 style="font-size: 1.5rem; font-weight: 700; margin: 0; color: var(--text-color);">Earning Money Payouts</h1>
+        <p class="text-muted" style="margin: 0.25rem 0 0 0; font-size: 0.9rem;">Review and approve customer Earning Money withdrawal requests.</p>
       </div>
       <div class="flex gap-2">
         <select v-model="filters.status" class="form-select" @change="fetchWithdrawals(1)">
@@ -64,7 +64,8 @@
                 <div class="text-muted text-xs">{{ req.user?.email }}</div>
               </td>
               <td>
-                <div style="font-weight: 700; color: var(--primary-color);">{{ req.amount }} pts</div>
+                <div style="font-weight: 700; color: var(--accent-cyan);">₹{{ parseFloat(req.amount).toFixed(2) }}</div>
+                <div class="text-muted text-xs" style="font-size:0.75rem;">Earning Money</div>
               </td>
               <td>
                 <span :class="['badge', req.status === 'approved' ? 'badge-success' : (req.status === 'rejected' ? 'badge-danger' : 'badge-warning')]">
@@ -110,7 +111,8 @@
           <div class="grid grid-2 gap-3" style="margin-bottom: 1.5rem;">
             <div class="glass-card" style="padding: 1rem;">
               <div class="text-muted text-xs uppercase" style="margin-bottom: 0.25rem;">Amount Requested</div>
-              <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">{{ selectedRequest.amount }} pts</div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-cyan);">₹{{ parseFloat(selectedRequest.amount).toFixed(2) }}</div>
+              <div class="text-muted text-xs" style="margin-top: 0.25rem; font-size: 0.75rem;">Earning Money</div>
             </div>
             <div class="glass-card" style="padding: 1rem;">
               <div class="text-muted text-xs uppercase" style="margin-bottom: 0.25rem;">Current Status</div>
@@ -240,7 +242,10 @@ const closeModal = () => {
 };
 
 const processRequest = async (status) => {
-  const actionText = status === 'approved' ? 'transfer the amount and mark as approved' : 'reject this request and refund the points';
+  const refundUnit = '₹' + parseFloat(selectedRequest.value.amount).toFixed(2) + ' earning money';
+  const actionText = status === 'approved' 
+    ? 'transfer the amount and mark as approved' 
+    : `reject this request and refund the ${refundUnit}`;
   const confirmResult = await Swal.fire({
     title: 'Are you sure?',
     text: `You are about to ${actionText}.`,

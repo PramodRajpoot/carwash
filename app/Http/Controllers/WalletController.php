@@ -23,6 +23,7 @@ class WalletController extends Controller
         return response()->json([
             'e_points'        => $user->e_points,
             'pending_epoints' => $user->pending_epoints,
+            'earning_money'   => $user->earning_money,
             'total'           => $total,
             'can_redeem'      => $user->e_points >= 1000,
             'min_redeem'      => 1000,

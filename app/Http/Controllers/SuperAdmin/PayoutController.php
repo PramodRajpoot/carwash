@@ -12,7 +12,8 @@ class PayoutController extends Controller
 {
     public function getWithdrawalRequests(Request $request)
     {
-        $query = WithdrawalRequest::with(['user.bankDetail']);
+        $query = WithdrawalRequest::with(['user.bankDetail'])
+            ->where('type', 'earning_money');
 
         if ($request->has('status') && $request->status !== '') {
             $query->where('status', $request->status);
@@ -48,7 +49,7 @@ class PayoutController extends Controller
             // We match by amount, source, and user, assuming recent pending request
             $transaction = WalletTransaction::where('user_id', $user->id)
                 ->where('type', 'debit')
-                ->where('source', 'withdrawal')
+                ->whereIn('source', ['withdrawal', 'earning_withdrawal'])
                 ->where('status', 'pending')
                 ->where('amount', $withdrawal->amount)
                 ->latest()
@@ -60,8 +61,8 @@ class PayoutController extends Controller
                     $transaction->save();
                 }
             } else if ($request->status === 'rejected') {
-                // Refund the points
-                $user->e_points += $withdrawal->amount;
+                // Refund the earning money
+                $user->earning_money += $withdrawal->amount;
                 $user->save();
 
                 if ($transaction) {
@@ -74,9 +75,9 @@ class PayoutController extends Controller
                     'user_id'     => $user->id,
                     'type'        => 'credit',
                     'amount'      => $withdrawal->amount,
-                    'source'      => 'refund',
+                    'source'      => 'earning_refund',
                     'status'      => 'completed',
-                    'description' => "Refund for rejected withdrawal request.",
+                    'description' => "Refund for rejected earning money withdrawal request.",
                 ]);
             }
 

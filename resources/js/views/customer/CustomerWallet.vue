@@ -3,14 +3,14 @@
     <!-- Balance Cards -->
     <div class="grid grid-3 gap-3" style="margin-bottom:2rem">
       <div class="stat-card" style="border:1px solid var(--accent-emerald)">
-        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald)">✅</div>
-        <div class="stat-value" style="color:var(--accent-emerald)">{{ balance.e_points }}</div>
-        <div class="stat-label">Confirmed E-Points</div>
+        <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald)">💰</div>
+        <div class="stat-value" style="color:var(--accent-emerald)">₹{{ parseFloat(balance.earning_money || 0).toFixed(2) }}</div>
+        <div class="stat-label">Earning Money</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet)">💎</div>
-        <div class="stat-value">{{ balance.total }}</div>
-        <div class="stat-label">Total E-Points</div>
+      <div class="stat-card" style="border:1px solid var(--accent-amber)">
+        <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber)">✅</div>
+        <div class="stat-value" style="color:var(--accent-amber)">{{ balance.e_points }} pts</div>
+        <div class="stat-label">Confirmed E-Points</div>
       </div>
       <div class="stat-card" style="border:1px solid var(--accent-cyan)">
         <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan)">👥</div>
@@ -24,7 +24,7 @@
       <div class="glass-card">
         <h4 style="margin-bottom:1rem">Bank & UPI Details</h4>
         <div class="text-muted" style="font-size:0.85rem;margin-bottom:1rem">
-          Add your bank details or UPI ID to receive payouts for your E-Points.
+          Add your bank details or UPI ID to receive payouts.
         </div>
         <form @submit.prevent="saveBankDetails">
           <div style="margin-bottom:1rem">
@@ -55,33 +55,35 @@
         </form>
       </div>
 
-      <!-- Redemption -->
+      <!-- Redemption / Withdrawal -->
       <div class="glass-card">
-        <h4 style="margin-bottom:0.75rem">Withdraw E-Points</h4>
+        <h4 style="margin-bottom:0.75rem">Withdraw Earning Money</h4>
         <div class="text-muted" style="font-size:0.85rem;margin-bottom:1rem">
-          Request a withdrawal to your bank account. <br/>
-          Minimum <strong style="color:var(--accent-cyan)">1000 confirmed E-Points</strong> required.
+          Request a withdrawal of your Earning Money to your bank account.
         </div>
         
         <div v-if="!hasBankDetails" class="alert alert-warning" style="margin-bottom:1rem">
           Please save your bank details first before requesting a withdrawal.
         </div>
 
+        <div class="text-muted" style="font-size:0.82rem;margin-bottom:0.5rem">
+          Minimum <strong style="color:var(--accent-cyan)">₹2,000.00</strong> required to withdraw.
+        </div>
         <div style="background:var(--bg-secondary);border-radius:var(--radius-md);height:8px;margin-bottom:0.5rem">
-          <div :style="{ width: Math.min((balance.e_points / 1000) * 100, 100) + '%', background: balance.can_redeem ? 'var(--gradient-btn)' : 'linear-gradient(135deg,#ef4444,#f97316)', borderRadius: 'var(--radius-md)', height: '100%', transition: 'width 0.4s' }"></div>
+          <div :style="{ width: Math.min((balance.earning_money / 2000) * 100, 100) + '%', background: balance.earning_money >= 2000 ? 'var(--gradient-btn)' : 'linear-gradient(135deg,#ef4444,#f97316)', borderRadius: 'var(--radius-md)', height: '100%', transition: 'width 0.4s' }"></div>
         </div>
         <div class="flex justify-between" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem">
-          <span>{{ balance.e_points }} pts</span><span>1000 pts</span>
+          <span>₹{{ parseFloat(balance.earning_money || 0).toFixed(2) }}</span><span>₹2,000.00</span>
         </div>
 
-        <div v-if="balance.can_redeem" class="flex gap-2 items-end">
+        <div v-if="balance.earning_money >= 2000" class="flex gap-2 items-end">
           <div style="flex:1">
-            <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Amount to Withdraw (Pts)</label>
-            <input type="number" v-model="redeemAmount" :min="1000" :max="balance.e_points" step="100" class="form-input" placeholder="1000" />
+            <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Amount to Withdraw (₹)</label>
+            <input type="number" v-model="redeemAmountMoney" :min="2000" :max="balance.earning_money" step="100" class="form-input" placeholder="2000" />
           </div>
           <button class="btn btn-primary" @click="requestWithdrawal" :disabled="redeeming || !hasBankDetails">{{ redeeming ? 'Requesting…' : 'Withdraw' }}</button>
         </div>
-        <div v-else class="text-muted" style="font-size:0.85rem">You need {{ 1000 - balance.e_points }} more confirmed E-Points to unlock withdrawals.</div>
+        <div v-else class="text-muted" style="font-size:0.85rem">You need ₹{{ (2000 - (balance.earning_money || 0)).toFixed(2) }} more to unlock withdrawals.</div>
       </div>
     </div>
 
@@ -100,7 +102,7 @@
             </div>
           </div>
           <div :style="{ fontWeight: 700, fontSize: '1rem', color: t.type === 'credit' ? 'var(--accent-emerald)' : '#ef4444' }">
-            {{ t.type === 'credit' ? '+' : '-' }}{{ t.amount }} pts
+            {{ t.type === 'credit' ? '+' : '-' }}<span v-if="t.source && (t.source.includes('earning') || t.source === 'referral_commission')">₹{{ t.amount }}</span><span v-else>{{ t.amount }} pts</span>
           </div>
         </div>
       </div>
@@ -126,7 +128,7 @@ export default {
         upi_id: '',
       },
       loading: true,
-      redeemAmount: 1000,
+      redeemAmountMoney: 2000,
       redeeming: false,
       savingBank: false
     };
@@ -157,11 +159,18 @@ export default {
         Swal.fire('Error', 'Please save your bank details first.', 'error');
         return;
       }
-      if (this.redeemAmount < 1000 || this.redeemAmount > this.balance.e_points) return;
+      
+      const amount = this.redeemAmountMoney;
+      if (amount < 2000 || amount > this.balance.earning_money) {
+        Swal.fire('Error', 'Invalid withdrawal amount. Minimum is ₹2,000.', 'error');
+        return;
+      }
       
       this.redeeming = true;
       try {
-        await axios.post('/api/wallet/withdraw', { amount: this.redeemAmount });
+        await axios.post('/api/wallet/withdraw', { 
+          amount: amount
+        });
         Swal.fire({ icon: 'success', title: 'Success', text: 'Withdrawal request submitted successfully.', timer: 2000, showConfirmButton: false });
         await this.load();
       } catch (e) {

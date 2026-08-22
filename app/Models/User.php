@@ -27,6 +27,7 @@ class User extends Authenticatable
         'status',
         'avatar',
         'google_id',
+        'earning_money',
     ];
 
     protected $hidden = [
@@ -42,6 +43,7 @@ class User extends Authenticatable
         'e_points'                => 'integer',
         'pending_epoints'         => 'integer',
         'first_booking_discount'  => 'boolean',
+        'earning_money'           => 'decimal:2',
     ];
 
     // ─── Relations ─────────────────────────────────────────────

@@ -71,6 +71,7 @@ class BookingController extends Controller
             'addon_ids' => 'nullable|array',
             'addon_ids.*' => 'exists:service_packages,id',
             'use_epoints' => 'nullable|boolean',
+            'use_earning_money' => 'nullable|boolean',
         ]);
 
         $vehicle = Vehicle::where('customer_id', $user->id)->findOrFail($request->vehicle_id);
@@ -186,6 +187,18 @@ class BookingController extends Controller
             }
         }
 
+        // Apply Earning Money if requested
+        $earningMoneyUsed = 0.00;
+        if ($request->boolean('use_earning_money')) {
+            if ($user->earning_money > 0) {
+                $earningMoneyUsed = min($user->earning_money, $price);
+                if ($earningMoneyUsed > 0) {
+                    $price -= $earningMoneyUsed;
+                    $user->decrement('earning_money', $earningMoneyUsed);
+                }
+            }
+        }
+
         // Increment or create Slot bookings count
         if ($slot) {
             $slot->increment('current_bookings');
@@ -225,6 +238,7 @@ class BookingController extends Controller
             'addon_price' => $addonPrice,
             'addon_services' => empty($addonServices) ? null : json_encode($addonServices),
             'epoints_used' => $epointsUsed,
+            'earning_money_used' => $earningMoneyUsed,
         ]);
 
         if ($epointsUsed > 0) {
@@ -245,11 +259,29 @@ class BookingController extends Controller
             ]);
         }
 
+        if ($earningMoneyUsed > 0) {
+            \App\Models\WalletTransaction::create([
+                'user_id'     => $user->id,
+                'type'        => 'debit',
+                'amount'      => $earningMoneyUsed,
+                'source'      => 'booking_earning',
+                'status'      => 'confirmed',
+                'description' => "Used ₹{$earningMoneyUsed} Earning Money for booking #{$booking->id}",
+            ]);
+
+            \App\Models\NotificationLog::create([
+                'user_id' => $user->id,
+                'type'    => 'wallet_credit',
+                'title'   => 'Earning Money Used',
+                'body'    => "You used ₹{$earningMoneyUsed} Earning Money for booking #{$booking->id}.",
+            ]);
+        }
+
         // Reward pending e-points to the referrer if this is the customer's first booking
         if ($user->referred_by && $user->first_booking_discount) {
             $isFirstBooking = Booking::where('customer_id', $user->id)->count() === 1;
             if ($isFirstBooking) {
-                $referrer = User::find($user->referred_by);
+                $referrer = \App\Models\User::find($user->referred_by);
                 if ($referrer) {
                     $pendingCommission = (int) round($booking->total_price * 0.10);
                     $referrer->increment('pending_epoints', $pendingCommission);
@@ -316,12 +348,36 @@ class BookingController extends Controller
             }
         }
 
+        // Refund earning money if earning_money_used > 0
+        if ($booking->earning_money_used > 0) {
+            $customer = $booking->customer;
+            if ($customer) {
+                $customer->increment('earning_money', $booking->earning_money_used);
+
+                \App\Models\WalletTransaction::create([
+                    'user_id'     => $customer->id,
+                    'type'        => 'credit',
+                    'amount'      => $booking->earning_money_used,
+                    'source' => 'booking_earning_refund',
+                    'status'      => 'confirmed',
+                    'description' => "Refunded ₹{$booking->earning_money_used} Earning Money for cancelled booking #{$booking->id}",
+                ]);
+
+                \App\Models\NotificationLog::create([
+                    'user_id' => $customer->id,
+                    'type'    => 'wallet_credit',
+                    'title'   => 'Earning Money Refunded',
+                    'body'    => "Refunded ₹{$booking->earning_money_used} Earning Money for cancelled booking #{$booking->id}.",
+                ]);
+            }
+        }
+
         // If this was the first booking, revert the pending e-points from the referrer
         if ($booking->customer->referred_by && $booking->customer->first_booking_discount) {
             $isFirstBooking = Booking::where('customer_id', $booking->customer_id)
                 ->orderBy('id', 'asc')->first();
             if ($isFirstBooking && $isFirstBooking->id === $booking->id) {
-                $referrer = User::find($booking->customer->referred_by);
+                $referrer = \App\Models\User::find($booking->customer->referred_by);
                 if ($referrer) {
                     $pendingCommission = (int) round($booking->total_price * 0.10);
                     $referrer->pending_epoints = max(0, $referrer->pending_epoints - $pendingCommission);

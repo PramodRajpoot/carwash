@@ -106,14 +106,14 @@ class FranchiseeController extends Controller
         $oldStatus = $booking->status;
         $booking->update(['status' => $request->status]);
 
-        // When booking is completed, confirm pending E-Points for referrer
+        // When booking is completed, confirm pending E-Points for referrer as Earning Money
         if ($request->status === 'completed' && $oldStatus !== 'completed') {
             $customer = $booking->customer;
             if ($customer && $customer->referred_by && $customer->first_booking_discount) {
                 $referrer = \App\Models\User::find($customer->referred_by);
                 if ($referrer) {
                     $commission = (int) round($booking->total_price * 0.10);
-                    $referrer->increment('e_points', $commission);
+                    $referrer->increment('earning_money', $commission);
                     $referrer->pending_epoints = max(0, $referrer->pending_epoints - $commission);
                     $referrer->save();
 
@@ -121,16 +121,16 @@ class FranchiseeController extends Controller
                         'user_id'     => $referrer->id,
                         'type'        => 'credit',
                         'amount'      => $commission,
-                        'source'      => 'referral',
+                        'source'      => 'referral_commission',
                         'status'      => 'confirmed',
-                        'description' => "10% commission for referring {$customer->name}",
+                        'description' => "10% referral commission for {$customer->name}'s booking #{$booking->id}",
                     ]);
 
                     \App\Models\NotificationLog::create([
                         'user_id' => $referrer->id,
                         'type'    => 'referral_reward',
-                        'title'   => 'Commission Earned!',
-                        'body'    => "Your referred customer {$customer->name} completed their first booking. You earned {$commission} E-Points (10%)!",
+                        'title'   => 'Earning Money Received!',
+                        'body'    => "Your referred customer {$customer->name} completed their first booking. You earned ₹{$commission} Earning Money!",
                     ]);
                 }
 

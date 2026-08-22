@@ -6,7 +6,7 @@
     </div>
     <div v-if="bookings.length" class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Total Price</th><th>E-Points Used</th><th>Amount Paid</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Total Price</th><th>Discounts Used</th><th>Amount Paid</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="b in paginatedBookings" :key="b.id">
             <td>{{ b.booking_date }}</td>
@@ -20,12 +20,15 @@
                 </span>
               </div>
             </td>
-            <td>₹{{ (parseFloat(b.total_price) + parseFloat(b.epoints_used || 0)).toFixed(2) }}</td>
+            <td>₹{{ (parseFloat(b.total_price) + parseFloat(b.epoints_used || 0) + parseFloat(b.earning_money_used || 0)).toFixed(2) }}</td>
             <td>
-              <span v-if="b.epoints_used > 0" style="color: var(--accent-emerald); font-weight: 600;">
+              <div v-if="b.epoints_used > 0" style="color: var(--accent-emerald); font-weight: 600; font-size: 0.85rem;">
                 {{ b.epoints_used }} pts
-              </span>
-              <span v-else class="text-muted">-</span>
+              </div>
+              <div v-if="b.earning_money_used > 0" style="color: var(--accent-cyan); font-weight: 600; font-size: 0.85rem;">
+                ₹{{ parseFloat(b.earning_money_used).toFixed(2) }}
+              </div>
+              <span v-if="!(b.epoints_used > 0) && !(b.earning_money_used > 0)" class="text-muted">-</span>
             </td>
             <td style="font-weight: 600; color: var(--text-primary);">
               ₹{{ parseFloat(b.total_price).toFixed(2) }}
@@ -129,6 +132,10 @@
                 <span>E-Points Discount</span>
                 <span>- ₹{{ appliedEPoints.toFixed(2) }}</span>
               </div>
+              <div v-if="appliedEarningMoney > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-cyan);">
+                <span>Earning Money Applied</span>
+                <span>- ₹{{ appliedEarningMoney.toFixed(2) }}</span>
+              </div>
               <div style="border-top: 1px dashed var(--border-color); margin: 0.5rem 0; padding-top: 0.5rem; display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem;">
                 <span>Total</span>
                 <span style="color: var(--accent-emerald);">₹{{ calculatedTotal.toFixed(2) }}</span>
@@ -151,7 +158,7 @@
           <div class="form-group"><label>Coupon Code</label><input v-model="bf.coupon_code" class="form-input" placeholder="e.g. WELCOME10"></div>
           
           <!-- E-Points Checkbox Option -->
-          <div v-if="bf.package_id && userPoints > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 1rem;">
+          <div v-if="bf.package_id && userPoints > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
             <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; color: var(--text-primary);">
               <input type="checkbox" v-model="bf.use_epoints" style="width: 16px; height: 16px; accent-color: var(--accent-emerald);" />
               <span>Use E-Points</span>
@@ -159,6 +166,18 @@
             <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; margin-left: 1.55rem; line-height: 1.4;">
               Redeeming: <strong style="color: var(--accent-emerald);">{{ pointsToBeDeducted }} pts</strong>
               (Available: {{ userPoints }} pts | Capped at 12.5% of wash)
+            </div>
+          </div>
+
+          <!-- Earning Money Checkbox Option -->
+          <div v-if="bf.package_id && userEarningMoney > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; color: var(--text-primary);">
+              <input type="checkbox" v-model="bf.use_earning_money" style="width: 16px; height: 16px; accent-color: var(--accent-cyan);" />
+              <span>Use Earning Money</span>
+            </label>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; margin-left: 1.55rem; line-height: 1.4;">
+              Redeeming: <strong style="color: var(--accent-cyan);">₹{{ appliedEarningMoney.toFixed(2) }}</strong>
+              (Available: ₹{{ parseFloat(userEarningMoney).toFixed(2) }} | Up to 100% of remaining price)
             </div>
           </div>
 
@@ -178,7 +197,7 @@ import Swal from 'sweetalert2';
 
 export default {
   name: 'CustomerBookings',
-  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [], use_epoints: false }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10, userPoints: 0 }; },
+  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [], use_epoints: false, use_earning_money: false }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10, userPoints: 0, userEarningMoney: 0 }; },
   computed: {
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -213,16 +232,25 @@ export default {
       const maxAllowed = Math.floor(total * 0.125);
       return Math.min(maxAllowed, this.userPoints);
     },
+    appliedEarningMoney() {
+      if (!this.bf.use_earning_money || !this.bf.package_id) return 0;
+      let total = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
+      total += this.addonTotal;
+      total -= this.appliedEPoints;
+      if (total <= 0) return 0;
+      return Math.min(parseFloat(this.userEarningMoney || 0), total);
+    },
     calculatedTotal() {
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       const total = base + this.addonTotal;
-      return Math.max(0, total - this.appliedEPoints);
+      return Math.max(0, total - this.appliedEPoints - this.appliedEarningMoney);
     }
   },
   watch: {
     'bf.package_id'(newVal) {
       if (!newVal) {
         this.bf.use_epoints = false;
+        this.bf.use_earning_money = false;
       }
     }
   },
@@ -275,10 +303,10 @@ export default {
         this.vehicles = vh.data;
         this.centers = ct.data;
         this.packages = pk.data;
-        // Get full booking history from customer dashboard
         const dash = bk.data;
         this.bookings = dash.upcoming_services || [];
         this.userPoints = dash.e_points || 0;
+        this.userEarningMoney = dash.earning_money || 0;
       } catch (e) { console.error(e); }
     },
     async fetchSlots() {
