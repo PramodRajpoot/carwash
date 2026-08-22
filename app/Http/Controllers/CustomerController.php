@@ -49,6 +49,14 @@ class CustomerController extends Controller
             ->whereNull('read_at')
             ->count();
 
+        $totalEarned = \App\Models\WalletTransaction::where('user_id', $user->id)
+            ->where('type', 'credit')
+            ->where('source', '!=', 'refund')
+            ->where('status', 'confirmed')
+            ->sum('amount');
+
+        $totalEpoints = max((int) $totalEarned, $user->e_points);
+
         return response()->json([
             'subscription'          => $activeSubscription,
             'booking_count'         => $bookingCount,
@@ -58,6 +66,7 @@ class CustomerController extends Controller
             'reward_coins'          => $user->reward_coins,
             'e_points'              => $user->e_points,
             'pending_epoints'       => $user->pending_epoints,
+            'total_epoints'         => $totalEpoints,
             'referral_code'         => $user->referral_code,
             'active_coupons'        => $activeCoupons,
             'unread_notifications'  => $unreadNotifications,

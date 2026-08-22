@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Stats Row -->
-    <div class="grid grid-4 gap-3" style="margin-bottom:2rem">
+    <div class="grid grid-3 gap-3" style="margin-bottom:2rem">
       <div class="stat-card">
         <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan)">📦</div>
         <div class="stat-value">{{ data.booking_count }}</div>
@@ -11,11 +11,6 @@
         <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald)">✅</div>
         <div class="stat-value" style="color:var(--accent-emerald)">{{ data.e_points }}</div>
         <div class="stat-label">E-Points (Confirmed)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(239,68,68,0.15);color:#ef4444">⏳</div>
-        <div class="stat-value" style="color:#ef4444">{{ data.pending_epoints }}</div>
-        <div class="stat-label">E-Points (Pending)</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber)">🔔</div>
@@ -79,11 +74,6 @@
           <div style="text-align:center">
             <div style="font-size:1.1rem;font-weight:700;color:var(--accent-emerald)">{{ data.e_points }}</div>
             <div class="text-muted" style="font-size:0.72rem">Confirmed</div>
-          </div>
-          <div style="width:1px;background:var(--border-color)"></div>
-          <div style="text-align:center">
-            <div style="font-size:1.1rem;font-weight:700;color:#ef4444">{{ data.pending_epoints }}</div>
-            <div class="text-muted" style="font-size:0.72rem">Pending</div>
           </div>
           <div style="width:1px;background:var(--border-color)"></div>
           <div style="text-align:center">
