@@ -11,12 +11,22 @@ class WalletController extends Controller
     public function balance(Request $request)
     {
         $user = $request->user();
+
+        $totalEarned = WalletTransaction::where('user_id', $user->id)
+            ->where('type', 'credit')
+            ->where('source', '!=', 'refund')
+            ->where('status', 'confirmed')
+            ->sum('amount');
+
+        $total = max((int) $totalEarned, $user->e_points);
+
         return response()->json([
             'e_points'        => $user->e_points,
             'pending_epoints' => $user->pending_epoints,
-            'total'           => $user->e_points + $user->pending_epoints,
+            'total'           => $total,
             'can_redeem'      => $user->e_points >= 1000,
             'min_redeem'      => 1000,
+            'referral_count'  => $user->referrals()->count(),
         ]);
     }
 

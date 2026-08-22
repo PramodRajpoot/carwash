@@ -7,15 +7,15 @@
         <div class="stat-value" style="color:var(--accent-emerald)">{{ balance.e_points }}</div>
         <div class="stat-label">Confirmed E-Points</div>
       </div>
-      <div class="stat-card" style="border:1px solid #ef4444">
-        <div class="stat-icon" style="background:rgba(239,68,68,0.15);color:#ef4444">⏳</div>
-        <div class="stat-value" style="color:#ef4444">{{ balance.pending_epoints }}</div>
-        <div class="stat-label">Pending E-Points</div>
-      </div>
       <div class="stat-card">
         <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-violet)">💎</div>
         <div class="stat-value">{{ balance.total }}</div>
         <div class="stat-label">Total E-Points</div>
+      </div>
+      <div class="stat-card" style="border:1px solid var(--accent-cyan)">
+        <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan)">👥</div>
+        <div class="stat-value" style="color:var(--accent-cyan)">{{ balance.referral_count || 0 }}</div>
+        <div class="stat-label">Referred Users</div>
       </div>
     </div>
 

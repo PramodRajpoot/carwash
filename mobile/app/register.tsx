@@ -71,7 +71,11 @@ export default function RegisterScreen() {
         await AsyncStorage.setItem('userToken', token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
         
-        Alert.alert('Welcome! 🎉', 'Registration successful! You earned 50 E-Points as a welcome bonus!', [
+        const welcomeMessage = referralCode.trim() 
+          ? 'Registration successful! You and your referrer both earned 50 E-Points!'
+          : 'Registration successful! You earned 50 E-Points as a welcome bonus!';
+
+        Alert.alert('Welcome! 🎉', welcomeMessage, [
           { text: 'OK', onPress: () => router.replace('/dashboard') }
         ]);
       } else {
