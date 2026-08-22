@@ -25,6 +25,7 @@ class Booking extends Model
         'cashfree_order_id',
         'cashfree_payment_session_id',
         'cashfree_payment_id',
+        'epoints_used',
     ];
 
     protected $casts = [

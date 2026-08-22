@@ -70,6 +70,7 @@ class BookingController extends Controller
             'coupon_code' => 'nullable|string',
             'addon_ids' => 'nullable|array',
             'addon_ids.*' => 'exists:service_packages,id',
+            'use_epoints' => 'nullable|boolean',
         ]);
 
         $vehicle = Vehicle::where('customer_id', $user->id)->findOrFail($request->vehicle_id);
@@ -172,6 +173,19 @@ class BookingController extends Controller
             }
         }
 
+        // Apply E-Points if requested
+        $epointsUsed = 0;
+        if ($request->boolean('use_epoints')) {
+            if ($user->e_points > 0) {
+                $maxPointsAllowed = (int) floor($price * 0.125);
+                $epointsUsed = min($user->e_points, $maxPointsAllowed);
+                if ($epointsUsed > 0) {
+                    $price -= $epointsUsed;
+                    $user->decrement('e_points', $epointsUsed);
+                }
+            }
+        }
+
         // Increment or create Slot bookings count
         if ($slot) {
             $slot->increment('current_bookings');
@@ -190,7 +204,11 @@ class BookingController extends Controller
 
         // For online payments, mark as pending_payment until Cashfree checkout completes
         if ($request->payment_method === 'online') {
-            $paymentStatus = 'pending_payment';
+            if ($price <= 0) {
+                $paymentStatus = 'paid';
+            } else {
+                $paymentStatus = 'pending_payment';
+            }
         }
 
         $booking = Booking::create([
@@ -206,7 +224,26 @@ class BookingController extends Controller
             'total_price' => $price,
             'addon_price' => $addonPrice,
             'addon_services' => empty($addonServices) ? null : json_encode($addonServices),
+            'epoints_used' => $epointsUsed,
         ]);
+
+        if ($epointsUsed > 0) {
+            \App\Models\WalletTransaction::create([
+                'user_id'     => $user->id,
+                'type'        => 'debit',
+                'amount'      => $epointsUsed,
+                'source'      => 'booking',
+                'status'      => 'confirmed',
+                'description' => "Used {$epointsUsed} E-Points for booking #{$booking->id}",
+            ]);
+
+            \App\Models\NotificationLog::create([
+                'user_id' => $user->id,
+                'type'    => 'wallet_credit',
+                'title'   => 'E-Points Used',
+                'body'    => "You used {$epointsUsed} E-Points for booking #{$booking->id}.",
+            ]);
+        }
 
         // Reward pending e-points to the referrer if this is the customer's first booking
         if ($user->referred_by && $user->first_booking_discount) {
@@ -227,7 +264,7 @@ class BookingController extends Controller
         ];
 
         // Signal frontend to initiate Cashfree checkout
-        if ($request->payment_method === 'online') {
+        if ($request->payment_method === 'online' && $price > 0) {
             $responseData['requires_payment'] = true;
             $responseData['message'] = 'Booking created. Please complete payment.';
         }
@@ -254,6 +291,30 @@ class BookingController extends Controller
 
         $booking->status = 'cancelled';
         $booking->save();
+
+        // Refund points if epoints_used > 0
+        if ($booking->epoints_used > 0) {
+            $customer = $booking->customer;
+            if ($customer) {
+                $customer->increment('e_points', $booking->epoints_used);
+
+                \App\Models\WalletTransaction::create([
+                    'user_id'     => $customer->id,
+                    'type'        => 'credit',
+                    'amount'      => $booking->epoints_used,
+                    'source'      => 'booking_refund',
+                    'status'      => 'confirmed',
+                    'description' => "Refunded {$booking->epoints_used} E-Points for cancelled booking #{$booking->id}",
+                ]);
+
+                \App\Models\NotificationLog::create([
+                    'user_id' => $customer->id,
+                    'type'    => 'wallet_credit',
+                    'title'   => 'E-Points Refunded',
+                    'body'    => "Refunded {$booking->epoints_used} E-Points for cancelled booking #{$booking->id}.",
+                ]);
+            }
+        }
 
         // If this was the first booking, revert the pending e-points from the referrer
         if ($booking->customer->referred_by && $booking->customer->first_booking_discount) {

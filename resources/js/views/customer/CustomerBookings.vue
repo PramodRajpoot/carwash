@@ -6,7 +6,7 @@
     </div>
     <div v-if="bookings.length" class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Price</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Total Price</th><th>E-Points Used</th><th>Amount Paid</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="b in paginatedBookings" :key="b.id">
             <td>{{ b.booking_date }}</td>
@@ -20,7 +20,16 @@
                 </span>
               </div>
             </td>
-            <td>₹{{ b.total_price }}</td>
+            <td>₹{{ (parseFloat(b.total_price) + parseFloat(b.epoints_used || 0)).toFixed(2) }}</td>
+            <td>
+              <span v-if="b.epoints_used > 0" style="color: var(--accent-emerald); font-weight: 600;">
+                {{ b.epoints_used }} pts
+              </span>
+              <span v-else class="text-muted">-</span>
+            </td>
+            <td style="font-weight: 600; color: var(--text-primary);">
+              ₹{{ parseFloat(b.total_price).toFixed(2) }}
+            </td>
             <td>
               <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid</span>
               <span v-else-if="b.payment_status === 'pending_payment'" class="badge badge-amber" style="font-size:0.7rem;">⏳ Pending</span>
@@ -116,6 +125,10 @@
                 <span>Add-ons ({{ bf.addon_ids.length }} items)</span>
                 <span>+ ₹{{ addonTotal.toFixed(2) }}</span>
               </div>
+              <div v-if="appliedEPoints > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald);">
+                <span>E-Points Discount</span>
+                <span>- ₹{{ appliedEPoints.toFixed(2) }}</span>
+              </div>
               <div style="border-top: 1px dashed var(--border-color); margin: 0.5rem 0; padding-top: 0.5rem; display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem;">
                 <span>Total</span>
                 <span style="color: var(--accent-emerald);">₹{{ calculatedTotal.toFixed(2) }}</span>
@@ -136,8 +149,21 @@
             </div>
           </div>
           <div class="form-group"><label>Coupon Code</label><input v-model="bf.coupon_code" class="form-input" placeholder="e.g. WELCOME10"></div>
+          
+          <!-- E-Points Checkbox Option -->
+          <div v-if="bf.package_id && userPoints > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; color: var(--text-primary);">
+              <input type="checkbox" v-model="bf.use_epoints" style="width: 16px; height: 16px; accent-color: var(--accent-emerald);" />
+              <span>Use E-Points</span>
+            </label>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; margin-left: 1.55rem; line-height: 1.4;">
+              Redeeming: <strong style="color: var(--accent-emerald);">{{ pointsToBeDeducted }} pts</strong>
+              (Available: {{ userPoints }} pts | Capped at 12.5% of wash)
+            </div>
+          </div>
+
           <div class="flex gap-2" style="margin-top:0.5rem">
-            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">{{ bookingLoading ? 'Processing...' : 'Book & Pay Now' }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">{{ bookingLoading ? 'Processing...' : (calculatedTotal <= 0 ? 'Book Now' : 'Book & Pay ₹' + calculatedTotal.toFixed(2)) }}</button>
             <button type="button" class="btn btn-ghost" @click="showBookingModal = false">Cancel</button>
           </div>
         </form>
@@ -152,7 +178,7 @@ import Swal from 'sweetalert2';
 
 export default {
   name: 'CustomerBookings',
-  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [] }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10 }; },
+  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [], use_epoints: false }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10, userPoints: 0 }; },
   computed: {
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -176,9 +202,28 @@ export default {
     addonTotal() {
       return this.selectedAddons.reduce((sum, a) => sum + parseFloat(a.price), 0);
     },
+    appliedEPoints() {
+      if (!this.bf.use_epoints || !this.bf.package_id) return 0;
+      return this.pointsToBeDeducted;
+    },
+    pointsToBeDeducted() {
+      if (!this.bf.package_id) return 0;
+      const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
+      const total = base + this.addonTotal;
+      const maxAllowed = Math.floor(total * 0.125);
+      return Math.min(maxAllowed, this.userPoints);
+    },
     calculatedTotal() {
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
-      return base + this.addonTotal;
+      const total = base + this.addonTotal;
+      return Math.max(0, total - this.appliedEPoints);
+    }
+  },
+  watch: {
+    'bf.package_id'(newVal) {
+      if (!newVal) {
+        this.bf.use_epoints = false;
+      }
     }
   },
   methods: {
@@ -233,6 +278,7 @@ export default {
         // Get full booking history from customer dashboard
         const dash = bk.data;
         this.bookings = dash.upcoming_services || [];
+        this.userPoints = dash.e_points || 0;
       } catch (e) { console.error(e); }
     },
     async fetchSlots() {

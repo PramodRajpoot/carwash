@@ -82,6 +82,29 @@ class AuthController extends Controller
             'description' => "Welcome Bonus: 50 E-Points for registration",
         ]);
 
+        if ($referredBy) {
+            $referredUser = User::find($referredBy);
+            if ($referredUser) {
+                $referredUser->increment('e_points', 50);
+
+                WalletTransaction::create([
+                    'user_id'     => $referredUser->id,
+                    'type'        => 'credit',
+                    'amount'      => 50,
+                    'source'      => 'referral',
+                    'status'      => 'confirmed',
+                    'description' => "Referral Bonus: 50 E-Points for referring " . $user->name,
+                ]);
+
+                \App\Models\NotificationLog::create([
+                    'user_id' => $referredUser->id,
+                    'type'    => 'wallet_credit',
+                    'title'   => 'Referral Bonus Received!',
+                    'body'    => "You received 50 E-Points because " . $user->name . " registered using your referral code!",
+                ]);
+            }
+        }
+
         if ($user->role === 'franchisee') {
             $user->franchisee()->create([
                 'center_name'        => $user->name . "'s Center",
