@@ -14,6 +14,7 @@ class WithdrawalRequest extends Model
         'amount',
         'status',
         'admin_notes',
+        'type',
     ];
 
     public function user()
