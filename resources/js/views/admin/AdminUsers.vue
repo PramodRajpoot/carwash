@@ -14,7 +14,7 @@
           <option value="washer">Washer</option>
           <option value="customer">Customer</option>
         </select>
-        <button class="btn btn-primary btn-sm" @click="openCreateModal">+ Generate User</button>
+        <button v-if="isSuperAdmin" class="btn btn-primary btn-sm" @click="openCreateModal">+ Generate User</button>
       </div>
     </div>
 
@@ -238,6 +238,7 @@ export default {
   name: 'AdminUsers',
   data() {
     return {
+      currentUser: JSON.parse(localStorage.getItem('auth_user') || '{}'),
       users: [],
       centers: [],
       selectedRoleFilter: '',
@@ -267,6 +268,9 @@ export default {
     };
   },
   computed: {
+    isSuperAdmin() {
+      return this.currentUser && this.currentUser.role === 'super_admin';
+    },
     filteredUsers() {
       if (!this.selectedRoleFilter) return this.users;
       return this.users.filter(u => u.role === this.selectedRoleFilter);
@@ -305,6 +309,7 @@ export default {
       this.loading = false;
     },
     openCreateModal() {
+      if (!this.isSuperAdmin) return;
       this.isEdit = false;
       this.error = '';
       this.form = {
@@ -341,6 +346,10 @@ export default {
       this.showModal = true;
     },
     async saveUser() {
+      if (!this.isEdit && !this.isSuperAdmin) {
+        this.error = 'Only Super Admin can generate new user accounts.';
+        return;
+      }
       this.submitting = true;
       this.error = '';
       try {

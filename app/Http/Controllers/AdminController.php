@@ -67,6 +67,13 @@ class AdminController extends Controller
 
     public function createUser(Request $request)
     {
+        if ($request->user()->role !== 'super_admin') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Unauthorized. Only Super Admin can create users.',
+            ], 403);
+        }
+
         $request->validate([
             'name'          => 'required|string|max:255',
             'email'         => 'required|string|email|max:255|unique:users',
