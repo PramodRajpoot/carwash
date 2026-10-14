@@ -143,7 +143,7 @@ export default {
         const { data } = await axios.post('/api/auth/login', { email: this.email, password: this.password });
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
-        const map = { customer: '/customer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin' };
+        const map = { customer: '/customer', washer: '/washer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin' };
         this.$router.push(map[data.user.role] || '/customer');
       } catch (e) {
         if (e.response?.status === 422) {
@@ -179,7 +179,8 @@ export default {
         const { data } = await axios.post('/api/auth/otp/verify', { identifier: this.identifier, otp: this.otp });
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
-        this.$router.push('/customer');
+        const map = { customer: '/customer', washer: '/washer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin' };
+        this.$router.push(map[data.user.role] || '/customer');
       } catch (e) {
         if (e.response?.status === 422) {
           this.errors = e.response.data.errors || {};

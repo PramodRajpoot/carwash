@@ -26,7 +26,7 @@ export default {
           localStorage.setItem('auth_token', token);
           localStorage.setItem('auth_user', JSON.stringify(user));
           
-          const map = { customer: '/customer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin' };
+          const map = { customer: '/customer', washer: '/washer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin' };
           this.$router.push(map[user.role] || '/customer');
         } catch (e) {
           console.error("Failed to parse user data", e);

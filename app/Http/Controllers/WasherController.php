@@ -207,7 +207,15 @@ class WasherController extends Controller
 
     protected function getAuthenticatedWasher(Request $request): Washer
     {
-        return Washer::where('user_id', $request->user()->id)->with('franchisee')->firstOrFail();
+        $washer = Washer::where('user_id', $request->user()->id)->with('franchisee')->first();
+        if (!$washer) {
+            $washer = Washer::create([
+                'user_id' => $request->user()->id,
+                'status'  => 'active',
+            ]);
+            $washer->load('franchisee');
+        }
+        return $washer;
     }
 
     public function washerDashboard(Request $request)

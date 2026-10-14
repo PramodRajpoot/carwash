@@ -84,7 +84,13 @@ export default {
     isLoggedIn() { return !!localStorage.getItem('auth_token'); },
     dashboardPath() {
       const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-      const map = { customer: '/customer', franchisee: '/franchisee', admin: '/admin', super_admin: '/admin' };
+      const map = {
+        customer: '/customer',
+        washer: '/washer',
+        franchisee: '/franchisee',
+        admin: '/admin',
+        super_admin: '/super-admin'
+      };
       return map[u.role] || '/customer';
     }
   },
