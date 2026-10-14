@@ -24,10 +24,17 @@
           <li><router-link to="/customer/wishlist"><span class="nav-icon">❤️</span> Wishlist</router-link></li>
         </template>
 
+        <!-- Washer Sidebar -->
+        <template v-else-if="role === 'washer'">
+          <li><router-link to="/washer"><span class="nav-icon">📊</span> Dashboard</router-link></li>
+          <li><router-link to="/washer/tasks"><span class="nav-icon">🧼</span> My Tasks</router-link></li>
+        </template>
+
         <!-- Franchisee Sidebar -->
         <template v-else-if="role === 'franchisee'">
           <li><router-link to="/franchisee"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/franchisee/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
+          <li><router-link to="/franchisee/washers"><span class="nav-icon">🧼</span> Our Washers</router-link></li>
           <li><router-link to="/franchisee/slots"><span class="nav-icon">🕐</span> Slots Management</router-link></li>
           <li><router-link to="/franchisee/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
           <li><router-link to="/franchisee/royalty"><span class="nav-icon">💳</span> Royalty</router-link></li>
@@ -40,6 +47,7 @@
         <template v-else-if="role === 'admin'">
           <li><router-link to="/admin"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
+          <li><router-link to="/admin/washers"><span class="nav-icon">🧼</span> Washers</router-link></li>
           <li><router-link to="/admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
           <li><router-link to="/admin/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
           <li><router-link to="/admin/packages"><span class="nav-icon">📦</span> Packages</router-link></li>
@@ -56,6 +64,7 @@
         <template v-else-if="role === 'super_admin'">
           <li><router-link to="/super-admin"><span class="nav-icon">🛡️</span> Dashboard</router-link></li>
           <li><router-link to="/super-admin/franchisees"><span class="nav-icon">🏪</span> Franchise management</router-link></li>
+          <li><router-link to="/super-admin/washers"><span class="nav-icon">🧼</span> Washer Management</router-link></li>
           <li><router-link to="/super-admin/customers"><span class="nav-icon">🤝</span> Customer management</router-link></li>
           <li><router-link to="/super-admin/users"><span class="nav-icon">👥</span> User & Role Management</router-link></li>
           <li><router-link to="/super-admin/orders"><span class="nav-icon">📋</span> Booking management</router-link></li>
@@ -148,7 +157,7 @@ export default {
   computed: {
     role() { return this.user.role || 'customer'; },
     profileRoute() {
-      const base = { customer: '/customer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin' };
+      const base = { customer: '/customer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin', washer: '/customer' };
       return (base[this.role] || '/customer') + '/profile';
     },
     pageTitle() {
@@ -158,15 +167,18 @@ export default {
         'customer-subscriptions': 'Subscriptions', 'customer-wallet': 'E-Points Wallet', 'customer-referrals': 'Referrals',
         'customer-offers': 'Offers & Coupons', 'customer-support': 'Help & Support', 'customer-notifications': 'Notifications',
         'customer-wishlist': 'Wishlist', 'customer-profile': 'My Profile',
-        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Booking Management', 'franchisee-slots': 'Slots Management',
+        'washer-dashboard': 'Washer Station', 'washer-tasks': 'Assigned Tasks',
+        'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Booking Management', 'franchisee-washers': 'Our Washer Team', 'franchisee-slots': 'Slots Management',
         'franchisee-expenses': 'Expenses',
         'franchisee-reports': 'Reports', 'franchisee-royalty': 'Royalty Management', 'franchisee-subscriptions': 'Subscriptions',
         'franchisee-offers': 'Offers',
-        'admin-dashboard': 'Dashboard', 'admin-users': 'Users', 'admin-orders': 'Booking Management', 'admin-slots': 'Slots',
-        'admin-coupons': 'Coupons', 'admin-reports': 'Reports', 'admin-franchisees': 'Franchise Management',
+        'admin-dashboard': 'Dashboard', 'admin-franchisees': 'Franchise Management', 'admin-washers': 'Washer Management',
+        'admin-users': 'Users', 'admin-orders': 'Booking Management', 'admin-slots': 'Slots',
+        'admin-coupons': 'Coupons', 'admin-reports': 'Reports',
         'admin-packages': 'Subscription Packages', 'admin-referrals': 'Referral Network', 'admin-blog': 'Blog',
         'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
+        'superadmin-washers': 'Washer Management',
         'superadmin-orders': 'Booking Management', 'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
         'superadmin-marketing': 'Marketing', 'superadmin-withdrawals': 'Payouts & Withdrawals',
       };

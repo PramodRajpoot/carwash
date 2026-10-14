@@ -24,6 +24,7 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\PaymentGatewayController;
 use App\Http\Controllers\CashfreeController;
+use App\Http\Controllers\WasherController;
 
 /*
 |--------------------------------------------------------------------------
@@ -154,6 +155,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/royalty',                          [FranchiseeController::class, 'getRoyalty']);
         Route::get('/subscriptions',                    [FranchiseeController::class, 'getSubscriptions']);
         Route::get('/offers',                           [FranchiseeController::class, 'getOffers']);
+        Route::get('/washers',                          [WasherController::class, 'franchiseeWashers']);
+        Route::post('/orders/{id}/assign-washer',        [WasherController::class, 'franchiseeAssignTask']);
     });
 
     // ── Admin Panel ──────────────────────────────────────────────────────
@@ -224,6 +227,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/partners',             [PartnerController::class, 'adminIndex']);
         Route::put('/partners/{id}',        [PartnerController::class, 'adminUpdate']);
         Route::delete('/partners/{id}',     [PartnerController::class, 'adminDestroy']);
+
+        // Washer Management
+        Route::get('/washers',                          [WasherController::class, 'index']);
+        Route::post('/washers',                         [WasherController::class, 'store']);
+        Route::put('/washers/{id}',                     [WasherController::class, 'update']);
+        Route::delete('/washers/{id}',                  [WasherController::class, 'destroy']);
+        Route::put('/washers/{id}/assign-franchise',    [WasherController::class, 'assignFranchise']);
     });
 
     // ── Super Admin Panel ────────────────────────────────────────────────
@@ -325,5 +335,20 @@ Route::middleware('auth:sanctum')->group(function () {
         // Payouts & Withdrawals
         Route::get('/withdrawals', [\App\Http\Controllers\SuperAdmin\PayoutController::class, 'getWithdrawalRequests']);
         Route::post('/withdrawals/{id}/process', [\App\Http\Controllers\SuperAdmin\PayoutController::class, 'processWithdrawal']);
+
+        // Washer Management
+        Route::get('/washers',                          [WasherController::class, 'index']);
+        Route::post('/washers',                         [WasherController::class, 'store']);
+        Route::put('/washers/{id}',                     [WasherController::class, 'update']);
+        Route::delete('/washers/{id}',                  [WasherController::class, 'destroy']);
+        Route::put('/washers/{id}/assign-franchise',    [WasherController::class, 'assignFranchise']);
+    });
+
+    // ── Washer Panel ─────────────────────────────────────────────────────
+
+    Route::prefix('washer')->group(function () {
+        Route::get('/dashboard',                        [WasherController::class, 'washerDashboard']);
+        Route::get('/tasks',                            [WasherController::class, 'washerTasks']);
+        Route::put('/tasks/{id}/status',                [WasherController::class, 'washerUpdateTaskStatus']);
     });
 });

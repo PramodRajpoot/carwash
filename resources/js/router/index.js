@@ -42,6 +42,11 @@ import FranchiseeRoyalty from '@/views/franchisee/FranchiseeRoyalty.vue';
 import FranchiseeSubscriptions from '@/views/franchisee/FranchiseeSubscriptions.vue';
 import FranchiseeOffers from '@/views/franchisee/FranchiseeOffers.vue';
 import FranchiseeSlots from '@/views/franchisee/FranchiseeSlots.vue';
+import FranchiseeWashers from '@/views/franchisee/FranchiseeWashers.vue';
+
+// Washer Views
+import WasherDashboard from '@/views/washer/WasherDashboard.vue';
+import WasherTasks from '@/views/washer/WasherTasks.vue';
 
 // Admin Views
 import AdminDashboard from '@/views/admin/AdminDashboard.vue';
@@ -51,6 +56,7 @@ import AdminSlots from '@/views/admin/AdminSlots.vue';
 import AdminCoupons from '@/views/admin/AdminCoupons.vue';
 import AdminReports from '@/views/admin/AdminReports.vue';
 import AdminFranchisees from '@/views/admin/AdminFranchisees.vue';
+import AdminWashers from '@/views/admin/AdminWashers.vue';
 import AdminPackages from '@/views/admin/AdminPackages.vue';
 import AdminReferrals from '@/views/admin/AdminReferrals.vue';
 import AdminBlog from '@/views/admin/AdminBlog.vue';
@@ -130,6 +136,7 @@ export const routes = [
         children: [
             { path: '', name: 'franchisee-dashboard', component: FranchiseeDashboard },
             { path: 'orders', name: 'franchisee-orders', component: FranchiseeOrders },
+            { path: 'washers', name: 'franchisee-washers', component: FranchiseeWashers },
             { path: 'slots', name: 'franchisee-slots', component: FranchiseeSlots },
             { path: 'expenses', name: 'franchisee-expenses', component: FranchiseeExpenses },
             { path: 'reports', name: 'franchisee-reports', component: FranchiseeReports },
@@ -147,6 +154,7 @@ export const routes = [
         children: [
             { path: '', name: 'admin-dashboard', component: AdminDashboard },
             { path: 'users', name: 'admin-users', component: AdminUsers },
+            { path: 'washers', name: 'admin-washers', component: AdminWashers },
             { path: 'orders', name: 'admin-orders', component: AdminOrders },
             { path: 'slots', name: 'admin-slots', component: AdminSlots },
             { path: 'coupons', name: 'admin-coupons', component: AdminCoupons },
@@ -185,6 +193,7 @@ export const routes = [
             { path: 'orders', name: 'superadmin-orders', component: SuperAdminOrders },
             { path: 'services', name: 'superadmin-services', component: SuperAdminServices },
             { path: 'franchisees', name: 'superadmin-franchisees', component: AdminFranchisees },
+            { path: 'washers', name: 'superadmin-washers', component: AdminWashers },
             { path: 'packages', name: 'superadmin-packages', component: AdminPackages },
             { path: 'referrals', name: 'superadmin-referrals', component: AdminReferrals },
             { path: 'coupons', name: 'superadmin-coupons', component: AdminCoupons },
@@ -195,6 +204,17 @@ export const routes = [
             { path: 'payment-gateway', name: 'superadmin-payment-gateway', component: SuperAdminPaymentGateway },
             { path: 'marketing', name: 'superadmin-marketing', component: SuperAdminMarketing },
             { path: 'withdrawals', name: 'superadmin-withdrawals', component: SuperAdminWithdrawals }
+        ],
+    },
+
+    // ── Washer Station ───────────────────────────────────────────
+    {
+        path: '/washer',
+        component: DashboardLayout,
+        meta: { requiresAuth: true, role: 'washer' },
+        children: [
+            { path: '', name: 'washer-dashboard', component: WasherDashboard },
+            { path: 'tasks', name: 'washer-tasks', component: WasherTasks },
         ],
     },
 

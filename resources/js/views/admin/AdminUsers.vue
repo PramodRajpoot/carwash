@@ -11,6 +11,7 @@
           <option value="super_admin">Super Admin</option>
           <option value="admin">Admin</option>
           <option value="franchisee">Franchisee</option>
+          <option value="washer">Washer</option>
           <option value="customer">Customer</option>
         </select>
         <button class="btn btn-primary btn-sm" @click="openCreateModal">+ Generate User</button>
@@ -48,6 +49,12 @@
               <td>
                 <span v-if="u.role === 'franchisee' && u.franchisee" class="text-secondary" style="font-size: 0.85rem; font-weight: 500;">
                   🏡 {{ u.franchisee.center_name }}
+                </span>
+                <span v-else-if="u.role === 'washer' && u.washer?.franchisee" class="text-secondary" style="font-size: 0.85rem; font-weight: 500;">
+                  🏡 {{ u.washer.franchisee.center_name }}
+                </span>
+                <span v-else-if="u.role === 'washer'" class="badge badge-amber" style="font-size: 0.75rem;">
+                  Unassigned
                 </span>
                 <span v-else class="text-muted" style="font-size: 0.8rem;">-</span>
               </td>
@@ -142,6 +149,7 @@
             <label>Platform Role</label>
             <select v-model="form.role" class="form-select" required>
               <option value="customer">Customer</option>
+              <option value="washer">Washer / Cleaning Technician</option>
               <option value="franchisee">Franchisee Center Manager</option>
               <option value="admin">Administrator</option>
               <option value="super_admin">Super Administrator</option>
@@ -152,6 +160,20 @@
           <div v-if="!isEdit" class="form-group">
             <label>Security Password</label>
             <input v-model="form.password" type="password" class="form-input" placeholder="Min 6 characters" required />
+          </div>
+
+          <!-- Center Config details (only if role is washer) -->
+          <div v-if="form.role === 'washer'" style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
+            <h4>🏡 Assign Franchise Center</h4>
+            <div class="form-group" style="margin-top: 0.5rem;">
+              <label>Franchise Service Center</label>
+              <select v-model="form.franchisee_id" class="form-select">
+                <option :value="null">-- Unassigned --</option>
+                <option v-for="c in centers" :key="c.id" :value="c.id">
+                  {{ c.center_name }} ({{ c.city }})
+                </option>
+              </select>
+            </div>
           </div>
 
           <!-- Center Config details (only if role is franchisee) -->
@@ -217,6 +239,7 @@ export default {
   data() {
     return {
       users: [],
+      centers: [],
       selectedRoleFilter: '',
       loading: true,
       showModal: false,
@@ -235,6 +258,7 @@ export default {
         password: '',
         role: 'customer',
         status: 'active',
+        franchisee_id: null,
         center_name: '',
         city: '',
         address: '',
@@ -262,15 +286,19 @@ export default {
   },
   methods: {
     roleBadge(r) {
-      return { super_admin: 'badge-rose', admin: 'badge-violet', franchisee: 'badge-cyan', customer: 'badge-emerald' }[r] || 'badge-cyan';
+      return { super_admin: 'badge-rose', admin: 'badge-violet', franchisee: 'badge-cyan', washer: 'badge-amber', customer: 'badge-emerald' }[r] || 'badge-cyan';
     },
     formatRole(r) {
       return r.toUpperCase().replace('_', ' ');
     },
     async loadUsers() {
       try {
-        const { data } = await axios.get('/api/admin/users');
-        this.users = data;
+        const [uRes, cRes] = await Promise.all([
+          axios.get('/api/admin/users'),
+          axios.get('/api/centers')
+        ]);
+        this.users = uRes.data;
+        this.centers = cRes.data;
       } catch (e) {
         console.error(e);
       }
@@ -286,6 +314,7 @@ export default {
         password: '',
         role: 'customer',
         status: 'active',
+        franchisee_id: null,
         center_name: 'Superwash Hub',
         city: 'Mumbai',
         address: 'Bandra Linking Road',
@@ -303,6 +332,7 @@ export default {
         phone: u.phone || '',
         role: u.role,
         status: u.status,
+        franchisee_id: u.washer?.franchisee_id || null,
         center_name: u.franchisee?.center_name || '',
         city: u.franchisee?.city || '',
         address: u.franchisee?.address || '',

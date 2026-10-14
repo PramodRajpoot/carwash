@@ -58,6 +58,7 @@ router.beforeEach((to, from, next) => {
         if (user) {
             const dashMap = {
                 customer: 'customer-dashboard',
+                washer: 'washer-dashboard',
                 franchisee: 'franchisee-dashboard',
                 admin: 'admin-dashboard',
                 super_admin: 'superadmin-dashboard',

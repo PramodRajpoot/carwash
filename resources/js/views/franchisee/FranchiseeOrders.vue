@@ -19,6 +19,7 @@
               <th>Vehicle Details</th>
               <th>Package</th>
               <th>Date &amp; Slot</th>
+              <th>Assigned Washer</th>
               <th>Price</th>
               <th>Payment</th>
               <th>Status</th>
@@ -40,6 +41,14 @@
               <td>
                 <div>{{ o.booking_date }}</div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">{{ o.slot_time }}</div>
+              </td>
+              <td>
+                <span v-if="o.washer" class="badge badge-cyan" style="font-size: 0.8rem;">
+                  🧼 {{ o.washer.user?.name || 'Washer' }}
+                </span>
+                <span v-else class="text-muted" style="font-size: 0.8rem; font-style: italic;">
+                  Unassigned
+                </span>
               </td>
               <td>₹{{ o.total_price }}</td>
               <td>
@@ -105,6 +114,22 @@
 
 
 
+          <div class="form-group" style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
+            <label style="font-weight: 600; color: var(--accent-cyan);">🧼 Assign Washer to Task</label>
+            <p class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.5rem;">
+              Assign this wash task to an active technician from your center.
+            </p>
+            <select v-model="form.washer_id" class="form-select">
+              <option :value="null">-- No Washer Assigned --</option>
+              <option v-for="w in washers" :key="w.id" :value="w.id">
+                {{ w.user?.name }} (Active Tasks: {{ w.active_tasks || 0 }})
+              </option>
+            </select>
+            <div v-if="washers.length === 0" class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">
+              No washers currently assigned to your center. Please contact platform admin.
+            </div>
+          </div>
+
           <!-- If postponed selected, show new inputs -->
           <div v-if="form.status === 'postponed'" style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
             <div class="form-group">
@@ -141,6 +166,7 @@ export default {
   data() {
     return {
       orders: [],
+      washers: [],
       loading: true,
       selectedOrder: null,
       submitting: false,
@@ -148,6 +174,7 @@ export default {
       itemsPerPage: 10,
       form: {
         status: '',
+        washer_id: null,
         payment_status: '',
         postponed_date: '',
         postponed_slot: '09:00 AM - 11:00 AM'
@@ -176,9 +203,18 @@ export default {
       }
       this.loading = false;
     },
+    async loadWashers() {
+      try {
+        const { data } = await axios.get('/api/franchisee/washers');
+        this.washers = data;
+      } catch (e) {
+        console.error(e);
+      }
+    },
     openManageModal(o) {
       this.selectedOrder = o;
       this.form.status = o.status;
+      this.form.washer_id = o.washer_id || null;
       this.form.payment_status = o.payment_status;
       this.form.postponed_date = o.booking_date;
       this.form.postponed_slot = o.slot_time;
@@ -189,6 +225,7 @@ export default {
         await axios.put(`/api/franchisee/orders/${this.selectedOrder.id}/status`, this.form);
         this.selectedOrder = null;
         this.loadOrders();
+        this.loadWashers();
       } catch (e) {
         alert(e.response?.data?.message || 'Failed to update order status.');
       }
@@ -197,6 +234,7 @@ export default {
   },
   mounted() {
     this.loadOrders();
+    this.loadWashers();
   }
 };
 </script>

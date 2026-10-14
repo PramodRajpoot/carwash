@@ -53,6 +53,11 @@ class User extends Authenticatable
         return $this->hasOne(Franchisee::class);
     }
 
+    public function washer()
+    {
+        return $this->hasOne(Washer::class);
+    }
+
     public function vehicles()
     {
         return $this->hasMany(Vehicle::class, 'customer_id');

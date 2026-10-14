@@ -229,7 +229,7 @@ class SuperAdminController extends Controller
 
     public function getAllOrders()
     {
-        return response()->json(Booking::with(['customer:id,name,phone', 'vehicle', 'franchisee', 'package'])->orderBy('created_at', 'desc')->get());
+        return response()->json(Booking::with(['customer:id,name,phone', 'vehicle', 'franchisee', 'package', 'washer.user'])->orderBy('created_at', 'desc')->get());
     }
 
     public function getAllWalletTransactions()

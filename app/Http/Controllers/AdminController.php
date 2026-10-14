@@ -11,7 +11,7 @@ use App\Models\Coupon;
 use App\Models\ServicePackage;
 use App\Models\SupportTicket;
 use App\Models\RoyaltyPayment;
-use App\Models\PlatformSetting;
+use App\Models\Washer;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -61,20 +61,21 @@ class AdminController extends Controller
 
     public function getUsers(Request $request)
     {
-        $users = User::with('franchisee')->orderBy('created_at', 'desc')->get();
+        $users = User::with(['franchisee', 'washer.franchisee'])->orderBy('created_at', 'desc')->get();
         return response()->json($users);
     }
 
     public function createUser(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
-            'phone'    => 'nullable|string|max:20',
-            'password' => 'required|string|min:6',
-            'role'     => 'required|string|in:super_admin,admin,franchisee,customer',
-            'status'   => 'required|string|in:active,suspended',
+            'name'          => 'required|string|max:255',
+            'email'         => 'required|string|email|max:255|unique:users',
+            'phone'         => 'nullable|string|max:20',
+            'password'      => 'required|string|min:6',
+            'role'          => 'required|string|in:super_admin,admin,franchisee,washer,customer',
+            'status'        => 'required|string|in:active,suspended',
             'royalty_percentage' => 'nullable|numeric|min:0',
+            'franchisee_id' => 'nullable|exists:franchisees,id',
         ]);
 
         $user = User::create([
@@ -95,12 +96,18 @@ class AdminController extends Controller
                 'royalty_percentage' => $request->input('royalty_percentage', 10.0),
                 'status'             => 'active',
             ]);
+        } elseif ($request->role === 'washer') {
+            Washer::create([
+                'user_id'       => $user->id,
+                'franchisee_id' => $request->franchisee_id,
+                'status'        => $request->status === 'suspended' ? 'inactive' : 'active',
+            ]);
         }
 
         return response()->json([
             'status'  => 'success',
             'message' => 'User created successfully',
-            'user'    => $user->load('franchisee'),
+            'user'    => $user->load(['franchisee', 'washer.franchisee']),
         ], 201);
     }
 
@@ -108,12 +115,13 @@ class AdminController extends Controller
     {
         $user = User::findOrFail($id);
         $request->validate([
-            'name'   => 'required|string|max:255',
-            'email'  => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'phone'  => 'nullable|string|max:20',
-            'role'   => 'required|string|in:super_admin,admin,franchisee,customer',
-            'status' => 'required|string|in:active,suspended',
+            'name'          => 'required|string|max:255',
+            'email'         => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'phone'         => 'nullable|string|max:20',
+            'role'          => 'required|string|in:super_admin,admin,franchisee,washer,customer',
+            'status'        => 'required|string|in:active,suspended',
             'royalty_percentage' => 'nullable|numeric|min:0',
+            'franchisee_id' => 'nullable|exists:franchisees,id',
         ]);
 
         $user->update([
@@ -131,12 +139,20 @@ class AdminController extends Controller
                 'city'               => $request->input('city', $user->franchisee->city),
                 'royalty_percentage' => $request->input('royalty_percentage', $user->franchisee->royalty_percentage),
             ]);
+        } elseif ($request->role === 'washer') {
+            Washer::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'franchisee_id' => $request->franchisee_id,
+                    'status'        => $request->status === 'suspended' ? 'inactive' : 'active',
+                ]
+            );
         }
 
         return response()->json([
             'status'  => 'success',
             'message' => 'User updated successfully',
-            'user'    => $user->load('franchisee'),
+            'user'    => $user->load(['franchisee', 'washer.franchisee']),
         ]);
     }
 
@@ -162,7 +178,7 @@ class AdminController extends Controller
 
     public function getOrders(Request $request)
     {
-        $orders = Booking::with(['customer:id,name,phone', 'vehicle', 'franchisee', 'package'])
+        $orders = Booking::with(['customer:id,name,phone', 'vehicle', 'franchisee', 'package', 'washer.user'])
             ->orderBy('booking_date', 'desc')
             ->get();
         return response()->json($orders);
@@ -173,6 +189,7 @@ class AdminController extends Controller
         $booking = Booking::findOrFail($id);
         $request->validate([
             'franchisee_id'  => 'nullable|exists:franchisees,id',
+            'washer_id'      => 'nullable|exists:washers,id',
             'booking_date'   => 'nullable|date',
             'slot_time'      => 'nullable|string',
             'status'         => 'nullable|string|in:pending,assigned,ongoing,completed,cancelled,postponed',
@@ -180,12 +197,12 @@ class AdminController extends Controller
             'total_price'    => 'nullable|numeric',
         ]);
 
-        $booking->update($request->only('franchisee_id', 'booking_date', 'slot_time', 'status', 'payment_status', 'total_price'));
+        $booking->update($request->only('franchisee_id', 'washer_id', 'booking_date', 'slot_time', 'status', 'payment_status', 'total_price'));
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Order modified successfully',
-            'booking' => $booking->load(['customer', 'vehicle', 'franchisee']),
+            'booking' => $booking->load(['customer', 'vehicle', 'franchisee', 'washer.user']),
         ]);
     }
 

@@ -86,7 +86,7 @@ class FranchiseeController extends Controller
 
         $orders = Booking::where('franchisee_id', $franchisee->id)
             ->where('payment_status', 'paid')
-            ->with(['customer:id,name,phone', 'vehicle'])
+            ->with(['customer:id,name,phone', 'vehicle', 'package', 'washer.user'])
             ->orderBy('booking_date', 'desc')
             ->get();
 
@@ -100,8 +100,23 @@ class FranchiseeController extends Controller
         $booking = Booking::where('franchisee_id', $franchisee->id)->findOrFail($id);
 
         $request->validate([
-            'status' => 'required|string|in:assigned,ongoing,completed,cancelled,postponed',
+            'status'    => 'required|string|in:pending,assigned,ongoing,completed,cancelled,postponed',
+            'washer_id' => 'nullable|exists:washers,id',
         ]);
+
+        if ($request->has('washer_id')) {
+            if ($request->filled('washer_id')) {
+                // Ensure washer belongs to this franchisee
+                $washerExists = \App\Models\Washer::where('id', $request->washer_id)
+                    ->where('franchisee_id', $franchisee->id)
+                    ->exists();
+                if ($washerExists) {
+                    $booking->washer_id = $request->washer_id;
+                }
+            } else {
+                $booking->washer_id = null;
+            }
+        }
 
         $oldStatus = $booking->status;
         $booking->update(['status' => $request->status]);

@@ -45,4 +45,9 @@ class Franchisee extends Model
     {
         return $this->hasMany(Expense::class);
     }
+
+    public function washers()
+    {
+        return $this->hasMany(Washer::class);
+    }
 }

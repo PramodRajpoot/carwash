@@ -13,6 +13,7 @@ class Booking extends Model
         'customer_id',
         'vehicle_id',
         'franchisee_id',
+        'washer_id',
         'package_id',
         'booking_date',
         'slot_time',
@@ -47,6 +48,11 @@ class Booking extends Model
     public function franchisee()
     {
         return $this->belongsTo(Franchisee::class);
+    }
+
+    public function washer()
+    {
+        return $this->belongsTo(Washer::class);
     }
 
     public function package()
