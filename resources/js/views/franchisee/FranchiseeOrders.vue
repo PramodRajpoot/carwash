@@ -58,7 +58,10 @@
                 <div v-if="o.payment_status === 'partially_paid'" style="font-size: 0.72rem; color: var(--accent-amber); font-weight: 600; margin-top: 0.15rem;">
                   ₹{{ (parseFloat(o.total_price) - parseFloat(o.paid_amount || 99)).toFixed(2) }} Due
                 </div>
-                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Via {{ o.payment_method?.toUpperCase() }}</div>
+                <div style="margin-top: 0.25rem;">
+                  <span v-if="o.payment_method === 'cod'" class="badge badge-amber" style="font-size:0.65rem;">💵 COD</span>
+                  <span v-else class="badge badge-cyan" style="font-size:0.65rem;">💳 Online</span>
+                </div>
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
               <td>
@@ -126,6 +129,12 @@
               <div style="display: flex; justify-content: space-between; margin-top: 0.25rem;">
                 <span>Remaining Balance Due:</span>
                 <strong style="color: var(--accent-amber);">₹{{ (parseFloat(selectedOrder.total_price) - parseFloat(selectedOrder.paid_amount || 99)).toFixed(2) }}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 0.25rem;">
+                <span>Remaining Method:</span>
+                <strong :style="{ color: selectedOrder.payment_method === 'cod' ? 'var(--accent-amber)' : 'var(--accent-cyan)' }">
+                  {{ selectedOrder.payment_method === 'cod' ? '💵 Cash on Delivery (COD)' : '💳 Online Payment' }}
+                </strong>
               </div>
             </div>
             <select v-model="form.payment_status" class="form-select">

@@ -204,14 +204,25 @@ class CashfreeController extends Controller
                     $booking->cashfree_payment_id = $payments[0]['cf_payment_id'] ?? null;
                 }
 
-                if ($booking->payment_type === 'partial' && $booking->payment_status !== 'partially_paid') {
-                    // Initial advance payment of ₹99 completed
-                    $booking->paid_amount = (float) ($booking->advance_amount > 0 ? $booking->advance_amount : 99.00);
-                    $booking->payment_status = 'partially_paid';
+                if ($booking->payment_type === 'partial') {
+                    $advance = (float) ($booking->advance_amount > 0 ? $booking->advance_amount : 99.00);
+                    $paidOrderAmount = (float) ($data['order_amount'] ?? 0);
+
+                    if ($paidOrderAmount <= ($advance + 1.0) && $paidOrderAmount < (float) $booking->total_price) {
+                        // Advance payment of ₹99 completed
+                        $booking->paid_amount = $advance;
+                        $booking->payment_status = 'partially_paid';
+                    } else {
+                        // Remaining balance payment completed
+                        $booking->paid_amount = (float) $booking->total_price;
+                        $booking->payment_status = 'paid';
+                        $booking->payment_method = 'online';
+                    }
                 } else {
-                    // Full payment OR remaining payment completed
+                    // Full payment booking completed
                     $booking->paid_amount = (float) $booking->total_price;
                     $booking->payment_status = 'paid';
+                    $booking->payment_method = 'online';
                 }
 
                 $booking->save();
@@ -220,8 +231,10 @@ class CashfreeController extends Controller
                     'status'         => 'success',
                     'payment_status' => $booking->payment_status,
                     'paid_amount'    => $booking->paid_amount,
+                    'total_price'    => $booking->total_price,
                     'order_status'   => $orderStatus,
                     'booking_id'     => $booking->id,
+                    'booking'        => $booking,
                 ]);
             }
 

@@ -66,13 +66,14 @@ class BookingController extends Controller
             'package_id' => 'required|exists:service_packages,id',
             'booking_date' => 'required|date|after_or_equal:today',
             'slot_time' => 'required|string',
-            'payment_method' => 'required|string|in:online',
+            'payment_method' => 'required|string|in:online,cod',
             'coupon_code' => 'nullable|string',
             'addon_ids' => 'nullable|array',
             'addon_ids.*' => 'exists:service_packages,id',
             'use_epoints' => 'nullable|boolean',
             'use_earning_money' => 'nullable|boolean',
             'payment_type' => 'nullable|string|in:full,partial',
+            'remaining_payment_method' => 'nullable|string|in:online,cod',
         ]);
 
         $vehicle = Vehicle::where('customer_id', $user->id)->findOrFail($request->vehicle_id);
@@ -219,13 +220,17 @@ class BookingController extends Controller
         // Determine payment type and advance amount
         $paymentType = 'full';
         $advanceAmount = $price;
+        $paymentMethod = $request->payment_method;
         if ($request->input('payment_type') === 'partial' && $price > 99) {
             $paymentType = 'partial';
             $advanceAmount = 99.00;
+            if ($request->filled('remaining_payment_method')) {
+                $paymentMethod = $request->remaining_payment_method;
+            }
         }
 
-        // For online payments, mark as pending_payment until Cashfree checkout completes
-        if ($request->payment_method === 'online') {
+        // For online payments or advance bookings, mark as pending_payment until Cashfree checkout completes
+        if ($request->payment_method === 'online' || $paymentType === 'partial') {
             if ($price <= 0) {
                 $paymentStatus = 'paid';
             } else {
@@ -242,7 +247,7 @@ class BookingController extends Controller
             'slot_time' => $request->slot_time,
             'status' => 'pending',
             'payment_status' => $paymentStatus,
-            'payment_method' => $request->payment_method,
+            'payment_method' => $paymentMethod,
             'payment_type' => $paymentType,
             'advance_amount' => $advanceAmount,
             'paid_amount' => 0.00,
@@ -524,6 +529,34 @@ class BookingController extends Controller
             'code' => $coupon->code,
             'discount_amount' => $discountAmount,
             'final_price' => $finalPrice
+        ]);
+    }
+
+    public function updatePaymentMethod(Request $request, $id)
+    {
+        $request->validate([
+            'payment_method' => 'required|string|in:online,cod'
+        ]);
+
+        $user = $request->user();
+        $booking = Booking::where('customer_id', $user->id)->findOrFail($id);
+
+        if ($booking->payment_status === 'paid' || $booking->status === 'cancelled') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Cannot update payment method for a completed or cancelled booking'
+            ], 400);
+        }
+
+        $booking->payment_method = $request->payment_method;
+        $booking->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $request->payment_method === 'cod'
+                ? 'Payment method updated to COD. You can pay the remaining balance in cash upon wash completion.'
+                : 'Payment method updated to Online.',
+            'booking' => $booking
         ]);
     }
 }

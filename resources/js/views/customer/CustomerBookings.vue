@@ -6,7 +6,7 @@
     </div>
     <div v-if="bookings.length" class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Total Price</th><th>Discounts Used</th><th>Amount Paid</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Total Price</th><th>Slot Advance</th><th>Discounts Used</th><th>Amount Paid</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="b in paginatedBookings" :key="b.id">
             <td>{{ b.booking_date }}</td>
@@ -21,6 +21,18 @@
               </div>
             </td>
             <td>₹{{ (parseFloat(b.total_price) + parseFloat(b.epoints_used || 0) + parseFloat(b.earning_money_used || 0)).toFixed(2) }}</td>
+            <td>
+              <div v-if="b.payment_type === 'partial'">
+                <span style="font-weight: 700; color: var(--accent-cyan); font-size: 0.88rem;">₹{{ parseFloat(b.advance_amount || 99).toFixed(2) }}</span>
+                <div v-if="b.payment_status === 'partially_paid' || b.payment_status === 'paid'" style="font-size: 0.7rem; color: var(--accent-emerald); font-weight: 600;">
+                  ✓ Paid
+                </div>
+                <div v-else style="font-size: 0.7rem; color: var(--accent-amber); font-weight: 600;">
+                  ⏳ Unpaid
+                </div>
+              </div>
+              <span v-else class="text-muted">-</span>
+            </td>
             <td>
               <div v-if="b.epoints_used > 0" style="color: var(--accent-emerald); font-weight: 600; font-size: 0.85rem;">
                 {{ b.epoints_used }} pts
@@ -40,7 +52,17 @@
             </td>
             <td>
               <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid</span>
-              <span v-else-if="b.payment_status === 'partially_paid'" class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 99).toFixed(0) }} Paid (Partial)</span>
+              <template v-else-if="b.payment_status === 'partially_paid'">
+                <span class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 99).toFixed(0) }} Paid (Partial)</span>
+                <div style="margin-top: 3px;">
+                  <span v-if="b.payment_method === 'cod'" class="badge badge-amber" style="font-size:0.65rem;" title="Remaining amount to be paid via Cash on Delivery">
+                    💵 Rest via COD
+                  </span>
+                  <span v-else class="badge badge-cyan" style="font-size:0.65rem;" title="Remaining amount to be paid Online">
+                    💳 Rest Online
+                  </span>
+                </div>
+              </template>
               <span v-else-if="b.payment_status === 'pending_payment'" class="badge badge-amber" style="font-size:0.7rem;">⏳ Pending</span>
               <span v-else-if="b.payment_status === 'failed'" class="badge badge-rose" style="font-size:0.7rem;">✗ Failed</span>
               <span v-else class="badge badge-cyan" style="font-size:0.7rem;">{{ b.payment_method === 'cod' ? 'COD' : 'Unpaid' }}</span>
@@ -51,9 +73,32 @@
                 <button v-if="needsPayment(b)" class="btn btn-sm" style="background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; border: none; font-weight: 600;" @click="retryPayment(b)" :disabled="payingBookingId === b.id">
                   {{ payingBookingId === b.id ? 'Processing...' : (b.payment_type === 'partial' ? '💳 Pay ₹99 Advance' : '💳 Pay Now') }}
                 </button>
-                <button v-else-if="b.payment_status === 'partially_paid' && b.status !== 'cancelled'" class="btn btn-sm" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: #fff; border: none; font-weight: 600; font-size: 0.78rem;" @click="retryPayment(b)" :disabled="payingBookingId === b.id" title="Pay remaining balance online">
-                  {{ payingBookingId === b.id ? 'Processing...' : '💳 Pay Rest ₹' + (parseFloat(b.total_price) - parseFloat(b.paid_amount || 99)).toFixed(2) }}
-                </button>
+                <template v-else-if="b.payment_status === 'partially_paid' && b.status !== 'cancelled'">
+                  <button 
+                    v-if="b.payment_method !== 'cod'" 
+                    class="btn btn-sm" 
+                    style="background: #f59e0b; color: #111; border: none; font-weight: 700; font-size: 0.78rem;" 
+                    @click="switchToCod(b)" 
+                    title="Pay remaining balance in cash after car wash completion">
+                    💵 Pay via COD
+                  </button>
+                  <button 
+                    class="btn btn-sm" 
+                    style="background: linear-gradient(135deg, #10b981, #06b6d4); color: #fff; border: none; font-weight: 600; font-size: 0.78rem;" 
+                    @click="retryPayment(b)" 
+                    :disabled="payingBookingId === b.id" 
+                    title="Pay remaining due amount online now">
+                    {{ payingBookingId === b.id ? 'Processing...' : '💳 Pay Due ₹' + (parseFloat(b.total_price) - parseFloat(b.paid_amount || 99)).toFixed(2) }}
+                  </button>
+                  <button 
+                    v-if="b.payment_method === 'cod'" 
+                    class="btn btn-sm btn-outline" 
+                    style="font-size: 0.75rem; border-color: #06b6d4; color: #06b6d4;" 
+                    @click="switchToOnline(b)" 
+                    title="Switch remaining balance to Online payment">
+                    💳 Switch to Online
+                  </button>
+                </template>
                 <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
               </div>
             </td>
@@ -361,8 +406,8 @@ export default {
     canCancel(b) { return ['pending', 'assigned'].includes(b.status); },
     canPostpone(b) { return ['pending', 'assigned'].includes(b.status); },
     needsPayment(b) {
-      return b.payment_method === 'online' && 
-             b.payment_status !== 'paid' && 
+      return ['pending_payment', 'unpaid', 'failed'].includes(b.payment_status) && 
+             b.payment_method === 'online' && 
              b.status !== 'cancelled';
     },
 
@@ -514,15 +559,49 @@ export default {
 
         if (data.status === 'success' && (data.payment_status === 'paid' || data.payment_status === 'partially_paid')) {
           const isPartial = data.payment_status === 'partially_paid';
-          Swal.fire({
-            icon: 'success',
-            title: isPartial ? 'Slot Booked with ₹99 Advance! 🎉' : 'Payment Confirmed! 🎉',
-            html: isPartial
-              ? `<p style="font-size:1.1rem; margin-bottom:0.5rem;">Your car wash slot is successfully booked!</p><p>Advance payment of <strong>₹99</strong> received for Booking <strong>#${data.booking_id}</strong>.<br>The remaining balance can be paid upon completion of your car wash.</p>`
-              : `<p style="font-size:1.1rem; margin-bottom:0.5rem;">Your payment was received successfully!</p><p>Booking <strong>#${data.booking_id}</strong> is fully paid.</p>`,
-            confirmButtonText: 'Great!',
-            confirmButtonColor: '#10b981'
-          });
+          if (isPartial) {
+            const due = (parseFloat(data.total_price || data.booking?.total_price || 0) - parseFloat(data.paid_amount || 99)).toFixed(2);
+            const result = await Swal.fire({
+              icon: 'success',
+              title: 'Slot Booked with ₹99 Advance! 🎉',
+              html: `
+                <p style="font-size:1.05rem; margin-bottom:0.75rem;">Your car wash slot is successfully booked!</p>
+                <p style="font-size:0.9rem; margin-bottom:0.75rem;">Advance payment of <strong>₹99.00</strong> received for Booking <strong>#${data.booking_id}</strong>.</p>
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; margin: 12px 0; text-align: left;">
+                  <div style="font-size: 0.95rem; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">Remaining Amount: ₹${due}</div>
+                  <div style="font-size: 0.82rem; color: var(--text-muted, #94a3b8);">Would you like to pay the remaining balance via <strong>Cash on Delivery (COD)</strong> upon wash completion?</div>
+                </div>
+              `,
+              showCancelButton: true,
+              confirmButtonText: '💵 Yes, Pay via COD',
+              confirmButtonColor: '#f59e0b',
+              cancelButtonText: '💳 Pay Online Later',
+              cancelButtonColor: '#06b6d4'
+            });
+
+            if (result.isConfirmed) {
+              try {
+                await axios.post(`/api/bookings/${data.booking_id}/payment-method`, { payment_method: 'cod' });
+                Swal.fire({
+                  icon: 'success',
+                  title: 'COD Method Selected! 💵',
+                  text: `Remaining ₹${due} can be paid in cash after your car wash.`,
+                  timer: 3000,
+                  showConfirmButton: false
+                });
+              } catch (e) {
+                console.error(e);
+              }
+            }
+          } else {
+            Swal.fire({
+              icon: 'success',
+              title: 'Payment Confirmed! 🎉',
+              html: `<p style="font-size:1.1rem; margin-bottom:0.5rem;">Your payment was received successfully!</p><p>Booking <strong>#${data.booking_id}</strong> is fully paid.</p>`,
+              confirmButtonText: 'Great!',
+              confirmButtonColor: '#10b981'
+            });
+          }
         } else {
           Swal.fire({
             icon: 'warning',
@@ -536,6 +615,58 @@ export default {
       }
 
       this.loadData();
+    },
+
+    /**
+     * Switch remaining balance payment method to COD.
+     */
+    async switchToCod(booking) {
+      const due = (parseFloat(booking.total_price) - parseFloat(booking.paid_amount || 99)).toFixed(2);
+      const result = await Swal.fire({
+        title: 'Pay Remaining via COD?',
+        text: `You can pay the remaining ₹${due} in cash at the service center upon completion of your car wash.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, Pay via COD',
+        cancelButtonText: 'Cancel'
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        const { data } = await axios.post(`/api/bookings/${booking.id}/payment-method`, { payment_method: 'cod' });
+        booking.payment_method = 'cod';
+        Swal.fire({
+          icon: 'success',
+          title: 'COD Selected',
+          text: data.message || 'Payment method updated to COD.',
+          timer: 2500,
+          showConfirmButton: false
+        });
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Failed to update payment method', 'error');
+      }
+    },
+
+    /**
+     * Switch remaining balance payment method to Online.
+     */
+    async switchToOnline(booking) {
+      try {
+        const { data } = await axios.post(`/api/bookings/${booking.id}/payment-method`, { payment_method: 'online' });
+        booking.payment_method = 'online';
+        Swal.fire({
+          icon: 'success',
+          title: 'Online Payment Selected',
+          text: data.message || 'Payment method updated to Online.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Failed to update payment method', 'error');
+      }
     },
 
     async cancel(id) {
