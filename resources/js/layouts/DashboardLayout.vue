@@ -56,7 +56,6 @@
           <li><router-link to="/admin/coupons"><span class="nav-icon">🎟️</span> Coupons</router-link></li>
           <li><router-link to="/admin/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
           <li><router-link to="/admin/tickets"><span class="nav-icon">🎫</span> Support Tickets</router-link></li>
-          <li><router-link to="/admin/partners"><span class="nav-icon">🤝</span> Partner Applications</router-link></li>
           <li><router-link to="/admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
           <li><router-link to="/admin/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
         </template>

@@ -165,7 +165,6 @@ export const routes = [
             { path: 'blog', name: 'admin-blog', component: AdminBlog },
             { path: 'customers', name: 'admin-customers', component: () => import('@/views/super-admin/SuperAdminCustomers.vue') },
             { path: 'tickets', name: 'admin-tickets', component: AdminTickets },
-            { path: 'partners', name: 'admin-partners', component: AdminPartners },
         ],
     },
 
