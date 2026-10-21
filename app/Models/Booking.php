@@ -28,11 +28,16 @@ class Booking extends Model
         'cashfree_payment_id',
         'epoints_used',
         'earning_money_used',
+        'payment_type',
+        'advance_amount',
+        'paid_amount',
     ];
 
     protected $casts = [
         'addon_services' => 'array',
         'earning_money_used' => 'decimal:2',
+        'advance_amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
     ];
 
     public function customer()

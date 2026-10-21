@@ -30,9 +30,9 @@ class FranchiseeController extends Controller
         $monthly = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereYear('booking_date', $now->year)->whereMonth('booking_date', $now->month)->sum('total_price');
         $yearly  = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed')->whereYear('booking_date', $now->year)->sum('total_price');
 
-        $totalOrders     = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->count();
-        $pendingOrders   = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->whereIn('status', ['pending', 'assigned'])->count();
-        $completedOrders = Booking::where('franchisee_id', $franchisee->id)->where('payment_status', 'paid')->where('status', 'completed')->count();
+        $totalOrders     = Booking::where('franchisee_id', $franchisee->id)->whereIn('payment_status', ['paid', 'partially_paid'])->count();
+        $pendingOrders   = Booking::where('franchisee_id', $franchisee->id)->whereIn('payment_status', ['paid', 'partially_paid'])->whereIn('status', ['pending', 'assigned'])->count();
+        $completedOrders = Booking::where('franchisee_id', $franchisee->id)->whereIn('payment_status', ['paid', 'partially_paid'])->where('status', 'completed')->count();
 
         // Active subscriptions for customers who have bookings at this franchise
         $customerIds = Booking::where('franchisee_id', $franchisee->id)
@@ -85,7 +85,7 @@ class FranchiseeController extends Controller
         $franchisee = $this->getFranchisee($request);
 
         $orders = Booking::where('franchisee_id', $franchisee->id)
-            ->where('payment_status', 'paid')
+            ->whereIn('payment_status', ['paid', 'partially_paid'])
             ->with(['customer:id,name,phone', 'vehicle', 'package', 'washer.user'])
             ->orderBy('booking_date', 'desc')
             ->get();
@@ -100,8 +100,9 @@ class FranchiseeController extends Controller
         $booking = Booking::where('franchisee_id', $franchisee->id)->findOrFail($id);
 
         $request->validate([
-            'status'    => 'required|string|in:pending,assigned,ongoing,completed,cancelled,postponed',
-            'washer_id' => 'nullable|exists:washers,id',
+            'status'         => 'required|string|in:pending,assigned,ongoing,completed,cancelled,postponed',
+            'washer_id'      => 'nullable|exists:washers,id',
+            'payment_status' => 'nullable|string|in:unpaid,paid,partially_paid',
         ]);
 
         if ($request->has('washer_id')) {
@@ -118,8 +119,16 @@ class FranchiseeController extends Controller
             }
         }
 
+        if ($request->filled('payment_status')) {
+            $booking->payment_status = $request->payment_status;
+            if ($request->payment_status === 'paid') {
+                $booking->paid_amount = $booking->total_price;
+            }
+        }
+
         $oldStatus = $booking->status;
-        $booking->update(['status' => $request->status]);
+        $booking->status = $request->status;
+        $booking->save();
 
         // When booking is completed, confirm pending E-Points for referrer as Earning Money
         if ($request->status === 'completed' && $oldStatus !== 'completed') {

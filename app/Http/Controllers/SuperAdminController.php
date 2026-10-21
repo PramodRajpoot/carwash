@@ -251,7 +251,7 @@ class SuperAdminController extends Controller
             'booking_date'  => 'required|date',
             'slot_time'     => 'required|string',
             'total_price'   => 'required|numeric|min:0',
-            'payment_status'=> 'required|in:unpaid,paid',
+            'payment_status'=> 'required|in:unpaid,paid,partially_paid',
         ]);
 
         $booking = Booking::create([

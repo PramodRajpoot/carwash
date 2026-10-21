@@ -85,8 +85,11 @@
               </td>
               <td>
                 <div style="font-weight:600; color:var(--text-primary);">₹{{ o.total_price }}</div>
-                <div style="font-size: 0.7rem;" :style="{ color: o.payment_status === 'paid' ? 'var(--accent-emerald)' : 'var(--accent-amber)' }">
-                  {{ o.payment_status?.toUpperCase() }} ({{ o.payment_method?.toUpperCase() }})
+                <div style="font-size: 0.7rem;" :style="{ color: o.payment_status === 'paid' ? 'var(--accent-emerald)' : (o.payment_status === 'partially_paid' ? 'var(--accent-cyan)' : 'var(--accent-amber)') }">
+                  {{ o.payment_status === 'partially_paid' ? 'PARTIAL (₹' + parseFloat(o.paid_amount || 99).toFixed(0) + ' Paid)' : o.payment_status?.toUpperCase() }} ({{ o.payment_method?.toUpperCase() }})
+                </div>
+                <div v-if="o.payment_status === 'partially_paid'" style="font-size: 0.68rem; color: var(--accent-amber); font-weight: 600;">
+                  ₹{{ (parseFloat(o.total_price) - parseFloat(o.paid_amount || 99)).toFixed(2) }} Due
                 </div>
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
@@ -184,6 +187,7 @@
               <label>Payment status</label>
               <select v-model="form.payment_status" class="form-select" required>
                 <option value="unpaid">Unpaid</option>
+                <option value="partially_paid">Partially Paid</option>
                 <option value="paid">Paid</option>
               </select>
             </div>

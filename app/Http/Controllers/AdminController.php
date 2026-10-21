@@ -200,11 +200,16 @@ class AdminController extends Controller
             'booking_date'   => 'nullable|date',
             'slot_time'      => 'nullable|string',
             'status'         => 'nullable|string|in:pending,assigned,ongoing,completed,cancelled,postponed',
-            'payment_status' => 'nullable|string|in:unpaid,paid',
+            'payment_status' => 'nullable|string|in:unpaid,paid,partially_paid,pending_payment,failed,refunded',
             'total_price'    => 'nullable|numeric',
         ]);
 
         $booking->update($request->only('franchisee_id', 'washer_id', 'booking_date', 'slot_time', 'status', 'payment_status', 'total_price'));
+
+        if ($booking->payment_status === 'paid' && $booking->paid_amount < $booking->total_price) {
+            $booking->paid_amount = $booking->total_price;
+            $booking->save();
+        }
 
         return response()->json([
             'status'  => 'success',

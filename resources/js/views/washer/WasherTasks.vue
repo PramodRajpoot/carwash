@@ -77,6 +77,14 @@
               </td>
               <td>
                 <span class="badge" :class="statusBadge(t.status)">{{ t.status }}</span>
+                <div v-if="t.payment_status === 'partially_paid'" style="margin-top: 0.25rem;">
+                  <span class="badge badge-amber" style="font-size: 0.65rem;" title="Collect remaining balance on completion">
+                    ₹{{ (parseFloat(t.total_price) - parseFloat(t.paid_amount || 99)).toFixed(0) }} Due
+                  </span>
+                </div>
+                <div v-else-if="t.payment_status === 'paid'" style="margin-top: 0.25rem;">
+                  <span class="badge badge-emerald" style="font-size: 0.65rem;">Paid</span>
+                </div>
               </td>
               <td>
                 <div class="flex gap-1">

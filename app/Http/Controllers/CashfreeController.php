@@ -67,6 +67,25 @@ class CashfreeController extends Controller
             ], 500);
         }
 
+        // Calculate amount to pay for this transaction
+        if ($booking->payment_status === 'partially_paid') {
+            // Paying the remaining balance
+            $orderAmount = max(0, (float) $booking->total_price - (float) $booking->paid_amount);
+        } elseif ($booking->payment_type === 'partial') {
+            // Paying initial slot booking advance (₹99)
+            $orderAmount = (float) ($booking->advance_amount > 0 ? $booking->advance_amount : 99.00);
+        } else {
+            // Paying full amount
+            $orderAmount = (float) $booking->total_price;
+        }
+
+        if ($orderAmount <= 0) {
+            $booking->payment_status = 'paid';
+            $booking->paid_amount = $booking->total_price;
+            $booking->save();
+            return response()->json(['status' => 'error', 'message' => 'No outstanding balance on this booking.'], 400);
+        }
+
         // Generate a unique order ID
         $orderId = 'CW_' . $booking->id . '_' . time();
 
@@ -86,7 +105,7 @@ class CashfreeController extends Controller
                 'Content-Type'    => 'application/json',
             ])->post($credentials['base_url'] . '/orders', [
                 'order_id'         => $orderId,
-                'order_amount'     => (float) $booking->total_price,
+                'order_amount'     => $orderAmount,
                 'order_currency'   => 'INR',
                 'customer_details' => [
                     'customer_id'    => 'cust_' . $user->id,
@@ -105,7 +124,9 @@ class CashfreeController extends Controller
                 // Save Cashfree details on the booking
                 $booking->cashfree_order_id = $orderId;
                 $booking->cashfree_payment_session_id = $data['payment_session_id'];
-                $booking->payment_status = 'pending_payment';
+                if ($booking->payment_status !== 'partially_paid') {
+                    $booking->payment_status = 'pending_payment';
+                }
                 $booking->save();
 
                 return response()->json([
@@ -171,8 +192,6 @@ class CashfreeController extends Controller
             $orderStatus = $data['order_status'] ?? 'UNKNOWN';
 
             if ($orderStatus === 'PAID') {
-                $booking->payment_status = 'paid';
-
                 // Fetch payment details to get the payment ID
                 $paymentsResponse = Http::withHeaders([
                     'x-client-id'     => $credentials['client_id'],
@@ -185,11 +204,22 @@ class CashfreeController extends Controller
                     $booking->cashfree_payment_id = $payments[0]['cf_payment_id'] ?? null;
                 }
 
+                if ($booking->payment_type === 'partial' && $booking->payment_status !== 'partially_paid') {
+                    // Initial advance payment of ₹99 completed
+                    $booking->paid_amount = (float) ($booking->advance_amount > 0 ? $booking->advance_amount : 99.00);
+                    $booking->payment_status = 'partially_paid';
+                } else {
+                    // Full payment OR remaining payment completed
+                    $booking->paid_amount = (float) $booking->total_price;
+                    $booking->payment_status = 'paid';
+                }
+
                 $booking->save();
 
                 return response()->json([
                     'status'         => 'success',
-                    'payment_status' => 'paid',
+                    'payment_status' => $booking->payment_status,
+                    'paid_amount'    => $booking->paid_amount,
                     'order_status'   => $orderStatus,
                     'booking_id'     => $booking->id,
                 ]);
@@ -197,8 +227,10 @@ class CashfreeController extends Controller
 
             // If not PAID, update booking status accordingly
             if (in_array($orderStatus, ['EXPIRED', 'TERMINATED', 'VOID'])) {
-                $booking->payment_status = 'failed';
-                $booking->save();
+                if ($booking->payment_status !== 'partially_paid') {
+                    $booking->payment_status = 'failed';
+                    $booking->save();
+                }
             }
 
             return response()->json([

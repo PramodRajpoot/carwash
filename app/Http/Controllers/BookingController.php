@@ -72,6 +72,7 @@ class BookingController extends Controller
             'addon_ids.*' => 'exists:service_packages,id',
             'use_epoints' => 'nullable|boolean',
             'use_earning_money' => 'nullable|boolean',
+            'payment_type' => 'nullable|string|in:full,partial',
         ]);
 
         $vehicle = Vehicle::where('customer_id', $user->id)->findOrFail($request->vehicle_id);
@@ -215,6 +216,14 @@ class BookingController extends Controller
             ]);
         }
 
+        // Determine payment type and advance amount
+        $paymentType = 'full';
+        $advanceAmount = $price;
+        if ($request->input('payment_type') === 'partial' && $price > 99) {
+            $paymentType = 'partial';
+            $advanceAmount = 99.00;
+        }
+
         // For online payments, mark as pending_payment until Cashfree checkout completes
         if ($request->payment_method === 'online') {
             if ($price <= 0) {
@@ -234,6 +243,9 @@ class BookingController extends Controller
             'status' => 'pending',
             'payment_status' => $paymentStatus,
             'payment_method' => $request->payment_method,
+            'payment_type' => $paymentType,
+            'advance_amount' => $advanceAmount,
+            'paid_amount' => 0.00,
             'total_price' => $price,
             'addon_price' => $addonPrice,
             'addon_services' => empty($addonServices) ? null : json_encode($addonServices),

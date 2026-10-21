@@ -31,10 +31,16 @@
               <span v-if="!(b.epoints_used > 0) && !(b.earning_money_used > 0)" class="text-muted">-</span>
             </td>
             <td style="font-weight: 600; color: var(--text-primary);">
-              ₹{{ parseFloat(b.total_price).toFixed(2) }}
+              <div>
+                ₹{{ (b.payment_status === 'paid' ? parseFloat(b.total_price) : parseFloat(b.paid_amount || 0)).toFixed(2) }}
+              </div>
+              <div v-if="b.payment_status === 'partially_paid'" style="font-size: 0.72rem; color: var(--accent-amber); font-weight: 600; margin-top: 2px;">
+                ₹{{ (parseFloat(b.total_price) - parseFloat(b.paid_amount || 99)).toFixed(2) }} Due
+              </div>
             </td>
             <td>
               <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid</span>
+              <span v-else-if="b.payment_status === 'partially_paid'" class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 99).toFixed(0) }} Paid (Partial)</span>
               <span v-else-if="b.payment_status === 'pending_payment'" class="badge badge-amber" style="font-size:0.7rem;">⏳ Pending</span>
               <span v-else-if="b.payment_status === 'failed'" class="badge badge-rose" style="font-size:0.7rem;">✗ Failed</span>
               <span v-else class="badge badge-cyan" style="font-size:0.7rem;">{{ b.payment_method === 'cod' ? 'COD' : 'Unpaid' }}</span>
@@ -43,7 +49,10 @@
             <td>
               <div class="flex gap-1" style="flex-wrap: wrap;">
                 <button v-if="needsPayment(b)" class="btn btn-sm" style="background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; border: none; font-weight: 600;" @click="retryPayment(b)" :disabled="payingBookingId === b.id">
-                  {{ payingBookingId === b.id ? 'Processing...' : '💳 Pay Now' }}
+                  {{ payingBookingId === b.id ? 'Processing...' : (b.payment_type === 'partial' ? '💳 Pay ₹99 Advance' : '💳 Pay Now') }}
+                </button>
+                <button v-else-if="b.payment_status === 'partially_paid' && b.status !== 'cancelled'" class="btn btn-sm" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: #fff; border: none; font-weight: 600; font-size: 0.78rem;" @click="retryPayment(b)" :disabled="payingBookingId === b.id" title="Pay remaining balance online">
+                  {{ payingBookingId === b.id ? 'Processing...' : '💳 Pay Rest ₹' + (parseFloat(b.total_price) - parseFloat(b.paid_amount || 99)).toFixed(2) }}
                 </button>
                 <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
               </div>
@@ -137,8 +146,18 @@
                 <span>- ₹{{ appliedEarningMoney.toFixed(2) }}</span>
               </div>
               <div style="border-top: 1px dashed var(--border-color); margin: 0.5rem 0; padding-top: 0.5rem; display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem;">
-                <span>Total</span>
+                <span>Total Amount</span>
                 <span style="color: var(--accent-emerald);">₹{{ calculatedTotal.toFixed(2) }}</span>
+              </div>
+              <div v-if="bf.payment_type === 'partial' && calculatedTotal > 99" style="border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: 600; color: var(--accent-cyan); margin-bottom: 0.25rem;">
+                  <span>Payable Now (Slot Booking Advance)</span>
+                  <span>₹99.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--accent-amber); font-weight: 600;">
+                  <span>Remaining Balance (Due after wash)</span>
+                  <span>₹{{ (calculatedTotal - 99).toFixed(2) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -181,8 +200,70 @@
             </div>
           </div>
 
-          <div class="flex gap-2" style="margin-top:0.5rem">
-            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">{{ bookingLoading ? 'Processing...' : (calculatedTotal <= 0 ? 'Book Now' : 'Book & Pay ₹' + calculatedTotal.toFixed(2)) }}</button>
+          <!-- Payment Choice: Pay Full Balance vs Minimum ₹99 Advance -->
+          <div v-if="bf.package_id && calculatedTotal > 99" class="form-group" style="margin-top: 1rem; margin-bottom: 1.25rem;">
+            <label style="font-weight: 700; display: block; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.92rem;">
+              💳 Choose Payment Option
+            </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <!-- Option 1: Pay Full Balance -->
+              <div 
+                @click="bf.payment_type = 'full'" 
+                :style="{
+                  border: bf.payment_type === 'full' ? '2px solid var(--accent-emerald)' : '1px solid var(--border-color)',
+                  background: bf.payment_type === 'full' ? 'rgba(16,185,129,0.1)' : 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                  <span style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);">Pay Full Balance</span>
+                  <input type="radio" value="full" v-model="bf.payment_type" style="accent-color: var(--accent-emerald); cursor: pointer;" />
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: var(--accent-emerald); margin-bottom: 0.2rem;">
+                  ₹{{ calculatedTotal.toFixed(2) }}
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.3;">
+                  Pay 100% upfront now
+                </div>
+              </div>
+
+              <!-- Option 2: Pay Minimum ₹99 Advance -->
+              <div 
+                @click="bf.payment_type = 'partial'" 
+                :style="{
+                  border: bf.payment_type === 'partial' ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                  background: bf.payment_type === 'partial' ? 'rgba(6,182,212,0.1)' : 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                  <span style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);">Pay ₹99 Advance</span>
+                  <input type="radio" value="partial" v-model="bf.payment_type" style="accent-color: var(--accent-cyan); cursor: pointer;" />
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: var(--accent-cyan); margin-bottom: 0.2rem;">
+                  ₹99.00 <span style="font-size: 0.72rem; font-weight: normal; color: var(--text-muted);">now</span>
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.3;">
+                  Rest ₹{{ (calculatedTotal - 99).toFixed(2) }} after wash
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-2" style="margin-top:0.75rem">
+            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">
+              {{ bookingLoading ? 'Processing...' : (
+                calculatedTotal <= 0 
+                  ? 'Book Now' 
+                  : (bf.payment_type === 'partial' && calculatedTotal > 99
+                      ? 'Book & Pay ₹99.00 (Advance)'
+                      : 'Book & Pay ₹' + calculatedTotal.toFixed(2))
+              ) }}
+            </button>
             <button type="button" class="btn btn-ghost" @click="showBookingModal = false">Cancel</button>
           </div>
         </form>
@@ -197,7 +278,7 @@ import Swal from 'sweetalert2';
 
 export default {
   name: 'CustomerBookings',
-  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [], use_epoints: false, use_earning_money: false }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10, userPoints: 0, userEarningMoney: 0 }; },
+  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [], use_epoints: false, use_earning_money: false, payment_type: 'full' }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10, userPoints: 0, userEarningMoney: 0 }; },
   computed: {
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -251,6 +332,12 @@ export default {
       if (!newVal) {
         this.bf.use_epoints = false;
         this.bf.use_earning_money = false;
+        this.bf.payment_type = 'full';
+      }
+    },
+    calculatedTotal(newVal) {
+      if (newVal <= 99) {
+        this.bf.payment_type = 'full';
       }
     }
   },
@@ -425,11 +512,14 @@ export default {
       try {
         const { data } = await axios.get(`/api/cashfree/verify/${orderId}`);
 
-        if (data.status === 'success' && data.payment_status === 'paid') {
+        if (data.status === 'success' && (data.payment_status === 'paid' || data.payment_status === 'partially_paid')) {
+          const isPartial = data.payment_status === 'partially_paid';
           Swal.fire({
             icon: 'success',
-            title: 'Booking Confirmed! 🎉',
-            html: `<p style="font-size:1.1rem; margin-bottom:0.5rem;">Your car wash is successfully registered!</p><p>Booking <strong>#${data.booking_id}</strong> has been confirmed.<br>Payment received successfully.</p>`,
+            title: isPartial ? 'Slot Booked with ₹99 Advance! 🎉' : 'Payment Confirmed! 🎉',
+            html: isPartial
+              ? `<p style="font-size:1.1rem; margin-bottom:0.5rem;">Your car wash slot is successfully booked!</p><p>Advance payment of <strong>₹99</strong> received for Booking <strong>#${data.booking_id}</strong>.<br>The remaining balance can be paid upon completion of your car wash.</p>`
+              : `<p style="font-size:1.1rem; margin-bottom:0.5rem;">Your payment was received successfully!</p><p>Booking <strong>#${data.booking_id}</strong> is fully paid.</p>`,
             confirmButtonText: 'Great!',
             confirmButtonColor: '#10b981'
           });

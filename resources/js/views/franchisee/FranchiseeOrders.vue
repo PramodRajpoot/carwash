@@ -52,9 +52,12 @@
               </td>
               <td>₹{{ o.total_price }}</td>
               <td>
-                <span class="badge" :class="o.payment_status === 'paid' ? 'badge-emerald' : 'badge-amber'">
-                  {{ o.payment_status }}
+                <span class="badge" :class="o.payment_status === 'paid' ? 'badge-emerald' : (o.payment_status === 'partially_paid' ? 'badge-cyan' : 'badge-amber')">
+                  {{ o.payment_status === 'partially_paid' ? '₹' + parseFloat(o.paid_amount || 99).toFixed(0) + ' Paid' : o.payment_status }}
                 </span>
+                <div v-if="o.payment_status === 'partially_paid'" style="font-size: 0.72rem; color: var(--accent-amber); font-weight: 600; margin-top: 0.15rem;">
+                  ₹{{ (parseFloat(o.total_price) - parseFloat(o.paid_amount || 99)).toFixed(2) }} Due
+                </div>
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Via {{ o.payment_method?.toUpperCase() }}</div>
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
@@ -110,6 +113,29 @@
               <option value="cancelled">Cancelled</option>
               <option value="postponed">Postponed</option>
             </select>
+          </div>
+
+          <!-- Payment Status / Balance Collection -->
+          <div style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
+            <label style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.35rem; display: block;">💰 Payment Status</label>
+            <div v-if="selectedOrder.payment_status === 'partially_paid'" style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; margin-bottom: 0.75rem; border: 1px solid var(--border-color); font-size: 0.85rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Advance Paid:</span>
+                <strong style="color: var(--accent-emerald);">₹{{ parseFloat(selectedOrder.paid_amount || 99).toFixed(2) }}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 0.25rem;">
+                <span>Remaining Balance Due:</span>
+                <strong style="color: var(--accent-amber);">₹{{ (parseFloat(selectedOrder.total_price) - parseFloat(selectedOrder.paid_amount || 99)).toFixed(2) }}</strong>
+              </div>
+            </div>
+            <select v-model="form.payment_status" class="form-select">
+              <option value="partially_paid" v-if="selectedOrder.payment_status === 'partially_paid'">Partially Paid (Advance ₹{{ parseFloat(selectedOrder.paid_amount || 99).toFixed(0) }})</option>
+              <option value="paid">Mark as Paid (Collected Full Balance)</option>
+              <option value="unpaid">Unpaid</option>
+            </select>
+            <p v-if="selectedOrder.payment_status === 'partially_paid'" class="text-muted" style="font-size: 0.75rem; margin-top: 0.35rem;">
+              Select "Mark as Paid" when customer pays the rest amount upon completion of the car wash.
+            </p>
           </div>
 
 
