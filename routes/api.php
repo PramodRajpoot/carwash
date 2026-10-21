@@ -233,7 +233,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/washers',                         [WasherController::class, 'store']);
         Route::put('/washers/{id}',                     [WasherController::class, 'update']);
         Route::delete('/washers/{id}',                  [WasherController::class, 'destroy']);
-        Route::put('/washers/{id}/assign-franchise',    [WasherController::class, 'assignFranchise']);
+        // Customer Management
+        Route::get('/customers',                     [SuperAdminController::class, 'getCustomers']);
+        Route::get('/customers/{id}',                [SuperAdminController::class, 'getCustomerDetails']);
+        Route::post('/customers/{id}/toggle-status', [SuperAdminController::class, 'toggleCustomerStatus']);
     });
 
     // ── Super Admin Panel ────────────────────────────────────────────────

@@ -323,9 +323,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
+const route = useRoute();
+const apiBase = computed(() => route.path.startsWith('/admin') ? '/api/admin/customers' : '/api/super-admin/customers');
 
 const customers = ref([]);
 const pagination = ref({
@@ -363,8 +367,7 @@ const fetchCustomers = async (page = 1) => {
       per_page: pagination.value.per_page
     };
     
-    const res = await axios.get('/api/super-admin/customers', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    const res = await axios.get(apiBase.value, {
       params
     });
     
@@ -387,9 +390,7 @@ const viewCustomer = async (id) => {
   activeTab.value = 'overview';
   
   try {
-    const res = await axios.get(`/api/super-admin/customers/${id}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
+    const res = await axios.get(`${apiBase.value}/${id}`);
     selectedCustomer.value = res.data;
   } catch (error) {
     console.error('Error fetching customer details:', error);
@@ -420,9 +421,7 @@ const toggleStatus = async () => {
   if (result.isConfirmed) {
     isToggling.value = true;
     try {
-      const res = await axios.post(`/api/super-admin/customers/${selectedCustomer.value.id}/toggle-status`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await axios.post(`${apiBase.value}/${selectedCustomer.value.id}/toggle-status`, {});
       
       selectedCustomer.value.status = res.data.customer_status;
       

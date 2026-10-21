@@ -48,6 +48,7 @@
           <li><router-link to="/admin"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/admin/franchisees"><span class="nav-icon">🏪</span> Franchisees</router-link></li>
           <li><router-link to="/admin/washers"><span class="nav-icon">🧼</span> Washers</router-link></li>
+          <li><router-link to="/admin/customers"><span class="nav-icon">🤝</span> Customer management</router-link></li>
           <li><router-link to="/admin/users"><span class="nav-icon">👥</span> Users</router-link></li>
           <li><router-link to="/admin/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
           <li><router-link to="/admin/packages"><span class="nav-icon">📦</span> Packages</router-link></li>
@@ -176,9 +177,9 @@ export default {
         'admin-users': 'Users', 'admin-orders': 'Booking Management', 'admin-slots': 'Slots',
         'admin-coupons': 'Coupons', 'admin-reports': 'Reports',
         'admin-packages': 'Subscription Packages', 'admin-referrals': 'Referral Network', 'admin-blog': 'Blog',
-        'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications',
+        'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications', 'admin-customers': 'Customer Management',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
-        'superadmin-washers': 'Washer Management',
+        'superadmin-washers': 'Washer Management', 'superadmin-customers': 'Customer Management',
         'superadmin-orders': 'Booking Management', 'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
         'superadmin-marketing': 'Marketing', 'superadmin-withdrawals': 'Payouts & Withdrawals',
       };
