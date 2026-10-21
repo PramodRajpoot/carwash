@@ -13,6 +13,7 @@ class Coupon extends Model
         'code',
         'discount_type',
         'discount_value',
+        'vehicle_type',
         'expires_at',
         'status',
     ];

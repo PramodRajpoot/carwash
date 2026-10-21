@@ -154,6 +154,9 @@ class BookingController extends Controller
             $paymentStatus = 'paid'; // Subscription is pre-paid
         } else {
             // Apply Coupon if applicable
+            $couponCode = null;
+            $couponDiscount = 0.00;
+
             if ($request->filled('coupon_code')) {
                 $coupon = Coupon::where('code', strtoupper($request->coupon_code))
                     ->where('status', 'active')
@@ -161,17 +164,36 @@ class BookingController extends Controller
 
                 if ($coupon) {
                     if ($coupon->expires_at && Carbon::parse($coupon->expires_at)->isPast()) {
-                        // ignore expired coupon or return error? We just don't apply it
-                    } else {
-                        if ($coupon->discount_type === 'percentage') {
-                            $price -= ($price * ($coupon->discount_value / 100));
-                        } else {
-                            $price -= $coupon->discount_value;
-                        }
-                        if ($price < 0) {
-                            $price = 0.00;
-                        }
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'Coupon code has expired'
+                        ], 400);
                     }
+
+                    // Check if coupon is restricted to a specific vehicle category
+                    if ($coupon->vehicle_type && $coupon->vehicle_type !== 'all' && strtolower($coupon->vehicle_type) !== strtolower($vehicle->vehicle_type)) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'Coupon ' . $coupon->code . ' is only valid for ' . ucfirst($coupon->vehicle_type) . ' vehicles, but your vehicle is a ' . ucfirst($vehicle->vehicle_type) . '.'
+                        ], 400);
+                    }
+
+                    if ($coupon->discount_type === 'percentage') {
+                        $couponDiscount = round($price * ($coupon->discount_value / 100), 2);
+                    } else {
+                        $couponDiscount = min((float)$coupon->discount_value, (float)$price);
+                    }
+
+                    $price -= $couponDiscount;
+                    if ($price < 0) {
+                        $price = 0.00;
+                    }
+                    $couponCode = $coupon->code;
+                } else {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Coupon code is invalid'
+                    ], 400);
                 }
             }
         }
@@ -254,6 +276,8 @@ class BookingController extends Controller
             'total_price' => $price,
             'addon_price' => $addonPrice,
             'addon_services' => empty($addonServices) ? null : json_encode($addonServices),
+            'coupon_code' => $couponCode,
+            'coupon_discount' => $couponDiscount,
             'epoints_used' => $epointsUsed,
             'earning_money_used' => $earningMoneyUsed,
         ]);
@@ -508,6 +532,22 @@ class BookingController extends Controller
                 'status' => 'error',
                 'message' => 'Coupon code has expired'
             ], 400);
+        }
+
+        // Check vehicle category compatibility if coupon is restricted
+        if ($coupon->vehicle_type && $coupon->vehicle_type !== 'all') {
+            $vehicleType = $request->input('vehicle_type');
+            if (!$vehicleType && $request->filled('vehicle_id')) {
+                $vehicle = Vehicle::find($request->vehicle_id);
+                $vehicleType = $vehicle?->vehicle_type;
+            }
+
+            if ($vehicleType && strtolower($coupon->vehicle_type) !== strtolower($vehicleType)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Coupon ' . $coupon->code . ' is only valid for ' . ucfirst($coupon->vehicle_type) . ' vehicles.'
+                ], 400);
+            }
         }
 
         $price = $request->price;

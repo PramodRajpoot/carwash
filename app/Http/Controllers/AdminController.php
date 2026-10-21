@@ -279,6 +279,7 @@ class AdminController extends Controller
             'code'           => 'required|string|unique:coupons,code',
             'discount_type'  => 'required|string|in:fixed,percentage',
             'discount_value' => 'required|numeric|min:0',
+            'vehicle_type'   => 'nullable|string',
             'expires_at'     => 'nullable|date',
         ]);
 
@@ -286,6 +287,7 @@ class AdminController extends Controller
             'code'           => strtoupper($request->code),
             'discount_type'  => $request->discount_type,
             'discount_value' => $request->discount_value,
+            'vehicle_type'   => $request->vehicle_type ?: 'all',
             'expires_at'     => $request->expires_at,
             'status'         => 'active',
         ]);

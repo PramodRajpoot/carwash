@@ -31,6 +31,8 @@ class Booking extends Model
         'payment_type',
         'advance_amount',
         'paid_amount',
+        'coupon_code',
+        'coupon_discount',
     ];
 
     protected $casts = [
@@ -38,6 +40,7 @@ class Booking extends Model
         'earning_money_used' => 'decimal:2',
         'advance_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
+        'coupon_discount' => 'decimal:2',
     ];
 
     public function customer()

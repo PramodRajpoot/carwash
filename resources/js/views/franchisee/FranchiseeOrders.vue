@@ -50,7 +50,12 @@
                   Unassigned
                 </span>
               </td>
-              <td>₹{{ o.total_price }}</td>
+              <td>
+                <div style="font-weight: 600;">₹{{ o.total_price }}</div>
+                <div v-if="o.coupon_code || parseFloat(o.coupon_discount || 0) > 0" style="font-size: 0.68rem; color: var(--accent-emerald); font-weight: 600;">
+                  🎟️ {{ o.coupon_code }}: -₹{{ parseFloat(o.coupon_discount || 0).toFixed(2) }}
+                </div>
+              </td>
               <td>
                 <span class="badge" :class="o.payment_status === 'paid' ? 'badge-emerald' : (o.payment_status === 'partially_paid' ? 'badge-cyan' : 'badge-amber')">
                   {{ o.payment_status === 'partially_paid' ? '₹' + parseFloat(o.paid_amount || 99).toFixed(0) + ' Paid' : o.payment_status }}

@@ -85,6 +85,9 @@
               </td>
               <td>
                 <div style="font-weight:600; color:var(--text-primary);">₹{{ o.total_price }}</div>
+                <div v-if="o.coupon_code || parseFloat(o.coupon_discount || 0) > 0" style="font-size: 0.68rem; color: var(--accent-emerald); font-weight: 600;">
+                  🎟️ {{ o.coupon_code }}: -₹{{ parseFloat(o.coupon_discount || 0).toFixed(2) }}
+                </div>
                 <div style="font-size: 0.7rem;" :style="{ color: o.payment_status === 'paid' ? 'var(--accent-emerald)' : (o.payment_status === 'partially_paid' ? 'var(--accent-cyan)' : 'var(--accent-amber)') }">
                   {{ o.payment_status === 'partially_paid' ? 'PARTIAL (₹' + parseFloat(o.paid_amount || 99).toFixed(0) + ' Paid)' : o.payment_status?.toUpperCase() }} ({{ o.payment_method?.toUpperCase() }})
                 </div>

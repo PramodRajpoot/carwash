@@ -20,7 +20,7 @@
                 </span>
               </div>
             </td>
-            <td>₹{{ (parseFloat(b.total_price) + parseFloat(b.epoints_used || 0) + parseFloat(b.earning_money_used || 0)).toFixed(2) }}</td>
+            <td>₹{{ (parseFloat(b.total_price) + parseFloat(b.coupon_discount || 0) + parseFloat(b.epoints_used || 0) + parseFloat(b.earning_money_used || 0)).toFixed(2) }}</td>
             <td>
               <div v-if="b.payment_type === 'partial'">
                 <span style="font-weight: 700; color: var(--accent-cyan); font-size: 0.88rem;">₹{{ parseFloat(b.advance_amount || 99).toFixed(2) }}</span>
@@ -34,13 +34,16 @@
               <span v-else class="text-muted">-</span>
             </td>
             <td>
-              <div v-if="b.epoints_used > 0" style="color: var(--accent-emerald); font-weight: 600; font-size: 0.85rem;">
+              <div v-if="b.coupon_code || parseFloat(b.coupon_discount || 0) > 0" style="color: var(--accent-emerald); font-weight: 600; font-size: 0.82rem; margin-bottom: 2px;">
+                🎟️ {{ b.coupon_code || 'Coupon' }}: -₹{{ parseFloat(b.coupon_discount || 0).toFixed(2) }}
+              </div>
+              <div v-if="b.epoints_used > 0" style="color: var(--accent-emerald); font-weight: 600; font-size: 0.82rem; margin-bottom: 2px;">
                 {{ b.epoints_used }} pts
               </div>
-              <div v-if="b.earning_money_used > 0" style="color: var(--accent-cyan); font-weight: 600; font-size: 0.85rem;">
+              <div v-if="parseFloat(b.earning_money_used || 0) > 0" style="color: var(--accent-cyan); font-weight: 600; font-size: 0.82rem;">
                 ₹{{ parseFloat(b.earning_money_used).toFixed(2) }}
               </div>
-              <span v-if="!(b.epoints_used > 0) && !(b.earning_money_used > 0)" class="text-muted">-</span>
+              <span v-if="!(b.coupon_code || parseFloat(b.coupon_discount || 0) > 0) && !(b.epoints_used > 0) && !(parseFloat(b.earning_money_used || 0) > 0)" class="text-muted">-</span>
             </td>
             <td style="font-weight: 600; color: var(--text-primary);">
               <div>
@@ -182,6 +185,10 @@
                 <span>Add-ons ({{ bf.addon_ids.length }} items)</span>
                 <span>+ ₹{{ addonTotal.toFixed(2) }}</span>
               </div>
+              <div v-if="appliedCouponDiscount > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald); font-weight: 600;">
+                <span>🎟️ Coupon ({{ appliedCouponCode }})</span>
+                <span>- ₹{{ appliedCouponDiscount.toFixed(2) }}</span>
+              </div>
               <div v-if="appliedEPoints > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald);">
                 <span>E-Points Discount</span>
                 <span>- ₹{{ appliedEPoints.toFixed(2) }}</span>
@@ -219,7 +226,41 @@
               </select>
             </div>
           </div>
-          <div class="form-group"><label>Coupon Code</label><input v-model="bf.coupon_code" class="form-input" placeholder="e.g. WELCOME10"></div>
+          
+          <!-- Coupon Code Input & Apply Button -->
+          <div class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
+            <label style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Coupon Code</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input 
+                v-model="bf.coupon_code" 
+                class="form-input" 
+                placeholder="e.g. SDFS or WELCOME10" 
+                style="text-transform: uppercase;"
+                :disabled="couponApplied"
+                @keyup.enter.prevent="applyCoupon()"
+              />
+              <button 
+                v-if="!couponApplied" 
+                type="button" 
+                class="btn btn-primary" 
+                style="white-space: nowrap; padding: 0.5rem 1.25rem; font-weight: 600;" 
+                @click="applyCoupon()" 
+                :disabled="couponLoading || !bf.coupon_code || !bf.coupon_code.trim()">
+                {{ couponLoading ? 'Checking...' : 'Apply' }}
+              </button>
+              <button 
+                v-else 
+                type="button" 
+                class="btn btn-ghost text-danger" 
+                style="white-space: nowrap; padding: 0.5rem 0.85rem; border: 1px solid var(--border-color);" 
+                @click="removeCoupon()">
+                ✕ Remove
+              </button>
+            </div>
+            <div v-if="couponFeedback" :style="{ color: couponSuccess ? 'var(--accent-emerald)' : 'var(--accent-rose)', fontSize: '0.82rem', marginTop: '0.35rem', fontWeight: 600 }">
+              {{ couponSuccess ? '✓ ' : '✗ ' }}{{ couponFeedback }}
+            </div>
+          </div>
           
           <!-- E-Points Checkbox Option -->
           <div v-if="bf.package_id && userPoints > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
@@ -323,7 +364,48 @@ import Swal from 'sweetalert2';
 
 export default {
   name: 'CustomerBookings',
-  data() { return { bookings: [], vehicles: [], centers: [], packages: [], availableSlots: [], slotsLoading: false, postponeSlots: [], postponeSlotsLoading: false, showBookingModal: false, bookingMsg: '', bookingError: false, bookingLoading: false, postponeBooking: null, payingBookingId: null, bf: { vehicle_id: '', franchisee_id: '', package_id: '', booking_date: '', slot_time: '', payment_method: 'online', coupon_code: '', addon_ids: [], use_epoints: false, use_earning_money: false, payment_type: 'full' }, pf: { booking_date: '', slot_time: '' }, currentPage: 1, itemsPerPage: 10, userPoints: 0, userEarningMoney: 0 }; },
+  data() {
+    return {
+      bookings: [],
+      vehicles: [],
+      centers: [],
+      packages: [],
+      availableSlots: [],
+      slotsLoading: false,
+      postponeSlots: [],
+      postponeSlotsLoading: false,
+      showBookingModal: false,
+      bookingMsg: '',
+      bookingError: false,
+      bookingLoading: false,
+      postponeBooking: null,
+      payingBookingId: null,
+      appliedCouponDiscount: 0,
+      appliedCouponCode: '',
+      couponApplied: false,
+      couponLoading: false,
+      couponFeedback: '',
+      couponSuccess: false,
+      bf: {
+        vehicle_id: '',
+        franchisee_id: '',
+        package_id: '',
+        booking_date: '',
+        slot_time: '',
+        payment_method: 'online',
+        coupon_code: '',
+        addon_ids: [],
+        use_epoints: false,
+        use_earning_money: false,
+        payment_type: 'full'
+      },
+      pf: { booking_date: '', slot_time: '' },
+      currentPage: 1,
+      itemsPerPage: 10,
+      userPoints: 0,
+      userEarningMoney: 0
+    };
+  },
   computed: {
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -355,13 +437,15 @@ export default {
       if (!this.bf.package_id) return 0;
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       const total = base + this.addonTotal;
-      const maxAllowed = Math.floor(total * 0.125);
+      const totalAfterCoupon = Math.max(0, total - this.appliedCouponDiscount);
+      const maxAllowed = Math.floor(totalAfterCoupon * 0.125);
       return Math.min(maxAllowed, this.userPoints);
     },
     appliedEarningMoney() {
       if (!this.bf.use_earning_money || !this.bf.package_id) return 0;
       let total = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       total += this.addonTotal;
+      total -= this.appliedCouponDiscount;
       total -= this.appliedEPoints;
       if (total <= 0) return 0;
       return Math.min(parseFloat(this.userEarningMoney || 0), total);
@@ -369,7 +453,7 @@ export default {
     calculatedTotal() {
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       const total = base + this.addonTotal;
-      return Math.max(0, total - this.appliedEPoints - this.appliedEarningMoney);
+      return Math.max(0, total - this.appliedCouponDiscount - this.appliedEPoints - this.appliedEarningMoney);
     }
   },
   watch: {
@@ -378,6 +462,27 @@ export default {
         this.bf.use_epoints = false;
         this.bf.use_earning_money = false;
         this.bf.payment_type = 'full';
+        this.removeCoupon();
+      } else if (this.couponApplied) {
+        this.applyCoupon(true);
+      }
+    },
+    'bf.vehicle_id'() {
+      if (this.couponApplied) {
+        this.applyCoupon(true);
+      }
+    },
+    'bf.addon_ids': {
+      deep: true,
+      handler() {
+        if (this.couponApplied) {
+          this.applyCoupon(true);
+        }
+      }
+    },
+    showBookingModal(newVal) {
+      if (!newVal) {
+        this.removeCoupon();
       }
     },
     calculatedTotal(newVal) {
@@ -387,6 +492,61 @@ export default {
     }
   },
   methods: {
+    async applyCoupon(silent = false) {
+      if (!this.bf.coupon_code || !this.bf.coupon_code.trim()) {
+        if (!silent) {
+          this.couponFeedback = 'Please enter a coupon code';
+          this.couponSuccess = false;
+        }
+        return;
+      }
+
+      const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
+      const subtotal = base + this.addonTotal;
+      if (subtotal <= 0) {
+        if (!silent) {
+          this.couponFeedback = 'Please select a package first';
+          this.couponSuccess = false;
+        }
+        return;
+      }
+
+      if (!silent) this.couponLoading = true;
+      try {
+        const { data } = await axios.post('/api/bookings/apply-coupon', {
+          code: this.bf.coupon_code.trim(),
+          price: subtotal,
+          vehicle_id: this.bf.vehicle_id
+        });
+
+        if (data.status === 'success') {
+          this.appliedCouponDiscount = parseFloat(data.discount_amount) || 0;
+          this.appliedCouponCode = data.code;
+          this.couponApplied = true;
+          this.couponSuccess = true;
+          this.couponFeedback = `Coupon applied! Saved ₹${this.appliedCouponDiscount.toFixed(2)}`;
+        } else {
+          this.removeCoupon();
+          this.couponFeedback = data.message || 'Coupon could not be applied';
+          this.couponSuccess = false;
+        }
+      } catch (e) {
+        const msg = e.response?.data?.message || 'Invalid or expired coupon code';
+        this.removeCoupon();
+        this.couponFeedback = msg;
+        this.couponSuccess = false;
+      } finally {
+        if (!silent) this.couponLoading = false;
+      }
+    },
+    removeCoupon() {
+      this.appliedCouponDiscount = 0;
+      this.appliedCouponCode = '';
+      this.couponApplied = false;
+      this.couponFeedback = '';
+      this.couponSuccess = false;
+      this.bf.coupon_code = '';
+    },
     getAddons(b) {
       if (!b.addon_services) return [];
       if (typeof b.addon_services === 'string') {
@@ -482,6 +642,20 @@ export default {
         this.bookingMsg = data.message;
         this.bookingError = false;
         this.showBookingModal = false;
+        this.bf = {
+          vehicle_id: '',
+          franchisee_id: '',
+          package_id: '',
+          booking_date: '',
+          slot_time: '',
+          payment_method: 'online',
+          coupon_code: '',
+          addon_ids: [],
+          use_epoints: false,
+          use_earning_money: false,
+          payment_type: 'full'
+        };
+        this.removeCoupon();
         Swal.fire({
           icon: 'success',
           title: 'Booking Confirmed!',

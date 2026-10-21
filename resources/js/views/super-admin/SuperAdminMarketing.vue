@@ -33,6 +33,7 @@
             <thead>
               <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted);">
                 <th style="padding: 1rem 0.75rem;">Coupon Code</th>
+                <th style="padding: 1rem 0.75rem;">Applicable Category</th>
                 <th style="padding: 1rem 0.75rem;">Discount Value</th>
                 <th style="padding: 1rem 0.75rem;">Expires Date</th>
                 <th style="padding: 1rem 0.75rem;">Status</th>
@@ -43,6 +44,14 @@
               <tr v-for="c in paginatedCoupons" :key="c.id" style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
                 <td style="padding: 1rem 0.75rem; font-family: monospace; font-weight: 700; font-size: 1.1rem; color: var(--accent-cyan);">
                   🎟️ {{ c.code }}
+                </td>
+                <td style="padding: 1rem 0.75rem;">
+                  <span v-if="!c.vehicle_type || c.vehicle_type === 'all'" class="badge badge-cyan" style="font-size: 0.75rem;">
+                    🌐 All Vehicles
+                  </span>
+                  <span v-else class="badge badge-amber" style="font-size: 0.75rem; text-transform: capitalize; font-weight: 600;">
+                    🚗 {{ c.vehicle_type }}
+                  </span>
                 </td>
                 <td style="padding: 1rem 0.75rem; font-weight: 600; color: var(--text-primary);">
                   {{ c.discount_type === 'percentage' ? c.discount_value + '%' : '₹' + c.discount_value }}
@@ -95,6 +104,21 @@
             <div class="form-group">
               <label>Promo Coupon Code</label>
               <input v-model="couponForm.code" class="form-input" placeholder="e.g. WELCOME100" style="text-transform: uppercase;" required />
+            </div>
+            <div class="form-group">
+              <label>Applicable Car Category</label>
+              <select v-model="couponForm.vehicle_type" class="form-select" required>
+                <option value="all">🌐 All Categories (All Users / Any Car)</option>
+                <option value="hatchback">🚗 Hatchback</option>
+                <option value="sedan">🚘 Sedan</option>
+                <option value="suv">🚙 SUV</option>
+                <option value="commercial">🚚 Commercial</option>
+                <option value="bus">🚌 Bus</option>
+                <option value="volvo_bus">🚍 Volvo Bus</option>
+              </select>
+              <small class="text-muted" style="display: block; margin-top: 0.25rem; font-size: 0.75rem;">
+                Select a single category like "Hatchback" to restrict this coupon to that car category only, or "All Categories" for all users/cars.
+              </small>
             </div>
             <div class="grid grid-2 gap-2">
               <div class="form-group">
@@ -273,6 +297,7 @@ export default {
         code: '',
         discount_type: 'percentage',
         discount_value: '',
+        vehicle_type: 'all',
         expires_at: ''
       },
       couponsCurrentPage: 1,
@@ -323,6 +348,7 @@ export default {
         await axios.post('/api/admin/coupons', this.couponForm);
         this.couponForm.code = '';
         this.couponForm.discount_value = '';
+        this.couponForm.vehicle_type = 'all';
         this.couponForm.expires_at = '';
         this.showCouponModal = false;
         this.loadCoupons();
