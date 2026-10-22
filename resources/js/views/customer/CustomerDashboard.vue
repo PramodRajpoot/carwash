@@ -100,6 +100,7 @@
           <div>
             <div style="font-weight:500">{{ b.vehicle?.make_model }}</div>
             <div class="text-muted" style="font-size:0.8rem">{{ b.booking_date }} • {{ b.slot_time }}</div>
+            <div v-if="b.address" class="text-muted" style="font-size:0.75rem;margin-top:2px">📍 {{ b.address }}</div>
           </div>
           <span class="badge" :class="statusBadge(b.status)">{{ b.status }}</span>
         </div>

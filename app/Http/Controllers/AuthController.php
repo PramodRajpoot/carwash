@@ -239,12 +239,13 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
+            'name'    => 'required|string|max:255',
+            'email'   => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'phone'   => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:1000',
         ]);
 
-        $user->update($request->only('name', 'email', 'phone'));
+        $user->update($request->only('name', 'email', 'phone', 'address'));
 
         if ($user->role === 'franchisee' && $request->has('center_name')) {
             $user->franchisee()->update($request->only('center_name', 'address', 'city'));

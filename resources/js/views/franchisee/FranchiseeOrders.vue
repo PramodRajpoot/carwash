@@ -57,12 +57,20 @@
                 </div>
               </td>
               <td>
-                <span class="badge" :class="o.payment_status === 'paid' ? 'badge-emerald' : (o.payment_status === 'partially_paid' ? 'badge-cyan' : 'badge-amber')">
-                  {{ o.payment_status === 'partially_paid' ? '₹' + parseFloat(o.paid_amount || 99).toFixed(0) + ' Paid' : o.payment_status }}
-                </span>
-                <div v-if="o.payment_status === 'partially_paid'" style="font-size: 0.72rem; color: var(--accent-amber); font-weight: 600; margin-top: 0.15rem;">
-                  ₹{{ (parseFloat(o.total_price) - parseFloat(o.paid_amount || 99)).toFixed(2) }} Due
+                <div v-if="o.payment_status === 'partially_paid'">
+                  <span class="badge badge-amber" style="font-size:0.75rem; font-weight:700; display:inline-block; margin-bottom: 0.25rem;">
+                    ⚠️ Amount is Remaining
+                  </span>
+                  <div style="font-size: 0.78rem; color: var(--accent-amber); font-weight: 700;">
+                    ₹{{ (parseFloat(o.total_price) - parseFloat(o.paid_amount || 0)).toFixed(2) }} Due
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--accent-emerald); margin-top: 2px;">
+                    ₹{{ parseFloat(o.paid_amount || 0).toFixed(2) }} Paid
+                  </div>
                 </div>
+                <span v-else class="badge" :class="o.payment_status === 'paid' ? 'badge-emerald' : 'badge-rose'">
+                  {{ o.payment_status === 'paid' ? '✓ Fully Paid' : o.payment_status }}
+                </span>
                 <div style="margin-top: 0.25rem;">
                   <span v-if="o.payment_method === 'cod'" class="badge badge-amber" style="font-size:0.65rem;">💵 COD</span>
                   <span v-else class="badge badge-cyan" style="font-size:0.65rem;">💳 Online</span>
@@ -126,25 +134,32 @@
           <!-- Payment Status / Balance Collection -->
           <div style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
             <label style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.35rem; display: block;">💰 Payment Status</label>
-            <div v-if="selectedOrder.payment_status === 'partially_paid'" style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; margin-bottom: 0.75rem; border: 1px solid var(--border-color); font-size: 0.85rem;">
-              <div style="display: flex; justify-content: space-between;">
-                <span>Advance Paid:</span>
-                <strong style="color: var(--accent-emerald);">₹{{ parseFloat(selectedOrder.paid_amount || 99).toFixed(2) }}</strong>
+            <div v-if="selectedOrder.payment_status === 'partially_paid'" style="background: rgba(245, 158, 11, 0.08); border-radius: var(--radius-sm); padding: 0.75rem 0.9rem; margin-bottom: 0.75rem; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span style="font-weight: 700; color: #f59e0b; font-size: 0.92rem;">⚠️ Status: Amount is Remaining</span>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-top: 0.25rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                <span>Total Order Price:</span>
+                <strong>₹{{ parseFloat(selectedOrder.total_price).toFixed(2) }}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                <span>Amount Paid:</span>
+                <strong style="color: var(--accent-emerald);">₹{{ parseFloat(selectedOrder.paid_amount || 0).toFixed(2) }}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
                 <span>Remaining Balance Due:</span>
-                <strong style="color: var(--accent-amber);">₹{{ (parseFloat(selectedOrder.total_price) - parseFloat(selectedOrder.paid_amount || 99)).toFixed(2) }}</strong>
+                <strong style="color: var(--accent-amber); font-size: 0.95rem;">₹{{ (parseFloat(selectedOrder.total_price) - parseFloat(selectedOrder.paid_amount || 0)).toFixed(2) }}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-top: 0.25rem;">
-                <span>Remaining Method:</span>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Payment Mode:</span>
                 <strong :style="{ color: selectedOrder.payment_method === 'cod' ? 'var(--accent-amber)' : 'var(--accent-cyan)' }">
                   {{ selectedOrder.payment_method === 'cod' ? '💵 Cash on Delivery (COD)' : '💳 Online Payment' }}
                 </strong>
               </div>
             </div>
             <select v-model="form.payment_status" class="form-select">
-              <option value="partially_paid" v-if="selectedOrder.payment_status === 'partially_paid'">Partially Paid (Advance ₹{{ parseFloat(selectedOrder.paid_amount || 99).toFixed(0) }})</option>
-              <option value="paid">Mark as Paid (Collected Full Balance)</option>
+              <option value="partially_paid" v-if="selectedOrder.payment_status === 'partially_paid'">Amount is Remaining (₹{{ (parseFloat(selectedOrder.total_price) - parseFloat(selectedOrder.paid_amount || 0)).toFixed(2) }} Due)</option>
+              <option value="paid">Mark as Paid (Full Balance Collected)</option>
               <option value="unpaid">Unpaid</option>
             </select>
             <p v-if="selectedOrder.payment_status === 'partially_paid'" class="text-muted" style="font-size: 0.75rem; margin-top: 0.35rem;">
