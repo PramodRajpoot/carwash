@@ -20,11 +20,34 @@ class Franchisee extends Model
         'status',
         'agreement_expires_at',
         'document_path',
+        'documents',
     ];
 
     protected $casts = [
         'agreement_expires_at' => 'date',
+        'documents'            => 'array',
     ];
+
+    public function getDocumentsAttribute($value)
+    {
+        if (is_array($value)) {
+            $docs = $value;
+        } elseif (is_string($value)) {
+            $docs = json_decode($value, true) ?: [];
+        } else {
+            $docs = [];
+        }
+
+        if (empty($docs) && !empty($this->document_path)) {
+            $docs[] = [
+                'id'          => 'legacy_1',
+                'name'        => basename($this->document_path),
+                'path'        => $this->document_path,
+                'uploaded_at' => null,
+            ];
+        }
+        return $docs;
+    }
 
     public function user()
     {

@@ -45,16 +45,32 @@
             </td>
             <td style="padding: 1rem 0.5rem; font-size: 0.8rem;">
               <div :style="{ color: !f.agreement_expires_at ? 'var(--text-muted)' : (new Date(f.agreement_expires_at) < new Date() ? 'var(--accent-rose)' : 'var(--accent-emerald)') }">
-                <span v-if="f.agreement_expires_at">Exp: {{ f.agreement_expires_at }}</span>
+                <span v-if="f.agreement_expires_at">Exp: {{ f.agreement_expires_at.split('T')[0] }}</span>
                 <span v-else>No Date</span>
               </div>
-              <div style="margin-top: 0.25rem; display: flex; align-items: center; gap: 5px;">
-                <template v-if="f.document_path">
-                  <img v-if="f.document_path.match(/\.(jpeg|jpg|png|gif)$/i)" :src="'/' + f.document_path" style="height: 24px; width: 24px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);" />
-                  <span v-else style="font-size: 1.1rem; line-height: 1;">📄</span>
-                  <a href="#" @click.prevent="showDocumentPopup(f)" style="color:var(--accent-cyan); text-decoration:none;">View Doc</a>
+              <div style="margin-top: 0.35rem; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                <template v-if="getDocs(f).length > 0">
+                  <button 
+                    type="button" 
+                    @click="openDocumentsModal(f)" 
+                    class="badge badge-cyan" 
+                    style="border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-weight: 500; font-size: 0.75rem;"
+                    title="Click to view and manage all documents"
+                  >
+                    <span>📁</span>
+                    <span>{{ getDocs(f).length }} Doc{{ getDocs(f).length > 1 ? 's' : '' }} (View)</span>
+                  </button>
                 </template>
-                <span v-else class="text-muted">No Doc</span>
+                <button 
+                  v-else 
+                  type="button" 
+                  @click="openDocumentsModal(f)" 
+                  class="btn btn-xs btn-outline" 
+                  style="font-size: 0.75rem; padding: 2px 7px;"
+                  title="Upload documents"
+                >
+                  + Upload Doc
+                </button>
               </div>
             </td>
             <td style="padding: 1rem 0.5rem;">
@@ -81,8 +97,8 @@
                 <option value="reject" v-if="f.status !== 'inactive'">Reject</option>
                 <option value="suspend" v-if="f.status !== 'suspended'">Suspend</option>
                 <option value="renew">Renew Agreement</option>
-                <option value="upload">Upload Docs</option>
-                <option value="delete_doc" v-if="f.document_path" style="color: var(--accent-rose);">Delete Doc</option>
+                <option value="upload">Manage Docs ({{ getDocs(f).length }})</option>
+                <option value="delete_doc" v-if="getDocs(f).length > 0" style="color: var(--accent-rose);">Delete All Docs</option>
                 <option value="view">View / Slots</option>
                 <option value="edit">Edit</option>
               </select>
@@ -159,9 +175,19 @@
             </div>
             <div style="grid-column: 1 / -1; border-top: 1px solid var(--border-color); padding-top: 1rem;">
               <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Agreement & Documents</div>
-              <div style="display:flex; gap: 2rem;">
-                <div>Expires: <span style="font-weight: 600;" :style="{ color: !selectedFranchise.agreement_expires_at ? 'var(--text-muted)' : (new Date(selectedFranchise.agreement_expires_at) < new Date() ? 'var(--accent-rose)' : 'var(--accent-emerald)') }">{{ selectedFranchise.agreement_expires_at || 'Not set' }}</span></div>
-                <div>Document: <a v-if="selectedFranchise.document_path" :href="'/' + selectedFranchise.document_path" target="_blank" style="color:var(--accent-cyan); text-decoration:none;">View Document</a><span v-else class="text-muted">No document uploaded</span></div>
+              <div style="display:flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                <div>Expires: <span style="font-weight: 600;" :style="{ color: !selectedFranchise.agreement_expires_at ? 'var(--text-muted)' : (new Date(selectedFranchise.agreement_expires_at) < new Date() ? 'var(--accent-rose)' : 'var(--accent-emerald)') }">{{ selectedFranchise.agreement_expires_at ? selectedFranchise.agreement_expires_at.split('T')[0] : 'Not set' }}</span></div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span>Documents:</span>
+                  <button 
+                    type="button"
+                    class="badge badge-cyan" 
+                    style="border: none; cursor: pointer; padding: 3px 8px; font-weight: 500;"
+                    @click="openDocumentsModal(selectedFranchise)"
+                  >
+                    📁 {{ getDocs(selectedFranchise).length }} Document(s) (Manage / View)
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -193,6 +219,174 @@
         </div>
       </div>
     </div>
+
+    <!-- Multi-Document Management Modal -->
+    <div v-if="showDocumentsModal" class="modal-overlay" style="z-index: 1050;" @click.self="showDocumentsModal = false">
+      <div class="modal-content" style="max-width: 820px; max-height: 90vh; display: flex; flex-direction: column;">
+        
+        <!-- Modal Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+          <div>
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+              <span>📁</span> Franchise Documents
+            </h3>
+            <p class="text-muted" style="margin: 0.25rem 0 0 0; font-size: 0.85rem;">
+              Manage agreements & documents for <strong style="color: var(--text-primary);">{{ activeFranchiseForDocs?.center_name }}</strong> 
+              <span v-if="activeFranchiseForDocs?.user?.name">({{ activeFranchiseForDocs.user.name }})</span>
+            </p>
+          </div>
+          <button class="btn btn-ghost btn-sm" @click="showDocumentsModal = false" style="font-size: 1.1rem; line-height: 1; padding: 0.2rem 0.5rem;">✕</button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div style="overflow-y: auto; flex: 1; padding-right: 4px;">
+          
+          <!-- Upload Area (Supports Multi-File Upload) -->
+          <div style="background: var(--bg-secondary); border: 2px dashed var(--border-color); border-radius: 8px; padding: 1.25rem; text-align: center; margin-bottom: 1.5rem;">
+            <input 
+              type="file" 
+              ref="multiFileInput" 
+              multiple 
+              accept=".pdf,image/*" 
+              @change="onFilesSelected" 
+              style="display: none;" 
+            />
+            <div style="font-size: 2rem; margin-bottom: 0.4rem;">📤</div>
+            <div style="font-weight: 600; font-size: 1rem; margin-bottom: 0.25rem;">Upload Documents</div>
+            <p class="text-muted" style="font-size: 0.85rem; margin: 0 0 0.85rem 0;">
+              You can select and upload <strong>more than one document</strong> at a time (PDF, PNG, JPG, JPEG — up to 10MB each)
+            </p>
+            <button type="button" class="btn btn-sm btn-primary" @click="$refs.multiFileInput.click()">
+              Choose Files to Upload
+            </button>
+
+            <!-- Pending Staged Files to Upload -->
+            <div v-if="selectedFilesForUpload.length > 0" style="margin-top: 1rem; text-align: left; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.85rem;">
+              <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <span>Selected to Upload ({{ selectedFilesForUpload.length }} files):</span>
+                <span class="badge badge-amber" style="font-size: 0.75rem;">Pending Upload</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 140px; overflow-y: auto;">
+                <div v-for="(file, idx) in selectedFilesForUpload" :key="idx" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.45rem 0.65rem; border-radius: 4px; font-size: 0.8rem;">
+                  <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;">
+                    <span>{{ file.type.includes('pdf') ? '📄' : '🖼️' }}</span>
+                    <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ file.name }}</span>
+                    <span class="text-muted" style="font-size: 0.75rem;">({{ formatBytes(file.size) }})</span>
+                  </div>
+                  <button type="button" class="btn btn-ghost btn-xs" @click="removeSelectedFile(idx)" style="color: var(--accent-rose); padding: 2px 6px;" title="Remove this file">✕</button>
+                </div>
+              </div>
+              <div style="margin-top: 0.85rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button type="button" class="btn btn-sm btn-ghost" @click="selectedFilesForUpload = []">Cancel All</button>
+                <button type="button" class="btn btn-sm btn-primary" :disabled="uploadingDocs" @click="uploadSelectedDocuments">
+                  {{ uploadingDocs ? 'Uploading...' : `Upload ${selectedFilesForUpload.length} Document(s)` }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Document Preview Section (Shown Above the Uploaded Documents) -->
+          <div v-if="previewDoc" ref="previewBox" style="margin-bottom: 1.5rem; background: var(--bg-primary); border: 1.5px solid var(--accent-cyan); border-radius: 8px; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; gap: 0.75rem; flex-wrap: wrap;">
+              <div style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                <span style="flex-shrink: 0;">👁️ Previewing:</span>
+                <span style="color: var(--accent-cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" :title="previewDoc.name || 'Document'">
+                  {{ previewDoc.name || 'Document' }}
+                </span>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0;">
+                <a :href="'/' + previewDoc.path" target="_blank" class="btn btn-xs btn-outline" style="text-decoration: none;">Open In New Tab ↗</a>
+                <button type="button" class="btn btn-xs btn-ghost" @click="previewDoc = null" style="color: var(--text-muted);">Close Preview ✕</button>
+              </div>
+            </div>
+
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; min-height: 250px; display: flex; justify-content: center; align-items: center;">
+              <template v-if="isImageDoc(previewDoc.path)">
+                <img :src="'/' + previewDoc.path" style="max-width: 100%; max-height: 55vh; object-fit: contain; padding: 0.75rem;" />
+              </template>
+              <template v-else>
+                <iframe :src="'/' + previewDoc.path" style="width: 100%; height: 55vh; border: none;"></iframe>
+              </template>
+            </div>
+          </div>
+
+          <!-- Uploaded Documents List -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <span>All Uploaded Documents</span>
+                <span class="badge badge-cyan" style="font-size: 0.75rem;">{{ getDocs(activeFranchiseForDocs).length }} total</span>
+              </h4>
+              <button 
+                v-if="getDocs(activeFranchiseForDocs).length > 1" 
+                type="button" 
+                class="btn btn-xs btn-ghost" 
+                @click="deleteDocument(activeFranchiseForDocs)"
+                style="color: var(--accent-rose);"
+              >
+                Delete All
+              </button>
+            </div>
+
+            <div v-if="getDocs(activeFranchiseForDocs).length === 0" style="text-align: center; padding: 2rem; background: var(--bg-secondary); border-radius: 8px; border: 1px dashed var(--border-color);" class="text-muted">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">📂</div>
+              <div>No documents uploaded yet for this franchise.</div>
+              <div style="font-size: 0.8rem; margin-top: 0.25rem;">Use the upload box above to add multiple documents.</div>
+            </div>
+
+            <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.85rem;">
+              <div 
+                v-for="(doc, idx) in getDocs(activeFranchiseForDocs)" 
+                :key="doc.id || idx"
+                style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem; display: flex; flex-direction: column; justify-content: space-between;"
+              >
+                <!-- Thumbnail / Type Icon -->
+                <div style="text-align: center; padding: 0.5rem 0; cursor: pointer; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center;" @click="previewDocument(doc)">
+                  <template v-if="isImageDoc(doc.path)">
+                    <img :src="'/' + doc.path" style="max-height: 80px; max-width: 100%; object-fit: contain; border-radius: 4px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.2);" />
+                  </template>
+                  <template v-else>
+                    <div style="font-size: 2.5rem; line-height: 1;">📄</div>
+                    <span class="badge badge-rose" style="font-size: 0.65rem; margin-top: 4px;">PDF</span>
+                  </template>
+                </div>
+
+                <!-- Info -->
+                <div style="margin: 0.5rem 0; border-top: 1px solid var(--border-color); padding-top: 0.5rem;">
+                  <div style="font-weight: 600; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" :title="doc.name || 'Document ' + (idx + 1)">
+                    {{ doc.name || 'Document ' + (idx + 1) }}
+                  </div>
+                  <div class="text-muted" style="font-size: 0.72rem; margin-top: 3px;">
+                    <span v-if="doc.uploaded_at">{{ doc.uploaded_at.split('T')[0] }}</span>
+                    <span v-if="doc.size"> • {{ formatBytes(doc.size) }}</span>
+                  </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div style="display: flex; gap: 0.4rem; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.5rem;">
+                  <button type="button" class="btn btn-xs btn-outline" @click="previewDocument(doc)" title="Preview Document">
+                    👁️ View
+                  </button>
+                  <a :href="'/' + doc.path" target="_blank" download class="btn btn-xs btn-outline" title="Download Document" style="text-decoration: none;">
+                    ⬇️
+                  </a>
+                  <button type="button" class="btn btn-xs btn-ghost" @click="deleteSingleDoc(doc)" title="Delete Document" style="color: var(--accent-rose); padding: 2px 6px;">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="display: flex; justify-content: flex-end; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+          <button class="btn btn-ghost" @click="showDocumentsModal = false">Close</button>
+        </div>
+
+      </div>
+    </div>
   </div>
 </template>
 <script>
@@ -214,7 +408,14 @@ export default {
       selectedSlotIds: [],
       currentPage: 1,
       itemsPerPage: 10,
-      error: ''
+      error: '',
+
+      // Multi-Document Management state
+      showDocumentsModal: false,
+      activeFranchiseForDocs: null,
+      selectedFilesForUpload: [],
+      uploadingDocs: false,
+      previewDoc: null
     }; 
   },
   computed: {
@@ -293,82 +494,167 @@ export default {
         }
       }
     },
-    async uploadDocument(f) {
-      const { value: file } = await Swal.fire({
-        title: 'Upload Document',
-        html: `<div style="margin-bottom:1rem; font-size:0.9rem;">Select document for <strong>${f.center_name}</strong> (PDF, JPG, PNG)</div>`,
-        input: 'file',
-        inputAttributes: {
-          accept: '.pdf,image/*',
-          'aria-label': 'Upload your document'
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Upload',
-        inputValidator: (file) => {
-          if (!file) return 'You need to select a file!';
-        }
-      });
-
-      if (file) {
-        const formData = new FormData();
-        formData.append('document', file);
-        
-        Swal.fire({ title: 'Uploading...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-
+    getDocs(f) {
+      if (!f) return [];
+      if (Array.isArray(f.documents) && f.documents.length > 0) return f.documents;
+      if (typeof f.documents === 'string') {
         try {
-          const { data } = await axios.post(`/api/admin/franchisees/${f.id}/upload-document`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          f.document_path = data.franchisee.document_path;
-          Swal.fire('Uploaded!', 'Document has been uploaded successfully.', 'success');
-        } catch (error) {
-          Swal.fire('Error', error.response?.data?.message || 'Failed to upload document.', 'error');
-        }
+          const parsed = JSON.parse(f.documents);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {}
+      }
+      if (f.document_path) {
+        return [{
+          id: 'legacy_1',
+          name: f.document_path.split('/').pop(),
+          path: f.document_path,
+          uploaded_at: f.created_at || null
+        }];
+      }
+      return [];
+    },
+    isImageDoc(path) {
+      return !!(path && path.match(/\.(jpeg|jpg|png|gif|webp)$/i));
+    },
+    formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    },
+    openDocumentsModal(f) {
+      this.activeFranchiseForDocs = f;
+      this.selectedFilesForUpload = [];
+      this.previewDoc = null;
+      this.showDocumentsModal = true;
+    },
+    onFilesSelected(e) {
+      const files = Array.from(e.target.files || []);
+      if (files.length > 0) {
+        this.selectedFilesForUpload = [...this.selectedFilesForUpload, ...files];
+      }
+      if (this.$refs.multiFileInput) {
+        this.$refs.multiFileInput.value = '';
       }
     },
-    async deleteDocument(f) {
+    removeSelectedFile(idx) {
+      this.selectedFilesForUpload.splice(idx, 1);
+    },
+    async uploadSelectedDocuments() {
+      if (!this.selectedFilesForUpload.length || !this.activeFranchiseForDocs) return;
+      
+      const formData = new FormData();
+      this.selectedFilesForUpload.forEach(file => {
+        formData.append('documents[]', file);
+      });
+
+      this.uploadingDocs = true;
+      try {
+        const { data } = await axios.post(`/api/admin/franchisees/${this.activeFranchiseForDocs.id}/upload-document`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        this.activeFranchiseForDocs.documents = data.documents;
+        this.activeFranchiseForDocs.document_path = data.franchisee.document_path;
+
+        const target = this.franchisees.find(i => i.id === this.activeFranchiseForDocs.id);
+        if (target) {
+          target.documents = data.documents;
+          target.document_path = data.franchisee.document_path;
+        }
+
+        this.selectedFilesForUpload = [];
+        Swal.fire({
+          icon: 'success',
+          title: 'Uploaded!',
+          text: data.message || 'Documents uploaded successfully.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        Swal.fire('Error', error.response?.data?.message || 'Failed to upload documents.', 'error');
+      } finally {
+        this.uploadingDocs = false;
+      }
+    },
+    previewDocument(doc) {
+      this.previewDoc = doc;
+      this.$nextTick(() => {
+        if (this.$refs.previewBox) {
+          this.$refs.previewBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    },
+    async deleteSingleDoc(doc) {
       const result = await Swal.fire({
         title: 'Delete Document',
-        text: `Are you sure you want to delete the document for ${f.center_name}?`,
+        text: `Are you sure you want to delete "${doc.name || 'this document'}"?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--accent-rose)',
         confirmButtonText: 'Yes, delete it!'
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        const docId = doc.id || doc.path;
+        await axios.delete(`/api/admin/franchisees/${this.activeFranchiseForDocs.id}/document`, {
+          params: { doc_id: docId }
+        });
+
+        const currentDocs = this.getDocs(this.activeFranchiseForDocs);
+        const updatedDocs = currentDocs.filter(d => (d.id || d.path) !== docId);
+
+        this.activeFranchiseForDocs.documents = updatedDocs;
+        this.activeFranchiseForDocs.document_path = updatedDocs.length > 0 ? updatedDocs[0].path : null;
+
+        const target = this.franchisees.find(i => i.id === this.activeFranchiseForDocs.id);
+        if (target) {
+          target.documents = updatedDocs;
+          target.document_path = updatedDocs.length > 0 ? updatedDocs[0].path : null;
+        }
+
+        if (this.previewDoc && (this.previewDoc.id || this.previewDoc.path) === docId) {
+          this.previewDoc = null;
+        }
+
+        Swal.fire('Deleted!', 'Document has been removed.', 'success');
+      } catch (error) {
+        Swal.fire('Error', error.response?.data?.message || 'Failed to delete document.', 'error');
+      }
+    },
+    uploadDocument(f) {
+      this.openDocumentsModal(f);
+    },
+    async deleteDocument(f) {
+      const result = await Swal.fire({
+        title: 'Delete All Documents',
+        text: `Are you sure you want to delete ALL documents for ${f.center_name}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--accent-rose)',
+        confirmButtonText: 'Yes, delete all!'
       });
 
       if (result.isConfirmed) {
         try {
           await axios.delete(`/api/admin/franchisees/${f.id}/document`);
           f.document_path = null;
-          Swal.fire('Deleted!', 'Document has been deleted.', 'success');
+          f.documents = [];
+          if (this.activeFranchiseForDocs && this.activeFranchiseForDocs.id === f.id) {
+            this.activeFranchiseForDocs.document_path = null;
+            this.activeFranchiseForDocs.documents = [];
+            this.previewDoc = null;
+          }
+          Swal.fire('Deleted!', 'All documents have been deleted.', 'success');
         } catch (error) {
-          Swal.fire('Error', error.response?.data?.message || 'Failed to delete document', 'error');
+          Swal.fire('Error', error.response?.data?.message || 'Failed to delete documents', 'error');
         }
       }
     },
     showDocumentPopup(f) {
-      if (!f.document_path) return;
-      const isImage = f.document_path.match(/\.(jpeg|jpg|png|gif)$/i);
-      
-      if (isImage) {
-        Swal.fire({
-          title: 'Franchise Document',
-          imageUrl: '/' + f.document_path,
-          imageAlt: 'Document',
-          width: '80%',
-          showCloseButton: true,
-          showConfirmButton: false
-        });
-      } else {
-        Swal.fire({
-          title: 'Franchise Document',
-          html: `<iframe src="/${f.document_path}" style="width:100%; height:75vh; border:none;"></iframe>`,
-          width: '80%',
-          showCloseButton: true,
-          showConfirmButton: false,
-          customClass: { popup: 'swal2-no-padding' }
-        });
-      }
+      this.openDocumentsModal(f);
     },
     async openEditModal(f) {
       const { value: formValues } = await Swal.fire({
