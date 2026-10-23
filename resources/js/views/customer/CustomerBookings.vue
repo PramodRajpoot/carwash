@@ -2,7 +2,7 @@
   <div>
     <div class="flex justify-between items-center" style="margin-bottom:1.5rem">
       <div><h3>My Bookings</h3><p class="text-muted" style="font-size:0.85rem">View, rebook, or manage your appointments.</p></div>
-      <button class="btn btn-primary btn-sm" @click="showBookingModal = true">+ Book Service</button>
+      <button class="btn btn-primary btn-sm" @click="openBookingModal()">+ Book Service</button>
     </div>
     <div v-if="bookings.length" class="table-wrap">
       <table>
@@ -10,7 +10,12 @@
         <tbody>
           <tr v-for="b in paginatedBookings" :key="b.id">
             <td>{{ b.booking_date }}</td>
-            <td>{{ b.slot_time }}</td>
+            <td>
+              <div style="font-weight: 600;">{{ b.slot_time }}</div>
+              <div v-if="b.address" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; max-width: 170px; line-height: 1.3;" :title="b.address">
+                📍 {{ b.address }}
+              </div>
+            </td>
             <td>{{ b.vehicle?.make_model }}</td>
             <td>
               <div>{{ b.package?.name || '-' }}</div>
@@ -50,13 +55,13 @@
                 ₹{{ (b.payment_status === 'paid' ? parseFloat(b.total_price) : parseFloat(b.paid_amount || 0)).toFixed(2) }}
               </div>
               <div v-if="b.payment_status === 'partially_paid'" style="font-size: 0.72rem; color: var(--accent-amber); font-weight: 600; margin-top: 2px;">
-                ₹{{ (parseFloat(b.total_price) - parseFloat(b.paid_amount || 99)).toFixed(2) }} Due
+                ₹{{ (parseFloat(b.total_price) - parseFloat(b.paid_amount || 0)).toFixed(2) }} Due
               </div>
             </td>
             <td>
               <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid</span>
               <template v-else-if="b.payment_status === 'partially_paid'">
-                <span class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 99).toFixed(0) }} Paid (Partial)</span>
+                <span class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 0).toFixed(0) }} Paid (Partial)</span>
                 <div style="margin-top: 3px;">
                   <span v-if="b.payment_method === 'cod'" class="badge badge-amber" style="font-size:0.65rem;" title="Remaining amount to be paid via Cash on Delivery">
                     💵 Rest via COD
@@ -88,10 +93,10 @@
                   <button 
                     class="btn btn-sm" 
                     style="background: linear-gradient(135deg, #10b981, #06b6d4); color: #fff; border: none; font-weight: 600; font-size: 0.78rem;" 
-                    @click="retryPayment(b)" 
+                    @click="promptPayDue(b)" 
                     :disabled="payingBookingId === b.id" 
-                    title="Pay remaining due amount online now">
-                    {{ payingBookingId === b.id ? 'Processing...' : '💳 Pay Due ₹' + (parseFloat(b.total_price) - parseFloat(b.paid_amount || 99)).toFixed(2) }}
+                    title="Choose to pay full or half due amount">
+                    {{ payingBookingId === b.id ? 'Processing...' : '💳 Pay Due ₹' + (parseFloat(b.total_price) - parseFloat(b.paid_amount || 0)).toFixed(2) }}
                   </button>
                   <button 
                     v-if="b.payment_method === 'cod'" 
@@ -224,6 +229,97 @@
                 <option v-else value="">Choose Slot</option>
                 <option v-for="s in availableSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings">{{ s.time_range }} {{ s.current_bookings >= s.max_bookings ? '(Full)' : '' }}</option>
               </select>
+            </div>
+          </div>
+
+          <!-- Service Address Section -->
+          <div class="form-group" style="margin-top: 0.75rem; margin-bottom: 0.75rem;">
+            <label style="font-weight: 700; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.45rem; color: var(--text-primary); font-size: 0.92rem;">
+              <span>📍 Doorstep Service Address <span style="color: var(--accent-rose); font-weight: bold;">*</span></span>
+              <span v-if="savedAddress && addressChoice === 'saved'" style="font-size: 0.75rem; font-weight: 600; color: var(--accent-emerald);">
+                ✓ Using saved address
+              </span>
+            </label>
+
+            <!-- If user has a saved address on file -->
+            <div v-if="savedAddress" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.5rem;">
+              <!-- Option 1: Use Saved Address -->
+              <div 
+                @click="chooseSavedAddress()" 
+                :style="{
+                  border: addressChoice === 'saved' ? '2px solid var(--accent-emerald)' : '1px solid var(--border-color)',
+                  background: addressChoice === 'saved' ? 'rgba(16,185,129,0.08)' : 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem 0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }">
+                <div style="display: flex; align-items: flex-start; gap: 0.6rem;">
+                  <input 
+                    type="radio" 
+                    value="saved" 
+                    v-model="addressChoice" 
+                    @change="chooseSavedAddress"
+                    style="accent-color: var(--accent-emerald); margin-top: 0.2rem; cursor: pointer;" 
+                  />
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+                      <span>Use Same Saved Address</span>
+                      <span class="badge badge-emerald" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">Current Default</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem; line-height: 1.35; word-break: break-word;">
+                      {{ savedAddress }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Option 2: Enter New / Update Address -->
+              <div 
+                @click="chooseNewAddress()" 
+                :style="{
+                  border: addressChoice === 'new' ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                  background: addressChoice === 'new' ? 'rgba(6,182,212,0.08)' : 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem 0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <input 
+                      type="radio" 
+                      value="new" 
+                      v-model="addressChoice" 
+                      @change="chooseNewAddress"
+                      style="accent-color: var(--accent-cyan); cursor: pointer;" 
+                    />
+                    <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);">
+                      Change or Update Address
+                    </div>
+                  </div>
+                  <span style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 600;">
+                    {{ addressChoice === 'new' ? 'Entering new' : 'Update address →' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Address input field (shown if user has no saved address OR chose 'new') -->
+            <div v-if="!savedAddress || addressChoice === 'new'" style="margin-top: 0.4rem;">
+              <textarea 
+                v-model="bf.address" 
+                class="form-input" 
+                rows="3" 
+                placeholder="Enter complete doorstep address (Flat/House No., Street/Society, Landmark, Area, City, Pincode)..."
+                required
+                style="resize: vertical; font-size: 0.88rem; line-height: 1.4;"
+              ></textarea>
+              
+              <label style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.45rem; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" v-model="bf.save_as_default_address" style="accent-color: var(--accent-emerald); width: 15px; height: 15px;" />
+                <span>Save this address as my default address for future bookings</span>
+              </label>
             </div>
           </div>
           
@@ -385,13 +481,16 @@ export default {
       couponApplied: false,
       couponLoading: false,
       couponFeedback: '',
-      couponSuccess: false,
+      savedAddress: '',
+      addressChoice: 'saved',
       bf: {
         vehicle_id: '',
         franchisee_id: '',
         package_id: '',
         booking_date: '',
         slot_time: '',
+        address: '',
+        save_as_default_address: true,
         payment_method: 'online',
         coupon_code: '',
         addon_ids: [],
@@ -576,8 +675,93 @@ export default {
      */
     async retryPayment(booking) {
       this.payingBookingId = booking.id;
-      await this.initiateCashfreePayment(booking.id);
+      await this.initiateCashfreePayment(booking.id, 'full');
       this.payingBookingId = null;
+    },
+
+    /**
+     * Prompt customer to pay full or half due amount when clicking Pay Due.
+     */
+    async promptPayDue(booking) {
+      const total = parseFloat(booking.total_price) || 0;
+      const paid = parseFloat(booking.paid_amount || 0);
+      const due = Math.max(0, total - paid);
+      const halfDue = Math.round((due / 2) * 100) / 100;
+
+      const result = await Swal.fire({
+        title: 'Pay Due Amount',
+        html: `
+          <div style="text-align: left; font-size: 0.9rem; margin-bottom: 0.5rem;">
+            <p style="margin-bottom: 0.5rem; color: #94a3b8;">
+              Booking <strong>#${booking.id}</strong> • Total Wash Price: <strong>₹${total.toFixed(2)}</strong>
+            </p>
+            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 1rem;">
+              <div style="font-size: 0.85rem; color: #94a3b8;">Already Paid: <strong style="color: #10b981;">₹${paid.toFixed(2)}</strong></div>
+              <div style="font-size: 1.15rem; color: #f59e0b; font-weight: 800; margin-top: 4px;">Remaining Due: ₹${due.toFixed(2)}</div>
+            </div>
+            <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #e2e8f0; font-weight: 600;">
+              Would you like to pay the full remaining amount or half now?
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); padding: 10px 14px; border-radius: 8px;">
+                <div>
+                  <div style="font-weight: 700; color: #10b981;">Option 1: Pay Full Amount</div>
+                  <div style="font-size: 0.75rem; color: #94a3b8;">Clear 100% of remaining balance</div>
+                </div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #10b981;">₹${due.toFixed(2)}</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.08); padding: 10px 14px; border-radius: 8px;">
+                <div>
+                  <div style="font-weight: 700; color: #06b6d4;">Option 2: Pay Half Amount (50%)</div>
+                  <div style="font-size: 0.75rem; color: #94a3b8;">Remaining ₹${(due - halfDue).toFixed(2)} will remain due</div>
+                </div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #06b6d4;">₹${halfDue.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        showConfirmButton: true,
+        confirmButtonText: `💳 Pay Full ₹${due.toFixed(2)}`,
+        confirmButtonColor: '#10b981',
+        showDenyButton: true,
+        denyButtonText: `💳 Pay Half ₹${halfDue.toFixed(2)}`,
+        denyButtonColor: '#06b6d4',
+        cancelButtonText: 'Cancel'
+      });
+
+      if (result.isConfirmed) {
+        this.payingBookingId = booking.id;
+        await this.initiateCashfreePayment(booking.id, 'full');
+        this.payingBookingId = null;
+      } else if (result.isDenied) {
+        this.payingBookingId = booking.id;
+        await this.initiateCashfreePayment(booking.id, 'half');
+        this.payingBookingId = null;
+      }
+    },
+
+    openBookingModal() {
+      this.bookingMsg = '';
+      this.bookingError = false;
+      if (this.savedAddress) {
+        this.addressChoice = 'saved';
+        this.bf.address = this.savedAddress;
+      } else {
+        this.addressChoice = 'new';
+        this.bf.address = '';
+      }
+      this.showBookingModal = true;
+    },
+    chooseSavedAddress() {
+      this.addressChoice = 'saved';
+      this.bf.address = this.savedAddress;
+    },
+    chooseNewAddress() {
+      this.addressChoice = 'new';
+      if (this.bf.address === this.savedAddress) {
+        this.bf.address = '';
+      }
     },
 
     async loadData() {
@@ -589,9 +773,6 @@ export default {
           axios.get('/api/centers'),
           axios.get('/api/packages'),
         ]);
-        this.bookings = [...(bk.data.upcoming_services || [])];
-        // also load completed from dashboard booking_count? We need a full list.
-        // Let's use dashboard upcoming + fetch all via a different approach
         this.vehicles = vh.data;
         this.centers = ct.data;
         this.packages = pk.data;
@@ -599,6 +780,15 @@ export default {
         this.bookings = dash.upcoming_services || [];
         this.userPoints = dash.e_points || 0;
         this.userEarningMoney = dash.earning_money || 0;
+
+        // Load saved address
+        this.savedAddress = (dash.address || user.address || '').trim();
+        if (this.savedAddress) {
+          this.addressChoice = 'saved';
+          this.bf.address = this.savedAddress;
+        } else {
+          this.addressChoice = 'new';
+        }
       } catch (e) { console.error(e); }
     },
     async fetchSlots() {
@@ -628,9 +818,28 @@ export default {
      * Create booking and initiate Cashfree checkout if online payment.
      */
     async createBooking() {
-      this.bookingMsg = ''; this.bookingLoading = true;
+      this.bookingMsg = '';
+      if (!this.bf.address || !this.bf.address.trim()) {
+        this.bookingMsg = 'Please enter your doorstep service address.';
+        this.bookingError = true;
+        return;
+      }
+
+      this.bookingLoading = true;
       try {
-        const { data } = await axios.post('/api/bookings', this.bf);
+        const payload = {
+          ...this.bf,
+          address: this.bf.address.trim(),
+          save_as_default_address: this.addressChoice === 'new' ? this.bf.save_as_default_address : false
+        };
+        const { data } = await axios.post('/api/bookings', payload);
+
+        if (data.saved_address) {
+          this.savedAddress = data.saved_address;
+          const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
+          user.address = data.saved_address;
+          localStorage.setItem('auth_user', JSON.stringify(user));
+        }
 
         // If online payment is required, initiate Cashfree checkout
         if (data.requires_payment && data.booking) {
@@ -648,6 +857,8 @@ export default {
           package_id: '',
           booking_date: '',
           slot_time: '',
+          address: this.savedAddress || '',
+          save_as_default_address: true,
           payment_method: 'online',
           coupon_code: '',
           addon_ids: [],
@@ -674,11 +885,12 @@ export default {
     /**
      * Initiate Cashfree payment checkout.
      */
-    async initiateCashfreePayment(bookingId) {
+    async initiateCashfreePayment(bookingId, paymentSplit = 'full') {
       try {
         // Step 1: Create Cashfree order on server
         const { data } = await axios.post('/api/cashfree/create-order', {
-          booking_id: bookingId
+          booking_id: bookingId,
+          payment_split: paymentSplit
         });
 
         if (data.status !== 'success' || !data.payment_session_id) {
@@ -734,15 +946,17 @@ export default {
         if (data.status === 'success' && (data.payment_status === 'paid' || data.payment_status === 'partially_paid')) {
           const isPartial = data.payment_status === 'partially_paid';
           if (isPartial) {
-            const due = (parseFloat(data.total_price || data.booking?.total_price || 0) - parseFloat(data.paid_amount || 99)).toFixed(2);
+            const due = (parseFloat(data.total_price || data.booking?.total_price || 0) - parseFloat(data.paid_amount || 0)).toFixed(2);
+            const paid = parseFloat(data.paid_amount || 0).toFixed(2);
+            const title = parseFloat(data.paid_amount || 0) > 99 ? 'Payment Received! (Partial) 🎉' : 'Slot Booked with ₹99 Advance! 🎉';
             const result = await Swal.fire({
               icon: 'success',
-              title: 'Slot Booked with ₹99 Advance! 🎉',
+              title: title,
               html: `
-                <p style="font-size:1.05rem; margin-bottom:0.75rem;">Your car wash slot is successfully booked!</p>
-                <p style="font-size:0.9rem; margin-bottom:0.75rem;">Advance payment of <strong>₹99.00</strong> received for Booking <strong>#${data.booking_id}</strong>.</p>
+                <p style="font-size:1.05rem; margin-bottom:0.75rem;">Payment processed successfully for Booking <strong>#${data.booking_id}</strong>.</p>
+                <p style="font-size:0.9rem; margin-bottom:0.75rem;">Total paid so far: <strong>₹${paid}</strong>.</p>
                 <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; margin: 12px 0; text-align: left;">
-                  <div style="font-size: 0.95rem; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">Remaining Amount: ₹${due}</div>
+                  <div style="font-size: 0.95rem; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">Remaining Due Amount: ₹${due}</div>
                   <div style="font-size: 0.82rem; color: var(--text-muted, #94a3b8);">Would you like to pay the remaining balance via <strong>Cash on Delivery (COD)</strong> upon wash completion?</div>
                 </div>
               `,

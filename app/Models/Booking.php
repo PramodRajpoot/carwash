@@ -17,6 +17,7 @@ class Booking extends Model
         'package_id',
         'booking_date',
         'slot_time',
+        'address',
         'status',
         'payment_status',
         'payment_method',

@@ -66,6 +66,8 @@ class BookingController extends Controller
             'package_id' => 'required|exists:service_packages,id',
             'booking_date' => 'required|date|after_or_equal:today',
             'slot_time' => 'required|string',
+            'address' => 'required|string|min:5|max:1000',
+            'save_as_default_address' => 'nullable|boolean',
             'payment_method' => 'required|string|in:online,cod',
             'coupon_code' => 'nullable|string',
             'addon_ids' => 'nullable|array',
@@ -260,6 +262,11 @@ class BookingController extends Controller
             }
         }
 
+        $bookingAddress = trim($request->input('address'));
+        if ($request->boolean('save_as_default_address') || empty($user->address)) {
+            $user->update(['address' => $bookingAddress]);
+        }
+
         $booking = Booking::create([
             'customer_id' => $user->id,
             'vehicle_id' => $vehicle->id,
@@ -267,6 +274,7 @@ class BookingController extends Controller
             'package_id' => $package->id,
             'booking_date' => $request->booking_date,
             'slot_time' => $request->slot_time,
+            'address' => $bookingAddress,
             'status' => 'pending',
             'payment_status' => $paymentStatus,
             'payment_method' => $paymentMethod,
@@ -333,7 +341,8 @@ class BookingController extends Controller
         $responseData = [
             'status' => 'success',
             'message' => 'Booking placed successfully',
-            'booking' => $booking
+            'booking' => $booking,
+            'saved_address' => $user->fresh()->address,
         ];
 
         // Signal frontend to initiate Cashfree checkout

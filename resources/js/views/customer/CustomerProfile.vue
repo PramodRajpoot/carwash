@@ -72,6 +72,13 @@
                 <input v-model="profileForm.phone" type="tel" class="form-input" id="profile-phone" placeholder="Mobile Number" maxlength="10" @input="filterPhone" />
               </div>
             </div>
+            <div class="form-row">
+              <div class="field">
+                <label for="profile-address">Default Doorstep Service Address</label>
+                <textarea v-model="profileForm.address" class="form-input" id="profile-address" rows="3" placeholder="Flat/House No., Building, Street, Landmark, Area, City, Pincode" style="resize: vertical;"></textarea>
+                <p class="text-muted" style="font-size:0.75rem;margin-top:0.25rem">This address will be automatically suggested when you book a car wash slot.</p>
+              </div>
+            </div>
             <div v-if="profileError" class="msg msg-error">{{ profileError }}</div>
             <div v-if="profileSuccess" class="msg msg-success">✓ {{ profileSuccess }}</div>
             <div class="form-actions">
@@ -153,7 +160,7 @@ export default {
   data() {
     return {
       user: JSON.parse(localStorage.getItem('auth_user') || '{}'),
-      profileForm: { name: '', email: '', phone: '' },
+      profileForm: { name: '', email: '', phone: '', address: '' },
       passwordForm: { current_password: '', password: '', password_confirmation: '' },
       profileLoading: false, profileError: '', profileSuccess: '',
       pwdLoading: false, pwdError: '', pwdSuccess: '',
@@ -183,6 +190,7 @@ export default {
       this.profileForm.name = this.user.name || '';
       this.profileForm.email = this.user.email || '';
       this.profileForm.phone = this.user.phone || '';
+      this.profileForm.address = this.user.address || '';
     },
 
     filterPhone() {

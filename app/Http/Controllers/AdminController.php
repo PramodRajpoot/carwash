@@ -14,6 +14,9 @@ use App\Models\RoyaltyPayment;
 use App\Models\Washer;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -373,38 +376,158 @@ class AdminController extends Controller
 
     public function uploadDocument(Request $request, $id)
     {
-        $franchisee = Franchisee::findOrFail($id);
-        $request->validate([
-            'document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120' // 5MB max
-        ]);
+        try {
+            $franchisee = Franchisee::findOrFail($id);
+            $request->validate([
+                'document'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+                'documents'   => 'nullable|array',
+                'documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+            ]);
 
-        if ($request->hasFile('document')) {
-            $file = $request->file('document');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('franchise_documents'), $filename);
-            
-            // Delete old doc if exists
-            if ($franchisee->document_path && file_exists(public_path($franchisee->document_path))) {
-                unlink(public_path($franchisee->document_path));
+            $files = [];
+            if ($request->hasFile('documents')) {
+                $files = $request->file('documents');
+            } elseif ($request->hasFile('document')) {
+                $files = [$request->file('document')];
             }
 
-            $franchisee->update(['document_path' => 'franchise_documents/' . $filename]);
-        }
+            if (empty($files)) {
+                return response()->json(['status' => 'error', 'message' => 'Please select at least one document to upload.'], 422);
+            }
 
-        return response()->json(['status' => 'success', 'message' => 'Document uploaded.', 'franchisee' => $franchisee]);
+            // Ensure destination directory exists and is writable
+            $targetDir = public_path('franchise_documents');
+            if (!file_exists($targetDir)) {
+                @mkdir($targetDir, 0777, true);
+            }
+            if (file_exists($targetDir)) {
+                @chmod($targetDir, 0777);
+            }
+
+            // Auto-heal: Ensure `documents` JSON column exists on franchisees table
+            if (!Schema::hasColumn('franchisees', 'documents')) {
+                try {
+                    Schema::table('franchisees', function (Blueprint $table) {
+                        $table->json('documents')->nullable()->after('document_path');
+                    });
+                } catch (\Throwable $colEx) {
+                    Log::warning('Could not auto-add documents column: ' . $colEx->getMessage());
+                }
+            }
+
+            $existingDocs = is_array($franchisee->documents) ? $franchisee->documents : [];
+            if (empty($existingDocs) && !empty($franchisee->document_path)) {
+                $existingDocs[] = [
+                    'id'          => 'legacy_1',
+                    'name'        => basename($franchisee->document_path),
+                    'path'        => $franchisee->document_path,
+                    'uploaded_at' => now()->toDateTimeString(),
+                ];
+            }
+
+            $uploadedDocs = [];
+            foreach ($files as $file) {
+                $filename = time() . '_' . uniqid() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
+                $file->move($targetDir, $filename);
+                @chmod($targetDir . '/' . $filename, 0666);
+
+                $uploadedDocs[] = [
+                    'id'          => uniqid('doc_'),
+                    'name'        => $file->getClientOriginalName(),
+                    'path'        => 'franchise_documents/' . $filename,
+                    'uploaded_at' => now()->toDateTimeString(),
+                    'size'        => @filesize($targetDir . '/' . $filename) ?: null,
+                ];
+            }
+
+            $allDocs = array_merge($existingDocs, $uploadedDocs);
+            $firstPath = !empty($allDocs) ? $allDocs[0]['path'] : null;
+
+            if (Schema::hasColumn('franchisees', 'documents')) {
+                $franchisee->documents = $allDocs;
+            }
+            $franchisee->document_path = $firstPath;
+            $franchisee->save();
+
+            return response()->json([
+                'status'     => 'success',
+                'message'    => count($uploadedDocs) . ' document(s) uploaded successfully.',
+                'franchisee' => $franchisee->fresh(),
+                'documents'  => $allDocs,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Upload document error on franchisee #' . $id . ': ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Upload failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
-    public function deleteDocument($id)
+    public function deleteDocument(Request $request, $id, $docId = null)
     {
-        $franchisee = Franchisee::findOrFail($id);
-        
-        if ($franchisee->document_path && file_exists(public_path($franchisee->document_path))) {
-            unlink(public_path($franchisee->document_path));
+        try {
+            $franchisee = Franchisee::findOrFail($id);
+            $targetDocId = $docId ?: $request->input('doc_id');
+
+            $existingDocs = is_array($franchisee->documents) ? $franchisee->documents : [];
+            if (empty($existingDocs) && !empty($franchisee->document_path)) {
+                $existingDocs[] = [
+                    'id'   => 'legacy_1',
+                    'name' => basename($franchisee->document_path),
+                    'path' => $franchisee->document_path,
+                ];
+            }
+
+            if ($targetDocId) {
+                // Delete only the specified document
+                $remainingDocs = [];
+                foreach ($existingDocs as $doc) {
+                    if (($doc['id'] ?? '') === $targetDocId || ($doc['path'] ?? '') === $targetDocId) {
+                        if (!empty($doc['path']) && file_exists(public_path($doc['path']))) {
+                            @unlink(public_path($doc['path']));
+                        }
+                    } else {
+                        $remainingDocs[] = $doc;
+                    }
+                }
+                if (Schema::hasColumn('franchisees', 'documents')) {
+                    $franchisee->documents = array_values($remainingDocs);
+                }
+                $franchisee->document_path = !empty($remainingDocs) ? $remainingDocs[0]['path'] : null;
+                $franchisee->save();
+            } else {
+                // Delete all documents
+                foreach ($existingDocs as $doc) {
+                    if (!empty($doc['path']) && file_exists(public_path($doc['path']))) {
+                        @unlink(public_path($doc['path']));
+                    }
+                }
+                if ($franchisee->document_path && file_exists(public_path($franchisee->document_path))) {
+                    @unlink(public_path($franchisee->document_path));
+                }
+                if (Schema::hasColumn('franchisees', 'documents')) {
+                    $franchisee->documents = [];
+                }
+                $franchisee->document_path = null;
+                $franchisee->save();
+            }
+
+            return response()->json([
+                'status'     => 'success',
+                'message'    => 'Document removed successfully.',
+                'franchisee' => $franchisee->fresh(),
+                'documents'  => $franchisee->fresh()->documents,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Delete document error on franchisee #' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to delete document: ' . $e->getMessage(),
+            ], 500);
         }
-        
-        $franchisee->update(['document_path' => null]);
-        
-        return response()->json(['status' => 'success', 'message' => 'Document deleted successfully.', 'franchisee' => $franchisee]);
     }
 
     // ─── Package Management ──────────────────────────────────────

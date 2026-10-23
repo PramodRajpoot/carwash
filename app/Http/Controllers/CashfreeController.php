@@ -43,7 +43,8 @@ class CashfreeController extends Controller
     public function createOrder(Request $request)
     {
         $request->validate([
-            'booking_id' => 'required|integer|exists:bookings,id',
+            'booking_id'    => 'required|integer|exists:bookings,id',
+            'payment_split' => 'nullable|string|in:full,half',
         ]);
 
         $user = $request->user();
@@ -69,8 +70,13 @@ class CashfreeController extends Controller
 
         // Calculate amount to pay for this transaction
         if ($booking->payment_status === 'partially_paid') {
-            // Paying the remaining balance
-            $orderAmount = max(0, (float) $booking->total_price - (float) $booking->paid_amount);
+            // Paying remaining balance: full or half
+            $remainingDue = max(0, (float) $booking->total_price - (float) $booking->paid_amount);
+            if ($request->input('payment_split') === 'half' && $remainingDue > 1) {
+                $orderAmount = round($remainingDue / 2, 2);
+            } else {
+                $orderAmount = round($remainingDue, 2);
+            }
         } elseif ($booking->payment_type === 'partial') {
             // Paying initial slot booking advance (₹99)
             $orderAmount = (float) ($booking->advance_amount > 0 ? $booking->advance_amount : 99.00);
@@ -204,23 +210,36 @@ class CashfreeController extends Controller
                     $booking->cashfree_payment_id = $payments[0]['cf_payment_id'] ?? null;
                 }
 
-                if ($booking->payment_type === 'partial') {
-                    $advance = (float) ($booking->advance_amount > 0 ? $booking->advance_amount : 99.00);
-                    $paidOrderAmount = (float) ($data['order_amount'] ?? 0);
+                $paidOrderAmount = (float) ($data['order_amount'] ?? 0);
+                $totalPrice = (float) $booking->total_price;
 
-                    if ($paidOrderAmount <= ($advance + 1.0) && $paidOrderAmount < (float) $booking->total_price) {
+                if ($booking->payment_status === 'partially_paid') {
+                    // Accumulate previously paid amount with newly paid amount (e.g. half or full remaining due)
+                    $newPaid = round((float) $booking->paid_amount + $paidOrderAmount, 2);
+                    if ($newPaid >= ($totalPrice - 1.0)) {
+                        $booking->paid_amount = $totalPrice;
+                        $booking->payment_status = 'paid';
+                    } else {
+                        $booking->paid_amount = $newPaid;
+                        $booking->payment_status = 'partially_paid';
+                    }
+                    $booking->payment_method = 'online';
+                } elseif ($booking->payment_type === 'partial') {
+                    $advance = (float) ($booking->advance_amount > 0 ? $booking->advance_amount : 99.00);
+
+                    if ($paidOrderAmount <= ($advance + 1.0) && $paidOrderAmount < $totalPrice) {
                         // Advance payment of ₹99 completed
                         $booking->paid_amount = $advance;
                         $booking->payment_status = 'partially_paid';
                     } else {
                         // Remaining balance payment completed
-                        $booking->paid_amount = (float) $booking->total_price;
+                        $booking->paid_amount = $totalPrice;
                         $booking->payment_status = 'paid';
                         $booking->payment_method = 'online';
                     }
                 } else {
                     // Full payment booking completed
-                    $booking->paid_amount = (float) $booking->total_price;
+                    $booking->paid_amount = $totalPrice;
                     $booking->payment_status = 'paid';
                     $booking->payment_method = 'online';
                 }

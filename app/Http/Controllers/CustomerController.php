@@ -57,6 +57,8 @@ class CustomerController extends Controller
 
         $totalEpoints = max((int) $totalEarned, $user->e_points);
 
+        $savedAddress = $user->address ?: Booking::where('customer_id', $user->id)->whereNotNull('address')->where('address', '!=', '')->latest()->value('address');
+
         return response()->json([
             'subscription'          => $activeSubscription,
             'booking_count'         => $bookingCount,
@@ -72,6 +74,7 @@ class CustomerController extends Controller
             'unread_notifications'  => $unreadNotifications,
             'first_booking_discount' => $user->first_booking_discount,
             'earning_money'         => $user->earning_money,
+            'address'               => $savedAddress,
         ]);
     }
 
