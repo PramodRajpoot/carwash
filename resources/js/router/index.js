@@ -105,7 +105,7 @@ export const routes = [
     // ── Auth ─────────────────────────────────────────────────────
     { path: '/login', name: 'login', component: LoginView, meta: { guest: true } },
     { path: '/register', name: 'register', component: RegisterView, meta: { guest: true } },
-    { path: '/reset-password', name: 'reset-password', component: ResetPasswordView, meta: { guest: true } },
+    { path: '/reset-password', name: 'reset-password', component: ResetPasswordView },
     { path: '/oauth/callback', name: 'oauth-callback', component: OAuthCallbackView, meta: { guest: true } },
 
     // ── Customer Dashboard ───────────────────────────────────────

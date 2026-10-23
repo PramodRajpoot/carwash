@@ -34,11 +34,12 @@ class AppServiceProvider extends ServiceProvider
 
             return (new \Illuminate\Notifications\Messages\MailMessage)
                 ->subject('Reset Your Password - ' . $appName)
-                ->greeting('Hello ' . ($notifiable->name ?? '') . '!')
-                ->line('We received a request to reset the password for your CleanAtDoorstep account.')
-                ->action('Reset Password', $url)
-                ->line('This password reset link will expire in ' . $expireMinutes . ' minutes.')
-                ->line('If you did not request a password reset, you can safely ignore this email.');
+                ->view('emails.password-reset', [
+                    'url'           => $url,
+                    'user'          => $notifiable,
+                    'expireMinutes' => $expireMinutes,
+                    'appName'       => $appName,
+                ]);
         });
     }
 }

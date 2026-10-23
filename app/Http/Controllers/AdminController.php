@@ -188,19 +188,29 @@ class AdminController extends Controller
             ], 422);
         }
 
-        $status = Password::broker()->sendResetLink(['email' => $user->email]);
+        try {
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
 
-        if ($status === Password::RESET_LINK_SENT) {
+            $status = Password::broker()->sendResetLink(['email' => $user->email]);
+
+            if ($status === Password::RESET_LINK_SENT) {
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => 'Password reset link sent to ' . $user->email . ' successfully. The link will expire in 10 minutes.',
+                ]);
+            }
+
             return response()->json([
-                'status'  => 'success',
-                'message' => 'Password reset link sent to ' . $user->email . ' successfully. The link will expire in 10 minutes.',
-            ]);
+                'status'  => 'error',
+                'message' => __($status),
+            ], 400);
+        } catch (\Throwable $e) {
+            Log::error('Password reset email failed for ' . $user->email . ': ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to send password reset email: ' . $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'status'  => 'error',
-            'message' => __($status),
-        ], 400);
     }
 
     // ─── Orders ──────────────────────────────────────────────────

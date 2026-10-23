@@ -54,7 +54,7 @@ router.beforeEach((to, from, next) => {
         return next({ name: 'home' });
     }
 
-    if (to.meta.guest && token) {
+    if (to.meta.guest && token && to.name !== 'reset-password') {
         if (user) {
             const dashMap = {
                 customer: 'customer-dashboard',
