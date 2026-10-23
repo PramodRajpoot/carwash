@@ -66,7 +66,7 @@
               <td>
                 <div class="flex gap-1">
                   <button class="btn btn-outline btn-sm" style="padding: 0.25rem 0.5rem;" @click="openEditModal(u)">✏️</button>
-                  <button class="btn btn-sm btn-outline btn-amber" style="padding: 0.25rem 0.5rem;" @click="openResetModal(u)">🔑</button>
+                  <button class="btn btn-sm btn-outline btn-amber" style="padding: 0.25rem 0.5rem;" title="Send Password Reset Link" @click="openResetModal(u)">🔑</button>
                   <button class="btn btn-ghost btn-sm text-danger" style="padding: 0.25rem 0.5rem;" @click="deleteUser(u.id)">🗑️</button>
                 </div>
               </td>
@@ -210,23 +210,53 @@
     </div>
 
     <!-- Password Reset Modal -->
-    <div v-if="resetUser" class="modal-overlay" @click.self="resetUser = null">
-      <div class="modal-content">
-        <h3>Reset Password</h3>
-        <p class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1rem;">
-          Assigning a new security key for: <strong>{{ resetUser.name }}</strong>
-        </p>
+    <div v-if="resetUser" class="modal-overlay" @click.self="closeResetModal">
+      <div class="modal-content" style="max-width: 480px;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+          <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+            🔑
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.2rem;">Reset User Password</h3>
+            <p class="text-secondary" style="font-size: 0.82rem; margin: 0.2rem 0 0 0;">
+              Send password reset link via email
+            </p>
+          </div>
+        </div>
 
-        <form @submit.prevent="resetPassword">
-          <div class="form-group">
-            <label>New Security Password</label>
-            <input v-model="resetPasswordVal" type="password" class="form-input" placeholder="Min 6 characters" required />
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span class="text-muted" style="font-size: 0.85rem;">User:</span>
+            <strong style="color: var(--text-primary);">{{ resetUser.name }}</strong>
           </div>
-          <div class="flex gap-2" style="margin-top: 1.5rem;">
-            <button type="submit" class="btn btn-primary">Confirm Reset</button>
-            <button type="button" class="btn btn-ghost" @click="resetUser = null">Cancel</button>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span class="text-muted" style="font-size: 0.85rem;">Email:</span>
+            <strong style="color: var(--color-primary, #38bdf8);">{{ resetUser.email }}</strong>
           </div>
-        </form>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="text-muted" style="font-size: 0.85rem;">Role:</span>
+            <span class="badge" :class="roleBadge(resetUser.role)">{{ formatRole(resetUser.role) }}</span>
+          </div>
+        </div>
+
+        <div style="background: rgba(14, 165, 233, 0.08); border-left: 3px solid #0ea5e9; border-radius: 4px; padding: 0.75rem; margin-bottom: 1.25rem;">
+          <p style="font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary); margin: 0;">
+            A secure password reset link will be sent to <strong>{{ resetUser.email }}</strong>. The user can open the link to set their own password. This link will expire in <strong>10 minutes</strong>.
+          </p>
+        </div>
+
+        <div v-if="resetFeedback.message" :class="['alert', resetFeedback.type === 'success' ? 'alert-success' : 'alert-error']" style="margin-bottom: 1.25rem; font-size: 0.85rem;">
+          {{ resetFeedback.message }}
+        </div>
+
+        <div class="flex gap-2" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-ghost" @click="closeResetModal" :disabled="sendingReset">
+            {{ resetFeedback.type === 'success' ? 'Close' : 'Cancel' }}
+          </button>
+          <button v-if="resetFeedback.type !== 'success'" type="button" class="btn btn-primary" @click="sendPasswordResetLink" :disabled="sendingReset">
+            {{ sendingReset ? 'Sending Link...' : 'Send Reset Link' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -248,7 +278,8 @@ export default {
       submitting: false,
       error: '',
       resetUser: null,
-      resetPasswordVal: '',
+      sendingReset: false,
+      resetFeedback: { type: null, message: '' },
       selectedUserId: null,
       currentPage: 1,
       itemsPerPage: 10,
@@ -367,15 +398,31 @@ export default {
     },
     openResetModal(u) {
       this.resetUser = u;
-      this.resetPasswordVal = '';
+      this.sendingReset = false;
+      this.resetFeedback = { type: null, message: '' };
     },
-    async resetPassword() {
+    closeResetModal() {
+      this.resetUser = null;
+      this.sendingReset = false;
+      this.resetFeedback = { type: null, message: '' };
+    },
+    async sendPasswordResetLink() {
+      if (!this.resetUser) return;
+      this.sendingReset = true;
+      this.resetFeedback = { type: null, message: '' };
       try {
-        const { data } = await axios.post(`/api/admin/users/${this.resetUser.id}/reset-password`, { password: this.resetPasswordVal });
-        alert(data.message);
-        this.resetUser = null;
+        const { data } = await axios.post(`/api/admin/users/${this.resetUser.id}/reset-password`);
+        this.resetFeedback = {
+          type: 'success',
+          message: data.message || `Password reset link sent to ${this.resetUser.email} (expires in 10 minutes).`
+        };
       } catch (e) {
-        alert(e.response?.data?.message || 'Password reset failed.');
+        this.resetFeedback = {
+          type: 'error',
+          message: e.response?.data?.message || 'Failed to send password reset link.'
+        };
+      } finally {
+        this.sendingReset = false;
       }
     },
     async deleteUser(id) {

@@ -13,6 +13,7 @@ use App\Models\SupportTicket;
 use App\Models\RoyaltyPayment;
 use App\Models\Washer;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
@@ -179,9 +180,27 @@ class AdminController extends Controller
     public function resetUserPassword(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        $request->validate(['password' => 'required|string|min:6']);
-        $user->update(['password' => Hash::make($request->password)]);
-        return response()->json(['status' => 'success', 'message' => 'Password reset for ' . $user->name]);
+
+        if (empty($user->email)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'This user account does not have a registered email address.',
+            ], 422);
+        }
+
+        $status = Password::broker()->sendResetLink(['email' => $user->email]);
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Password reset link sent to ' . $user->email . ' successfully. The link will expire in 10 minutes.',
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'error',
+            'message' => __($status),
+        ], 400);
     }
 
     // ─── Orders ──────────────────────────────────────────────────
