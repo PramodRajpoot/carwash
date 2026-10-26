@@ -13,7 +13,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Daily check for customers due for 15-day wash reminder
+        $schedule->command('carwash:send-wash-reminders')->daily();
     }
 
     /**
