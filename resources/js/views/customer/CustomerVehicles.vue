@@ -38,7 +38,7 @@
               <td class="text-muted" style="font-size: 0.85rem;">{{ formatDate(v.created_at) }}</td>
               <td>
                 <div class="flex gap-1">
-                  <router-link to="/customer/bookings" class="btn btn-sm btn-outline">Book Wash</router-link>
+                  <router-link :to="{ path: '/customer/bookings', query: { book: 'true', vehicle_id: v.id } }" class="btn btn-sm btn-outline">Book Wash</router-link>
                   <button class="btn btn-sm btn-danger" @click="deleteVehicle(v.id)">Delete</button>
                 </div>
               </td>

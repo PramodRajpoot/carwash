@@ -57,7 +57,19 @@ class CustomerController extends Controller
 
         $totalEpoints = max((int) $totalEarned, $user->e_points);
 
-        $savedAddress = $user->address ?: Booking::where('customer_id', $user->id)->whereNotNull('address')->where('address', '!=', '')->latest()->value('address');
+        $savedAddress = null;
+        try {
+            $savedAddress = $user->address;
+            if (!$savedAddress && \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'address')) {
+                $savedAddress = Booking::where('customer_id', $user->id)
+                    ->whereNotNull('address')
+                    ->where('address', '!=', '')
+                    ->latest()
+                    ->value('address');
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Could not retrieve saved address: ' . $e->getMessage());
+        }
 
         return response()->json([
             'subscription'          => $activeSubscription,

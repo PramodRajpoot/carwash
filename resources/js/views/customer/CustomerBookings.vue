@@ -142,8 +142,17 @@
         <h3>Book a Service</h3>
         <div v-if="bookingMsg" class="alert" :class="bookingError ? 'alert-error' : 'alert-success'">{{ bookingMsg }}</div>
         <form @submit.prevent="createBooking">
-          <div class="form-group"><label>Vehicle</label>
-            <select v-model="bf.vehicle_id" class="form-select" required><option value="">Select Vehicle</option><option v-for="v in vehicles" :key="v.id" :value="v.id">{{ v.make_model }} ({{ v.plate_number }})</option></select>
+          <div class="form-group">
+            <label>Vehicle</label>
+            <select v-model="bf.vehicle_id" class="form-select" required>
+              <option value="">Select Vehicle</option>
+              <option v-for="v in vehicles" :key="v.id" :value="v.id">
+                {{ v.make_model }} {{ v.plate_number ? '(' + v.plate_number + ')' : '' }} — {{ formatVehicleType(v.vehicle_type) }}
+              </option>
+            </select>
+            <div v-if="vehicles.length === 0" class="text-muted" style="font-size: 0.78rem; margin-top: 0.35rem;">
+              ⚠️ No registered vehicles found. <router-link to="/customer/vehicles" style="color: var(--accent-cyan); text-decoration: underline;">Add vehicle in My Garage</router-link>
+            </div>
           </div>
           <div class="form-group"><label>Center</label>
             <select v-model="bf.franchisee_id" class="form-select" required @change="fetchSlots"><option value="">Select Center</option><option v-for="c in centers" :key="c.id" :value="c.id">{{ c.center_name }} — {{ c.city }}</option></select>
@@ -741,9 +750,25 @@ export default {
       }
     },
 
-    openBookingModal() {
+    formatVehicleType(t) {
+      if (!t) return '';
+      return t.toUpperCase().replace('_', ' ');
+    },
+
+    async openBookingModal(preselectedVehicleId = null) {
       this.bookingMsg = '';
       this.bookingError = false;
+      if (!this.vehicles || this.vehicles.length === 0) {
+        try {
+          const { data } = await axios.get('/api/customer/vehicles');
+          this.vehicles = data || [];
+        } catch (e) {
+          console.error('Failed to load vehicles for modal:', e);
+        }
+      }
+      if (preselectedVehicleId) {
+        this.bf.vehicle_id = preselectedVehicleId;
+      }
       if (this.savedAddress) {
         this.addressChoice = 'saved';
         this.bf.address = this.savedAddress;
@@ -767,19 +792,30 @@ export default {
     async loadData() {
       try {
         const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
-        const [bk, vh, ct, pk] = await Promise.all([
+        const [dashRes, vhRes, ctRes, pkRes] = await Promise.allSettled([
           axios.get('/api/customer/dashboard'),
           axios.get('/api/customer/vehicles'),
           axios.get('/api/centers'),
           axios.get('/api/packages'),
         ]);
-        this.vehicles = vh.data;
-        this.centers = ct.data;
-        this.packages = pk.data;
-        const dash = bk.data;
-        this.bookings = dash.upcoming_services || [];
-        this.userPoints = dash.e_points || 0;
-        this.userEarningMoney = dash.earning_money || 0;
+
+        if (vhRes.status === 'fulfilled') {
+          this.vehicles = vhRes.value.data || [];
+        }
+        if (ctRes.status === 'fulfilled') {
+          this.centers = ctRes.value.data || [];
+        }
+        if (pkRes.status === 'fulfilled') {
+          this.packages = pkRes.value.data || [];
+        }
+
+        let dash = {};
+        if (dashRes.status === 'fulfilled') {
+          dash = dashRes.value.data || {};
+          this.bookings = dash.upcoming_services || [];
+          this.userPoints = dash.e_points || 0;
+          this.userEarningMoney = dash.earning_money || 0;
+        }
 
         // Load saved address
         this.savedAddress = (dash.address || user.address || '').trim();
@@ -789,7 +825,13 @@ export default {
         } else {
           this.addressChoice = 'new';
         }
-      } catch (e) { console.error(e); }
+
+        // Check if query requested opening booking modal
+        if (this.$route.query.book === 'true' || this.$route.query.vehicle_id) {
+          const vId = this.$route.query.vehicle_id ? Number(this.$route.query.vehicle_id) : null;
+          this.openBookingModal(vId);
+        }
+      } catch (e) { console.error('loadData error:', e); }
     },
     async fetchSlots() {
       this.bf.slot_time = '';
