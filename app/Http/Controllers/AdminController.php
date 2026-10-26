@@ -609,8 +609,12 @@ class AdminController extends Controller
     public function getReferrals()
     {
         $users = User::whereNotNull('referred_by')
-            ->with(['referrer:id,name,email', 'bookings' => function($q) { $q->where('status', 'completed'); }])
-            ->select('id', 'name', 'email', 'referred_by', 'e_points', 'pending_epoints', 'created_at')
+            ->with([
+                'referrer:id,name,email,phone,referral_code',
+                'bookings' => function($q) { $q->where('status', 'completed'); }
+            ])
+            ->select('id', 'name', 'email', 'phone', 'referral_code', 'status', 'referred_by', 'e_points', 'pending_epoints', 'created_at')
+            ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($u) {
                 $u->total_completed = $u->bookings->count();
@@ -622,7 +626,7 @@ class AdminController extends Controller
         $topReferrers = User::withCount('referrals')
             ->orderBy('referrals_count', 'desc')
             ->limit(10)
-            ->get(['id', 'name', 'email', 'referral_code', 'e_points']);
+            ->get(['id', 'name', 'email', 'phone', 'referral_code', 'e_points']);
 
         return response()->json([
             'total_referrals'  => $users->count(),
