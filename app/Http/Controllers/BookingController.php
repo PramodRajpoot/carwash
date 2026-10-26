@@ -305,7 +305,7 @@ class BookingController extends Controller
             'paid_amount' => 0.00,
             'total_price' => $price,
             'addon_price' => $addonPrice,
-            'addon_services' => empty($addonServices) ? null : json_encode($addonServices),
+            'addon_services' => empty($addonServices) ? null : $addonServices,
             'coupon_code' => $couponCode,
             'coupon_discount' => $couponDiscount,
             'epoints_used' => $epointsUsed,

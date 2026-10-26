@@ -65,10 +65,23 @@
               </td>
               <td>
                 <div style="font-weight: 500;">{{ t.package?.name || 'Custom Package' }}</div>
-                <div v-if="t.addon_services && t.addon_services.length" style="margin-top: 0.25rem;">
-                  <span v-for="(a, i) in t.addon_services" :key="i" class="badge badge-cyan" style="font-size: 0.65rem; margin-right: 0.25rem; margin-bottom: 0.15rem; display: inline-block;">
-                    + {{ a.name }}
+
+                <!-- Package Wash Numbering: 1/4 in Green and Red -->
+                <div v-if="t.package && t.package.max_bookings > 1" style="margin-top: 0.25rem;">
+                  <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; font-weight: 700; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 6px; border-radius: 4px;">
+                    <span style="color: #10b981; font-weight: 800;">{{ getWashIndex(t) }}</span>
+                    <span style="color: #94a3b8; font-weight: 600;">/</span>
+                    <span style="color: #ef4444; font-weight: 800;">{{ t.package.max_bookings }}</span>
+                    <span style="color: var(--text-muted); font-size: 0.65rem; font-weight: 500; margin-left: 2px;">Washes</span>
                   </span>
+                </div>
+
+                <div v-if="getAddons(t).length" style="margin-top: 0.25rem; display: flex; flex-direction: column; gap: 2px;">
+                  <div v-for="(a, i) in getAddons(t)" :key="i" style="font-size: 0.72rem; color: var(--accent-cyan); display: flex; align-items: center; gap: 3px;">
+                    <span style="color: #10b981; font-weight: 700;">+</span>
+                    <span>{{ a.name }}</span>
+                    <span v-if="a.price" class="text-muted" style="font-size: 0.68rem;">(₹{{ a.price }})</span>
+                  </div>
                 </div>
               </td>
               <td>
@@ -191,6 +204,30 @@ export default {
   methods: {
     clearFilters() {
       this.filters = { search: '', status: '', date: '' };
+    },
+    getAddons(t) {
+      if (!t || !t.addon_services) return [];
+      let addons = t.addon_services;
+      if (typeof addons === 'string') {
+        try { addons = JSON.parse(addons); } catch (e) { return []; }
+      }
+      if (typeof addons === 'string') {
+        try { addons = JSON.parse(addons); } catch (e) { return []; }
+      }
+      return Array.isArray(addons) ? addons : [];
+    },
+    getWashIndex(t) {
+      if (!t || !t.package || !t.package.max_bookings) return 1;
+      const max = t.package.max_bookings;
+      if (max <= 1) return 1;
+
+      const custBookings = (this.tasks || [])
+        .filter(b => b.customer_id === t.customer_id && b.package_id === t.package_id && b.status !== 'cancelled')
+        .sort((a, b) => (new Date(a.created_at || a.booking_date || 0)) - (new Date(b.created_at || b.booking_date || 0)));
+
+      const idx = custBookings.findIndex(b => b.id === t.id);
+      if (idx === -1) return 1;
+      return (idx % max) + 1;
     },
     statusBadge(s) {
       return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan';

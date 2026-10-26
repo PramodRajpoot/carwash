@@ -18,11 +18,23 @@
             </td>
             <td>{{ b.vehicle?.make_model }}</td>
             <td>
-              <div>{{ b.package?.name || '-' }}</div>
-              <div v-if="getAddons(b).length" style="font-size: 0.75rem; color: var(--accent-cyan); margin-top: 2px;">
-                <span v-for="(addon, i) in getAddons(b)" :key="i">
-                  + {{ addon.name }}<br v-if="i < getAddons(b).length - 1">
+              <div style="font-weight: 600;">{{ b.package?.name || '-' }}</div>
+
+              <!-- Package Wash Numbering: 1/4 in Green and Red -->
+              <div v-if="b.package && b.package.max_bookings > 1" style="margin-top: 0.25rem;">
+                <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; font-weight: 700; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 6px; border-radius: 4px;" title="Wash Progress">
+                  <span style="color: #10b981; font-weight: 800;">{{ getWashIndex(b) }}</span>
+                  <span style="color: #94a3b8; font-weight: 600;">/</span>
+                  <span style="color: #ef4444; font-weight: 800;">{{ b.package.max_bookings }}</span>
+                  <span style="color: var(--text-muted); font-size: 0.65rem; font-weight: 500; margin-left: 2px;">Washes</span>
                 </span>
+              </div>
+
+              <div v-if="getAddons(b).length" style="font-size: 0.72rem; color: var(--accent-cyan); margin-top: 4px; display: flex; flex-direction: column; gap: 2px;">
+                <div v-for="(addon, i) in getAddons(b)" :key="i" style="display: flex; align-items: center; gap: 3px;">
+                  <span style="color: #10b981; font-weight: 700;">+</span>
+                  <span>{{ addon.name }}</span>
+                </div>
               </div>
             </td>
             <td>₹{{ (parseFloat(b.total_price) + parseFloat(b.coupon_discount || 0) + parseFloat(b.epoints_used || 0) + parseFloat(b.earning_money_used || 0)).toFixed(2) }}</td>
@@ -708,6 +720,19 @@ export default {
         try { return JSON.parse(b.addon_services); } catch (e) { return []; }
       }
       return Array.isArray(b.addon_services) ? b.addon_services : [];
+    },
+    getWashIndex(b) {
+      if (!b || !b.package || !b.package.max_bookings) return 1;
+      const max = b.package.max_bookings;
+      if (max <= 1) return 1;
+
+      const custBookings = (this.bookings || [])
+        .filter(x => x.package_id === b.package_id && x.status !== 'cancelled')
+        .sort((x, y) => (new Date(x.created_at || x.booking_date || 0)) - (new Date(y.created_at || y.booking_date || 0)));
+
+      const idx = custBookings.findIndex(x => x.id === b.id);
+      if (idx === -1) return 1;
+      return (idx % max) + 1;
     },
     isAddonSelected(id) { return this.bf.addon_ids.includes(id); },
     toggleAddon(pkg) {

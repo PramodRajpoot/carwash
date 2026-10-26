@@ -44,6 +44,21 @@ class Booking extends Model
         'coupon_discount' => 'decimal:2',
     ];
 
+    public function getAddonServicesAttribute($value)
+    {
+        if (is_null($value)) {
+            return [];
+        }
+        if (is_array($value)) {
+            return $value;
+        }
+        $decoded = json_decode($value, true);
+        if (is_string($decoded)) {
+            $decoded = json_decode($decoded, true);
+        }
+        return is_array($decoded) ? $decoded : [];
+    }
+
     public function customer()
     {
         return $this->belongsTo(User::class, 'customer_id');
