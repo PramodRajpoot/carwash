@@ -226,6 +226,14 @@ class AdminController extends Controller
     public function modifyOrder(Request $request, $id)
     {
         $booking = Booking::findOrFail($id);
+
+        if ($booking->status === 'completed') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Completed wash bookings cannot be edited.',
+            ], 422);
+        }
+
         $request->validate([
             'franchisee_id'  => 'nullable|exists:franchisees,id',
             'washer_id'      => 'nullable|exists:washers,id',

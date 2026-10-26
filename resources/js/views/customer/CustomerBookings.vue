@@ -108,6 +108,12 @@
                   </button>
                 </template>
                 <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
+                <button v-if="canPostpone(b)" class="btn btn-sm btn-outline" style="border-color: var(--accent-cyan); color: var(--accent-cyan);" @click="openPostpone(b)" title="Reschedule wash date and time">
+                  📅 Reschedule
+                </button>
+                <span v-else-if="b.status === 'completed'" class="text-muted" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" title="Wash has completed and is not editable">
+                  🔒 Completed
+                </span>
               </div>
             </td>
           </tr>
@@ -461,6 +467,46 @@
       </div>
     </div>
 
+    <!-- Reschedule / Postpone Wash Booking Modal -->
+    <div v-if="postponeBooking" class="modal-overlay" @click.self="postponeBooking = null">
+      <div class="modal-content">
+        <h3>Reschedule Wash Booking #{{ postponeBooking.id }}</h3>
+        <p class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1rem;">
+          Vehicle: <strong>{{ postponeBooking.vehicle?.make_model }}</strong> | Current Date: <strong>{{ postponeBooking.booking_date }}</strong> ({{ postponeBooking.slot_time }})
+        </p>
+
+        <form @submit.prevent="submitPostpone">
+          <div class="form-group">
+            <label>Wash Date</label>
+            <input v-model="pf.booking_date" type="date" class="form-input" required @change="fetchPostponeSlots" />
+            <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+              You can choose any date before or after today. Completed washes cannot be modified.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Time Slot</label>
+            <select v-model="pf.slot_time" class="form-select" required :disabled="postponeSlotsLoading || !pf.booking_date">
+              <option value="" v-if="postponeSlotsLoading">Loading available slots...</option>
+              <option value="" v-else-if="!pf.booking_date">Select date first</option>
+              <option value="" v-else-if="postponeSlots.length === 0">No slots available for this date</option>
+              <option v-else value="">Choose Slot</option>
+              <option v-for="s in postponeSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings">
+                {{ s.time_range }} {{ s.current_bookings >= s.max_bookings ? '(Full)' : '' }}
+              </option>
+            </select>
+          </div>
+
+          <div class="flex gap-2" style="margin-top: 1.25rem;">
+            <button type="submit" class="btn btn-primary" :disabled="submittingPostpone || !pf.booking_date || !pf.slot_time">
+              {{ submittingPostpone ? 'Rescheduling...' : 'Confirm Reschedule' }}
+            </button>
+            <button type="button" class="btn btn-ghost" @click="postponeBooking = null">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </div>
 </template>
 <script>
@@ -479,6 +525,7 @@ export default {
       slotsLoading: false,
       postponeSlots: [],
       postponeSlotsLoading: false,
+      submittingPostpone: false,
       showBookingModal: false,
       bookingMsg: '',
       bookingError: false,
@@ -672,7 +719,7 @@ export default {
     },
     statusBadge(s) { return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan'; },
     canCancel(b) { return ['pending', 'assigned'].includes(b.status); },
-    canPostpone(b) { return ['pending', 'assigned'].includes(b.status); },
+    canPostpone(b) { return ['pending', 'assigned', 'postponed'].includes(b.status); },
     needsPayment(b) {
       return ['pending_payment', 'unpaid', 'failed'].includes(b.payment_status) && 
              b.payment_method === 'online' && 
@@ -1121,9 +1168,36 @@ export default {
         Swal.fire('Error', e.response?.data?.message || 'Failed to cancel booking', 'error');
       }
     },
-    openPostpone(b) { this.postponeBooking = b; this.pf.booking_date = ''; this.pf.slot_time = ''; this.postponeSlots = []; },
+    openPostpone(b) {
+      if (b.status === 'completed') {
+        Swal.fire('Wash Completed', 'This wash has already been completed and cannot be edited.', 'info');
+        return;
+      }
+      this.postponeBooking = b;
+      this.pf.booking_date = b.booking_date || '';
+      this.pf.slot_time = b.slot_time || '';
+      this.postponeSlots = [];
+      if (this.pf.booking_date) {
+        this.fetchPostponeSlots();
+      }
+    },
     async submitPostpone() {
-      try { await axios.post(`/api/bookings/${this.postponeBooking.id}/postpone`, this.pf); this.postponeBooking = null; this.loadData(); } catch (e) { alert(e.response?.data?.message || 'Failed'); }
+      if (!this.postponeBooking) return;
+      if (this.postponeBooking.status === 'completed') {
+        Swal.fire('Wash Completed', 'Completed wash bookings cannot be edited.', 'error');
+        return;
+      }
+      this.submittingPostpone = true;
+      try {
+        const { data } = await axios.post(`/api/bookings/${this.postponeBooking.id}/postpone`, this.pf);
+        Swal.fire('Rescheduled!', data.message || 'Booking rescheduled successfully.', 'success');
+        this.postponeBooking = null;
+        this.loadData();
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Failed to reschedule booking', 'error');
+      } finally {
+        this.submittingPostpone = false;
+      }
     },
   },
   mounted() {

@@ -99,6 +99,13 @@ class FranchiseeController extends Controller
 
         $booking = Booking::where('franchisee_id', $franchisee->id)->findOrFail($id);
 
+        if ($booking->status === 'completed' && $request->status !== 'completed') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Completed wash bookings cannot be edited.',
+            ], 422);
+        }
+
         $request->validate([
             'status'         => 'required|string|in:pending,assigned,ongoing,completed,cancelled,postponed',
             'washer_id'      => 'nullable|exists:washers,id',
@@ -307,11 +314,24 @@ class FranchiseeController extends Controller
         $franchisee = $this->getFranchisee($request);
 
         $booking = Booking::where('franchisee_id', $franchisee->id)
-            ->whereIn('status', ['pending', 'assigned'])
             ->findOrFail($bookingId);
 
+        if ($booking->status === 'completed') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Completed wash bookings cannot be edited or rescheduled.',
+            ], 422);
+        }
+
+        if (!in_array($booking->status, ['pending', 'assigned', 'postponed'])) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'This booking cannot be rescheduled.',
+            ], 422);
+        }
+
         $request->validate([
-            'booking_date' => 'required|date|after_or_equal:today',
+            'booking_date' => 'required|date',
             'slot_time'    => 'required|string',
         ]);
 

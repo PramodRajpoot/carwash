@@ -118,10 +118,14 @@
           Customer: <strong>{{ selectedOrder.customer?.name }}</strong> | Vehicle: <strong>{{ selectedOrder.vehicle?.make_model }}</strong>
         </p>
 
+        <div v-if="selectedOrder.status === 'completed'" class="alert alert-success" style="margin-bottom: 1rem; font-size: 0.85rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: var(--accent-emerald); border-radius: 6px;">
+          ✓ This wash has been completed and is not editable.
+        </div>
+
         <form @submit.prevent="updateStatus">
           <div class="form-group">
             <label>Wash Progress Status</label>
-            <select v-model="form.status" class="form-select" required>
+            <select v-model="form.status" class="form-select" required :disabled="selectedOrder.status === 'completed'">
               <option value="pending">Pending</option>
               <option value="assigned">Assigned / Dispatched</option>
               <option value="ongoing">Wash In-Progress</option>
@@ -174,7 +178,7 @@
             <p class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.5rem;">
               Assign this wash task to an active technician from your center.
             </p>
-            <select v-model="form.washer_id" class="form-select">
+            <select v-model="form.washer_id" class="form-select" :disabled="selectedOrder.status === 'completed'">
               <option :value="null">-- No Washer Assigned --</option>
               <option v-for="w in washers" :key="w.id" :value="w.id">
                 {{ w.user?.name }} (Active Tasks: {{ w.active_tasks || 0 }})

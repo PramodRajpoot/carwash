@@ -134,6 +134,7 @@ class EarningMoneyTest extends TestCase
             'booking_date' => now()->addDay()->toDateString(),
             'slot_time' => '11:00 - 12:00',
             'payment_method' => 'online',
+            'address' => '123 Test Street, Noida',
             'use_earning_money' => true,
         ]);
 

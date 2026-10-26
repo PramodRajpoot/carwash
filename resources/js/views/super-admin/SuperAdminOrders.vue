@@ -116,7 +116,7 @@
                 <select class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
                   <option value="">-- Actions --</option>
                   <option value="assign">Assign Center</option>
-                  <option value="reschedule">Reschedule</option>
+                  <option value="reschedule" v-if="o.status !== 'completed' && o.status !== 'cancelled'">Reschedule</option>
                   <option value="change_plan" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Change / Customise Plan</option>
                   <option value="cancel" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Cancel Booking</option>
                   <option value="refund" v-if="o.status === 'cancelled' && o.payment_status === 'paid'">Process Refund</option>
@@ -594,6 +594,10 @@ export default {
       this.submitting = false;
     },
     openRescheduleModal(o) {
+      if (o.status === 'completed') {
+        alert('Completed washes cannot be edited or rescheduled.');
+        return;
+      }
       this.rescheduleModalOrder = o;
       this.rescheduleForm = { booking_date: o.booking_date, slot_time: o.slot_time };
     },

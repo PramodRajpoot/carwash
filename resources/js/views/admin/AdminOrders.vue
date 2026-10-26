@@ -97,7 +97,19 @@
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
               <td>
-                <button class="btn btn-outline btn-sm" @click="openEditModal(o)">Edit</button>
+                <button 
+                  v-if="o.status !== 'completed'" 
+                  class="btn btn-outline btn-sm" 
+                  @click="openEditModal(o)">
+                  Edit
+                </button>
+                <span 
+                  v-else 
+                  class="text-muted" 
+                  style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" 
+                  title="Completed washes cannot be edited">
+                  🔒 Completed
+                </span>
               </td>
             </tr>
           </tbody>
@@ -301,6 +313,10 @@ export default {
       this.loading = false;
     },
     openEditModal(o) {
+      if (o.status === 'completed') {
+        alert('Completed washes cannot be edited.');
+        return;
+      }
       this.selectedOrder = o;
       this.form = {
         franchisee_id: o.franchisee_id || '',

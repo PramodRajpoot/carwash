@@ -41,7 +41,7 @@
           </div>
           <div>
             <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">New Date</label>
-            <input type="date" v-model="rescheduleForm.booking_date" class="form-input" :min="today" />
+            <input type="date" v-model="rescheduleForm.booking_date" class="form-input" />
           </div>
           <div>
             <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Time Slot</label>

@@ -290,6 +290,14 @@ class SuperAdminController extends Controller
     public function rescheduleOrder(Request $request, $id)
     {
         $booking = Booking::findOrFail($id);
+
+        if ($booking->status === 'completed') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Completed wash bookings cannot be edited or rescheduled.',
+            ], 422);
+        }
+
         $request->validate([
             'booking_date' => 'required|date',
             'slot_time'    => 'required|string'

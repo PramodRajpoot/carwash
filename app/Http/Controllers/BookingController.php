@@ -53,6 +53,28 @@ class BookingController extends Controller
             ->where('is_active', true)
             ->get();
 
+        if ($slots->isEmpty()) {
+            $masterSlots = \App\Models\MasterSlot::where('status', 'active')->orderBy('id', 'asc')->get();
+            $generatedSlots = [];
+            foreach ($masterSlots as $ms) {
+                $slot = Slot::firstOrCreate(
+                    [
+                        'franchisee_id' => $request->franchisee_id,
+                        'date' => $request->date,
+                        'time_range' => $ms->time_range
+                    ],
+                    [
+                        'max_bookings' => $ms->default_max_bookings ?? 3,
+                        'current_bookings' => 0,
+                        'is_active' => true,
+                        'status' => 'active'
+                    ]
+                );
+                $generatedSlots[] = $slot;
+            }
+            $slots = collect($generatedSlots);
+        }
+
         return response()->json($slots);
     }
 
@@ -64,7 +86,7 @@ class BookingController extends Controller
             'vehicle_id' => 'required|exists:vehicles,id',
             'franchisee_id' => 'required|exists:franchisees,id',
             'package_id' => 'required|exists:service_packages,id',
-            'booking_date' => 'required|date|after_or_equal:today',
+            'booking_date' => 'required|date',
             'slot_time' => 'required|string',
             'address' => 'required|string|min:5|max:1000',
             'save_as_default_address' => 'nullable|boolean',
@@ -461,8 +483,22 @@ class BookingController extends Controller
             abort(403);
         }
 
+        if ($booking->status === 'completed') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Completed wash bookings cannot be edited or rescheduled.'
+            ], 422);
+        }
+
+        if ($booking->status === 'cancelled') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Cancelled bookings cannot be rescheduled.'
+            ], 422);
+        }
+
         $request->validate([
-            'booking_date' => 'required|date|after_or_equal:today',
+            'booking_date' => 'required|date',
             'slot_time' => 'required|string',
         ]);
 
