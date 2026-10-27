@@ -126,26 +126,15 @@
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
               <td>
-                <button 
-                  v-if="o.status !== 'completed' && o.status !== 'cancelled'" 
-                  class="btn btn-outline btn-sm" 
-                  @click="openEditModal(o)">
-                  Edit
-                </button>
-                <span 
-                  v-else-if="o.status === 'completed'" 
-                  class="text-muted" 
-                  style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" 
-                  title="Completed washes cannot be edited">
-                  🔒 Completed
-                </span>
-                <span 
-                  v-else-if="o.status === 'cancelled'" 
-                  class="text-muted" 
-                  style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(239,68,68,0.08); border-radius: 4px; border: 1px solid rgba(239,68,68,0.2); color: var(--accent-rose);" 
-                  title="Cancelled washes cannot be edited">
-                  🔒 Cancelled
-                </span>
+                <!-- Cancelled: No options at all -->
+                <span v-if="o.status === 'cancelled'" class="text-muted" style="font-size: 0.85rem;">—</span>
+
+                <!-- Completed / Active: Actions dropdown (Completed has only Download Invoice) -->
+                <select v-else class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
+                  <option value="">-- Actions --</option>
+                  <option value="edit" v-if="o.status !== 'completed'">Edit</option>
+                  <option value="invoice">Download Invoice</option>
+                </select>
               </td>
             </tr>
           </tbody>
@@ -397,6 +386,27 @@ export default {
         alert(e.response?.data?.message || 'Failed to modify order.');
       }
       this.submitting = false;
+    },
+    handleAction(event, o) {
+      const action = event.target.value;
+      event.target.value = ""; // reset dropdown
+      if (!action) return;
+
+      if (action === 'edit') {
+        this.openEditModal(o);
+      } else if (action === 'invoice') {
+        this.downloadInvoice(o.id);
+      }
+    },
+    async downloadInvoice(id) {
+      try {
+        const response = await axios.get(`/api/admin/orders/${id}/invoice`);
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(response.data);
+        printWindow.document.close();
+      } catch (e) {
+        alert('Failed to load invoice.');
+      }
     }
   },
   mounted() {

@@ -180,6 +180,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Orders
         Route::get('/orders',          [AdminController::class, 'getOrders']);
         Route::put('/orders/{id}',     [AdminController::class, 'modifyOrder']);
+        Route::get('/orders/{id}/invoice', [SuperAdminController::class, 'downloadInvoice']);
 
         // Slots
         Route::get('/slots',   [AdminController::class, 'getSlots']);

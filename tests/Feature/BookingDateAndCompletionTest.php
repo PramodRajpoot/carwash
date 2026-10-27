@@ -739,4 +739,37 @@ class BookingDateAndCompletionTest extends TestCase
         $booking->refresh();
         $this->assertEquals('completed', $booking->status);
     }
+
+    public function test_admin_and_superadmin_can_download_invoice_for_completed_order()
+    {
+        $superAdmin = User::create([
+            'name' => 'Super Admin User',
+            'email' => 'superadmin_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'super_admin',
+        ]);
+
+        $booking = Booking::create([
+            'customer_id'    => $this->customer->id,
+            'vehicle_id'     => $this->vehicle->id,
+            'package_id'     => $this->package->id,
+            'franchisee_id'  => $this->franchisee->id,
+            'booking_date'   => '2026-10-20',
+            'slot_time'      => '09:00 AM - 11:00 AM',
+            'address'        => 'Test Address',
+            'status'         => 'completed',
+            'payment_status' => 'paid',
+            'total_price'    => 500,
+        ]);
+
+        // Test SuperAdmin invoice download
+        $this->actingAs($superAdmin, 'sanctum');
+        $superAdminResp = $this->get("/api/super-admin/orders/{$booking->id}/invoice");
+        $superAdminResp->assertStatus(200);
+
+        // Test Admin invoice download
+        $this->actingAs($this->admin, 'sanctum');
+        $adminResp = $this->get("/api/admin/orders/{$booking->id}/invoice");
+        $adminResp->assertStatus(200);
+    }
 }

@@ -135,13 +135,16 @@
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
               <td>
-                <select class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
+                <!-- Cancelled: No options at all -->
+                <span v-if="o.status === 'cancelled'" class="text-muted" style="font-size: 0.85rem;">—</span>
+
+                <!-- Completed / Active: Actions dropdown (Completed has only Download Invoice) -->
+                <select v-else class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
                   <option value="">-- Actions --</option>
-                  <option value="assign" v-if="o.status !== 'completed' && o.status !== 'cancelled'">Assign Center</option>
-                  <option value="reschedule" v-if="o.status !== 'completed' && o.status !== 'cancelled'">Reschedule</option>
-                  <option value="change_plan" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Change / Customise Plan</option>
-                  <option value="cancel" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Cancel Booking</option>
-                  <option value="refund" v-if="o.status === 'cancelled' && o.payment_status === 'paid'">Process Refund</option>
+                  <option value="assign" v-if="o.status !== 'completed'">Assign Center</option>
+                  <option value="reschedule" v-if="o.status !== 'completed'">Reschedule</option>
+                  <option value="change_plan" v-if="o.status !== 'completed'">Change / Customise Plan</option>
+                  <option value="cancel" v-if="o.status !== 'completed'">Cancel Booking</option>
                   <option value="invoice">Download Invoice</option>
                 </select>
               </td>
