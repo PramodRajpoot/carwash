@@ -140,7 +140,7 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (!Auth::guard('web')->attempt($request->only('email', 'password'))) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Invalid login credentials',
@@ -149,8 +149,23 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->firstOrFail();
 
+        if ($user->role === 'franchisee') {
+            $user->load('franchisee');
+            if ($user->franchisee && in_array($user->franchisee->status, ['suspended', 'rejected'])) {
+                if (Auth::guard('web')->check()) {
+                    Auth::guard('web')->logout();
+                }
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Your franchise account is suspended',
+                ], 403);
+            }
+        }
+
         if ($user->status !== 'active') {
-            Auth::logout();
+            if (Auth::guard('web')->check()) {
+                Auth::guard('web')->logout();
+            }
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Your account is suspended',

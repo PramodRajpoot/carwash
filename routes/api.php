@@ -145,19 +145,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('franchisee')->group(function () {
         Route::get('/dashboard',                        [FranchiseeController::class, 'dashboard']);
-        Route::get('/orders',                           [FranchiseeController::class, 'getOrders']);
-        Route::put('/orders/{id}/status',               [FranchiseeController::class, 'updateBookingStatus']);
-        Route::post('/orders/{id}/reschedule',          [FranchiseeController::class, 'rescheduleService']);
-        Route::put('/slots/{id}/toggle',                [FranchiseeController::class, 'toggleSlotStatus']);
-        Route::get('/expenses',                         [FranchiseeController::class, 'getExpenses']);
-        Route::post('/expenses',                        [FranchiseeController::class, 'addExpense']);
-        Route::delete('/expenses/{id}',                 [FranchiseeController::class, 'deleteExpense']);
-        Route::get('/reports',                          [FranchiseeController::class, 'getReports']);
-        Route::get('/royalty',                          [FranchiseeController::class, 'getRoyalty']);
-        Route::get('/subscriptions',                    [FranchiseeController::class, 'getSubscriptions']);
-        Route::get('/offers',                           [FranchiseeController::class, 'getOffers']);
-        Route::get('/washers',                          [WasherController::class, 'franchiseeWashers']);
-        Route::post('/orders/{id}/assign-washer',        [WasherController::class, 'franchiseeAssignTask']);
+
+        // Operational routes requiring an active franchisee
+        Route::middleware('franchisee.active')->group(function () {
+            Route::get('/orders',                           [FranchiseeController::class, 'getOrders']);
+            Route::put('/orders/{id}/status',               [FranchiseeController::class, 'updateBookingStatus']);
+            Route::post('/orders/{id}/reschedule',          [FranchiseeController::class, 'rescheduleService']);
+            Route::put('/slots/{id}/toggle',                [FranchiseeController::class, 'toggleSlotStatus']);
+            Route::get('/expenses',                         [FranchiseeController::class, 'getExpenses']);
+            Route::post('/expenses',                        [FranchiseeController::class, 'addExpense']);
+            Route::delete('/expenses/{id}',                 [FranchiseeController::class, 'deleteExpense']);
+            Route::get('/reports',                          [FranchiseeController::class, 'getReports']);
+            Route::get('/royalty',                          [FranchiseeController::class, 'getRoyalty']);
+            Route::get('/subscriptions',                    [FranchiseeController::class, 'getSubscriptions']);
+            Route::get('/offers',                           [FranchiseeController::class, 'getOffers']);
+            Route::get('/washers',                          [WasherController::class, 'franchiseeWashers']);
+            Route::post('/orders/{id}/assign-washer',        [WasherController::class, 'franchiseeAssignTask']);
+        });
     });
 
     // ── Admin Panel ──────────────────────────────────────────────────────

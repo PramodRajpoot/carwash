@@ -74,8 +74,8 @@
               </div>
             </td>
             <td style="padding: 1rem 0.5rem;">
-              <span class="badge" :class="{ 'badge-emerald': f.status === 'active', 'badge-rose': f.status === 'inactive' || f.status === 'suspended', 'badge-amber': f.status === 'pending' }">
-                {{ f.status.toUpperCase() }}
+              <span class="badge" :class="{ 'badge-emerald': f.status === 'active', 'badge-amber': f.status === 'inactive' || f.status === 'pending', 'badge-rose': f.status === 'suspended' || f.status === 'rejected' }">
+                {{ (f.status || '').toUpperCase() }}
               </span>
             </td>
             <td style="padding: 1rem 0.5rem;">
@@ -94,8 +94,9 @@
               <select class="form-input" style="padding: 0.25rem; font-size: 0.8rem; width: 120px;" @change="handleAction($event, f)">
                 <option value="">-- Actions --</option>
                 <option value="approve" v-if="f.status !== 'active'">Approve</option>
-                <option value="reject" v-if="f.status !== 'inactive'">Reject</option>
+                <option value="inactive" v-if="f.status !== 'inactive'">Inactive</option>
                 <option value="suspend" v-if="f.status !== 'suspended'">Suspend</option>
+                <option value="reject" v-if="f.status !== 'rejected'">Reject</option>
                 <option value="renew">Renew Agreement</option>
                 <option value="upload">Manage Docs ({{ getDocs(f).length }})</option>
                 <option value="delete_doc" v-if="getDocs(f).length > 0" style="color: var(--accent-rose);">Delete All Docs</option>
@@ -429,21 +430,31 @@ export default {
   },
   methods: {
     async updateStatus(f, newStatus) {
+      const actionLabels = {
+        active: 'activate/approve',
+        inactive: 'mark as inactive',
+        suspended: 'suspend',
+        rejected: 'reject'
+      };
+      const label = actionLabels[newStatus] || newStatus;
       const result = await Swal.fire({
         title: 'Confirm Action',
-        text: `Are you sure you want to ${newStatus} this franchise?`,
+        text: `Are you sure you want to ${label} this franchise?`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Yes, do it!'
+        confirmButtonText: 'Yes, proceed!'
       });
       if (!result.isConfirmed) return;
 
       try {
-        await axios.put(`/api/admin/franchisees/${f.id}/status`, { status: newStatus });
+        const { data } = await axios.put(`/api/admin/franchisees/${f.id}/status`, { status: newStatus });
         f.status = newStatus;
+        if (data.franchisee) {
+          Object.assign(f, data.franchisee);
+        }
         Swal.fire('Updated!', 'Status has been updated successfully.', 'success');
       } catch (e) {
-        Swal.fire('Error', 'Failed to update status', 'error');
+        Swal.fire('Error', e.response?.data?.message || 'Failed to update status', 'error');
       }
     },
     handleAction(event, f) {
@@ -454,10 +465,12 @@ export default {
 
       if (action === 'approve') {
         this.updateStatus(f, 'active');
-      } else if (action === 'reject') {
+      } else if (action === 'inactive') {
         this.updateStatus(f, 'inactive');
       } else if (action === 'suspend') {
         this.updateStatus(f, 'suspended');
+      } else if (action === 'reject') {
+        this.updateStatus(f, 'rejected');
       } else if (action === 'view') {
         this.openSlotModal(f);
       } else if (action === 'edit') {

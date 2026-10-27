@@ -130,7 +130,7 @@ class AdminController extends Controller
             'email'         => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'phone'         => 'nullable|string|max:20',
             'role'          => 'required|string|in:super_admin,admin,franchisee,washer,customer',
-            'status'        => 'required|string|in:active,suspended',
+            'status'        => 'required|string|in:active,inactive,suspended',
             'royalty_percentage' => 'nullable|numeric|min:0',
             'franchisee_id' => 'nullable|exists:franchisees,id',
         ]);
@@ -149,6 +149,7 @@ class AdminController extends Controller
                 'address'            => $request->input('address', $user->franchisee->address),
                 'city'               => $request->input('city', $user->franchisee->city),
                 'royalty_percentage' => $request->input('royalty_percentage', $user->franchisee->royalty_percentage),
+                'status'             => in_array($request->status, ['active', 'inactive', 'suspended']) ? $request->status : $user->franchisee->status,
             ]);
         } elseif ($request->role === 'washer') {
             Washer::updateOrCreate(
@@ -398,9 +399,23 @@ class AdminController extends Controller
     public function updateFranchiseeStatus(Request $request, $id)
     {
         $franchisee = Franchisee::findOrFail($id);
-        $request->validate(['status' => 'required|in:active,inactive,pending,suspended']);
+        $request->validate(['status' => 'required|in:active,inactive,pending,suspended,rejected']);
         $franchisee->update(['status' => $request->status]);
-        return response()->json(['status' => 'success', 'message' => 'Franchise status updated.', 'franchisee' => $franchisee]);
+
+        if ($franchisee->user) {
+            if ($request->status === 'suspended' || $request->status === 'rejected') {
+                $franchisee->user->update(['status' => 'suspended']);
+            } else {
+                // For 'inactive', 'active', 'pending': user status is active so they can log in
+                $franchisee->user->update(['status' => 'active']);
+            }
+        }
+
+        return response()->json([
+            'status'     => 'success',
+            'message'    => 'Franchise status updated.',
+            'franchisee' => $franchisee->load('user:id,name,email,phone,status')
+        ]);
     }
 
     public function renewAgreement(Request $request, $id)

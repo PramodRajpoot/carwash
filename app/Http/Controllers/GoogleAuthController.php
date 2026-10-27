@@ -74,6 +74,13 @@ class GoogleAuthController extends Controller
                 }
             }
 
+            if ($user->role === 'franchisee') {
+                $user->load('franchisee');
+                if ($user->franchisee && in_array($user->franchisee->status, ['suspended', 'rejected'])) {
+                    return redirect(config('app.url') . '/login?error=' . urlencode('Your franchise account is suspended.'));
+                }
+            }
+
             if ($user->status !== 'active') {
                 return redirect(config('app.url') . '/login?error=' . urlencode('Your account is suspended.'));
             }

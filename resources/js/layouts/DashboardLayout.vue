@@ -33,14 +33,16 @@
         <!-- Franchisee Sidebar -->
         <template v-else-if="role === 'franchisee'">
           <li><router-link to="/franchisee"><span class="nav-icon">📊</span> Dashboard</router-link></li>
-          <li><router-link to="/franchisee/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
-          <li><router-link to="/franchisee/washers"><span class="nav-icon">🧼</span> Our Washers</router-link></li>
-          <li><router-link to="/franchisee/slots"><span class="nav-icon">🕐</span> Slots Management</router-link></li>
-          <li><router-link to="/franchisee/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
-          <li><router-link to="/franchisee/royalty"><span class="nav-icon">💳</span> Royalty</router-link></li>
-          <li><router-link to="/franchisee/expenses"><span class="nav-icon">💰</span> Expenses</router-link></li>
-          <li><router-link to="/franchisee/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
-          <li><router-link to="/franchisee/offers"><span class="nav-icon">🎟️</span> Offers</router-link></li>
+          <template v-if="!isInactiveFranchisee">
+            <li><router-link to="/franchisee/orders"><span class="nav-icon">📋</span> Booking Management</router-link></li>
+            <li><router-link to="/franchisee/washers"><span class="nav-icon">🧼</span> Our Washers</router-link></li>
+            <li><router-link to="/franchisee/slots"><span class="nav-icon">🕐</span> Slots Management</router-link></li>
+            <li><router-link to="/franchisee/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
+            <li><router-link to="/franchisee/royalty"><span class="nav-icon">💳</span> Royalty</router-link></li>
+            <li><router-link to="/franchisee/expenses"><span class="nav-icon">💰</span> Expenses</router-link></li>
+            <li><router-link to="/franchisee/reports"><span class="nav-icon">📈</span> Reports</router-link></li>
+            <li><router-link to="/franchisee/offers"><span class="nav-icon">🎟️</span> Offers</router-link></li>
+          </template>
         </template>
 
         <!-- Admin Sidebar -->
@@ -156,6 +158,10 @@ export default {
   },
   computed: {
     role() { return this.user.role || 'customer'; },
+    isInactiveFranchisee() {
+      if (this.role !== 'franchisee') return false;
+      return this.user.franchisee?.status === 'inactive' || this.user.status === 'inactive';
+    },
     profileRoute() {
       const base = { customer: '/customer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin', washer: '/customer' };
       return (base[this.role] || '/customer') + '/profile';
@@ -216,10 +222,22 @@ export default {
     updateLocalUser() {
       this.user = JSON.parse(localStorage.getItem('auth_user') || '{}');
     },
+    async refreshUserData() {
+      if (this.role === 'franchisee') {
+        try {
+          const { data } = await axios.get('/api/auth/me');
+          if (data) {
+            this.user = data;
+            localStorage.setItem('auth_user', JSON.stringify(data));
+          }
+        } catch (e) {}
+      }
+    },
   },
   mounted() {
     this.loadTheme();
     this.loadUnread();
+    this.refreshUserData();
     window.addEventListener('user-updated', this.updateLocalUser);
   },
   watch: {

@@ -1,5 +1,18 @@
 <template>
   <div>
+    <!-- Inactive Alert -->
+    <div v-if="isInactive" class="glass-card" style="margin-bottom:1.5rem;border:1px solid #f59e0b;background:rgba(245,158,11,0.08);padding:1.5rem;">
+      <div class="flex items-center gap-3">
+        <span style="font-size:2.2rem">⚠️</span>
+        <div>
+          <div style="font-weight:700;color:#f59e0b;font-size:1.1rem">Account Inactive</div>
+          <div class="text-muted" style="margin-top:0.25rem;font-size:0.9rem">
+            Your franchise account is currently marked as <strong>Inactive</strong>. All operations, booking management, washer assignments, and slot configurations have been temporarily disabled. You can log in and view your account status, but cannot perform any other actions. Please contact the administrator or superadmin to reactivate your center.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Royalty Alert -->
     <div v-if="data.royalty_alert" class="glass-card" style="margin-bottom:1.5rem;border:1px solid #ef4444;background:rgba(239,68,68,0.08)">
       <div class="flex items-center gap-3">
@@ -59,7 +72,14 @@
         <div><span class="text-muted" style="font-size:0.8rem">Center Name</span><div style="font-weight:600">{{ data.franchisee?.center_name }}</div></div>
         <div><span class="text-muted" style="font-size:0.8rem">City</span><div style="font-weight:600">{{ data.franchisee?.city }}</div></div>
         <div><span class="text-muted" style="font-size:0.8rem">Royalty Rate</span><div style="font-weight:600">{{ data.franchisee?.royalty_percentage }}%</div></div>
-        <div><span class="text-muted" style="font-size:0.8rem">Status</span><span class="badge badge-emerald" style="margin-top:0.2rem">{{ data.franchisee?.status }}</span></div>
+        <div>
+          <span class="text-muted" style="font-size:0.8rem">Status</span>
+          <div>
+            <span class="badge" :class="data.franchisee?.status === 'active' ? 'badge-emerald' : (data.franchisee?.status === 'inactive' ? 'badge-amber' : 'badge-rose')" style="margin-top:0.2rem">
+              {{ (data.franchisee?.status || '').toUpperCase() }}
+            </span>
+          </div>
+        </div>
         <div style="grid-column: span 2; margin-top: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
           <span class="text-muted" style="font-size:0.8rem">Time Ranges (All Assigned)</span>
           <div style="margin-top:0.4rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
@@ -71,7 +91,7 @@
     </div>
 
     <!-- Quick Link: Slots Management -->
-    <div class="glass-card" style="margin-top:1.5rem">
+    <div v-if="!isInactive" class="glass-card" style="margin-top:1.5rem">
       <div class="flex items-center justify-between">
         <div>
           <h4 style="margin:0">🕐 Slots Management</h4>
@@ -101,6 +121,9 @@ export default {
   computed: {
     revenue() {
       return this.data.revenue || { daily: 0, weekly: 0, monthly: 0, yearly: 0 };
+    },
+    isInactive() {
+      return this.data.franchisee?.status === 'inactive';
     },
   },
   async mounted() {

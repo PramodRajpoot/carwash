@@ -128,6 +128,16 @@ class OtpController extends Controller
             ], 404);
         }
 
+        if ($user->role === 'franchisee') {
+            $user->load('franchisee');
+            if ($user->franchisee && in_array($user->franchisee->status, ['suspended', 'rejected'])) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Your franchise account is suspended.',
+                ], 403);
+            }
+        }
+
         if ($user->status !== 'active') {
             return response()->json([
                 'status'  => 'error',

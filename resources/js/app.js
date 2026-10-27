@@ -54,6 +54,14 @@ router.beforeEach((to, from, next) => {
         return next({ name: 'home' });
     }
 
+    // Inactive franchisee restriction: can login only (access dashboard), not anything else
+    if (user && user.role === 'franchisee') {
+        const isInactive = user.franchisee?.status === 'inactive' || user.status === 'inactive';
+        if (isInactive && to.path.startsWith('/franchisee/') && to.name !== 'franchisee-dashboard') {
+            return next({ name: 'franchisee-dashboard' });
+        }
+    }
+
     if (to.meta.guest && token && to.name !== 'reset-password') {
         if (user) {
             const dashMap = {

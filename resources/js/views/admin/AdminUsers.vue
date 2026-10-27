@@ -59,7 +59,7 @@
                 <span v-else class="text-muted" style="font-size: 0.8rem;">-</span>
               </td>
               <td>
-                <span class="badge" :class="u.status === 'active' ? 'badge-emerald' : 'badge-rose'">
+                <span class="badge" :class="u.status === 'active' ? 'badge-emerald' : (u.status === 'inactive' ? 'badge-amber' : 'badge-rose')">
                   {{ u.status }}
                 </span>
               </td>
@@ -140,6 +140,7 @@
               <label>Status</label>
               <select v-model="form.status" class="form-select" required>
                 <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
                 <option value="suspended">Suspended</option>
               </select>
             </div>
