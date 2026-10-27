@@ -364,6 +364,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('washer')->group(function () {
         Route::get('/dashboard',                        [WasherController::class, 'washerDashboard']);
         Route::get('/tasks',                            [WasherController::class, 'washerTasks']);
-        Route::put('/tasks/{id}/status',                [WasherController::class, 'washerUpdateTaskStatus']);
+        Route::match(['put', 'post'], '/tasks/{id}/status', [WasherController::class, 'washerUpdateTaskStatus']);
+        Route::post('/tasks/{id}/complete',             [WasherController::class, 'washerUpdateTaskStatus']);
     });
 });

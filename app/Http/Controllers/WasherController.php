@@ -156,18 +156,29 @@ class WasherController extends Controller
     {
         $franchisee = Franchisee::where('user_id', $request->user()->id)->firstOrFail();
 
-        $washers = Washer::where('franchisee_id', $franchisee->id)
-            ->with('user')
-            ->withCount([
-                'bookings as total_tasks',
-                'bookings as completed_tasks' => function ($q) {
-                    $q->where('status', 'completed');
-                },
-                'bookings as active_tasks' => function ($q) {
-                    $q->whereIn('status', ['assigned', 'ongoing']);
-                }
-            ])
-            ->get();
+        $query = Washer::where('franchisee_id', $franchisee->id)
+            ->with(['user' => function ($q) {
+                $q->select('id', 'name', 'email', 'phone', 'status');
+            }]);
+
+        if ($request->has('status') && $request->status !== '') {
+            $query->where('status', $request->status);
+            if ($request->status === 'active') {
+                $query->whereHas('user', function ($q) {
+                    $q->where('status', 'active');
+                });
+            }
+        }
+
+        $washers = $query->withCount([
+            'bookings as total_tasks',
+            'bookings as completed_tasks' => function ($q) {
+                $q->where('status', 'completed');
+            },
+            'bookings as active_tasks' => function ($q) {
+                $q->whereIn('status', ['assigned', 'ongoing']);
+            }
+        ])->get();
 
         return response()->json($washers);
     }
@@ -183,13 +194,26 @@ class WasherController extends Controller
                 'message' => 'Completed or cancelled bookings cannot be assigned to a washer.',
             ], 422);
         }
+
+        $request->validate([
             'washer_id' => 'nullable|exists:washers,id',
         ]);
 
         if ($request->filled('washer_id')) {
             $washer = Washer::where('id', $request->washer_id)
                 ->where('franchisee_id', $franchisee->id)
-                ->firstOrFail();
+                ->where('status', 'active')
+                ->whereHas('user', function ($q) {
+                    $q->where('status', 'active');
+                })
+                ->first();
+
+            if (!$washer) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'The selected washer is not active or not assigned to your center.',
+                ], 422);
+            }
 
             $booking->washer_id = $washer->id;
             if ($booking->status === 'pending') {
@@ -287,8 +311,69 @@ class WasherController extends Controller
             'status' => 'required|string|in:ongoing,completed',
         ]);
 
+        $updateData = ['status' => $request->status];
+
+        if ($request->status === 'completed') {
+            $request->validate([
+                'review'   => 'required|string|min:3|max:2000',
+                'photos'   => 'required',
+                'photos.*' => 'file|image|max:20480',
+                'video'    => 'required|file|max:102400',
+            ], [
+                'review.required' => 'Please provide a completion review or service notes.',
+                'photos.required' => 'At least one service photo is required to complete the wash.',
+                'video.required'  => 'A service completion video clip is required.',
+            ]);
+
+            $photoPaths = [];
+            if ($request->hasFile('photos')) {
+                $photos = $request->file('photos');
+                if (!is_array($photos)) {
+                    $photos = [$photos];
+                }
+                foreach ($photos as $p) {
+                    if ($p && $p->isValid()) {
+                        $path = $p->store('service_proofs/photos', 'public');
+                        $photoPaths[] = '/storage/' . $path;
+                    }
+                }
+            }
+
+            if (empty($photoPaths)) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'At least one valid service photo must be uploaded.',
+                ], 422);
+            }
+
+            $videoPath = null;
+            if ($request->hasFile('video')) {
+                $video = $request->file('video');
+                if ($video && $video->isValid()) {
+                    $path = $video->store('service_proofs/videos', 'public');
+                    $videoPath = '/storage/' . $path;
+                }
+            }
+
+            if (!$videoPath) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'A valid service completion video must be uploaded.',
+                ], 422);
+            }
+
+            $updateData['service_photos'] = $photoPaths;
+            $updateData['service_video']  = $videoPath;
+            $updateData['washer_review']  = $request->input('review');
+
+            if ($request->has('cash_collected') && $request->boolean('cash_collected')) {
+                $updateData['paid_amount'] = $booking->total_price;
+                $updateData['payment_status'] = 'paid';
+            }
+        }
+
         $oldStatus = $booking->status;
-        $booking->update(['status' => $request->status]);
+        $booking->update($updateData);
 
         // When booking is completed, confirm pending E-Points for referrer as Earning Money
         if ($request->status === 'completed' && $oldStatus !== 'completed') {

@@ -78,26 +78,38 @@
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
               <td>
-                <button 
-                  v-if="o.status !== 'completed' && o.status !== 'cancelled'" 
-                  class="btn btn-outline btn-sm" 
-                  @click="openManageModal(o)">
-                  Manage
-                </button>
-                <span 
-                  v-else-if="o.status === 'completed'" 
-                  class="text-muted" 
-                  style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" 
-                  title="Completed washes cannot be edited">
-                  🔒 Completed
-                </span>
-                <span 
-                  v-else-if="o.status === 'cancelled'" 
-                  class="text-muted" 
-                  style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(239,68,68,0.08); border-radius: 4px; border: 1px solid rgba(239,68,68,0.2); color: var(--accent-rose);" 
-                  title="Cancelled washes cannot be edited">
-                  🔒 Cancelled
-                </span>
+                <div class="flex gap-1 items-center" style="flex-wrap: wrap;">
+                  <button 
+                    v-if="o.status !== 'completed' && o.status !== 'cancelled'" 
+                    class="btn btn-outline btn-sm" 
+                    @click="openManageModal(o)">
+                    Manage
+                  </button>
+                  <span 
+                    v-else-if="o.status === 'completed'" 
+                    class="text-muted" 
+                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" 
+                    title="Completed wash">
+                    🔒 Completed
+                  </span>
+                  <span 
+                    v-else-if="o.status === 'cancelled'" 
+                    class="text-muted" 
+                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(239,68,68,0.08); border-radius: 4px; border: 1px solid rgba(239,68,68,0.2); color: var(--accent-rose);" 
+                    title="Cancelled wash">
+                    🔒 Cancelled
+                  </span>
+
+                  <!-- View Proof Button -->
+                  <button 
+                    v-if="hasProof(o)" 
+                    class="btn btn-sm" 
+                    style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); padding: 0.2rem 0.5rem; font-size: 0.78rem;"
+                    title="View wash proof photos, video & review"
+                    @click="openProofModal(o)">
+                    👁️ Proof
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -139,6 +151,26 @@
 
         <div v-if="selectedOrder.status === 'completed'" class="alert alert-success" style="margin-bottom: 1rem; font-size: 0.85rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: var(--accent-emerald); border-radius: 6px;">
           ✓ This wash has been completed and is not editable.
+        </div>
+
+        <!-- Service Proof Summary Banner in Manage Modal -->
+        <div v-if="hasProof(selectedOrder)" style="background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.3); border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem;">
+          <div class="flex justify-between items-center" style="margin-bottom: 0.4rem;">
+            <span style="font-weight: 700; color: var(--accent-cyan); font-size: 0.88rem;">📸 Technician Wash Proof Available</span>
+            <button type="button" class="btn btn-sm btn-outline text-cyan" style="font-size: 0.75rem; padding: 0.2rem 0.55rem;" @click="openProofModal(selectedOrder)">
+              Inspect Proof &amp; Video →
+            </button>
+          </div>
+          <div v-if="selectedOrder.washer_review" class="text-secondary" style="font-size: 0.8rem; font-style: italic; margin-bottom: 0.4rem;">
+            "{{ selectedOrder.washer_review }}"
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.75rem; color: var(--text-muted);">
+            <span>📸 {{ getProofPhotos(selectedOrder).length }} Photo(s)</span>
+            <span>•</span>
+            <span>🎥 {{ selectedOrder.service_video ? 'Video Available' : 'No video' }}</span>
+            <span>•</span>
+            <span>🧼 {{ selectedOrder.washer?.user?.name || 'Washer' }}</span>
+          </div>
         </div>
 
         <form @submit.prevent="updateStatus">
@@ -197,14 +229,20 @@
             <p class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.5rem;">
               Assign this wash task to an active technician from your center.
             </p>
-            <select v-model="form.washer_id" class="form-select" :disabled="selectedOrder.status === 'completed'">
+            <select v-model="form.washer_id" class="form-select" :disabled="selectedOrder.status === 'completed'" @change="onWasherChange">
               <option :value="null">-- No Washer Assigned --</option>
+              <option v-if="selectedOrder.washer && !washers.some(w => w.id === selectedOrder.washer.id)" :value="selectedOrder.washer.id">
+                {{ selectedOrder.washer.user?.name || 'Washer' }} (Currently Assigned)
+              </option>
               <option v-for="w in washers" :key="w.id" :value="w.id">
                 {{ w.user?.name }} (Active Tasks: {{ w.active_tasks || 0 }})
               </option>
             </select>
-            <div v-if="washers.length === 0" class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">
-              No washers currently assigned to your center. Please contact platform admin.
+            <div v-if="loadingWashers" class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">
+              Loading active washers...
+            </div>
+            <div v-else-if="washers.length === 0" class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem; color: #f59e0b;">
+              ⚠️ No active washers currently assigned to your center. Please contact platform admin to assign active washers.
             </div>
           </div>
 
@@ -234,6 +272,119 @@
         </form>
       </div>
     </div>
+
+    <!-- View Service Proof Modal for Franchisee -->
+    <div v-if="proofModalOrder" class="modal-overlay" @click.self="proofModalOrder = null">
+      <div class="modal-content" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 style="margin: 0; font-size: 1.25rem;">Wash Proof #{{ proofModalOrder.id }}</h3>
+              <span class="badge" :class="statusBadge(proofModalOrder.status)">{{ proofModalOrder.status }}</span>
+            </div>
+            <p class="text-secondary" style="font-size: 0.82rem; margin: 0.25rem 0 0 0;">
+              {{ proofModalOrder.vehicle?.make_model }} ({{ proofModalOrder.vehicle?.plate_number }}) • {{ proofModalOrder.package?.name }}
+            </p>
+          </div>
+          <button class="btn btn-ghost btn-sm" @click="proofModalOrder = null" style="font-size: 1.2rem; padding: 0.2rem 0.5rem;">✕</button>
+        </div>
+
+        <!-- Customer & Washer Info Bar -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.82rem;">
+          <div>
+            <div class="text-muted" style="font-size: 0.72rem; text-transform: uppercase;">Customer</div>
+            <div style="font-weight: 600;">{{ proofModalOrder.customer?.name }}</div>
+            <div class="text-muted">{{ proofModalOrder.customer?.phone || 'No phone' }}</div>
+          </div>
+          <div>
+            <div class="text-muted" style="font-size: 0.72rem; text-transform: uppercase;">Assigned Washer</div>
+            <div style="font-weight: 600; color: var(--accent-cyan);">{{ proofModalOrder.washer?.user?.name || 'Unassigned' }}</div>
+            <div class="text-muted">{{ proofModalOrder.washer?.user?.phone || '' }}</div>
+          </div>
+        </div>
+
+        <!-- Payment & Cash Summary -->
+        <div style="background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.2); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+          <div>
+            <span class="text-muted" style="font-size: 0.75rem;">Payment Method: </span>
+            <strong>{{ proofModalOrder.payment_method === 'cod' ? 'Cash on Delivery (COD)' : proofModalOrder.payment_method }}</strong>
+          </div>
+          <div style="text-align: right;">
+            <span class="badge" :class="proofModalOrder.payment_status === 'paid' ? 'badge-emerald' : 'badge-amber'">
+              {{ proofModalOrder.payment_status === 'paid' ? '✓ Paid: ₹' + proofModalOrder.paid_amount : '₹' + proofModalOrder.total_price + ' (' + proofModalOrder.payment_status + ')' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Washer Review / Notes -->
+        <div style="margin-bottom: 1.25rem;">
+          <h4 style="font-size: 0.92rem; margin-bottom: 0.35rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+            <span>📝</span> Technician Service Review &amp; Notes
+          </h4>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem; font-size: 0.88rem; line-height: 1.5; color: var(--text-secondary); font-style: italic;">
+            {{ proofModalOrder.washer_review || 'No review notes provided.' }}
+          </div>
+        </div>
+
+        <!-- Service Photos -->
+        <div style="margin-bottom: 1.25rem;">
+          <h4 style="font-size: 0.92rem; margin-bottom: 0.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+            <span>📸</span> Service Photos ({{ getProofPhotos(proofModalOrder).length }})
+          </h4>
+          <div v-if="getProofPhotos(proofModalOrder).length" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem;">
+            <a 
+              v-for="(photo, idx) in getProofPhotos(proofModalOrder)" 
+              :key="idx" 
+              :href="photo" 
+              target="_blank" 
+              style="display: block; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); aspect-ratio: 4/3; position: relative;">
+              <img :src="photo" style="width: 100%; height: 100%; object-fit: cover;" />
+              <div style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 3px;">🔍 View</div>
+            </a>
+          </div>
+          <div v-else class="text-muted" style="font-size: 0.82rem; font-style: italic;">
+            No service photos uploaded.
+          </div>
+        </div>
+
+        <!-- Service Walkaround Video -->
+        <div style="margin-bottom: 1.5rem;">
+          <h4 style="font-size: 0.92rem; margin-bottom: 0.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+            <span>🎥</span> Walkaround Service Video Proof
+          </h4>
+          <div v-if="proofModalOrder.service_video">
+            <video 
+              :src="proofModalOrder.service_video" 
+              controls 
+              playsinline
+              style="width: 100%; max-height: 320px; border-radius: 8px; background: #000; border: 1px solid var(--border-color);"></video>
+          </div>
+          <div v-else class="text-muted" style="font-size: 0.82rem; font-style: italic;">
+            No service video proof uploaded.
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+          <button type="button" class="btn btn-ghost" @click="proofModalOrder = null">Close</button>
+          
+          <div v-if="proofModalOrder.status !== 'completed' && proofModalOrder.status !== 'cancelled'">
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              :disabled="submitting"
+              @click="approveAndComplete(proofModalOrder)">
+              {{ submitting ? 'Approving...' : '✓ Approve & Mark Completed' }}
+            </button>
+          </div>
+          <div v-else-if="proofModalOrder.status === 'completed'">
+            <span class="badge badge-emerald" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
+              ✓ Wash Completed &amp; Approved
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -245,8 +396,10 @@ export default {
     return {
       orders: [],
       washers: [],
+      loadingWashers: false,
       loading: true,
       selectedOrder: null,
+      proofModalOrder: null,
       submitting: false,
       currentPage: 1,
       itemsPerPage: 10,
@@ -272,6 +425,46 @@ export default {
     statusBadge(s) {
       return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan';
     },
+    hasProof(o) {
+      if (!o) return false;
+      const photos = this.getProofPhotos(o);
+      return photos.length > 0 || !!o.service_video || !!o.washer_review;
+    },
+    getProofPhotos(o) {
+      if (!o || !o.service_photos) return [];
+      let p = o.service_photos;
+      if (typeof p === 'string') {
+        try { p = JSON.parse(p); } catch (e) { return []; }
+      }
+      return Array.isArray(p) ? p : [];
+    },
+    openProofModal(o) {
+      this.proofModalOrder = o;
+    },
+    async approveAndComplete(o) {
+      if (!confirm(`Are you sure you want to approve and mark Order #${o.id} as Completed?`)) {
+        return;
+      }
+      this.submitting = true;
+      try {
+        await axios.put(`/api/franchisee/orders/${o.id}/status`, {
+          status: 'completed',
+          washer_id: o.washer_id || null,
+          payment_status: 'paid'
+        });
+        this.proofModalOrder = null;
+        if (this.selectedOrder && this.selectedOrder.id === o.id) {
+          this.selectedOrder = null;
+        }
+        alert(`Order #${o.id} approved and marked as Completed!`);
+        this.loadOrders();
+        this.loadWashers();
+      } catch (e) {
+        alert(e.response?.data?.message || 'Failed to complete order.');
+      } finally {
+        this.submitting = false;
+      }
+    },
     async loadOrders() {
       try {
         const { data } = await axios.get('/api/franchisee/orders');
@@ -282,11 +475,21 @@ export default {
       this.loading = false;
     },
     async loadWashers() {
+      this.loadingWashers = true;
       try {
-        const { data } = await axios.get('/api/franchisee/washers');
-        this.washers = data;
+        const { data } = await axios.get('/api/franchisee/washers', {
+          params: { status: 'active' }
+        });
+        this.washers = Array.isArray(data) ? data : [];
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load active washers:', e);
+      } finally {
+        this.loadingWashers = false;
+      }
+    },
+    onWasherChange() {
+      if (this.form.washer_id && this.form.status === 'pending') {
+        this.form.status = 'assigned';
       }
     },
     openManageModal(o) {
@@ -300,6 +503,7 @@ export default {
       this.form.payment_status = o.payment_status;
       this.form.postponed_date = o.booking_date;
       this.form.postponed_slot = o.slot_time;
+      this.loadWashers();
     },
     async updateStatus() {
       this.submitting = true;

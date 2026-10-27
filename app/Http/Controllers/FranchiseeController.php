@@ -85,7 +85,10 @@ class FranchiseeController extends Controller
         $franchisee = $this->getFranchisee($request);
 
         $orders = Booking::where('franchisee_id', $franchisee->id)
-            ->whereIn('payment_status', ['paid', 'partially_paid'])
+            ->where(function ($q) {
+                $q->whereIn('payment_status', ['paid', 'partially_paid'])
+                  ->orWhere('payment_method', 'cod');
+            })
             ->with(['customer:id,name,phone', 'vehicle', 'package', 'washer.user'])
             ->orderBy('booking_date', 'desc')
             ->get();
@@ -114,13 +117,23 @@ class FranchiseeController extends Controller
 
         if ($request->has('washer_id')) {
             if ($request->filled('washer_id')) {
-                // Ensure washer belongs to this franchisee
-                $washerExists = \App\Models\Washer::where('id', $request->washer_id)
+                // Ensure washer belongs to this franchisee and is active
+                $washer = \App\Models\Washer::where('id', $request->washer_id)
                     ->where('franchisee_id', $franchisee->id)
-                    ->exists();
-                if ($washerExists) {
-                    $booking->washer_id = $request->washer_id;
+                    ->where('status', 'active')
+                    ->whereHas('user', function ($q) {
+                        $q->where('status', 'active');
+                    })
+                    ->first();
+
+                if (!$washer) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'The selected washer is not active or not assigned to your center.',
+                    ], 422);
                 }
+
+                $booking->washer_id = $washer->id;
             } else {
                 $booking->washer_id = null;
             }

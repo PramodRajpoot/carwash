@@ -34,15 +34,34 @@ class Booking extends Model
         'paid_amount',
         'coupon_code',
         'coupon_discount',
+        'service_photos',
+        'service_video',
+        'washer_review',
     ];
 
     protected $casts = [
         'addon_services' => 'array',
+        'service_photos' => 'array',
         'earning_money_used' => 'decimal:2',
         'advance_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'coupon_discount' => 'decimal:2',
     ];
+
+    public function getServicePhotosAttribute($value)
+    {
+        if (is_null($value)) {
+            return [];
+        }
+        if (is_array($value)) {
+            return $value;
+        }
+        $decoded = json_decode($value, true);
+        if (is_string($decoded)) {
+            $decoded = json_decode($decoded, true);
+        }
+        return is_array($decoded) ? $decoded : [];
+    }
 
     public function getAddonServicesAttribute($value)
     {
