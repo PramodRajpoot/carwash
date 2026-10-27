@@ -120,7 +120,7 @@ class PartnerController extends Controller
                         'city' => $inquiry->city ?? 'Pending Setup',
                         'latitude' => $inquiry->latitude,
                         'longitude' => $inquiry->longitude,
-                        'royalty_percentage' => 10.0,
+                        'royalty_percentage' => 100.0,
                         'status' => 'active'
                     ]);
                 }

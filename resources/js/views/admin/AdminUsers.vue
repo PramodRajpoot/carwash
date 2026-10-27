@@ -190,8 +190,8 @@
                 <input v-model="form.city" class="form-input" required />
               </div>
               <div class="form-group">
-                <label>Royalty Fee Rate (%)</label>
-                <input v-model="form.royalty_percentage" type="number" min="0" max="100" step="0.5" class="form-input" required />
+                <label>Royalty Amount (₹)</label>
+                <input v-model="form.royalty_percentage" type="number" min="0" step="1" placeholder="e.g. 100" class="form-input" required />
               </div>
             </div>
             <div class="form-group">
@@ -295,7 +295,7 @@ export default {
         center_name: '',
         city: '',
         address: '',
-        royalty_percentage: 10
+        royalty_percentage: 100
       }
     };
   },
@@ -355,7 +355,7 @@ export default {
         center_name: 'Superwash Hub',
         city: 'Mumbai',
         address: 'Bandra Linking Road',
-        royalty_percentage: 10
+        royalty_percentage: 100
       };
       this.showModal = true;
     },
@@ -373,7 +373,7 @@ export default {
         center_name: u.franchisee?.center_name || '',
         city: u.franchisee?.city || '',
         address: u.franchisee?.address || '',
-        royalty_percentage: u.franchisee?.royalty_percentage || 10
+        royalty_percentage: u.franchisee?.royalty_percentage || 100
       };
       this.showModal = true;
     },

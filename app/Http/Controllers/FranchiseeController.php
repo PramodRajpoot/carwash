@@ -232,28 +232,33 @@ class FranchiseeController extends Controller
         $query = Booking::where('franchisee_id', $franchisee->id)->where('status', 'completed');
         $expQuery = Expense::where('franchisee_id', $franchisee->id);
 
-        switch ($period) {
-            case 'daily':
-                $query->whereDate('booking_date', $now->toDateString());
-                $expQuery->whereDate('expense_date', $now->toDateString());
-                break;
-            case 'weekly':
-                $query->whereBetween('booking_date', [$now->startOfWeek()->toDateString(), $now->endOfWeek()->toDateString()]);
-                $expQuery->whereBetween('expense_date', [$now->copy()->startOfWeek()->toDateString(), $now->copy()->endOfWeek()->toDateString()]);
-                break;
-            case 'yearly':
-                $query->whereYear('booking_date', $now->year);
-                $expQuery->whereYear('expense_date', $now->year);
-                break;
-            default: // monthly
-                $query->whereYear('booking_date', $now->year)->whereMonth('booking_date', $now->month);
-                $expQuery->whereYear('expense_date', $now->year)->whereMonth('expense_date', $now->month);
+        if ($request->filled('month') && $request->filled('year')) {
+            $query->whereYear('booking_date', $request->year)->whereMonth('booking_date', $request->month);
+            $expQuery->whereYear('expense_date', $request->year)->whereMonth('expense_date', $request->month);
+        } else {
+            switch ($period) {
+                case 'daily':
+                    $query->whereDate('booking_date', $now->toDateString());
+                    $expQuery->whereDate('expense_date', $now->toDateString());
+                    break;
+                case 'weekly':
+                    $query->whereBetween('booking_date', [$now->startOfWeek()->toDateString(), $now->endOfWeek()->toDateString()]);
+                    $expQuery->whereBetween('expense_date', [$now->copy()->startOfWeek()->toDateString(), $now->copy()->endOfWeek()->toDateString()]);
+                    break;
+                case 'yearly':
+                    $query->whereYear('booking_date', $now->year);
+                    $expQuery->whereYear('expense_date', $now->year);
+                    break;
+                default: // monthly
+                    $query->whereYear('booking_date', $now->year)->whereMonth('booking_date', $now->month);
+                    $expQuery->whereYear('expense_date', $now->year)->whereMonth('expense_date', $now->month);
+            }
         }
 
         $revenue       = $query->sum('total_price');
         $ordersCount   = $query->count();
         $totalExpenses = $expQuery->sum('amount');
-        $royaltyAmount = $revenue * ($franchisee->royalty_percentage / 100);
+        $royaltyAmount = $ordersCount * floatval($franchisee->royalty_percentage ?? 0);
         $netProfit     = $revenue - $totalExpenses - $royaltyAmount;
 
         $expenseBreakdown = Expense::where('franchisee_id', $franchisee->id)
@@ -264,11 +269,16 @@ class FranchiseeController extends Controller
         return response()->json([
             'period'            => $period,
             'revenue'           => $revenue,
+            'total_income'      => $revenue,
             'orders_count'      => $ordersCount,
             'total_expenses'    => $totalExpenses,
+            'total_expense'     => $totalExpenses,
             'royalty_amount'    => $royaltyAmount,
+            'royalty_fee'       => $royaltyAmount,
             'net_profit'        => $netProfit,
             'expense_breakdown' => $expenseBreakdown,
+            'bookings'          => (clone $query)->with(['vehicle', 'customer:id,name'])->get(),
+            'expenses'          => (clone $expQuery)->get(),
         ]);
     }
 

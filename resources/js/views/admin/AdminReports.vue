@@ -63,7 +63,7 @@
                 <th>Location City</th>
                 <th>Washes Handled</th>
                 <th>Gross Turnover</th>
-                <th>Royalty Rate</th>
+                <th>Royalty Amount</th>
                 <th>Accrued Royalties</th>
               </tr>
             </thead>
@@ -75,7 +75,7 @@
                 <td>{{ fb.franchisee?.city || '-' }}</td>
                 <td>{{ fb.count }} washes completed</td>
                 <td style="font-weight:600; color: var(--text-primary);">₹{{ fb.revenue }}</td>
-                <td>{{ fb.franchisee?.royalty_percentage || 10 }}%</td>
+                <td>₹{{ (fb.franchisee?.royalty_percentage || 0).toLocaleString() }}</td>
                 <td style="font-weight: 700; color: var(--accent-emerald);">₹{{ Math.round(fb.royalty) }}</td>
               </tr>
             </tbody>

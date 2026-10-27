@@ -105,7 +105,7 @@ class AdminController extends Controller
                 'center_name'        => $request->input('center_name', $request->name . "'s Center"),
                 'address'            => $request->input('address', 'Pending Setup'),
                 'city'               => $request->input('city', 'Pending Setup'),
-                'royalty_percentage' => $request->input('royalty_percentage', 10.0),
+                'royalty_percentage' => $request->input('royalty_percentage', 100.0),
                 'status'             => 'active',
             ]);
         } elseif ($request->role === 'washer') {

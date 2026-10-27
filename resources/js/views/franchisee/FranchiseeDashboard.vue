@@ -71,7 +71,7 @@
       <div class="grid grid-2 gap-2">
         <div><span class="text-muted" style="font-size:0.8rem">Center Name</span><div style="font-weight:600">{{ data.franchisee?.center_name }}</div></div>
         <div><span class="text-muted" style="font-size:0.8rem">City</span><div style="font-weight:600">{{ data.franchisee?.city }}</div></div>
-        <div><span class="text-muted" style="font-size:0.8rem">Royalty Rate</span><div style="font-weight:600">{{ data.franchisee?.royalty_percentage }}%</div></div>
+        <div><span class="text-muted" style="font-size:0.8rem">Royalty Amount</span><div style="font-weight:600">₹{{ (data.franchisee?.royalty_percentage || 0).toLocaleString() }}</div></div>
         <div>
           <span class="text-muted" style="font-size:0.8rem">Status</span>
           <div>

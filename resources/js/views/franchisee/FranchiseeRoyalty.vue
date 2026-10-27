@@ -16,8 +16,8 @@
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan)">📊</div>
-        <div class="stat-value">{{ data.royalty_rate || 10 }}%</div>
-        <div class="stat-label">Royalty Rate</div>
+        <div class="stat-value">₹{{ (data.royalty_rate || 0).toLocaleString() }}</div>
+        <div class="stat-label">Royalty Amount</div>
       </div>
     </div>
 

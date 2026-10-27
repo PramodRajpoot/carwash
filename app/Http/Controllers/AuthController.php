@@ -110,7 +110,7 @@ class AuthController extends Controller
                 'center_name'        => $user->name . "'s Center",
                 'address'            => 'Pending Setup',
                 'city'               => 'Pending Setup',
-                'royalty_percentage' => 10.0,
+                'royalty_percentage' => 100.0,
                 'status'             => 'pending',
             ]);
         }

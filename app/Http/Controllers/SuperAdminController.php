@@ -189,7 +189,7 @@ class SuperAdminController extends Controller
         $defaults = [
             ['key' => 'epoints_per_referral',    'value' => '10',    'group' => 'referral', 'label' => 'E-Points per Referral'],
             ['key' => 'min_wallet_redemption',   'value' => '1000',  'group' => 'wallet',   'label' => 'Minimum E-Points to Redeem'],
-            ['key' => 'default_royalty_percent', 'value' => '10',    'group' => 'royalty',  'label' => 'Default Royalty Percentage (%)'],
+            ['key' => 'default_royalty_percent', 'value' => '100',   'group' => 'royalty',  'label' => 'Default Royalty Amount (₹)'],
             ['key' => 'referral_discount_pct',   'value' => '10',    'group' => 'referral', 'label' => 'First Booking Discount for Referred Customer (%)'],
             ['key' => 'sms_notifications',       'value' => 'false', 'group' => 'notifications', 'label' => 'Enable SMS Notifications'],
             ['key' => 'email_notifications',     'value' => 'true',  'group' => 'notifications', 'label' => 'Enable Email Notifications'],
@@ -198,7 +198,13 @@ class SuperAdminController extends Controller
         ];
 
         foreach ($defaults as $d) {
-            PlatformSetting::firstOrCreate(['key' => $d['key']], $d);
+            $setting = PlatformSetting::firstOrNew(['key' => $d['key']]);
+            $setting->group = $d['group'];
+            $setting->label = $d['label'];
+            if (!$setting->exists) {
+                $setting->value = $d['value'];
+            }
+            $setting->save();
         }
 
         $settings = PlatformSetting::orderBy('group')->get();

@@ -172,7 +172,7 @@
             <div>
               <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Financials</div>
               <div>Revenue: <span style="font-weight: 600;">₹{{ (selectedFranchise.total_revenue || 0).toLocaleString() }}</span></div>
-              <div class="text-muted">Royalty Rate: ₹{{ selectedFranchise.royalty_percentage }}</div>
+              <div class="text-muted">Royalty Amount: ₹{{ (selectedFranchise.royalty_percentage || 0).toLocaleString() }}</div>
             </div>
             <div style="grid-column: 1 / -1; border-top: 1px solid var(--border-color); padding-top: 1rem;">
               <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Agreement & Documents</div>
