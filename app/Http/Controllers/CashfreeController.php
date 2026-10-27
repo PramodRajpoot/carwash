@@ -60,6 +60,10 @@ class CashfreeController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Booking already paid'], 400);
         }
 
+        if ($booking->status === 'cancelled') {
+            return response()->json(['status' => 'error', 'message' => 'Cannot pay for a cancelled booking'], 400);
+        }
+
         $credentials = $this->getCredentials();
         if (!$credentials || empty($credentials['client_id'])) {
             return response()->json([

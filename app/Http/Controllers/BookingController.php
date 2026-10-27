@@ -626,7 +626,7 @@ class BookingController extends Controller
         $user = $request->user();
         $booking = Booking::where('customer_id', $user->id)->findOrFail($id);
 
-        if ($booking->payment_status === 'paid' || $booking->status === 'cancelled') {
+        if ($booking->payment_status === 'paid' || $booking->status === 'cancelled' || $booking->status === 'completed') {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Cannot update payment method for a completed or cancelled booking'

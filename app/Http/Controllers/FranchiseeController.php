@@ -99,10 +99,10 @@ class FranchiseeController extends Controller
 
         $booking = Booking::where('franchisee_id', $franchisee->id)->findOrFail($id);
 
-        if ($booking->status === 'completed' && $request->status !== 'completed') {
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Completed wash bookings cannot be edited.',
+                'message' => 'Completed or cancelled wash bookings cannot be edited.',
             ], 422);
         }
 
@@ -326,10 +326,10 @@ class FranchiseeController extends Controller
         $booking = Booking::where('franchisee_id', $franchisee->id)
             ->findOrFail($bookingId);
 
-        if ($booking->status === 'completed') {
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Completed wash bookings cannot be edited or rescheduled.',
+                'message' => 'Completed or cancelled wash bookings cannot be edited or rescheduled.',
             ], 422);
         }
 

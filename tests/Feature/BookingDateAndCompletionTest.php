@@ -178,7 +178,7 @@ class BookingDateAndCompletionTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $this->assertEquals('Completed wash bookings cannot be edited.', $response->json('message'));
+        $this->assertEquals('Completed or cancelled wash bookings cannot be edited.', $response->json('message'));
     }
 
     public function test_completed_booking_cannot_be_rescheduled_by_franchisee()
@@ -205,7 +205,7 @@ class BookingDateAndCompletionTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $this->assertEquals('Completed wash bookings cannot be edited or rescheduled.', $response->json('message'));
+        $this->assertEquals('Completed or cancelled wash bookings cannot be edited or rescheduled.', $response->json('message'));
     }
 
     public function test_completed_booking_cannot_be_rescheduled_by_super_admin()
@@ -239,6 +239,162 @@ class BookingDateAndCompletionTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $this->assertEquals('Completed wash bookings cannot be edited or rescheduled.', $response->json('message'));
+        $this->assertEquals('Completed or cancelled wash bookings cannot be edited or rescheduled.', $response->json('message'));
+    }
+
+    public function test_cancelled_booking_cannot_be_postponed_or_payment_method_changed_by_customer()
+    {
+        $this->actingAs($this->customer, 'sanctum');
+
+        $booking = Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => '2026-10-15',
+            'slot_time' => '09:00 AM - 11:00 AM',
+            'address' => '123 Test Street, Noida',
+            'total_price' => 499.00,
+            'status' => 'cancelled',
+            'payment_status' => 'unpaid',
+            'payment_method' => 'online',
+        ]);
+
+        $rescheduleResp = $this->postJson("/api/bookings/{$booking->id}/postpone", [
+            'booking_date' => '2026-10-28',
+            'slot_time' => '11:00 AM - 01:00 PM',
+        ]);
+        $rescheduleResp->assertStatus(422);
+
+        $paymentResp = $this->postJson("/api/bookings/{$booking->id}/payment-method", [
+            'payment_method' => 'cod',
+        ]);
+        $paymentResp->assertStatus(400);
+    }
+
+    public function test_cancelled_booking_cannot_be_modified_by_admin()
+    {
+        $this->actingAs($this->admin, 'sanctum');
+
+        $booking = Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => '2026-10-15',
+            'slot_time' => '09:00 AM - 11:00 AM',
+            'address' => '123 Test Street, Noida',
+            'total_price' => 499.00,
+            'status' => 'cancelled',
+            'payment_status' => 'unpaid',
+            'payment_method' => 'online',
+        ]);
+
+        $response = $this->putJson("/api/admin/orders/{$booking->id}", [
+            'booking_date' => '2026-10-28',
+            'status' => 'pending',
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertEquals('Completed or cancelled wash bookings cannot be edited.', $response->json('message'));
+    }
+
+    public function test_cancelled_or_completed_booking_cannot_be_updated_by_franchisee()
+    {
+        $this->actingAs($this->franchiseeUser, 'sanctum');
+
+        $cancelledBooking = Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => '2026-10-15',
+            'slot_time' => '09:00 AM - 11:00 AM',
+            'address' => '123 Test Street, Noida',
+            'total_price' => 499.00,
+            'status' => 'cancelled',
+            'payment_status' => 'unpaid',
+            'payment_method' => 'cod',
+        ]);
+
+        $resp1 = $this->putJson("/api/franchisee/orders/{$cancelledBooking->id}/status", [
+            'status' => 'assigned',
+        ]);
+        $resp1->assertStatus(422);
+
+        $completedBooking = Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => '2026-10-15',
+            'slot_time' => '09:00 AM - 11:00 AM',
+            'address' => '123 Test Street, Noida',
+            'total_price' => 499.00,
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'payment_method' => 'cod',
+        ]);
+
+        $resp2 = $this->putJson("/api/franchisee/orders/{$completedBooking->id}/status", [
+            'status' => 'ongoing',
+        ]);
+        $resp2->assertStatus(422);
+
+        $resp3 = $this->postJson("/api/franchisee/orders/{$cancelledBooking->id}/reschedule", [
+            'booking_date' => '2026-10-28',
+            'slot_time' => '11:00 AM - 01:00 PM',
+        ]);
+        $resp3->assertStatus(422);
+    }
+
+    public function test_cancelled_or_completed_booking_cannot_be_edited_by_super_admin()
+    {
+        $superAdmin = User::create([
+            'name' => 'Super Admin User 2',
+            'email' => 'superadmin2_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'super_admin',
+        ]);
+
+        $this->actingAs($superAdmin, 'sanctum');
+
+        $cancelledBooking = Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => '2026-10-15',
+            'slot_time' => '09:00 AM - 11:00 AM',
+            'address' => '123 Test Street, Noida',
+            'total_price' => 499.00,
+            'status' => 'cancelled',
+            'payment_status' => 'unpaid',
+            'payment_method' => 'cod',
+        ]);
+
+        // Assign
+        $assignResp = $this->putJson("/api/super-admin/orders/{$cancelledBooking->id}/assign", [
+            'franchisee_id' => $this->franchisee->id,
+        ]);
+        $assignResp->assertStatus(422);
+
+        // Reschedule
+        $rescheduleResp = $this->putJson("/api/super-admin/orders/{$cancelledBooking->id}/reschedule", [
+            'booking_date' => '2026-10-28',
+            'slot_time' => '11:00 AM - 01:00 PM',
+        ]);
+        $rescheduleResp->assertStatus(422);
+
+        // Change plan
+        $planResp = $this->putJson("/api/super-admin/orders/{$cancelledBooking->id}/change-plan", [
+            'package_id' => $this->package->id,
+            'total_price' => 599.00,
+        ]);
+        $planResp->assertStatus(422);
+
+        // Cancel again
+        $cancelResp = $this->putJson("/api/super-admin/orders/{$cancelledBooking->id}/cancel");
+        $cancelResp->assertStatus(422);
     }
 }

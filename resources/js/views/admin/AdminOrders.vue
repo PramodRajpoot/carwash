@@ -127,17 +127,24 @@
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
               <td>
                 <button 
-                  v-if="o.status !== 'completed'" 
+                  v-if="o.status !== 'completed' && o.status !== 'cancelled'" 
                   class="btn btn-outline btn-sm" 
                   @click="openEditModal(o)">
                   Edit
                 </button>
                 <span 
-                  v-else 
+                  v-else-if="o.status === 'completed'" 
                   class="text-muted" 
                   style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" 
                   title="Completed washes cannot be edited">
                   🔒 Completed
+                </span>
+                <span 
+                  v-else-if="o.status === 'cancelled'" 
+                  class="text-muted" 
+                  style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(239,68,68,0.08); border-radius: 4px; border: 1px solid rgba(239,68,68,0.2); color: var(--accent-rose);" 
+                  title="Cancelled washes cannot be edited">
+                  🔒 Cancelled
                 </span>
               </td>
             </tr>
@@ -366,8 +373,8 @@ export default {
       this.loading = false;
     },
     openEditModal(o) {
-      if (o.status === 'completed') {
-        alert('Completed washes cannot be edited.');
+      if (o.status === 'completed' || o.status === 'cancelled') {
+        alert('Completed or cancelled washes cannot be edited.');
         return;
       }
       this.selectedOrder = o;

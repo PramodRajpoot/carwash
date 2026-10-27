@@ -137,7 +137,7 @@
               <td>
                 <select class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
                   <option value="">-- Actions --</option>
-                  <option value="assign">Assign Center</option>
+                  <option value="assign" v-if="o.status !== 'completed' && o.status !== 'cancelled'">Assign Center</option>
                   <option value="reschedule" v-if="o.status !== 'completed' && o.status !== 'cancelled'">Reschedule</option>
                   <option value="change_plan" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Change / Customise Plan</option>
                   <option value="cancel" v-if="o.status !== 'cancelled' && o.status !== 'completed'">Cancel Booking</option>
@@ -527,6 +527,17 @@ export default {
       
       if (!action) return;
 
+      if (['assign', 'reschedule', 'change_plan', 'cancel'].includes(action)) {
+        if (o.status === 'completed' || o.status === 'cancelled') {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Action Not Allowed',
+            text: `Bookings that are ${o.status} cannot be edited.`
+          });
+          return;
+        }
+      }
+
       if (action === 'assign') {
         this.openAssignModal(o);
       } else if (action === 'reschedule') {
@@ -625,6 +636,10 @@ export default {
       this.submitting = false;
     },
     openAssignModal(o) {
+      if (o.status === 'completed' || o.status === 'cancelled') {
+        Swal.fire('Action Not Allowed', `Bookings that are ${o.status} cannot be edited.`, 'warning');
+        return;
+      }
       this.assignModalOrder = o;
       this.assignForm.franchisee_id = o.franchisee_id || '';
     },
@@ -640,8 +655,8 @@ export default {
       this.submitting = false;
     },
     openRescheduleModal(o) {
-      if (o.status === 'completed') {
-        alert('Completed washes cannot be edited or rescheduled.');
+      if (o.status === 'completed' || o.status === 'cancelled') {
+        Swal.fire('Action Not Allowed', `Completed or cancelled washes cannot be edited or rescheduled.`, 'warning');
         return;
       }
       this.rescheduleModalOrder = o;
@@ -659,6 +674,10 @@ export default {
       this.submitting = false;
     },
     openChangePlanModal(o) {
+      if (o.status === 'completed' || o.status === 'cancelled') {
+        Swal.fire('Action Not Allowed', `Bookings that are ${o.status} cannot be edited.`, 'warning');
+        return;
+      }
       this.changePlanModalOrder = o;
       const existingAddons = o.addon_services || [];
       this.changePlanForm = {
@@ -708,6 +727,12 @@ export default {
       this.submitting = false;
     },
     async cancelOrder(id) {
+      const order = this.orders.find(o => o.id === id);
+      if (order && (order.status === 'completed' || order.status === 'cancelled')) {
+        Swal.fire('Action Not Allowed', `Bookings that are ${order.status} cannot be cancelled.`, 'warning');
+        return;
+      }
+
       const result = await Swal.fire({
         title: 'Confirm Cancellation',
         text: 'Are you sure you want to cancel this booking?',

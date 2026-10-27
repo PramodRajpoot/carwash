@@ -283,6 +283,14 @@ class SuperAdminController extends Controller
     public function assignOrder(Request $request, $id)
     {
         $booking = Booking::findOrFail($id);
+
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Completed or cancelled bookings cannot be edited.',
+            ], 422);
+        }
+
         $request->validate(['franchisee_id' => 'required|exists:franchisees,id']);
         
         $booking->update([
@@ -297,10 +305,10 @@ class SuperAdminController extends Controller
     {
         $booking = Booking::findOrFail($id);
 
-        if ($booking->status === 'completed') {
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Completed wash bookings cannot be edited or rescheduled.',
+                'message' => 'Completed or cancelled wash bookings cannot be edited or rescheduled.',
             ], 422);
         }
 
@@ -312,7 +320,7 @@ class SuperAdminController extends Controller
         $booking->update([
             'booking_date' => $request->booking_date,
             'slot_time'    => $request->slot_time,
-            'status'       => $booking->status === 'cancelled' ? 'pending' : ($booking->status === 'pending' ? 'pending' : 'postponed')
+            'status'       => $booking->status === 'pending' ? 'pending' : 'postponed'
         ]);
 
         return response()->json(['status' => 'success', 'message' => 'Booking rescheduled successfully.', 'booking' => $booking]);
@@ -321,6 +329,14 @@ class SuperAdminController extends Controller
     public function changePlan(Request $request, $id)
     {
         $booking = Booking::findOrFail($id);
+
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Completed or cancelled bookings cannot be edited.',
+            ], 422);
+        }
+
         $request->validate([
             'package_id'      => 'required|exists:service_packages,id',
             'total_price'     => 'required|numeric|min:0',
@@ -348,7 +364,58 @@ class SuperAdminController extends Controller
     public function cancelOrder(Request $request, $id)
     {
         $booking = Booking::findOrFail($id);
+
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Booking cannot be cancelled in its current state.',
+            ], 422);
+        }
+
         $booking->update(['status' => 'cancelled']);
+
+        // Refund points if epoints_used > 0
+        if ($booking->epoints_used > 0) {
+            $customer = $booking->customer;
+            if ($customer) {
+                $customer->increment('e_points', $booking->epoints_used);
+                \App\Models\WalletTransaction::create([
+                    'user_id'     => $customer->id,
+                    'type'        => 'credit',
+                    'amount'      => $booking->epoints_used,
+                    'source'      => 'booking_refund',
+                    'status'      => 'confirmed',
+                    'description' => "Refunded {$booking->epoints_used} E-Points for cancelled booking #{$booking->id}",
+                ]);
+            }
+        }
+
+        // Refund earning money if earning_money_used > 0
+        if ($booking->earning_money_used > 0) {
+            $customer = $booking->customer;
+            if ($customer) {
+                $customer->increment('earning_money', $booking->earning_money_used);
+                \App\Models\WalletTransaction::create([
+                    'user_id'     => $customer->id,
+                    'type'        => 'credit',
+                    'amount'      => $booking->earning_money_used,
+                    'source'      => 'booking_earning_refund',
+                    'status'      => 'confirmed',
+                    'description' => "Refunded ₹{$booking->earning_money_used} Earning Money for cancelled booking #{$booking->id}",
+                ]);
+            }
+        }
+
+        // Free up slot count
+        $slot = \App\Models\Slot::where('franchisee_id', $booking->franchisee_id)
+            ->where('date', $booking->booking_date)
+            ->where('time_range', $booking->slot_time)
+            ->first();
+
+        if ($slot && $slot->current_bookings > 0) {
+            $slot->decrement('current_bookings');
+        }
+
         return response()->json(['status' => 'success', 'message' => 'Booking cancelled successfully.', 'booking' => $booking]);
     }
 

@@ -93,7 +93,7 @@
                 <button v-if="needsPayment(b)" class="btn btn-sm" style="background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; border: none; font-weight: 600;" @click="retryPayment(b)" :disabled="payingBookingId === b.id">
                   {{ payingBookingId === b.id ? 'Processing...' : (b.payment_type === 'partial' ? '💳 Pay ₹99 Advance' : '💳 Pay Now') }}
                 </button>
-                <template v-else-if="b.payment_status === 'partially_paid' && b.status !== 'cancelled'">
+                <template v-else-if="b.payment_status === 'partially_paid' && b.status !== 'cancelled' && b.status !== 'completed'">
                   <button 
                     v-if="b.payment_method !== 'cod'" 
                     class="btn btn-sm" 
@@ -123,8 +123,11 @@
                 <button v-if="canPostpone(b)" class="btn btn-sm btn-outline" style="border-color: var(--accent-cyan); color: var(--accent-cyan);" @click="openPostpone(b)" title="Reschedule wash date and time">
                   📅 Reschedule
                 </button>
-                <span v-else-if="b.status === 'completed'" class="text-muted" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" title="Wash has completed and is not editable">
+                <span v-if="b.status === 'completed'" class="text-muted" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" title="Wash has completed and is not editable">
                   🔒 Completed
+                </span>
+                <span v-else-if="b.status === 'cancelled'" class="text-muted" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(239,68,68,0.08); border-radius: 4px; border: 1px solid rgba(239,68,68,0.2); color: var(--accent-rose);" title="Booking is cancelled and is not editable">
+                  🔒 Cancelled
                 </span>
               </div>
             </td>
@@ -748,7 +751,8 @@ export default {
     needsPayment(b) {
       return ['pending_payment', 'unpaid', 'failed'].includes(b.payment_status) && 
              b.payment_method === 'online' && 
-             b.status !== 'cancelled';
+             b.status !== 'cancelled' &&
+             b.status !== 'completed';
     },
 
     /**

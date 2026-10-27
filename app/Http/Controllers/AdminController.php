@@ -229,10 +229,10 @@ class AdminController extends Controller
     {
         $booking = Booking::findOrFail($id);
 
-        if ($booking->status === 'completed') {
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Completed wash bookings cannot be edited.',
+                'message' => 'Completed or cancelled wash bookings cannot be edited.',
             ], 422);
         }
 

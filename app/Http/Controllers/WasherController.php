@@ -177,7 +177,12 @@ class WasherController extends Controller
         $franchisee = Franchisee::where('user_id', $request->user()->id)->firstOrFail();
         $booking = Booking::where('franchisee_id', $franchisee->id)->findOrFail($id);
 
-        $request->validate([
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Completed or cancelled bookings cannot be assigned to a washer.',
+            ], 422);
+        }
             'washer_id' => 'nullable|exists:washers,id',
         ]);
 
@@ -270,6 +275,13 @@ class WasherController extends Controller
     {
         $washer = $this->getAuthenticatedWasher($request);
         $booking = Booking::where('washer_id', $washer->id)->findOrFail($id);
+
+        if ($booking->status === 'completed' || $booking->status === 'cancelled') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Completed or cancelled tasks cannot be updated.',
+            ], 422);
+        }
 
         $request->validate([
             'status' => 'required|string|in:ongoing,completed',

@@ -78,7 +78,26 @@
               </td>
               <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
               <td>
-                <button class="btn btn-outline btn-sm" @click="openManageModal(o)">Manage</button>
+                <button 
+                  v-if="o.status !== 'completed' && o.status !== 'cancelled'" 
+                  class="btn btn-outline btn-sm" 
+                  @click="openManageModal(o)">
+                  Manage
+                </button>
+                <span 
+                  v-else-if="o.status === 'completed'" 
+                  class="text-muted" 
+                  style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" 
+                  title="Completed washes cannot be edited">
+                  🔒 Completed
+                </span>
+                <span 
+                  v-else-if="o.status === 'cancelled'" 
+                  class="text-muted" 
+                  style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(239,68,68,0.08); border-radius: 4px; border: 1px solid rgba(239,68,68,0.2); color: var(--accent-rose);" 
+                  title="Cancelled washes cannot be edited">
+                  🔒 Cancelled
+                </span>
               </td>
             </tr>
           </tbody>
@@ -271,6 +290,10 @@ export default {
       }
     },
     openManageModal(o) {
+      if (o.status === 'completed' || o.status === 'cancelled') {
+        alert('Completed or cancelled washes cannot be edited.');
+        return;
+      }
       this.selectedOrder = o;
       this.form.status = o.status;
       this.form.washer_id = o.washer_id || null;
