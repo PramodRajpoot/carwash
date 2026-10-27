@@ -14,7 +14,7 @@
           </label>
           <div v-if="!imagePreview" 
                @click="$refs.fileInput.click()" 
-               style="border:1.5px dashed var(--accent-cyan, #06b6d4);border-radius:var(--radius-sm, 8px);padding:1.25rem 1rem;text-align:center;cursor:pointer;background:rgba(6,182,212,0.03);transition:all 0.2s"
+               style="border:1.5px dashed var(--accent-cyan, #00b4ff);border-radius:var(--radius-sm, 8px);padding:1.25rem 1rem;text-align:center;cursor:pointer;background:rgba(0,180,255,0.04);transition:all 0.2s"
                @dragover.prevent
                @drop.prevent="handleDrop">
             <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelected" />

@@ -3,7 +3,11 @@
     <div v-if="showMobileMenu" class="modal-overlay" style="z-index: 1040" @click="showMobileMenu = false"></div>
 
     <aside class="dash-sidebar" :class="{ 'mobile-open': showMobileMenu }">
-      <div class="dash-sidebar-logo">CleanAt Doorstep</div>
+      <div class="dash-sidebar-logo">
+        <router-link to="/" style="display:flex;align-items:center;text-decoration:none;">
+          <img src="/logo.png" alt="CleanAt Doorstep" class="brand-logo-img" style="height:48px;max-width:180px;object-fit:contain;" />
+        </router-link>
+      </div>
       <ul class="dash-sidebar-nav">
         <!-- Customer Sidebar -->
         <template v-if="role === 'customer'">

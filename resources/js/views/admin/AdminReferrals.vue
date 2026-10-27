@@ -391,15 +391,15 @@ export default {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(16, 185, 129, 0.2));
-  border: 1px solid rgba(6, 182, 212, 0.35);
+  background: linear-gradient(135deg, rgba(0, 180, 255, 0.2), rgba(0, 112, 192, 0.2));
+  border: 1px solid rgba(0, 180, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 1rem;
   color: var(--accent-cyan);
-  box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 0 15px rgba(0, 180, 255, 0.2);
 }
 
 .ref-title {

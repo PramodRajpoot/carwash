@@ -90,7 +90,7 @@
             <td><span class="badge" :class="statusBadge(b.status)">{{ b.status }}</span></td>
             <td>
               <div class="flex gap-1" style="flex-wrap: wrap;">
-                <button v-if="needsPayment(b)" class="btn btn-sm" style="background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; border: none; font-weight: 600;" @click="retryPayment(b)" :disabled="payingBookingId === b.id">
+                <button v-if="needsPayment(b)" class="btn btn-sm" style="background: linear-gradient(135deg, #0070c0, #00b4ff); color: #fff; border: none; font-weight: 600;" @click="retryPayment(b)" :disabled="payingBookingId === b.id">
                   {{ payingBookingId === b.id ? 'Processing...' : (b.payment_type === 'partial' ? '💳 Pay ₹99 Advance' : '💳 Pay Now') }}
                 </button>
                 <template v-else-if="b.payment_status === 'partially_paid' && b.status !== 'cancelled' && b.status !== 'completed'">
@@ -104,7 +104,7 @@
                   </button>
                   <button 
                     class="btn btn-sm" 
-                    style="background: linear-gradient(135deg, #10b981, #06b6d4); color: #fff; border: none; font-weight: 600; font-size: 0.78rem;" 
+                    style="background: linear-gradient(135deg, #0070c0, #00b4ff); color: #fff; border: none; font-weight: 600; font-size: 0.78rem;" 
                     @click="promptPayDue(b)" 
                     :disabled="payingBookingId === b.id" 
                     title="Choose to pay full or half due amount">
@@ -113,7 +113,7 @@
                   <button 
                     v-if="b.payment_method === 'cod'" 
                     class="btn btn-sm btn-outline" 
-                    style="font-size: 0.75rem; border-color: #06b6d4; color: #06b6d4;" 
+                    style="font-size: 0.75rem; border-color: var(--accent-cyan); color: var(--accent-cyan);" 
                     @click="switchToOnline(b)" 
                     title="Switch remaining balance to Online payment">
                     💳 Switch to Online
@@ -795,12 +795,12 @@ export default {
                 </div>
                 <div style="font-weight: 800; font-size: 1.05rem; color: #10b981;">₹${due.toFixed(2)}</div>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.08); padding: 10px 14px; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(0, 180, 255, 0.4); background: rgba(0, 180, 255, 0.08); padding: 10px 14px; border-radius: 8px;">
                 <div>
-                  <div style="font-weight: 700; color: #06b6d4;">Option 2: Pay Half Amount (50%)</div>
+                  <div style="font-weight: 700; color: #00b4ff;">Option 2: Pay Half Amount (50%)</div>
                   <div style="font-size: 0.75rem; color: #94a3b8;">Remaining ₹${(due - halfDue).toFixed(2)} will remain due</div>
                 </div>
-                <div style="font-weight: 800; font-size: 1.05rem; color: #06b6d4;">₹${halfDue.toFixed(2)}</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #00b4ff;">₹${halfDue.toFixed(2)}</div>
               </div>
             </div>
           </div>
@@ -811,7 +811,7 @@ export default {
         confirmButtonColor: '#10b981',
         showDenyButton: true,
         denyButtonText: `💳 Pay Half ₹${halfDue.toFixed(2)}`,
-        denyButtonColor: '#06b6d4',
+        denyButtonColor: '#00b4ff',
         cancelButtonText: 'Cancel'
       });
 
@@ -1082,7 +1082,7 @@ export default {
               confirmButtonText: '💵 Yes, Pay via COD',
               confirmButtonColor: '#f59e0b',
               cancelButtonText: '💳 Pay Online Later',
-              cancelButtonColor: '#06b6d4'
+              cancelButtonColor: '#0070c0'
             });
 
             if (result.isConfirmed) {

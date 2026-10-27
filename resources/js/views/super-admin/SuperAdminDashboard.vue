@@ -203,7 +203,7 @@ export default {
       this.bookingAnalyticsData = {
         labels: data.booking_analytics.map(item => item.status.toUpperCase()),
         datasets: [{
-          backgroundColor: ['#f59e0b', '#06b6d4', '#10b981', '#f43f5e', '#8b5cf6'],
+          backgroundColor: ['#0070c0', '#00b4ff', '#10b981', '#f59e0b', '#8b5cf6'],
           data: data.booking_analytics.map(item => item.count)
         }]
       };

@@ -321,7 +321,7 @@ export default {
   flex: 1;
 }
 .about-label {
-  color: #e67e22;
+  color: var(--accent-cyan);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 1px;

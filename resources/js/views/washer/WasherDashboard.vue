@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Welcome banner with Franchise Center info -->
-    <div class="glass-card mb-4 p-4" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.05)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 12px; margin-bottom: 1.5rem; padding: 1.5rem;">
+    <div class="glass-card mb-4 p-4" style="background: linear-gradient(135deg, rgba(0, 180, 255, 0.12), rgba(0, 112, 192, 0.05)); border: 1px solid rgba(0, 180, 255, 0.25); border-radius: 12px; margin-bottom: 1.5rem; padding: 1.5rem;">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div>
           <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">

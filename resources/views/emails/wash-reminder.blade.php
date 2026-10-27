@@ -75,7 +75,7 @@
                                     $pct = $totalWashes > 0 ? min(100, max(0, round(($usedWashes / $totalWashes) * 100))) : 0;
                                 @endphp
                                 <div style="background:#e2e8f0; height:10px; border-radius:6px; overflow:hidden; margin-bottom:18px;">
-                                    <div style="background:linear-gradient(90deg, #10b981 0%, #06b6d4 100%); width:{{ $pct }}%; height:100%; border-radius:6px;"></div>
+                                    <div style="background:linear-gradient(90deg, #0070c0 0%, #00b4ff 100%); width:{{ $pct }}%; height:100%; border-radius:6px;"></div>
                                 </div>
 
                                 <!-- Details Table -->

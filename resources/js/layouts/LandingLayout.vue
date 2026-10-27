@@ -10,7 +10,9 @@
     </div>
     <nav class="navbar">
       <div class="navbar-inner">
-        <router-link to="/" class="navbar-logo">CleanAtDoorstep</router-link>
+        <router-link to="/" class="navbar-logo" style="display:flex;align-items:center;text-decoration:none;">
+          <img src="/logo.png" alt="CleanAt Doorstep" style="height:48px;max-width:180px;object-fit:contain;" />
+        </router-link>
         <button class="mobile-toggle" @click="menuOpen = !menuOpen">☰</button>
         <ul class="navbar-links" :class="{ open: menuOpen }">
           <li><router-link to="/" @click="menuOpen = false">Home</router-link></li>
@@ -30,7 +32,9 @@
       <div class="container">
         <div class="footer-grid">
           <div>
-            <h4 class="text-gradient">CleanAtDoorstep</h4>
+            <router-link to="/" style="display:inline-block;margin-bottom:0.75rem;">
+              <img src="/logo.png" alt="CleanAt Doorstep" style="height:52px;max-width:200px;object-fit:contain;" />
+            </router-link>
             <p class="text-muted" style="font-size:0.9rem;line-height:1.7">India's premium doorstep vehicle cleaning &amp; detailing service. We bring the shine to your doorstep using eco-friendly waterless technology.</p>
           </div>
           <div>

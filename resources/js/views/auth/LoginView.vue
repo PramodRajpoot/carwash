@@ -1,8 +1,10 @@
 <template>
   <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem">
     <div class="glass-card" style="width:100%;max-width:420px">
-      <div style="text-align:center;margin-bottom:2rem">
-        <router-link to="/" style="text-decoration:none"><h2 class="text-gradient" style="font-size:1.5rem">CleanAtDoorstep</h2></router-link>
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <router-link to="/" style="text-decoration:none;display:inline-block;margin-bottom:0.5rem">
+          <img src="/logo.png" alt="CleanAt Doorstep" style="height:60px;max-width:220px;object-fit:contain;" />
+        </router-link>
         <p class="text-muted" style="font-size:0.9rem;margin-top:0.25rem">Sign in to your account</p>
       </div>
 

@@ -144,10 +144,10 @@
             <p class="app-desc">Track washers in real-time, manage bookings, redeem rewards and get exclusive in-app offers.</p>
             
             <ul class="app-features">
-              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Doorstep booking in a few taps</li>
-              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Live tracking of your service</li>
-              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Referral rewards & exclusive offers</li>
-              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Secure payments and receipts</li>
+              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Doorstep booking in a few taps</li>
+              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Live tracking of your service</li>
+              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Referral rewards & exclusive offers</li>
+              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Secure payments and receipts</li>
             </ul>
 
             <div class="app-buttons">
@@ -277,7 +277,7 @@ export default {
   flex: 1;
 }
 .about-label {
-  color: #e67e22;
+  color: var(--accent-cyan);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 1px;
@@ -375,12 +375,13 @@ export default {
 
 /* ── App Download Section ── */
 .app-download-banner {
-  background: linear-gradient(135deg, #021a36 0%, #153c6c 100%);
+  background: linear-gradient(135deg, #070d1a 0%, #0d1629 50%, #131e35 100%);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-lg);
 }
 @media (min-width: 900px) {
   .app-download-banner {
@@ -399,7 +400,7 @@ export default {
   }
 }
 .app-label {
-  color: #e67e22;
+  color: var(--accent-cyan);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 1px;

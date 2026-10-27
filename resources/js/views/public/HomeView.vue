@@ -72,7 +72,7 @@
 
           <!-- Connector Arrow 1 -->
           <div class="re-connector fade-in-up delay-1">
-            <svg width="48" height="24" viewBox="0 0 48 24" fill="none"><path d="M0 12h40M36 6l6 6-6 6" stroke="url(#arrow-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="arrow-grad" x1="0" y1="12" x2="48" y2="12"><stop stop-color="#06b6d4" stop-opacity="0.3"/><stop offset="1" stop-color="#f59e0b"/></linearGradient></defs></svg>
+            <svg width="48" height="24" viewBox="0 0 48 24" fill="none"><path d="M0 12h40M36 6l6 6-6 6" stroke="url(#arrow-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="arrow-grad" x1="0" y1="12" x2="48" y2="12"><stop stop-color="#00b4ff" stop-opacity="0.3"/><stop offset="1" stop-color="#0070c0"/></linearGradient></defs></svg>
           </div>
 
           <!-- Step 2 -->
@@ -87,7 +87,7 @@
 
           <!-- Connector Arrow 2 -->
           <div class="re-connector fade-in-up delay-2">
-            <svg width="48" height="24" viewBox="0 0 48 24" fill="none"><path d="M0 12h40M36 6l6 6-6 6" stroke="url(#arrow-grad2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="arrow-grad2" x1="0" y1="12" x2="48" y2="12"><stop stop-color="#f59e0b" stop-opacity="0.3"/><stop offset="1" stop-color="#10b981"/></linearGradient></defs></svg>
+            <svg width="48" height="24" viewBox="0 0 48 24" fill="none"><path d="M0 12h40M36 6l6 6-6 6" stroke="url(#arrow-grad2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="arrow-grad2" x1="0" y1="12" x2="48" y2="12"><stop stop-color="#0070c0" stop-opacity="0.3"/><stop offset="1" stop-color="#00b4ff"/></linearGradient></defs></svg>
           </div>
 
           <!-- Step 3 -->
@@ -373,7 +373,7 @@
     </section>
 
     <!-- Franchise Form -->
-    <section class="section" style="background: linear-gradient(135deg, rgba(6,182,212,0.1) 0%, var(--bg-primary) 100%); position: relative; border-top: 1px solid var(--border-color);">
+    <section class="section" style="background: linear-gradient(135deg, rgba(0,180,255,0.08) 0%, var(--bg-primary) 100%); position: relative; border-top: 1px solid var(--border-color);">
       <div class="container flex items-center" style="gap:4rem;flex-wrap:wrap">
         <div style="flex:1;min-width:300px">
           <h2>Start Your <span class="text-gradient">Franchise Journey</span></h2>
@@ -496,10 +496,10 @@
             <p class="app-desc">Track washers in real-time, manage bookings, redeem rewards and get exclusive in-app offers.</p>
             
             <ul class="app-features">
-              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Doorstep booking in a few taps</li>
-              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Live tracking of your service</li>
-              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Referral rewards & exclusive offers</li>
-              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Secure payments and receipts</li>
+              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Doorstep booking in a few taps</li>
+              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Live tracking of your service</li>
+              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Referral rewards & exclusive offers</li>
+              <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Secure payments and receipts</li>
             </ul>
 
             <div class="app-buttons">
@@ -1093,8 +1093,8 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border: 1px solid rgba(6, 182, 212, 0.2);
+  background: linear-gradient(135deg, rgba(0, 180, 255, 0.15) 0%, rgba(0, 112, 192, 0.1) 100%);
+  border: 1px solid rgba(0, 180, 255, 0.25);
   border-radius: 20px;
   padding: 0.3rem 0.85rem;
   font-size: 0.78rem;
@@ -1279,7 +1279,7 @@ export default {
   line-height: 1.2;
 }
 .re-highlight {
-  background: linear-gradient(135deg, #06b6d4, #f59e0b);
+  background: linear-gradient(135deg, #00b4ff, #0070c0);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1332,7 +1332,7 @@ export default {
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 40px rgba(6, 182, 212, 0.05);
+    0 0 40px rgba(0, 180, 255, 0.08);
 }
 
 /* Glowing step number */
@@ -1344,14 +1344,14 @@ export default {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  background: linear-gradient(135deg, #00b4ff, #0070c0);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 180, 255, 0.4);
 }
 
 /* Icons */
@@ -1462,7 +1462,7 @@ export default {
   flex: 1;
 }
 .about-label {
-  color: #e67e22;
+  color: var(--accent-cyan);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 1px;
@@ -1501,7 +1501,7 @@ export default {
   align-items: flex-start;
 }
 .feature-icon {
-  background: rgba(6, 182, 212, 0.1);
+  background: rgba(0, 180, 255, 0.1);
   color: var(--accent-cyan);
   width: 40px;
   height: 40px;
@@ -1560,12 +1560,13 @@ export default {
 
 /* ── App Download Section ── */
 .app-download-banner {
-  background: linear-gradient(135deg, #021a36 0%, #153c6c 100%);
+  background: linear-gradient(135deg, #070d1a 0%, #0d1629 50%, #131e35 100%);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-lg);
 }
 @media (min-width: 900px) {
   .app-download-banner {
@@ -1584,7 +1585,7 @@ export default {
   }
 }
 .app-label {
-  color: #e67e22;
+  color: var(--accent-cyan);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 1px;

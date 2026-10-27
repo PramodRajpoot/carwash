@@ -7,10 +7,10 @@
     <title>CleanAt Doorstep | Premium On-Door Car Wash & Detailing</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="apple-touch-icon" href="/favicon.svg">
-    <meta name="theme-color" content="#6366f1">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <meta name="theme-color" content="#0070c0">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
