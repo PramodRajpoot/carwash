@@ -27,4 +27,4 @@
     <div id="app"></div>
 </body>
 </html>
-<!-- Cache Busting Comment -->
+<!-- Cache Busting: {{ time() }} -->

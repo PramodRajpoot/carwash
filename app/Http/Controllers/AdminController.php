@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -670,20 +671,75 @@ class AdminController extends Controller
         return response()->json($tickets);
     }
 
+    public function storeTicket(Request $request)
+    {
+        $request->validate([
+            'subject' => 'required|string|max:255',
+            'body'    => 'required|string',
+            'image'   => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+        ]);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = 'ticket_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $destinationPath = public_path('uploads/tickets');
+            if (!File::exists($destinationPath)) {
+                File::makeDirectory($destinationPath, 0777, true, true);
+            }
+            $file->move($destinationPath, $filename);
+            $imagePath = '/uploads/tickets/' . $filename;
+        }
+
+        $ticket = SupportTicket::create([
+            'customer_id' => $request->user()->id,
+            'subject'     => $request->subject,
+            'body'        => $request->body,
+            'image'       => $imagePath,
+            'status'      => 'open',
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Support ticket created successfully.',
+            'ticket'  => $ticket->load('customer:id,name,email,phone'),
+        ], 201);
+    }
+
     public function updateTicket(Request $request, $id)
     {
         $ticket = SupportTicket::findOrFail($id);
         $request->validate([
             'status'      => 'nullable|in:open,in_progress,closed',
             'admin_reply' => 'nullable|string',
+            'reply_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
         ]);
 
-        $ticket->update([
-            'status'      => $request->input('status', $ticket->status),
-            'admin_reply' => $request->admin_reply,
-            'replied_at'  => $request->admin_reply ? now() : $ticket->replied_at,
-        ]);
+        $data = [];
+        if ($request->has('status')) {
+            $data['status'] = $request->input('status');
+        }
+        if ($request->filled('admin_reply')) {
+            $data['admin_reply'] = $request->admin_reply;
+            $data['replied_at']  = now();
+        }
+        if ($request->hasFile('reply_image')) {
+            $file = $request->file('reply_image');
+            $filename = 'reply_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $destinationPath = public_path('uploads/tickets');
+            if (!File::exists($destinationPath)) {
+                File::makeDirectory($destinationPath, 0777, true, true);
+            }
+            $file->move($destinationPath, $filename);
+            $data['reply_image'] = '/uploads/tickets/' . $filename;
+        }
 
-        return response()->json(['status' => 'success', 'message' => 'Ticket updated.', 'ticket' => $ticket->load('customer:id,name,email')]);
+        $ticket->update($data);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Ticket updated.',
+            'ticket'  => $ticket->load('customer:id,name,email,phone'),
+        ]);
     }
 }

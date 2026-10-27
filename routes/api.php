@@ -219,6 +219,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Support Tickets
         Route::get('/tickets',          [AdminController::class, 'getTickets']);
         Route::put('/tickets/{id}',     [AdminController::class, 'updateTicket']);
+        Route::post('/tickets/{id}',    [AdminController::class, 'updateTicket']);
 
         // Blog
         Route::get('/blog',             [BlogController::class, 'adminIndex']);
@@ -351,6 +352,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/washers/{id}',                     [WasherController::class, 'update']);
         Route::delete('/washers/{id}',                  [WasherController::class, 'destroy']);
         Route::put('/washers/{id}/assign-franchise',    [WasherController::class, 'assignFranchise']);
+
+        // Support Tickets
+        Route::get('/tickets',                          [AdminController::class, 'getTickets']);
+        Route::put('/tickets/{id}',                     [AdminController::class, 'updateTicket']);
+        Route::post('/tickets/{id}',                    [AdminController::class, 'updateTicket']);
     });
 
     // ── Washer Panel ─────────────────────────────────────────────────────
