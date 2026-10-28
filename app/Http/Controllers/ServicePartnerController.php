@@ -37,7 +37,10 @@ class ServicePartnerController extends Controller
             $filename = time() . '_partner.' . $file->getClientOriginalExtension();
             $destinationPath = public_path('images/partners');
             if (!File::exists($destinationPath)) {
-                File::makeDirectory($destinationPath, 0755, true);
+                File::makeDirectory($destinationPath, 0777, true, true);
+            }
+            if (File::exists($destinationPath) && !is_writable($destinationPath)) {
+                @chmod($destinationPath, 0777);
             }
             $file->move($destinationPath, $filename);
             $validated['image_path'] = '/images/partners/' . $filename;
@@ -68,7 +71,10 @@ class ServicePartnerController extends Controller
             $filename = time() . '_partner.' . $file->getClientOriginalExtension();
             $destinationPath = public_path('images/partners');
             if (!File::exists($destinationPath)) {
-                File::makeDirectory($destinationPath, 0755, true);
+                File::makeDirectory($destinationPath, 0777, true, true);
+            }
+            if (File::exists($destinationPath) && !is_writable($destinationPath)) {
+                @chmod($destinationPath, 0777);
             }
             $file->move($destinationPath, $filename);
             $validated['image_path'] = '/images/partners/' . $filename;

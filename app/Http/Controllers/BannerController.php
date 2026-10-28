@@ -32,7 +32,10 @@ class BannerController extends Controller
         $destinationPath = public_path('images/banners');
         
         if (!File::exists($destinationPath)) {
-            File::makeDirectory($destinationPath, 0755, true);
+            File::makeDirectory($destinationPath, 0777, true, true);
+        }
+        if (File::exists($destinationPath) && !is_writable($destinationPath)) {
+            @chmod($destinationPath, 0777);
         }
         
         $file->move($destinationPath, $filename);
