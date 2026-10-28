@@ -161,22 +161,20 @@
         </div>
 
         <div class="alert" style="font-size: 0.8rem; padding: 0.6rem 0.85rem; margin-bottom: 1rem; background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 8px; color: var(--accent-cyan);">
-          ℹ️ Uploading <strong>service photos</strong>, a <strong>service video</strong>, and providing a <strong>completion review</strong> is mandatory to complete this service.
+          ℹ️ Upload <strong>service photos</strong> and <strong>video clip</strong> to mark this wash booking as completed.
         </div>
 
         <form @submit.prevent="submitCompletion">
-          <!-- Service Notes / Review -->
+          <!-- Service Notes / Review (Optional) -->
           <div class="form-group" style="margin-bottom: 1.25rem;">
             <label style="font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
-              <span>📝 Service Review &amp; Notes <span style="color: var(--accent-rose); font-weight: 700;">*</span></span>
-              <span class="text-muted" style="font-size: 0.75rem; font-weight: normal;">Min 5 characters</span>
+              <span>📝 Service Notes / Remarks <span class="text-muted" style="font-size: 0.75rem; font-weight: normal;">(Optional)</span></span>
             </label>
             <textarea 
               v-model="completeForm.review" 
               class="form-input" 
-              rows="3" 
-              placeholder="Detail the cleaning completed (e.g., Exterior foam wash done, tire shine applied, interior vacuumed, glass wiped. Vehicle inspected & delivered sparkling clean.)" 
-              required
+              rows="2" 
+              placeholder="Optional notes: e.g. Exterior foam wash done, tire shine applied, interior vacuumed. Delivered sparkling clean." 
               style="width: 100%; resize: vertical; font-size: 0.88rem;"></textarea>
           </div>
 
@@ -551,18 +549,9 @@ export default {
       this.videoError = '';
     },
     async submitCompletion() {
-      if (!this.completeForm.review.trim() || this.completeForm.review.trim().length < 5) {
-        Swal.fire('Required Field', 'Please enter a detailed service review/notes (minimum 5 characters).', 'warning');
-        return;
-      }
       if (!this.photoFiles.length) {
         this.photoError = 'At least 1 service photo is required.';
         Swal.fire('Required Photos', 'Please upload at least one photo of the completed car wash.', 'warning');
-        return;
-      }
-      if (!this.videoFile) {
-        this.videoError = 'Service completion video is required.';
-        Swal.fire('Required Video', 'Please upload a video proof showing the completed vehicle.', 'warning');
         return;
       }
 
@@ -570,14 +559,16 @@ export default {
       try {
         const formData = new FormData();
         formData.append('status', 'completed');
-        formData.append('review', this.completeForm.review.trim());
+        formData.append('review', this.completeForm.review?.trim() || 'Wash service completed successfully.');
         if (this.getDueAmount(this.completeModalTask) > 0) {
           formData.append('cash_collected', this.completeForm.cash_collected ? '1' : '0');
         }
         this.photoFiles.forEach(f => {
           formData.append('photos[]', f);
         });
-        formData.append('video', this.videoFile);
+        if (this.videoFile) {
+          formData.append('video', this.videoFile);
+        }
 
         await axios.post(`/api/washer/tasks/${this.completeModalTask.id}/complete`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }

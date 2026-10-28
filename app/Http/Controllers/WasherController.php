@@ -315,14 +315,14 @@ class WasherController extends Controller
 
         if ($request->status === 'completed') {
             $request->validate([
-                'review'   => 'required|string|min:3|max:2000',
+                'review'   => 'nullable|string|max:2000',
                 'photos'   => 'required',
                 'photos.*' => 'file|image|max:20480',
-                'video'    => 'required|file|max:102400',
+                'video'    => 'nullable|file|max:102400',
             ], [
-                'review.required' => 'Please provide a completion review or service notes.',
                 'photos.required' => 'At least one service photo is required to complete the wash.',
-                'video.required'  => 'A service completion video clip is required.',
+                'photos.*.image'  => 'Each uploaded photo must be a valid image file.',
+                'video.max'       => 'Service video size cannot exceed 100MB.',
             ]);
 
             $photoPaths = [];
@@ -355,16 +355,9 @@ class WasherController extends Controller
                 }
             }
 
-            if (!$videoPath) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'A valid service completion video must be uploaded.',
-                ], 422);
-            }
-
             $updateData['service_photos'] = $photoPaths;
             $updateData['service_video']  = $videoPath;
-            $updateData['washer_review']  = $request->input('review');
+            $updateData['washer_review']  = $request->input('review') ?: 'Wash service completed successfully.';
 
             if ($request->has('cash_collected') && $request->boolean('cash_collected')) {
                 $updateData['paid_amount'] = $booking->total_price;
