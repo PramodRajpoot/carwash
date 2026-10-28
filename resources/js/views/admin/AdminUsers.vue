@@ -151,7 +151,7 @@
             <select v-model="form.role" class="form-select" required>
               <option value="customer">Customer</option>
               <option value="washer">Washer / Cleaning Technician</option>
-              <option value="franchisee">Franchisee Center Manager</option>
+              <option value="franchisee">Franchisee Partner</option>
               <option value="admin">Administrator</option>
               <option value="super_admin">Super Administrator</option>
             </select>

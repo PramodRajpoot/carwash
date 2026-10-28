@@ -8,6 +8,7 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 0; background: #f9f9f9; }
         .invoice-container { max-width: 800px; margin: 2rem auto; background: #fff; padding: 2rem 3rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #eaeaea; padding-bottom: 1.5rem; margin-bottom: 2rem; }
+        .invoice-logo { height: 68px; max-width: 220px; object-fit: contain; display: block; margin-bottom: 0.35rem; }
         .logo { font-size: 1.8rem; font-weight: 800; color: #2563eb; margin: 0; }
         .company-details { text-align: right; font-size: 0.9rem; color: #666; }
         .title { font-size: 2rem; font-weight: 700; color: #1e293b; margin: 0; text-transform: uppercase; }
@@ -30,11 +31,16 @@
             body { background: #fff; }
             .invoice-container { box-shadow: none; margin: 0; padding: 0; max-width: 100%; }
             .no-print { display: none; }
+            .invoice-logo { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
         .btn-print { background: #2563eb; color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
     </style>
 </head>
 <body>
+    @php
+        $logoPath = public_path('logo.png');
+        $logoSrc = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : asset('logo.png');
+    @endphp
     <div class="invoice-container">
         <div class="no-print" style="margin-bottom: 2rem; text-align: right;">
             <button onclick="window.print()" class="btn-print">Print Invoice</button>
@@ -42,8 +48,8 @@
         
         <div class="header">
             <div>
-                <h1 class="logo">CleanAtDoorstep</h1>
-                <p style="color: #666; margin: 0.25rem 0 0;">Premium Car Wash Services</p>
+                <img src="{{ $logoSrc }}" alt="CleanAtDoorstep" class="invoice-logo">
+                <p style="color: #666; margin: 0.25rem 0 0; font-size: 0.95rem;">Premium Car Wash Services</p>
             </div>
             <div class="company-details">
                 <h2 class="title">INVOICE</h2>
