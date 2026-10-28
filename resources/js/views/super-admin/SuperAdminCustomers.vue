@@ -293,28 +293,176 @@
               <div v-else class="text-center text-muted" style="padding: 2rem;">No referrals yet.</div>
             </div>
 
-            <!-- Complaints Tab -->
+            <!-- Complaints / SOP Tab -->
             <div v-if="activeTab === 'complaints'">
-              <div v-if="selectedCustomer.support_tickets?.length">
-                <table class="table text-sm">
-                  <thead><tr><th>Ticket #</th><th>Subject</th><th>Status</th><th>Date</th></tr></thead>
-                  <tbody>
-                    <tr v-for="ticket in selectedCustomer.support_tickets" :key="ticket.id">
-                      <td>#{{ ticket.id }}</td>
-                      <td>{{ ticket.subject }}</td>
-                      <td><span :class="['badge', ticket.status === 'resolved' ? 'badge-success' : 'badge-warning']">{{ ticket.status }}</span></td>
-                      <td>{{ formatDate(ticket.created_at) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <!-- Wash Completion Proofs & SOP Section -->
+              <div style="margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+                      <span>📸</span> Wash SOP &amp; Completion Proofs
+                    </h4>
+                    <p class="text-muted" style="margin: 0.2rem 0 0 0; font-size: 0.78rem;">
+                      Service photos, video proof, and washer review recorded upon wash completion.
+                    </p>
+                  </div>
+                  <span class="badge badge-cyan" style="font-weight: 700;">
+                    {{ washProofBookings.length }} Wash(es)
+                  </span>
+                </div>
+
+                <div v-if="washProofBookings.length" style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div 
+                    v-for="wash in washProofBookings" 
+                    :key="wash.id" 
+                    class="glass-card" 
+                    style="padding: 1rem 1.25rem; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.02);">
+                    
+                    <!-- Wash Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
+                      <div>
+                        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                          <span style="font-size: 1.1rem; font-weight: 800; color: var(--accent-cyan);">
+                            Wash #{{ wash.id }}
+                          </span>
+                          <span :class="['badge', wash.status === 'completed' ? 'badge-success' : 'badge-primary']" style="font-size: 0.75rem;">
+                            {{ wash.status }}
+                          </span>
+                          <span v-if="wash.package" style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary);">
+                            {{ wash.package.name }}
+                          </span>
+                        </div>
+
+                        <!-- Vehicle and Washer Info -->
+                        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted);">
+                          <span v-if="wash.vehicle">
+                            🚗 <strong>{{ wash.vehicle.make_model }}</strong> ({{ wash.vehicle.plate_number }})
+                          </span>
+                          <span v-if="wash.washer?.user?.name">
+                            🧼 Washer: <strong style="color: var(--text-primary);">{{ wash.washer.user.name }}</strong>
+                          </span>
+                          <span>
+                            🗓️ Scheduled: {{ wash.booking_date }} {{ wash.slot_time || '' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Date of Complete -->
+                      <div style="text-align: right; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 0.35rem 0.65rem;">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--accent-emerald);">
+                          ✓ Date of Complete
+                        </div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;">
+                          {{ formatDateTime(wash.updated_at || wash.booking_date) }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Washer Completion Review / Remarks -->
+                    <div style="margin-bottom: 0.85rem; background: rgba(0,0,0,0.25); border-left: 3px solid var(--accent-cyan); padding: 0.6rem 0.85rem; border-radius: 4px;">
+                      <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--accent-cyan); margin-bottom: 0.2rem;">
+                        📝 Washer Review &amp; Completion Notes
+                      </div>
+                      <div style="font-size: 0.88rem; color: var(--text-primary); font-style: italic; line-height: 1.4;">
+                        "{{ wash.washer_review || 'Wash service completed and delivered.' }}"
+                      </div>
+                    </div>
+
+                    <!-- Uploaded Photos Grid -->
+                    <div style="margin-bottom: 0.75rem;">
+                      <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>📸 Uploaded Photos ({{ getWashPhotos(wash).length }})</span>
+                        <span v-if="getWashPhotos(wash).length" class="text-muted" style="font-size: 0.7rem; text-transform: none;">Click photo to zoom</span>
+                      </div>
+
+                      <div v-if="getWashPhotos(wash).length" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.5rem;">
+                        <div 
+                          v-for="(photo, pIdx) in getWashPhotos(wash)" 
+                          :key="pIdx"
+                          style="position: relative; aspect-ratio: 4/3; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color); cursor: pointer; background: #000;"
+                          @click="previewPhotoUrl = photo"
+                          title="Click to zoom image">
+                          <img :src="photo" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" />
+                        </div>
+                      </div>
+                      <div v-else class="text-muted" style="font-size: 0.8rem; font-style: italic;">
+                        No service photos uploaded for this wash.
+                      </div>
+                    </div>
+
+                    <!-- Uploaded Video Proof -->
+                    <div v-if="wash.service_video" style="margin-top: 0.75rem; border-top: 1px dashed var(--border-color); padding-top: 0.75rem;">
+                      <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--accent-emerald); margin-bottom: 0.4rem;">
+                        🎥 Service Video Proof
+                      </div>
+                      <div style="max-width: 400px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); background: #000;">
+                        <video controls :src="wash.service_video" style="width: 100%; max-height: 220px; display: block;"></video>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div v-else class="text-center text-muted" style="padding: 1.5rem; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed var(--border-color);">
+                  🚗 No wash completion SOP proofs or photos uploaded for this customer yet.
+                </div>
               </div>
-              <div v-else class="text-center text-muted" style="padding: 2rem;">No support tickets or complaints.</div>
+
+              <!-- Customer Support Tickets / Complaints Section -->
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+                      <span>🎫</span> Support Tickets &amp; Complaints
+                    </h4>
+                    <p class="text-muted" style="margin: 0.2rem 0 0 0; font-size: 0.78rem;">
+                      Tickets and grievances raised by this customer.
+                    </p>
+                  </div>
+                  <span class="badge badge-amber" style="font-weight: 700;">
+                    {{ selectedCustomer.support_tickets?.length || 0 }} Ticket(s)
+                  </span>
+                </div>
+
+                <div v-if="selectedCustomer.support_tickets?.length" class="table-wrap">
+                  <table class="table text-sm">
+                    <thead><tr><th>Ticket #</th><th>Subject</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody>
+                      <tr v-for="ticket in selectedCustomer.support_tickets" :key="ticket.id">
+                        <td>#{{ ticket.id }}</td>
+                        <td>{{ ticket.subject }}</td>
+                        <td><span :class="['badge', ticket.status === 'resolved' ? 'badge-success' : 'badge-warning']">{{ ticket.status }}</span></td>
+                        <td>{{ formatDate(ticket.created_at) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div v-else class="text-center text-muted" style="padding: 1.5rem; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed var(--border-color);">
+                  No support tickets or complaints recorded.
+                </div>
+              </div>
             </div>
 
           </div>
         </div>
         <div v-else class="text-center text-muted" style="padding: 3rem;">
           Loading details...
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo Zoom Lightbox Modal -->
+    <div v-if="previewPhotoUrl" class="modal-overlay" style="z-index: 1060; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);" @click="previewPhotoUrl = null">
+      <div style="position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center;" @click.stop>
+        <button 
+          class="btn btn-ghost" 
+          style="position: absolute; top: -38px; right: 0; color: #fff; font-size: 1.4rem; padding: 0.2rem 0.5rem; line-height: 1;" 
+          @click="previewPhotoUrl = null">✕</button>
+        <img :src="previewPhotoUrl" style="max-width: 100%; max-height: 82vh; object-fit: contain; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.6);" />
+        <div style="margin-top: 0.75rem;">
+          <a :href="previewPhotoUrl" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline" style="color: #fff; border-color: rgba(255,255,255,0.4); font-size: 0.8rem;">
+            ⤢ Open Full Resolution in New Tab
+          </a>
         </div>
       </div>
     </div>
@@ -348,6 +496,40 @@ const isModalOpen = ref(false);
 const selectedCustomer = ref(null);
 const activeTab = ref('overview');
 const isToggling = ref(false);
+const previewPhotoUrl = ref(null);
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'N/A';
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return dateString;
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+const getWashPhotos = (wash) => {
+  if (!wash || !wash.service_photos) return [];
+  let photos = wash.service_photos;
+  if (typeof photos === 'string') {
+    try { photos = JSON.parse(photos); } catch (e) { return []; }
+  }
+  if (typeof photos === 'string') {
+    try { photos = JSON.parse(photos); } catch (e) { return []; }
+  }
+  return Array.isArray(photos) ? photos : [];
+};
+
+const washProofBookings = computed(() => {
+  if (!selectedCustomer.value || !selectedCustomer.value.bookings) return [];
+  return selectedCustomer.value.bookings.filter(b => {
+    const photos = getWashPhotos(b);
+    return photos.length > 0 || b.service_video || b.washer_review || b.status === 'completed';
+  });
+});
 
 const tabs = [
   { id: 'overview', label: 'Overview' },
