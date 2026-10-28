@@ -120,9 +120,6 @@
                   </button>
                 </template>
                 <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
-                <button v-if="canPostpone(b)" class="btn btn-sm btn-outline" style="border-color: var(--accent-cyan); color: var(--accent-cyan);" @click="openPostpone(b)" title="Reschedule wash date and time">
-                  📅 Reschedule
-                </button>
                 <span v-if="b.status === 'completed'" class="text-muted" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" title="Wash has completed and is not editable">
                   🔒 Completed
                 </span>
