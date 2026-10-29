@@ -35,6 +35,9 @@ class SupportTicketController extends Controller
             if (!File::exists($destinationPath)) {
                 File::makeDirectory($destinationPath, 0777, true, true);
             }
+            if (File::exists($destinationPath) && !is_writable($destinationPath)) {
+                @chmod($destinationPath, 0777);
+            }
             $file->move($destinationPath, $filename);
             $imagePath = '/uploads/tickets/' . $filename;
         }
@@ -98,6 +101,9 @@ class SupportTicketController extends Controller
             $destinationPath = public_path('uploads/tickets');
             if (!File::exists($destinationPath)) {
                 File::makeDirectory($destinationPath, 0777, true, true);
+            }
+            if (File::exists($destinationPath) && !is_writable($destinationPath)) {
+                @chmod($destinationPath, 0777);
             }
             $file->move($destinationPath, $filename);
             $data['reply_image'] = '/uploads/tickets/' . $filename;

@@ -32,12 +32,19 @@ class BannerController extends Controller
         $destinationPath = public_path('images/banners');
         
         if (!File::exists($destinationPath)) {
-            File::makeDirectory($destinationPath, 0777, true, true);
+            File::makeDirectory($destinationPath, 0775, true, true);
         }
         if (File::exists($destinationPath) && !is_writable($destinationPath)) {
             @chmod($destinationPath, 0777);
         }
-        
+
+        if (!is_writable($destinationPath)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Server permission error: The directory "public/images/banners" is not writable by the web server process.'
+            ], 500);
+        }
+
         $file->move($destinationPath, $filename);
 
         $banner = Banner::create([

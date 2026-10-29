@@ -579,8 +579,10 @@ class SuperAdminController extends Controller
         $customer = User::where('role', 'customer')
             ->with([
                 'vehicles',
-                'bookings' => function($q) { $q->orderBy('booking_date', 'desc'); },
+                'bookings' => function($q) { $q->orderBy('booking_date', 'desc')->orderBy('id', 'desc'); },
                 'bookings.package',
+                'bookings.vehicle',
+                'bookings.washer.user',
                 'subscriptions' => function($q) { $q->orderBy('created_at', 'desc'); },
                 'subscriptions.package',
                 'walletTransactions' => function($q) { $q->orderBy('created_at', 'desc'); },
