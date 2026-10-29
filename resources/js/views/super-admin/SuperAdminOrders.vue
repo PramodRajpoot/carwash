@@ -332,7 +332,7 @@
             <label style="font-weight: 600;">Base Plan</label>
             <select v-model="changePlanForm.package_id" class="form-select" @change="onChangePlanPackage" required>
               <option value="">-- Select Plan --</option>
-              <option v-for="pkg in packages" :key="pkg.id" :value="pkg.id">{{ pkg.name }} - ₹{{ pkg.price }} ({{ pkg.vehicle_type }})</option>
+              <option v-for="pkg in availableBasePackages" :key="pkg.id" :value="pkg.id">{{ pkg.name }} - ₹{{ pkg.price }} ({{ pkg.vehicle_type }})</option>
             </select>
           </div>
 
@@ -348,7 +348,7 @@
           <!-- Add-on Services Section -->
           <div style="margin-bottom: 1rem;">
             <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
-              ➕ Add-on Services <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">(pick from other packages)</span>
+              ➕ Add-on Services <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">(optional treatments)</span>
             </label>
 
             <div v-if="addonPackages.length === 0" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
@@ -503,9 +503,12 @@ export default {
       if (!this.changePlanForm.package_id) return null;
       return this.packages.find(p => p.id === this.changePlanForm.package_id) || null;
     },
+    availableBasePackages() {
+      return this.packages.filter(p => !p.is_addon);
+    },
     addonPackages() {
       if (!this.changePlanForm.package_id) return [];
-      return this.packages.filter(p => p.id !== this.changePlanForm.package_id);
+      return this.packages.filter(p => p.is_addon && p.id !== this.changePlanForm.package_id);
     },
     addonTotal() {
       return this.changePlanForm.addons.reduce((sum, a) => sum + parseFloat(a.price || 0), 0);

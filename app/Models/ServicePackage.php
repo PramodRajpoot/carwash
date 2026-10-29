@@ -18,8 +18,24 @@ class ServicePackage extends Model
         'frequency_days',
         'max_bookings',
         'custom_badge',
+        'is_addon',
         'image_path',
     ];
+
+    protected $casts = [
+        'is_addon' => 'boolean',
+        'price' => 'float',
+    ];
+
+    public function scopeOnlyMain($query)
+    {
+        return $query->where('is_addon', false);
+    }
+
+    public function scopeOnlyAddons($query)
+    {
+        return $query->where('is_addon', true);
+    }
 
     public function category()
     {
@@ -34,5 +50,15 @@ class ServicePackage extends Model
     public function bookings()
     {
         return $this->hasMany(Booking::class, 'package_id');
+    }
+
+    public function addons()
+    {
+        return $this->belongsToMany(ServicePackage::class, 'service_package_addons', 'package_id', 'addon_id');
+    }
+
+    public function parentPackages()
+    {
+        return $this->belongsToMany(ServicePackage::class, 'service_package_addons', 'addon_id', 'package_id');
     }
 }

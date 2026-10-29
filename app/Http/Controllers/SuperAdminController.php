@@ -477,26 +477,79 @@ class SuperAdminController extends Controller
 
     // ─── Services Management ────────────────────────────────────────────
 
-    public function getServices()
+    public function getServices(Request $request)
     {
-        return response()->json(ServicePackage::with('category')->get());
+        $query = ServicePackage::with(['category', 'addons'])->orderBy('id', 'desc');
+        if ($request->has('is_addon')) {
+            $query->where('is_addon', filter_var($request->is_addon, FILTER_VALIDATE_BOOLEAN));
+        }
+        return response()->json($query->get());
+    }
+
+    public function manageServiceAddons(Request $request, $id)
+    {
+        $service = ServicePackage::findOrFail($id);
+
+        if ($request->filled('new_addon_name')) {
+            $request->validate([
+                'new_addon_name' => 'required|string|max:255',
+                'new_addon_price' => 'required|numeric|min:0',
+                'new_addon_description' => 'nullable|string',
+            ]);
+
+            $newAddon = ServicePackage::create([
+                'name' => $request->new_addon_name,
+                'price' => $request->new_addon_price,
+                'description' => $request->new_addon_description,
+                'vehicle_type' => $service->vehicle_type ?? 'all',
+                'category_id' => $service->category_id,
+                'is_addon' => true,
+                'frequency_days' => 1,
+                'max_bookings' => 1,
+            ]);
+
+            $service->addons()->attach($newAddon->id);
+        }
+
+        if ($request->has('addon_ids')) {
+            $request->validate([
+                'addon_ids' => 'nullable|array',
+                'addon_ids.*' => 'exists:service_packages,id'
+            ]);
+            $service->addons()->sync($request->addon_ids ?? []);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Add-ons updated successfully.',
+            'service' => $service->load(['category', 'addons'])
+        ]);
     }
 
     public function createService(Request $request)
     {
-        $request->validate([
-            'category_id' => 'required|exists:service_categories,id',
+        $isAddon = filter_var($request->input('is_addon', false), FILTER_VALIDATE_BOOLEAN);
+
+        $rules = [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'vehicle_type' => 'required|string|max:100',
+            'vehicle_type' => $isAddon ? 'nullable|string|max:100' : 'required|string|max:100',
             'price' => 'required|numeric|min:0',
-            'frequency_days' => 'required|integer|min:1',
-            'max_bookings' => 'required|integer|min:1',
+            'frequency_days' => $isAddon ? 'nullable|integer' : 'required|integer|min:1',
+            'max_bookings' => $isAddon ? 'nullable|integer' : 'required|integer|min:1',
+            'category_id' => 'nullable|exists:service_categories,id',
             'custom_badge' => 'nullable|string|max:255',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'is_addon' => 'nullable'
+        ];
+
+        $request->validate($rules);
 
         $data = $request->except('image');
+        $data['is_addon'] = $isAddon;
+        $data['frequency_days'] = $request->input('frequency_days', $isAddon ? 1 : 30);
+        $data['max_bookings'] = $request->input('max_bookings', 1);
+        $data['vehicle_type'] = $request->input('vehicle_type', 'all');
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('services', 'public');
@@ -510,20 +563,29 @@ class SuperAdminController extends Controller
     public function updateService(Request $request, $id)
     {
         $service = ServicePackage::findOrFail($id);
+        $isAddon = $request->has('is_addon') 
+            ? filter_var($request->input('is_addon'), FILTER_VALIDATE_BOOLEAN) 
+            : $service->is_addon;
 
-        $request->validate([
-            'category_id' => 'required|exists:service_categories,id',
+        $rules = [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'vehicle_type' => 'required|string|max:100',
+            'vehicle_type' => $isAddon ? 'nullable|string|max:100' : 'required|string|max:100',
             'price' => 'required|numeric|min:0',
-            'frequency_days' => 'required|integer|min:1',
-            'max_bookings' => 'required|integer|min:1',
+            'frequency_days' => $isAddon ? 'nullable|integer' : 'required|integer|min:1',
+            'max_bookings' => $isAddon ? 'nullable|integer' : 'required|integer|min:1',
+            'category_id' => 'nullable|exists:service_categories,id',
             'custom_badge' => 'nullable|string|max:255',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'is_addon' => 'nullable'
+        ];
+
+        $request->validate($rules);
 
         $data = $request->except('image');
+        if ($request->has('is_addon')) {
+            $data['is_addon'] = $isAddon;
+        }
 
         if ($request->hasFile('image')) {
             // Delete old image if exists

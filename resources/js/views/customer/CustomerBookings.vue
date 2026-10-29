@@ -175,35 +175,37 @@
           <div class="form-group"><label>Center</label>
             <select v-model="bf.franchisee_id" class="form-select" required @change="fetchSlots"><option value="">Select Center</option><option v-for="c in centers" :key="c.id" :value="c.id">{{ c.center_name }} — {{ c.city }}</option></select>
           </div>
-          <div class="form-group"><label>Package</label>
-            <select v-model="bf.package_id" class="form-select" required @change="bf.addon_ids = []"><option value="">Select Package</option><option v-for="p in packages" :key="p.id" :value="p.id">{{ p.name }} (₹{{ p.price }})</option></select>
+          <div class="form-group"><label>Package / Main Service</label>
+            <select v-model="bf.package_id" class="form-select" required @change="bf.addon_ids = []">
+              <option value="">Select Package</option>
+              <option v-for="p in availableBasePackages" :key="p.id" :value="p.id">
+                {{ p.name }} (₹{{ p.price }}){{ p.custom_badge ? ' — ' + p.custom_badge : '' }}
+              </option>
+            </select>
           </div>
           
           <!-- Add-ons & Price Breakdown -->
-          <div v-if="bf.package_id" style="margin-bottom: 1rem;">
+          <div v-if="bf.package_id" style="margin-bottom: 1.25rem;">
             <!-- Add-on Services Section -->
-            <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
-              ➕ Add-on Services <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">(pick from other packages)</span>
+            <label style="font-weight: 600; display: block; margin-bottom: 0.5rem; font-size: 0.95rem;">
+              ➕ Add-on Services <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">(check any to add to your wash)</span>
             </label>
-            <div v-if="!bf.vehicle_id" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
-              Please select a vehicle first to see available add-ons.
+            <div v-if="addonPackages.length === 0" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
+              No add-on services available for this package.
             </div>
-            <div v-else-if="addonPackages.length === 0" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
-              No add-ons available for this vehicle type.
-            </div>
-            <div v-else style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem; margin-bottom: 1rem;">
+            <div v-else style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem; margin-bottom: 1rem; background: var(--bg-primary);">
               <div v-for="pkg in addonPackages" :key="pkg.id"
-                style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border-color); cursor: pointer;"
-                :style="{ background: isAddonSelected(pkg.id) ? 'rgba(16,185,129,0.08)' : 'transparent' }"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border-color); cursor: pointer; border-radius: 6px; transition: background 0.15s ease;"
+                :style="{ background: isAddonSelected(pkg.id) ? 'rgba(16,185,129,0.1)' : 'transparent' }"
                 @click="toggleAddon(pkg)">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <input type="checkbox" :checked="isAddonSelected(pkg.id)" style="accent-color: var(--accent-emerald); width: 16px; height: 16px; pointer-events: none;" />
+                  <input type="checkbox" :checked="isAddonSelected(pkg.id)" style="accent-color: var(--accent-emerald); width: 18px; height: 18px; cursor: pointer;" @click.stop="toggleAddon(pkg)" />
                   <div>
-                    <div style="font-weight: 600; font-size: 0.88rem;">{{ pkg.name }}</div>
-                    <div class="text-muted" style="font-size: 0.72rem;">{{ pkg.vehicle_type }}</div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">{{ pkg.name }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">{{ pkg.description || 'Special add-on treatment' }}</div>
                   </div>
                 </div>
-                <div style="font-weight: 700; color: var(--accent-cyan); font-size: 0.9rem; white-space: nowrap;">+ ₹{{ pkg.price }}</div>
+                <div style="font-weight: 700; color: var(--accent-emerald); font-size: 0.95rem; white-space: nowrap;">+ ₹{{ pkg.price }}</div>
               </div>
             </div>
 
@@ -584,17 +586,35 @@ export default {
     selectedBasePlan() {
       return this.packages.find(p => p.id == this.bf.package_id) || null;
     },
-    addonPackages() {
-      if (!this.selectedBasePlan || !this.bf.vehicle_id) return [];
+    availableBasePackages() {
+      const mainOnly = this.packages.filter(p => !p.is_addon);
+      if (!this.bf.vehicle_id) return mainOnly;
       const v = this.vehicles.find(vh => vh.id == this.bf.vehicle_id);
-      if (!v) return [];
-      return this.packages.filter(p => p.id != this.bf.package_id && p.vehicle_type === v.vehicle_type);
+      if (!v) return mainOnly;
+      return mainOnly.filter(p => p.vehicle_type === v.vehicle_type || p.vehicle_type === 'all');
+    },
+    addonPackages() {
+      if (!this.selectedBasePlan) return [];
+      // 1. If the selected service has attached addons in DB:
+      if (this.selectedBasePlan.addons && this.selectedBasePlan.addons.length > 0) {
+        return this.selectedBasePlan.addons;
+      }
+      // 2. Otherwise return matching add-on services
+      const v = this.bf.vehicle_id ? this.vehicles.find(vh => vh.id == this.bf.vehicle_id) : null;
+      const vType = v ? v.vehicle_type : this.selectedBasePlan.vehicle_type;
+      return this.packages.filter(p => p.is_addon && (!vType || p.vehicle_type === 'all' || p.vehicle_type === vType));
     },
     selectedAddons() {
-      return this.packages.filter(p => this.bf.addon_ids.includes(p.id));
+      const allAddons = [...this.packages];
+      if (this.selectedBasePlan && this.selectedBasePlan.addons) {
+        this.selectedBasePlan.addons.forEach(a => {
+          if (!allAddons.some(p => p.id == a.id)) allAddons.push(a);
+        });
+      }
+      return allAddons.filter(p => this.bf.addon_ids.includes(p.id));
     },
     addonTotal() {
-      return this.selectedAddons.reduce((sum, a) => sum + parseFloat(a.price), 0);
+      return this.selectedAddons.reduce((sum, a) => sum + parseFloat(a.price || 0), 0);
     },
     appliedEPoints() {
       if (!this.bf.use_epoints || !this.bf.package_id) return 0;
@@ -635,6 +655,13 @@ export default {
       }
     },
     'bf.vehicle_id'() {
+      if (this.bf.package_id) {
+        const isValid = this.availableBasePackages.some(p => p.id == this.bf.package_id);
+        if (!isValid) {
+          this.bf.package_id = '';
+          this.bf.addon_ids = [];
+        }
+      }
       if (this.couponApplied) {
         this.applyCoupon(true);
       }

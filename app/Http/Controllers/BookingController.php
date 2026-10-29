@@ -17,10 +17,19 @@ class BookingController extends Controller
     public function getPackages(Request $request)
     {
         $vehicleType = $request->input('vehicle_type');
-        $query = ServicePackage::query();
-        if ($vehicleType) {
-            $query->where('vehicle_type', $vehicleType);
+        $query = ServicePackage::with(['category', 'addons']);
+
+        if ($request->has('is_addon')) {
+            $query->where('is_addon', filter_var($request->is_addon, FILTER_VALIDATE_BOOLEAN));
         }
+
+        if ($vehicleType) {
+            $query->where(function($q) use ($vehicleType) {
+                $q->where('vehicle_type', $vehicleType)
+                  ->orWhere('vehicle_type', 'all');
+            });
+        }
+
         return response()->json($query->get());
     }
 
