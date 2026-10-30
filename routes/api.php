@@ -201,6 +201,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/franchisees/{id}/status',      [AdminController::class, 'updateFranchiseeStatus']);
         Route::post('/franchisees/{id}/renew',      [AdminController::class, 'renewAgreement']);
         Route::post('/franchisees/{id}/upload-document', [AdminController::class, 'uploadDocument']);
+        Route::get('/franchisees/{id}/documents/download', [AdminController::class, 'downloadDocument']);
+        Route::get('/franchisees/{id}/documents/view',     [AdminController::class, 'viewDocument']);
         Route::delete('/franchisees/{id}/document', [AdminController::class, 'deleteDocument']);
         Route::delete('/franchisees/{id}/documents/{docId?}', [AdminController::class, 'deleteDocument']);
         Route::get('/franchisees/{id}/slots',       [SuperAdminSlotController::class, 'getAssignedSlots']);

@@ -448,13 +448,20 @@ class AdminController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Please select at least one document to upload.'], 422);
             }
 
-            // Ensure destination directory exists and is writable
+            // Ensure destination directories exist and are writable
             $targetDir = public_path('franchise_documents');
+            $storageTargetDir = storage_path('app/public/franchise_documents');
             if (!file_exists($targetDir)) {
                 @mkdir($targetDir, 0777, true);
             }
             if (file_exists($targetDir)) {
                 @chmod($targetDir, 0777);
+            }
+            if (!file_exists($storageTargetDir)) {
+                @mkdir($storageTargetDir, 0777, true);
+            }
+            if (file_exists($storageTargetDir)) {
+                @chmod($storageTargetDir, 0777);
             }
 
             // Auto-heal: Ensure `documents` JSON column exists on franchisees table
@@ -483,6 +490,8 @@ class AdminController extends Controller
                 $filename = time() . '_' . uniqid() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
                 $file->move($targetDir, $filename);
                 @chmod($targetDir . '/' . $filename, 0666);
+                @copy($targetDir . '/' . $filename, $storageTargetDir . '/' . $filename);
+                @chmod($storageTargetDir . '/' . $filename, 0666);
 
                 $uploadedDocs[] = [
                     'id'          => uniqid('doc_'),
@@ -519,6 +528,139 @@ class AdminController extends Controller
         }
     }
 
+    public function downloadDocument(Request $request, $id)
+    {
+        return $this->handleDocumentServe($request, $id, false);
+    }
+
+    public function viewDocument(Request $request, $id)
+    {
+        return $this->handleDocumentServe($request, $id, true);
+    }
+
+    protected function handleDocumentServe(Request $request, $id, bool $inline = false)
+    {
+        try {
+            $franchisee = Franchisee::findOrFail($id);
+            $docId = $request->query('doc_id');
+            $docPath = $request->query('path');
+
+            $doc = null;
+            $docs = is_array($franchisee->documents) ? $franchisee->documents : [];
+            foreach ($docs as $d) {
+                if (($docId && isset($d['id']) && (string)$d['id'] === (string)$docId) ||
+                    ($docPath && isset($d['path']) && $d['path'] === $docPath)) {
+                    $doc = $d;
+                    break;
+                }
+            }
+
+            if (!$doc && !empty($franchisee->document_path)) {
+                if (!$docId || $docId === 'legacy_1' || $docPath === $franchisee->document_path) {
+                    $doc = [
+                        'name' => basename($franchisee->document_path),
+                        'path' => $franchisee->document_path,
+                    ];
+                }
+            }
+
+            $rawPath = $doc['path'] ?? $docPath;
+            if (!$rawPath) {
+                return response()->json(['status' => 'error', 'message' => 'No document specified.'], 400);
+            }
+
+            $cleanPath = ltrim($rawPath, '/');
+            $filename = basename($cleanPath);
+
+            // Search across all candidate storage locations
+            $candidates = [
+                public_path($cleanPath),
+                public_path('franchise_documents/' . $filename),
+                storage_path('app/public/' . $cleanPath),
+                storage_path('app/public/franchise_documents/' . $filename),
+                storage_path('app/' . $cleanPath),
+                base_path($cleanPath),
+            ];
+
+            $resolvedFile = null;
+            foreach ($candidates as $candidate) {
+                if (file_exists($candidate) && is_file($candidate)) {
+                    $resolvedFile = $candidate;
+                    break;
+                }
+            }
+
+            if (!$resolvedFile) {
+                $docDisplayName = $doc['name'] ?? $filename;
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => "Document '{$docDisplayName}' was not found on the server. Please re-upload this document.",
+                ], 404);
+            }
+
+            $downloadName = $doc['name'] ?? $filename;
+            if (!str_contains($downloadName, '.')) {
+                $ext = pathinfo($resolvedFile, PATHINFO_EXTENSION);
+                if ($ext) $downloadName .= '.' . $ext;
+            }
+
+            $mime = mime_content_type($resolvedFile) ?: 'application/octet-stream';
+            $headers = [
+                'Content-Type'   => $mime,
+                'Content-Length' => filesize($resolvedFile),
+                'Cache-Control'  => 'no-cache, private',
+            ];
+
+            if ($inline) {
+                $headers['Content-Disposition'] = 'inline; filename="' . addslashes($downloadName) . '"';
+                return response()->file($resolvedFile, $headers);
+            }
+
+            return response()->download($resolvedFile, $downloadName, $headers);
+        } catch (\Throwable $e) {
+            Log::error('Download document error on franchisee #' . $id . ': ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Failed to download document: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function serveFranchiseDocument(Request $request, $filename)
+    {
+        $cleanFilename = basename($filename);
+        $candidates = [
+            public_path('franchise_documents/' . $cleanFilename),
+            storage_path('app/public/franchise_documents/' . $cleanFilename),
+            storage_path('app/' . $cleanFilename),
+        ];
+
+        $resolvedFile = null;
+        foreach ($candidates as $cand) {
+            if (file_exists($cand) && is_file($cand)) {
+                $resolvedFile = $cand;
+                break;
+            }
+        }
+
+        if (!$resolvedFile) {
+            return response()->json(['status' => 'error', 'message' => "File '{$cleanFilename}' was not found on the server."], 404);
+        }
+
+        $mime = mime_content_type($resolvedFile) ?: 'application/octet-stream';
+        $isDownload = $request->has('download') || $request->query('download') == '1';
+
+        if ($isDownload) {
+            return response()->download($resolvedFile, $cleanFilename, [
+                'Content-Type'  => $mime,
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
+
+        return response()->file($resolvedFile, [
+            'Content-Type'        => $mime,
+            'Content-Disposition' => 'inline; filename="' . addslashes($cleanFilename) . '"',
+            'Cache-Control'       => 'no-cache, private',
+        ]);
+    }
+
     public function deleteDocument(Request $request, $id, $docId = null)
     {
         try {
@@ -539,8 +681,13 @@ class AdminController extends Controller
                 $remainingDocs = [];
                 foreach ($existingDocs as $doc) {
                     if (($doc['id'] ?? '') === $targetDocId || ($doc['path'] ?? '') === $targetDocId) {
-                        if (!empty($doc['path']) && file_exists(public_path($doc['path']))) {
-                            @unlink(public_path($doc['path']));
+                        if (!empty($doc['path'])) {
+                            $clean = ltrim($doc['path'], '/');
+                            $bname = basename($clean);
+                            if (file_exists(public_path($clean))) { @unlink(public_path($clean)); }
+                            if (file_exists(storage_path('app/public/' . $clean))) { @unlink(storage_path('app/public/' . $clean)); }
+                            if (file_exists(public_path('franchise_documents/' . $bname))) { @unlink(public_path('franchise_documents/' . $bname)); }
+                            if (file_exists(storage_path('app/public/franchise_documents/' . $bname))) { @unlink(storage_path('app/public/franchise_documents/' . $bname)); }
                         }
                     } else {
                         $remainingDocs[] = $doc;
@@ -554,12 +701,19 @@ class AdminController extends Controller
             } else {
                 // Delete all documents
                 foreach ($existingDocs as $doc) {
-                    if (!empty($doc['path']) && file_exists(public_path($doc['path']))) {
-                        @unlink(public_path($doc['path']));
+                    if (!empty($doc['path'])) {
+                        $clean = ltrim($doc['path'], '/');
+                        $bname = basename($clean);
+                        if (file_exists(public_path($clean))) { @unlink(public_path($clean)); }
+                        if (file_exists(storage_path('app/public/' . $clean))) { @unlink(storage_path('app/public/' . $clean)); }
+                        if (file_exists(public_path('franchise_documents/' . $bname))) { @unlink(public_path('franchise_documents/' . $bname)); }
+                        if (file_exists(storage_path('app/public/franchise_documents/' . $bname))) { @unlink(storage_path('app/public/franchise_documents/' . $bname)); }
                     }
                 }
-                if ($franchisee->document_path && file_exists(public_path($franchisee->document_path))) {
-                    @unlink(public_path($franchisee->document_path));
+                if ($franchisee->document_path) {
+                    $clean = ltrim($franchisee->document_path, '/');
+                    if (file_exists(public_path($clean))) { @unlink(public_path($clean)); }
+                    if (file_exists(storage_path('app/public/' . $clean))) { @unlink(storage_path('app/public/' . $clean)); }
                 }
                 if (Schema::hasColumn('franchisees', 'documents')) {
                     $franchisee->documents = [];

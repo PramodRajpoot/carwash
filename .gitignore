@@ -18,3 +18,5 @@ yarn-error.log
 /.idea
 /.vscode
 /public/avatars
+/public/franchise_documents/*
+!/public/franchise_documents/.gitkeep

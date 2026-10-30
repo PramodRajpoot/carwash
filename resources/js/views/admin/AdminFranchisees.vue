@@ -296,17 +296,18 @@
                 </span>
               </div>
               <div style="display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0;">
-                <a :href="'/' + previewDoc.path" target="_blank" class="btn btn-xs btn-outline" style="text-decoration: none;">Open In New Tab ↗</a>
+                <a :href="getDocViewUrl(previewDoc)" target="_blank" class="btn btn-xs btn-outline" style="text-decoration: none;">Open In New Tab ↗</a>
+                <button type="button" class="btn btn-xs btn-outline" @click="downloadDocumentFile(previewDoc)" title="Download">⬇️ Download</button>
                 <button type="button" class="btn btn-xs btn-ghost" @click="previewDoc = null" style="color: var(--text-muted);">Close Preview ✕</button>
               </div>
             </div>
 
             <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; min-height: 250px; display: flex; justify-content: center; align-items: center;">
               <template v-if="isImageDoc(previewDoc.path)">
-                <img :src="'/' + previewDoc.path" style="max-width: 100%; max-height: 55vh; object-fit: contain; padding: 0.75rem;" />
+                <img :src="getDocViewUrl(previewDoc)" style="max-width: 100%; max-height: 55vh; object-fit: contain; padding: 0.75rem;" />
               </template>
               <template v-else>
-                <iframe :src="'/' + previewDoc.path" style="width: 100%; height: 55vh; border: none;"></iframe>
+                <iframe :src="getDocViewUrl(previewDoc)" style="width: 100%; height: 55vh; border: none;"></iframe>
               </template>
             </div>
           </div>
@@ -344,7 +345,7 @@
                 <!-- Thumbnail / Type Icon -->
                 <div style="text-align: center; padding: 0.5rem 0; cursor: pointer; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center;" @click="previewDocument(doc)">
                   <template v-if="isImageDoc(doc.path)">
-                    <img :src="'/' + doc.path" style="max-height: 80px; max-width: 100%; object-fit: contain; border-radius: 4px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.2);" />
+                    <img :src="getDocViewUrl(doc)" style="max-height: 80px; max-width: 100%; object-fit: contain; border-radius: 4px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.2);" />
                   </template>
                   <template v-else>
                     <div style="font-size: 2.5rem; line-height: 1;">📄</div>
@@ -368,9 +369,16 @@
                   <button type="button" class="btn btn-xs btn-outline" @click="previewDocument(doc)" title="Preview Document">
                     👁️ View
                   </button>
-                  <a :href="'/' + doc.path" target="_blank" download class="btn btn-xs btn-outline" title="Download Document" style="text-decoration: none;">
-                    ⬇️
-                  </a>
+                  <button 
+                    type="button" 
+                    class="btn btn-xs btn-outline" 
+                    :disabled="downloadingDocId === (doc.id || doc.path)" 
+                    @click="downloadDocumentFile(doc)" 
+                    title="Download Document"
+                  >
+                    <span v-if="downloadingDocId === (doc.id || doc.path)">⏳</span>
+                    <span v-else>⬇️</span>
+                  </button>
                   <button type="button" class="btn btn-xs btn-ghost" @click="deleteSingleDoc(doc)" title="Delete Document" style="color: var(--accent-rose); padding: 2px 6px;">
                     🗑️
                   </button>
@@ -416,7 +424,8 @@ export default {
       activeFranchiseForDocs: null,
       selectedFilesForUpload: [],
       uploadingDocs: false,
-      previewDoc: null
+      previewDoc: null,
+      downloadingDocId: null
     }; 
   },
   computed: {
@@ -590,6 +599,57 @@ export default {
       } finally {
         this.uploadingDocs = false;
       }
+    },
+    getDocViewUrl(doc) {
+      if (!doc || !doc.path) return '';
+      if (this.activeFranchiseForDocs && this.activeFranchiseForDocs.id) {
+        return `/api/admin/franchisees/${this.activeFranchiseForDocs.id}/documents/view?doc_id=${encodeURIComponent(doc.id || '')}&path=${encodeURIComponent(doc.path || '')}`;
+      }
+      const cleanPath = doc.path.replace(/^\/+/, '');
+      return '/' + cleanPath;
+    },
+    async downloadDocumentFile(doc) {
+      if (!doc) return;
+      const docIdentifier = doc.id || doc.path;
+      this.downloadingDocId = docIdentifier;
+      const filename = doc.name || (doc.path ? doc.path.split('/').pop() : 'document.pdf');
+
+      try {
+        if (this.activeFranchiseForDocs && this.activeFranchiseForDocs.id) {
+          const downloadApiUrl = `/api/admin/franchisees/${this.activeFranchiseForDocs.id}/documents/download?doc_id=${encodeURIComponent(doc.id || '')}&path=${encodeURIComponent(doc.path || '')}`;
+          const response = await axios.get(downloadApiUrl, { responseType: 'blob' });
+          const contentType = response.headers['content-type'] || 'application/pdf';
+          const blob = new Blob([response.data], { type: contentType });
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.setAttribute('download', filename);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+          return;
+        }
+      } catch (err) {
+        if (err.response && err.response.data instanceof Blob) {
+          try {
+            const text = await err.response.data.text();
+            const json = JSON.parse(text);
+            if (json && json.message) {
+              Swal.fire('Document Error', json.message, 'warning');
+              return;
+            }
+          } catch (_) {}
+        }
+        Swal.fire('Download Error', err.response?.data?.message || 'Failed to download document from server.', 'error');
+        return;
+      } finally {
+        this.downloadingDocId = null;
+      }
+
+      // Fallback: direct download link with download query param
+      const cleanPath = (doc.path || '').replace(/^\/+/, '');
+      window.open(`/franchise_documents/${cleanPath.split('/').pop()}?download=1`, '_blank');
     },
     previewDocument(doc) {
       this.previewDoc = doc;
