@@ -66,6 +66,9 @@
               <div>
                 ₹{{ (b.payment_status === 'paid' ? parseFloat(b.total_price) : parseFloat(b.paid_amount || 0)).toFixed(2) }}
               </div>
+              <div v-if="parseFloat(b.total_price) > 0" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 2px;">
+                Total: ₹{{ parseFloat(b.total_price).toFixed(2) }} <span style="font-size: 0.68rem; color: #6366f1; font-weight: 600;">(incl. 18% GST)</span>
+              </div>
               <div v-if="b.payment_status === 'partially_paid'" style="font-size: 0.72rem; color: var(--accent-amber); font-weight: 600; margin-top: 2px;">
                 ₹{{ (parseFloat(b.total_price) - parseFloat(b.paid_amount || 0)).toFixed(2) }} Due
               </div>
@@ -120,6 +123,9 @@
                   </button>
                 </template>
                 <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
+                <button class="btn btn-sm btn-ghost" style="border: 1px solid var(--border-color); font-size: 0.75rem; padding: 0.2rem 0.55rem; color: var(--text-primary);" @click="downloadInvoice(b.id)" title="View & Print Tax Invoice">
+                  📄 Invoice
+                </button>
                 <span v-if="b.status === 'completed'" class="text-muted" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.08); border-radius: 4px; border: 1px solid rgba(16,185,129,0.2); color: var(--accent-emerald);" title="Wash has completed and is not editable">
                   🔒 Completed
                 </span>
@@ -213,9 +219,9 @@
             <div style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color);">
               <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem;">
                 <span>Base Plan Price</span>
-                <span>₹{{ selectedBasePlan ? selectedBasePlan.price : '0.00' }}</span>
+                <span>₹{{ selectedBasePlan ? Number(selectedBasePlan.price).toFixed(2) : '0.00' }}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-cyan);">
+              <div v-if="addonTotal > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-cyan);">
                 <span>Add-ons ({{ bf.addon_ids.length }} items)</span>
                 <span>+ ₹{{ addonTotal.toFixed(2) }}</span>
               </div>
@@ -231,8 +237,16 @@
                 <span>Earning Money Applied</span>
                 <span>- ₹{{ appliedEarningMoney.toFixed(2) }}</span>
               </div>
-              <div style="border-top: 1px dashed var(--border-color); margin: 0.5rem 0; padding-top: 0.5rem; display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem;">
-                <span>Total Amount</span>
+              <div v-if="bf.payment_method !== 'subscription'" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--text-secondary); border-top: 1px dashed var(--border-color); padding-top: 0.3rem;">
+                <span>Taxable Subtotal</span>
+                <span>₹{{ taxableSubtotal.toFixed(2) }}</span>
+              </div>
+              <div v-if="bf.payment_method !== 'subscription'" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: #6366f1; font-weight: 600;">
+                <span>GST (18%)</span>
+                <span>+ ₹{{ calculatedGst.toFixed(2) }}</span>
+              </div>
+              <div style="border-top: 1px solid var(--border-color); margin: 0.5rem 0 0 0; padding-top: 0.5rem; display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem;">
+                <span>Total Amount <small style="font-size: 0.72rem; font-weight: 500; color: var(--text-secondary);">(incl. 18% GST)</small></span>
                 <span style="color: var(--accent-emerald);">₹{{ calculatedTotal.toFixed(2) }}</span>
               </div>
               <div v-if="bf.payment_type === 'partial' && calculatedTotal > 99" style="border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">
@@ -637,10 +651,19 @@ export default {
       if (total <= 0) return 0;
       return Math.min(parseFloat(this.userEarningMoney || 0), total);
     },
-    calculatedTotal() {
+    taxableSubtotal() {
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       const total = base + this.addonTotal;
       return Math.max(0, total - this.appliedCouponDiscount - this.appliedEPoints - this.appliedEarningMoney);
+    },
+    calculatedGst() {
+      if (this.bf.payment_method === 'subscription') return 0;
+      if (this.taxableSubtotal <= 0) return 0;
+      return Math.round(this.taxableSubtotal * 0.18 * 100) / 100;
+    },
+    calculatedTotal() {
+      if (this.bf.payment_method === 'subscription') return 0;
+      return Math.round((this.taxableSubtotal + this.calculatedGst) * 100) / 100;
     }
   },
   watch: {
@@ -1250,6 +1273,20 @@ export default {
         Swal.fire('Error', e.response?.data?.message || 'Failed to reschedule booking', 'error');
       } finally {
         this.submittingPostpone = false;
+      }
+    },
+    async downloadInvoice(id) {
+      try {
+        const response = await axios.get(`/api/bookings/${id}/invoice`);
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(response.data);
+          printWindow.document.close();
+        } else {
+          Swal.fire('Popup Blocked', 'Please allow popups to view and print the invoice.', 'warning');
+        }
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Failed to load invoice.', 'error');
       }
     },
   },

@@ -389,14 +389,22 @@
           <div style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--border-color);">
             <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem;">
               <span>Base Plan Price</span>
-              <span>₹{{ selectedBasePlan ? selectedBasePlan.price : '0.00' }}</span>
+              <span>₹{{ selectedBasePlan ? Number(selectedBasePlan.price).toFixed(2) : '0.00' }}</span>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-cyan);">
               <span>Add-ons ({{ changePlanForm.addons.length }} items)</span>
               <span>+ ₹{{ addonTotal.toFixed(2) }}</span>
             </div>
-            <div style="border-top: 1px dashed var(--border-color); margin: 0.5rem 0; padding-top: 0.5rem; display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem;">
-              <span>Total</span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--text-secondary); border-top: 1px dashed var(--border-color); padding-top: 0.3rem;">
+              <span>Taxable Subtotal</span>
+              <span>₹{{ taxableSubtotal.toFixed(2) }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: #6366f1; font-weight: 600;">
+              <span>GST (18%)</span>
+              <span>+ ₹{{ calculatedGst.toFixed(2) }}</span>
+            </div>
+            <div style="border-top: 1px solid var(--border-color); margin: 0.5rem 0 0 0; padding-top: 0.5rem; display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem;">
+              <span>Total (incl. 18% GST)</span>
               <span style="color: var(--accent-emerald);">₹{{ calculatedTotal.toFixed(2) }}</span>
             </div>
           </div>
@@ -513,9 +521,15 @@ export default {
     addonTotal() {
       return this.changePlanForm.addons.reduce((sum, a) => sum + parseFloat(a.price || 0), 0);
     },
-    calculatedTotal() {
+    taxableSubtotal() {
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       return base + this.addonTotal;
+    },
+    calculatedGst() {
+      return Math.round(this.taxableSubtotal * 0.18 * 100) / 100;
+    },
+    calculatedTotal() {
+      return Math.round((this.taxableSubtotal + this.calculatedGst) * 100) / 100;
     }
   },
   watch: {
@@ -721,6 +735,7 @@ export default {
         const payload = {
           package_id: this.changePlanForm.package_id,
           total_price: this.changePlanForm.total_price,
+          gst_amount: this.calculatedGst,
           addon_services: this.changePlanForm.addons.map(a => ({ name: a.name, price: a.price })),
           addon_price: this.addonTotal
         };

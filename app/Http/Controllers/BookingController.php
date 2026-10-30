@@ -272,11 +272,16 @@ class BookingController extends Controller
             ]);
         }
 
+        // Calculate 18% GST on taxable subtotal (unless subscription booking)
+        $taxableSubtotal = max(0, (float)$price);
+        $gstAmount = ($request->payment_method === 'subscription') ? 0.00 : round($taxableSubtotal * 0.18, 2);
+        $totalPrice = round($taxableSubtotal + $gstAmount, 2);
+
         // Determine payment type and advance amount
         $paymentType = 'full';
-        $advanceAmount = $price;
+        $advanceAmount = $totalPrice;
         $paymentMethod = $request->payment_method;
-        if ($request->input('payment_type') === 'partial' && $price > 99) {
+        if ($request->input('payment_type') === 'partial' && $totalPrice > 99) {
             $paymentType = 'partial';
             $advanceAmount = 99.00;
             if ($request->filled('remaining_payment_method')) {
@@ -286,7 +291,7 @@ class BookingController extends Controller
 
         // For online payments or advance bookings, mark as pending_payment until Cashfree checkout completes
         if ($request->payment_method === 'online' || $paymentType === 'partial') {
-            if ($price <= 0) {
+            if ($totalPrice <= 0) {
                 $paymentStatus = 'paid';
             } else {
                 $paymentStatus = 'pending_payment';
@@ -312,7 +317,8 @@ class BookingController extends Controller
             'payment_type' => $paymentType,
             'advance_amount' => $advanceAmount,
             'paid_amount' => 0.00,
-            'total_price' => $price,
+            'total_price' => $totalPrice,
+            'gst_amount' => $gstAmount,
             'addon_price' => $addonPrice,
             'addon_services' => empty($addonServices) ? null : $addonServices,
             'coupon_code' => $couponCode,
@@ -652,5 +658,21 @@ class BookingController extends Controller
                 : 'Payment method updated to Online.',
             'booking' => $booking
         ]);
+    }
+
+    public function downloadInvoice(Request $request, $id)
+    {
+        $user = $request->user();
+        $booking = Booking::with(['customer', 'vehicle', 'franchisee', 'package'])
+            ->where(function ($query) use ($user) {
+                if ($user->role === 'customer') {
+                    $query->where('customer_id', $user->id);
+                } elseif ($user->role === 'franchisee') {
+                    $query->where('franchisee_id', $user->franchisee->id ?? 0);
+                }
+            })
+            ->findOrFail($id);
+
+        return view('invoice.booking', compact('booking'));
     }
 }

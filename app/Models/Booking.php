@@ -22,6 +22,7 @@ class Booking extends Model
         'payment_status',
         'payment_method',
         'total_price',
+        'gst_amount',
         'addon_services',
         'addon_price',
         'cashfree_order_id',
@@ -42,6 +43,7 @@ class Booking extends Model
     protected $casts = [
         'addon_services' => 'array',
         'service_photos' => 'array',
+        'gst_amount' => 'decimal:2',
         'earning_money_used' => 'decimal:2',
         'advance_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',

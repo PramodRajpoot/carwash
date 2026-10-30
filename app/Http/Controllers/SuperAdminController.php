@@ -257,8 +257,13 @@ class SuperAdminController extends Controller
             'booking_date'  => 'required|date',
             'slot_time'     => 'required|string',
             'total_price'   => 'required|numeric|min:0',
+            'gst_amount'    => 'nullable|numeric|min:0',
             'payment_status'=> 'required|in:unpaid,paid,partially_paid',
         ]);
+
+        $gstAmount = $request->filled('gst_amount')
+            ? (float)$request->gst_amount
+            : round((float)$request->total_price * 0.18 / 1.18, 2);
 
         $booking = Booking::create([
             'customer_id'   => $request->customer_id,
@@ -268,6 +273,7 @@ class SuperAdminController extends Controller
             'booking_date'  => $request->booking_date,
             'slot_time'     => $request->slot_time,
             'total_price'   => $request->total_price,
+            'gst_amount'    => $gstAmount,
             'payment_status'=> $request->payment_status,
             'status'        => $request->franchisee_id ? 'assigned' : 'pending',
             'payment_method'=> 'manual',
@@ -340,15 +346,21 @@ class SuperAdminController extends Controller
         $request->validate([
             'package_id'      => 'required|exists:service_packages,id',
             'total_price'     => 'required|numeric|min:0',
+            'gst_amount'      => 'nullable|numeric|min:0',
             'addon_services'  => 'nullable|array',
             'addon_services.*.name'  => 'required_with:addon_services|string',
             'addon_services.*.price' => 'required_with:addon_services|numeric|min:0',
             'addon_price'     => 'nullable|numeric|min:0',
         ]);
 
+        $gstAmount = $request->filled('gst_amount')
+            ? (float)$request->gst_amount
+            : round((float)$request->total_price * 0.18 / 1.18, 2);
+
         $updateData = [
             'package_id'  => $request->package_id,
             'total_price' => $request->total_price,
+            'gst_amount'  => $gstAmount,
         ];
 
         if ($request->has('addon_services')) {

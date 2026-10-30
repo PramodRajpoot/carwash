@@ -142,10 +142,11 @@ class EarningMoneyTest extends TestCase
         $data = $response->json();
 
         // Total price is 500, customer has 300 earning money.
-        // Discount should be 300, remaining total_price should be 200.
+        // Discount should be 300, remaining taxable subtotal should be 200, plus 18% GST = 236.00.
         $this->assertDatabaseHas('bookings', [
             'id' => $data['booking']['id'],
-            'total_price' => 200.00,
+            'total_price' => 236.00,
+            'gst_amount' => 36.00,
             'earning_money_used' => 300.00,
         ]);
 

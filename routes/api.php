@@ -94,6 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings/{id}/cancel',  [BookingController::class, 'cancelBooking']);
     Route::post('/bookings/{id}/postpone',[BookingController::class, 'postponeBooking']);
     Route::post('/bookings/{id}/payment-method', [BookingController::class, 'updatePaymentMethod']);
+    Route::get('/bookings/{id}/invoice',  [BookingController::class, 'downloadInvoice']);
 
     // Cashfree Payment
     Route::post('/cashfree/create-order',       [CashfreeController::class, 'createOrder']);
