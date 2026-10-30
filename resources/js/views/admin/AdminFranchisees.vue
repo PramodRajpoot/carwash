@@ -574,7 +574,9 @@ export default {
       this.uploadingDocs = true;
       try {
         const { data } = await axios.post(`/api/admin/franchisees/${this.activeFranchiseForDocs.id}/upload-document`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: {
+            'Accept': 'application/json'
+          }
         });
 
         this.activeFranchiseForDocs.documents = data.documents;
@@ -595,7 +597,17 @@ export default {
           showConfirmButton: false
         });
       } catch (error) {
-        Swal.fire('Error', error.response?.data?.message || 'Failed to upload documents.', 'error');
+        let msg = 'Failed to upload documents.';
+        if (error.response?.status === 413) {
+          msg = 'File size is too large for the web server (HTTP 413 Request Entity Too Large). Please increase client_max_body_size in Nginx (e.g. 50M).';
+        } else if (error.response?.status === 401) {
+          msg = 'Your session has expired. Please log in again.';
+        } else if (error.response?.data?.message) {
+          msg = error.response.data.message;
+        } else if (error.response?.data?.errors) {
+          msg = Object.values(error.response.data.errors).flat().join('\n');
+        }
+        Swal.fire('Upload Failed', msg, 'error');
       } finally {
         this.uploadingDocs = false;
       }

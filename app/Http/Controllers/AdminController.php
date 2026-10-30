@@ -431,10 +431,41 @@ class AdminController extends Controller
     {
         try {
             $franchisee = Franchisee::findOrFail($id);
+
+            // Check if POST was truncated due to PHP post_max_size
+            if (empty($_FILES) && empty($request->all()) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
+                $postMax = ini_get('post_max_size');
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => "The uploaded file exceeds the PHP post_max_size limit ({$postMax}). Please increase post_max_size and upload_max_filesize on the server (e.g. 50M) or upload a smaller file."
+                ], 422);
+            }
+
+            // Check if any uploaded file failed due to PHP upload_max_filesize
+            $allUploadedFiles = $request->allFiles();
+            foreach ($allUploadedFiles as $fileGroup) {
+                $fileList = is_array($fileGroup) ? $fileGroup : [$fileGroup];
+                foreach ($fileList as $f) {
+                    if ($f && !$f->isValid()) {
+                        $uploadMax = ini_get('upload_max_filesize');
+                        $errCode = $f->getError();
+                        if ($errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE) {
+                            return response()->json([
+                                'status'  => 'error',
+                                'message' => "File '{$f->getClientOriginalName()}' exceeds the PHP upload limit ({$uploadMax}). Please increase upload_max_filesize in php.ini on the server (e.g. 50M) or upload a smaller file."
+                            ], 422);
+                        }
+                    }
+                }
+            }
+
             $request->validate([
-                'document'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+                'document'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:20480',
                 'documents'   => 'nullable|array',
-                'documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+                'documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:20480',
+            ], [
+                'documents.*.max'   => 'Each document must not exceed 20MB in size.',
+                'documents.*.mimes' => 'Each document must be a PDF, JPG, JPEG, or PNG file.',
             ]);
 
             $files = [];

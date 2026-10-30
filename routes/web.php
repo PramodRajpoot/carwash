@@ -21,6 +21,10 @@ Route::get('/cashfree/return', [\App\Http\Controllers\CashfreeController::class,
 // Direct franchise documents stream / download fallback
 Route::get('/franchise_documents/{filename}', [\App\Http\Controllers\AdminController::class, 'serveFranchiseDocument']);
 
+Route::get('/login', function () {
+    return view('app');
+})->name('login');
+
 Route::get('/{any}', function () {
     return view('app');
 })->where('any', '.*');
