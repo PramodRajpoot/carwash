@@ -587,7 +587,7 @@ class AdminController extends Controller
 
     public function getPackages()
     {
-        return response()->json(ServicePackage::orderBy('vehicle_type')->get());
+        return response()->json(ServicePackage::onlySubscriptions()->orderBy('vehicle_type')->get());
     }
 
     public function createPackage(Request $request)
@@ -601,7 +601,11 @@ class AdminController extends Controller
             'max_bookings'   => 'required|integer|min:1',
         ]);
 
-        $package = ServicePackage::create($request->only('name', 'description', 'vehicle_type', 'price', 'frequency_days', 'max_bookings'));
+        $data = $request->only('name', 'description', 'vehicle_type', 'price', 'frequency_days', 'max_bookings');
+        $data['is_subscription'] = true;
+        $data['is_addon'] = false;
+
+        $package = ServicePackage::create($data);
 
         return response()->json(['status' => 'success', 'message' => 'Package created.', 'package' => $package], 201);
     }
@@ -618,7 +622,9 @@ class AdminController extends Controller
             'max_bookings'   => 'nullable|integer|min:1',
         ]);
 
-        $package->update($request->only('name', 'description', 'vehicle_type', 'price', 'frequency_days', 'max_bookings'));
+        $data = $request->only('name', 'description', 'vehicle_type', 'price', 'frequency_days', 'max_bookings');
+        $data['is_subscription'] = true;
+        $package->update($data);
         return response()->json(['status' => 'success', 'message' => 'Package updated.', 'package' => $package]);
     }
 

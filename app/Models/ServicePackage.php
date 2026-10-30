@@ -19,11 +19,13 @@ class ServicePackage extends Model
         'max_bookings',
         'custom_badge',
         'is_addon',
+        'is_subscription',
         'image_path',
     ];
 
     protected $casts = [
         'is_addon' => 'boolean',
+        'is_subscription' => 'boolean',
         'price' => 'float',
     ];
 
@@ -35,6 +37,18 @@ class ServicePackage extends Model
     public function scopeOnlyAddons($query)
     {
         return $query->where('is_addon', true);
+    }
+
+    public function scopeOnlySubscriptions($query)
+    {
+        return $query->where(function($q) {
+            $q->where('is_subscription', true)
+              ->orWhere(function($sub) {
+                  $sub->where('is_addon', false)
+                      ->where('frequency_days', '>=', 30)
+                      ->where('max_bookings', '>', 1);
+              });
+        });
     }
 
     public function category()

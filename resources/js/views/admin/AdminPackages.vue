@@ -108,7 +108,7 @@ export default {
     }
   },
   methods: {
-    openCreate() { this.form = { id: null, name: '', description: '', vehicle_type: '', price: '', max_bookings: '', frequency_days: 30 }; this.modal = true; },
+    openCreate() { this.form = { id: null, name: '', description: '', vehicle_type: '', price: '', max_bookings: 4, frequency_days: 30 }; this.modal = true; },
     openEdit(p) { this.form = { ...p }; this.modal = true; },
     async save() {
       this.saving = true;
@@ -124,7 +124,13 @@ export default {
       await axios.delete(`/api/admin/packages/${p.id}`);
       await this.load();
     },
-    async load() { const { data } = await axios.get('/api/admin/packages'); this.packages = data; this.loading = false; },
+    async load() {
+      const { data } = await axios.get('/api/admin/packages');
+      this.packages = Array.isArray(data)
+        ? data.filter(p => p.is_subscription || (!p.is_addon && (p.frequency_days >= 30 || p.max_bookings > 1)))
+        : [];
+      this.loading = false;
+    },
   },
   mounted() { this.load(); },
 };
