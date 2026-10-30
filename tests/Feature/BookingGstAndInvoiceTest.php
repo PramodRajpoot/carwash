@@ -7,12 +7,12 @@ use App\Models\Franchisee;
 use App\Models\ServicePackage;
 use App\Models\User;
 use App\Models\Vehicle;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class BookingGstAndInvoiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected User $customer;
     protected Franchisee $franchisee;
