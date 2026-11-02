@@ -254,7 +254,7 @@ class SuperAdminController extends Controller
             'vehicle_id'    => 'required|exists:vehicles,id',
             'package_id'    => 'nullable|exists:service_packages,id',
             'franchisee_id' => 'nullable|exists:franchisees,id',
-            'booking_date'  => 'required|date',
+            'booking_date'  => 'required|date|after_or_equal:today',
             'slot_time'     => 'required|string',
             'total_price'   => 'required|numeric|min:0',
             'gst_amount'    => 'nullable|numeric|min:0',
@@ -319,7 +319,7 @@ class SuperAdminController extends Controller
         }
 
         $request->validate([
-            'booking_date' => 'required|date',
+            'booking_date' => 'required|date|after_or_equal:today',
             'slot_time'    => 'required|string'
         ]);
 
@@ -353,13 +353,14 @@ class SuperAdminController extends Controller
             'addon_price'     => 'nullable|numeric|min:0',
         ]);
 
+        $totalPrice = (float) round($request->total_price);
         $gstAmount = $request->filled('gst_amount')
-            ? (float)$request->gst_amount
-            : round((float)$request->total_price * 0.18 / 1.18, 2);
+            ? (float) round($request->gst_amount)
+            : (float) round($totalPrice * 0.18 / 1.18);
 
         $updateData = [
             'package_id'  => $request->package_id,
-            'total_price' => $request->total_price,
+            'total_price' => $totalPrice,
             'gst_amount'  => $gstAmount,
         ];
 
@@ -639,7 +640,11 @@ class SuperAdminController extends Controller
         }
 
         if ($request->has('status') && !empty($request->status)) {
-            $query->where('status', $request->status);
+            if ($request->status === 'blocked' || $request->status === 'suspended') {
+                $query->whereIn('status', ['blocked', 'suspended']);
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         $perPage = $request->input('per_page', 10);
@@ -674,12 +679,18 @@ class SuperAdminController extends Controller
     public function toggleCustomerStatus($id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id);
-        $customer->status = ($customer->status === 'active') ? 'blocked' : 'active';
+        $isCurrentlyBlocked = in_array($customer->status, ['blocked', 'suspended']);
+        $newStatus = $isCurrentlyBlocked ? 'active' : 'suspended';
+        $customer->status = $newStatus;
         $customer->save();
+
+        if ($newStatus === 'suspended') {
+            $customer->tokens()->delete();
+        }
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Customer status updated successfully.',
+            'message' => 'Customer has been ' . ($newStatus === 'suspended' ? 'blocked and suspended' : 'activated') . ' successfully.',
             'customer_status' => $customer->status
         ]);
     }

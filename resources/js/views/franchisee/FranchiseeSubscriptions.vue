@@ -41,7 +41,7 @@
           </div>
           <div>
             <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">New Date</label>
-            <input type="date" v-model="rescheduleForm.booking_date" class="form-input" />
+            <input type="date" v-model="rescheduleForm.booking_date" class="form-input" :min="minDate" />
           </div>
           <div>
             <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Time Slot</label>
@@ -69,6 +69,15 @@ export default {
       submitting: false, today: new Date().toISOString().split('T')[0],
       timeSlots: ['07:00 AM - 09:00 AM','09:00 AM - 11:00 AM','11:00 AM - 01:00 PM','02:00 PM - 04:00 PM','04:00 PM - 06:00 PM'],
     };
+  },
+  computed: {
+    minDate() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
   },
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },

@@ -90,9 +90,13 @@ class SuperAdminSlotController extends Controller
             ->where('current_bookings', 0)
             ->delete();
 
-        // For each selected master slot, ensure at least a default entry exists (today's date)
+        // For each selected master slot, ensure slots have master slot capacity and at least a default entry exists
         $today = now()->format('Y-m-d');
         foreach ($selectedMasterSlots as $ms) {
+            Slot::where('franchisee_id', $franchiseeId)
+                ->where('time_range', $ms->time_range)
+                ->update(['max_bookings' => $ms->default_max_bookings]);
+
             Slot::firstOrCreate(
                 ['franchisee_id' => $franchiseeId, 'date' => $today, 'time_range' => $ms->time_range],
                 ['max_bookings' => $ms->default_max_bookings, 'current_bookings' => 0]

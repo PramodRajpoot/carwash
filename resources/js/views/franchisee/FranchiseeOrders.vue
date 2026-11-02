@@ -250,7 +250,7 @@
           <div v-if="form.status === 'postponed'" style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
             <div class="form-group">
               <label>New Booking Date</label>
-              <input v-model="form.postponed_date" type="date" class="form-input" required />
+              <input v-model="form.postponed_date" type="date" class="form-input" :min="minDate" required />
             </div>
             <div class="form-group">
               <label>New Slot Time</label>
@@ -419,6 +419,13 @@ export default {
     },
     totalPages() {
       return Math.ceil(this.orders.length / this.itemsPerPage) || 1;
+    },
+    minDate() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
   },
   methods: {
@@ -501,7 +508,7 @@ export default {
       this.form.status = o.status;
       this.form.washer_id = o.washer_id || null;
       this.form.payment_status = o.payment_status;
-      this.form.postponed_date = o.booking_date;
+      this.form.postponed_date = (o.booking_date && o.booking_date >= this.minDate) ? o.booking_date : this.minDate;
       this.form.postponed_slot = o.slot_time;
       this.loadWashers();
     },

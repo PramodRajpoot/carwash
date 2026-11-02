@@ -22,7 +22,7 @@
         <select class="form-input" v-model="filters.status" @change="fetchCustomers(1)">
           <option value="">All Statuses</option>
           <option value="active">Active</option>
-          <option value="blocked">Blocked</option>
+          <option value="suspended">Suspended / Blocked</option>
         </select>
       </div>
       <div>
@@ -63,7 +63,7 @@
               <td>{{ customer.bookings_count }}</td>
               <td>
                 <span :class="['badge', customer.status === 'active' ? 'badge-success' : 'badge-danger']">
-                  {{ customer.status }}
+                  {{ (customer.status === 'blocked' || customer.status === 'suspended') ? 'Suspended' : customer.status }}
                 </span>
               </td>
               <td>
@@ -127,7 +127,7 @@
                 @click="toggleStatus"
                 :disabled="isToggling"
               >
-                {{ selectedCustomer.status === 'active' ? 'Block Customer' : 'Unblock Customer' }}
+                {{ selectedCustomer.status === 'active' ? 'Block & Suspend Customer' : 'Activate Customer' }}
               </button>
             </div>
           </div>

@@ -239,17 +239,22 @@ class AdminController extends Controller
         $request->validate([
             'franchisee_id'  => 'nullable|exists:franchisees,id',
             'washer_id'      => 'nullable|exists:washers,id',
-            'booking_date'   => 'nullable|date',
+            'booking_date'   => 'nullable|date|after_or_equal:today',
             'slot_time'      => 'nullable|string',
             'status'         => 'nullable|string|in:pending,assigned,ongoing,completed,cancelled,postponed',
             'payment_status' => 'nullable|string|in:unpaid,paid,partially_paid,pending_payment,failed,refunded',
             'total_price'    => 'nullable|numeric',
         ]);
 
-        $booking->update($request->only('franchisee_id', 'washer_id', 'booking_date', 'slot_time', 'status', 'payment_status', 'total_price'));
+        $data = $request->only('franchisee_id', 'washer_id', 'booking_date', 'slot_time', 'status', 'payment_status');
+        if ($request->has('total_price')) {
+            $data['total_price'] = (float) round($request->total_price);
+        }
+
+        $booking->update($data);
 
         if ($booking->payment_status === 'paid' && $booking->paid_amount < $booking->total_price) {
-            $booking->paid_amount = $booking->total_price;
+            $booking->paid_amount = (float) round($booking->total_price);
             $booking->save();
         }
 

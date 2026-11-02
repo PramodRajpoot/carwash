@@ -235,7 +235,7 @@
           <div class="grid grid-2 gap-2">
             <div class="form-group">
               <label>Wash Date</label>
-              <input v-model="createForm.booking_date" type="date" class="form-input" required />
+              <input v-model="createForm.booking_date" type="date" class="form-input" :min="minDate" required />
             </div>
             <div class="form-group">
               <label>Time Slot</label>
@@ -251,7 +251,7 @@
           <div class="grid grid-2 gap-2">
             <div class="form-group">
               <label>Total Price (₹)</label>
-              <input v-model="createForm.total_price" type="number" min="0" class="form-input" required />
+              <input v-model.number="createForm.total_price" type="number" step="1" min="0" class="form-input" required />
             </div>
             <div class="form-group">
               <label>Payment Status</label>
@@ -299,7 +299,7 @@
         <form @submit.prevent="submitReschedule">
           <div class="form-group">
             <label>New Date</label>
-            <input v-model="rescheduleForm.booking_date" type="date" class="form-input" required />
+            <input v-model="rescheduleForm.booking_date" type="date" class="form-input" :min="minDate" required />
           </div>
           <div class="form-group">
             <label>New Time Slot</label>
@@ -411,8 +411,8 @@
 
           <!-- Custom Price Override -->
           <div class="form-group">
-            <label style="font-weight: 600;">Final Price (₹) <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">— override if needed</span></label>
-            <input v-model="changePlanForm.total_price" type="number" step="0.01" class="form-input" required />
+            <label style="font-weight: 600;">Final Price (₹) <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">— override if needed (integer only)</span></label>
+            <input v-model.number="changePlanForm.total_price" type="number" step="1" min="0" class="form-input" required />
           </div>
 
           <div class="flex gap-2" style="margin-top: 1.5rem;">
@@ -526,10 +526,17 @@ export default {
       return base + this.addonTotal;
     },
     calculatedGst() {
-      return Math.round(this.taxableSubtotal * 0.18 * 100) / 100;
+      return Math.round(this.taxableSubtotal * 0.18);
     },
     calculatedTotal() {
-      return Math.round((this.taxableSubtotal + this.calculatedGst) * 100) / 100;
+      return Math.round(this.taxableSubtotal + this.calculatedGst);
+    },
+    minDate() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
   },
   watch: {
@@ -680,7 +687,10 @@ export default {
         return;
       }
       this.rescheduleModalOrder = o;
-      this.rescheduleForm = { booking_date: o.booking_date, slot_time: o.slot_time };
+      this.rescheduleForm = {
+        booking_date: (o.booking_date && o.booking_date >= this.minDate) ? o.booking_date : this.minDate,
+        slot_time: o.slot_time
+      };
     },
     async submitReschedule() {
       this.submitting = true;
@@ -727,17 +737,17 @@ export default {
       this.recalcTotal();
     },
     recalcTotal() {
-      this.changePlanForm.total_price = this.calculatedTotal.toFixed(2);
+      this.changePlanForm.total_price = Math.round(this.calculatedTotal);
     },
     async submitChangePlan() {
       this.submitting = true;
       try {
         const payload = {
           package_id: this.changePlanForm.package_id,
-          total_price: this.changePlanForm.total_price,
-          gst_amount: this.calculatedGst,
+          total_price: Math.round(Number(this.changePlanForm.total_price)),
+          gst_amount: Math.round(Number(this.calculatedGst)),
           addon_services: this.changePlanForm.addons.map(a => ({ name: a.name, price: a.price })),
-          addon_price: this.addonTotal
+          addon_price: Math.round(Number(this.addonTotal))
         };
         await axios.put(`/api/super-admin/orders/${this.changePlanModalOrder.id}/change-plan`, payload);
         this.changePlanModalOrder = null;

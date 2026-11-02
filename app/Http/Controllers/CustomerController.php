@@ -87,6 +87,7 @@ class CustomerController extends Controller
             'first_booking_discount' => $user->first_booking_discount,
             'earning_money'         => $user->earning_money,
             'address'               => $savedAddress,
+            'status'                => $user->status,
         ]);
     }
 
@@ -141,12 +142,20 @@ class CustomerController extends Controller
 
     public function buySubscription(Request $request)
     {
+        $user = $request->user();
+
+        if ($user->status !== 'active') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Your account is currently blocked/suspended. You cannot purchase subscriptions. Please contact support.',
+            ], 403);
+        }
+
         $request->validate([
             'package_id' => 'required|exists:service_packages,id',
         ]);
 
         $package = ServicePackage::findOrFail($request->package_id);
-        $user = $request->user();
 
         Subscription::where('customer_id', $user->id)
             ->where('status', 'active')

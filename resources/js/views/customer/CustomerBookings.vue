@@ -164,6 +164,9 @@
     <div v-if="showBookingModal" class="modal-overlay" @click.self="showBookingModal = false">
       <div class="modal-content">
         <h3>Book a Service</h3>
+        <div v-if="isCustomerBlocked" class="alert alert-error" style="background:rgba(239,68,68,0.15);border:1px solid var(--accent-rose);color:var(--accent-rose);margin-bottom:1rem;padding:0.75rem 1rem;border-radius:var(--radius-md);">
+          🚫 <strong>Account Suspended:</strong> Your customer account is suspended/blocked. You cannot make new service bookings. Please contact support.
+        </div>
         <div v-if="bookingMsg" class="alert" :class="bookingError ? 'alert-error' : 'alert-success'">{{ bookingMsg }}</div>
         <form @submit.prevent="createBooking">
           <div class="form-group">
@@ -178,8 +181,17 @@
               ⚠️ No registered vehicles found. <router-link to="/customer/vehicles" style="color: var(--accent-cyan); text-decoration: underline;">Add vehicle in My Garage</router-link>
             </div>
           </div>
-          <div class="form-group"><label>Center</label>
-            <select v-model="bf.franchisee_id" class="form-select" required @change="fetchSlots"><option value="">Select Center</option><option v-for="c in centers" :key="c.id" :value="c.id">{{ c.center_name }} — {{ c.city }}</option></select>
+          <div class="form-group">
+            <label style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Center</span>
+              <span v-if="bf.franchisee_id && isCenterRemembered" style="font-size: 0.75rem; color: var(--accent-emerald); font-weight: 600;">
+                ✓ Remembered Center
+              </span>
+            </label>
+            <select v-model="bf.franchisee_id" class="form-select" required @change="onCenterChange">
+              <option value="">Select Center</option>
+              <option v-for="c in centers" :key="c.id" :value="c.id">{{ c.center_name }} — {{ c.city }}</option>
+            </select>
           </div>
           <div class="form-group"><label>Package / Main Service</label>
             <select v-model="bf.package_id" class="form-select" required @change="bf.addon_ids = []">
@@ -263,15 +275,37 @@
           </div>
           
           <div class="grid grid-2 gap-2">
-            <div class="form-group"><label>Date</label><input v-model="bf.booking_date" type="date" class="form-input" required @change="fetchSlots"></div>
-            <div class="form-group"><label>Slot</label>
-              <select v-model="bf.slot_time" class="form-select" required :disabled="slotsLoading || availableSlots.length === 0">
+            <div class="form-group">
+              <label>Date</label>
+              <input v-model="bf.booking_date" type="date" class="form-input" :min="minDate" required @change="onBookingDateChange" @input="onBookingDateChange">
+            </div>
+            <div class="form-group">
+              <label>Slot</label>
+              <select v-model="bf.slot_time" class="form-select" required :disabled="slotsLoading || availableSlots.length === 0 || allSlotsFull">
                 <option value="" v-if="slotsLoading">Loading slots...</option>
                 <option value="" v-else-if="!bf.franchisee_id || !bf.booking_date">Select center & date first</option>
-                <option value="" v-else-if="availableSlots.length === 0">No slots available</option>
+                <option value="" v-else-if="availableSlots.length === 0">No slots available for this date</option>
+                <option value="" v-else-if="allSlotsFull">All slots are full for this date</option>
                 <option v-else value="">Choose Slot</option>
-                <option v-for="s in availableSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings">{{ s.time_range }} {{ s.current_bookings >= s.max_bookings ? '(Full)' : '' }}</option>
+                <option v-for="s in availableSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings || s.is_full">
+                  {{ s.time_range }} {{ (s.current_bookings >= s.max_bookings || s.is_full) ? '— (Slot Full)' : '' }}
+                </option>
               </select>
+            </div>
+          </div>
+
+          <!-- Alert message when any slot is booked/full on selected date -->
+          <div v-if="bookedSlots.length > 0 && !slotsLoading" style="margin-top: -0.25rem; margin-bottom: 0.75rem; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.85rem;">
+            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+              <span style="font-size: 1.1rem; line-height: 1.2;">⚠️</span>
+              <div style="flex: 1;">
+                <div v-for="s in bookedSlots" :key="s.time_range" style="font-weight: 600; line-height: 1.45;">
+                  <span style="font-weight: 700;">Slot Full:</span> {{ s.time_range }}
+                </div>
+                <div v-if="allSlotsFull" style="margin-top: 0.25rem; font-size: 0.78rem; font-weight: 500; color: #dc2626;">
+                  All slots are fully booked on this date. Please choose another date.
+                </div>
+              </div>
             </div>
           </div>
 
@@ -480,13 +514,15 @@
           </div>
 
           <div class="flex gap-2" style="margin-top:0.75rem">
-            <button type="submit" class="btn btn-primary" :disabled="bookingLoading">
+            <button type="submit" class="btn btn-primary" :disabled="bookingLoading || isCustomerBlocked">
               {{ bookingLoading ? 'Processing...' : (
-                calculatedTotal <= 0 
-                  ? 'Book Now' 
-                  : (bf.payment_type === 'partial' && calculatedTotal > 99
-                      ? 'Book & Pay ₹99.00 (Advance)'
-                      : 'Book & Pay ₹' + calculatedTotal.toFixed(2))
+                isCustomerBlocked
+                  ? 'Account Suspended'
+                  : (calculatedTotal <= 0 
+                      ? 'Book Now' 
+                      : (bf.payment_type === 'partial' && calculatedTotal > 99
+                          ? 'Book & Pay ₹99.00 (Advance)'
+                          : 'Book & Pay ₹' + calculatedTotal.toFixed(2)))
               ) }}
             </button>
             <button type="button" class="btn btn-ghost" @click="showBookingModal = false">Cancel</button>
@@ -506,23 +542,39 @@
         <form @submit.prevent="submitPostpone">
           <div class="form-group">
             <label>Wash Date</label>
-            <input v-model="pf.booking_date" type="date" class="form-input" required @change="fetchPostponeSlots" />
+            <input v-model="pf.booking_date" type="date" class="form-input" :min="minDate" required @change="onPostponeDateChange" @input="onPostponeDateChange" />
             <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-              You can choose any date before or after today. Completed washes cannot be modified.
+              You can choose today or any future date. Completed washes cannot be modified.
             </small>
           </div>
 
           <div class="form-group">
             <label>Time Slot</label>
-            <select v-model="pf.slot_time" class="form-select" required :disabled="postponeSlotsLoading || !pf.booking_date">
+            <select v-model="pf.slot_time" class="form-select" required :disabled="postponeSlotsLoading || !pf.booking_date || postponeAllSlotsFull">
               <option value="" v-if="postponeSlotsLoading">Loading available slots...</option>
               <option value="" v-else-if="!pf.booking_date">Select date first</option>
               <option value="" v-else-if="postponeSlots.length === 0">No slots available for this date</option>
+              <option value="" v-else-if="postponeAllSlotsFull">All slots are full for this date</option>
               <option v-else value="">Choose Slot</option>
-              <option v-for="s in postponeSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings">
-                {{ s.time_range }} {{ s.current_bookings >= s.max_bookings ? '(Full)' : '' }}
+              <option v-for="s in postponeSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings || s.is_full">
+                {{ s.time_range }} {{ (s.current_bookings >= s.max_bookings || s.is_full) ? '— (Slot Full)' : '' }}
               </option>
             </select>
+          </div>
+
+          <!-- Alert message when any slot is booked/full on reschedule date -->
+          <div v-if="postponeBookedSlots.length > 0 && !postponeSlotsLoading" style="margin-top: 0.5rem; margin-bottom: 0.75rem; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.85rem;">
+            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+              <span style="font-size: 1.1rem; line-height: 1.2;">⚠️</span>
+              <div style="flex: 1;">
+                <div v-for="s in postponeBookedSlots" :key="s.time_range" style="font-weight: 600; line-height: 1.45;">
+                  <span style="font-weight: 700;">Slot Full:</span> {{ s.time_range }}
+                </div>
+                <div v-if="postponeAllSlotsFull" style="margin-top: 0.25rem; font-size: 0.78rem; font-weight: 500; color: #dc2626;">
+                  All slots are fully booked on this date. Please choose another date.
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="flex gap-2" style="margin-top: 1.25rem;">
@@ -552,6 +604,7 @@ export default {
       availableSlots: [],
       slotsLoading: false,
       postponeSlots: [],
+      userStatus: 'active',
       postponeSlotsLoading: false,
       submittingPostpone: false,
       showBookingModal: false,
@@ -656,17 +709,65 @@ export default {
       const total = base + this.addonTotal;
       return Math.max(0, total - this.appliedCouponDiscount - this.appliedEPoints - this.appliedEarningMoney);
     },
+    isCustomerBlocked() {
+      const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
+      const status = this.userStatus || user.status || 'active';
+      return status === 'blocked' || status === 'suspended';
+    },
     calculatedGst() {
       if (this.bf.payment_method === 'subscription') return 0;
       if (this.taxableSubtotal <= 0) return 0;
-      return Math.round(this.taxableSubtotal * 0.18 * 100) / 100;
+      return Math.round(this.taxableSubtotal * 0.18);
     },
     calculatedTotal() {
       if (this.bf.payment_method === 'subscription') return 0;
-      return Math.round((this.taxableSubtotal + this.calculatedGst) * 100) / 100;
+      return Math.round(this.taxableSubtotal + this.calculatedGst);
+    },
+    minDate() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    },
+    bookedSlots() {
+      if (!this.availableSlots || !this.availableSlots.length) return [];
+      return this.availableSlots.filter(s => (s.current_bookings >= s.max_bookings) || s.is_full);
+    },
+    allSlotsFull() {
+      return this.availableSlots.length > 0 && this.bookedSlots.length === this.availableSlots.length;
+    },
+    postponeBookedSlots() {
+      if (!this.postponeSlots || !this.postponeSlots.length) return [];
+      return this.postponeSlots.filter(s => (s.current_bookings >= s.max_bookings) || s.is_full);
+    },
+    postponeAllSlotsFull() {
+      return this.postponeSlots.length > 0 && this.postponeBookedSlots.length === this.postponeSlots.length;
+    },
+    isCenterRemembered() {
+      const saved = localStorage.getItem('selected_franchisee_id');
+      return !!saved && String(this.bf.franchisee_id) === String(saved);
     }
   },
   watch: {
+    'bf.booking_date'(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.onBookingDateChange();
+      }
+    },
+    'bf.franchisee_id'(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        if (newVal) {
+          localStorage.setItem('selected_franchisee_id', newVal);
+        }
+        this.onCenterChange();
+      }
+    },
+    'pf.booking_date'(newVal, oldVal) {
+      if (oldVal && newVal !== oldVal) {
+        this.onPostponeDateChange();
+      }
+    },
     'bf.package_id'(newVal) {
       if (!newVal) {
         this.bf.use_epoints = false;
@@ -889,6 +990,33 @@ export default {
           console.error('Failed to load vehicles for modal:', e);
         }
       }
+      if (this.isCustomerBlocked) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Account Suspended',
+          text: 'Your account is currently blocked/suspended. You cannot book any services. Please contact support.',
+        });
+        return;
+      }
+      if (!this.bf.franchisee_id) {
+        const remembered = localStorage.getItem('selected_franchisee_id');
+        if (remembered && this.centers && this.centers.some(c => String(c.id) === String(remembered))) {
+          this.bf.franchisee_id = Number(remembered);
+        } else if (this.centers && this.centers.length === 1) {
+          this.bf.franchisee_id = this.centers[0].id;
+        } else if (this.bookings && this.bookings.length > 0) {
+          const prev = this.bookings.find(b => b.franchisee_id && this.centers.some(c => c.id === b.franchisee_id));
+          if (prev) {
+            this.bf.franchisee_id = prev.franchisee_id;
+          }
+        }
+      }
+      if (!this.bf.booking_date) {
+        this.bf.booking_date = this.minDate;
+      }
+      if (this.bf.franchisee_id && this.bf.booking_date) {
+        this.fetchSlots();
+      }
       if (preselectedVehicleId) {
         this.bf.vehicle_id = preselectedVehicleId;
       }
@@ -927,6 +1055,14 @@ export default {
         }
         if (ctRes.status === 'fulfilled') {
           this.centers = ctRes.value.data || [];
+          if (!this.bf.franchisee_id) {
+            const remembered = localStorage.getItem('selected_franchisee_id');
+            if (remembered && this.centers.some(c => String(c.id) === String(remembered))) {
+              this.bf.franchisee_id = Number(remembered);
+            } else if (this.centers.length === 1) {
+              this.bf.franchisee_id = this.centers[0].id;
+            }
+          }
         }
         if (pkRes.status === 'fulfilled') {
           this.packages = pkRes.value.data || [];
@@ -935,6 +1071,7 @@ export default {
         let dash = {};
         if (dashRes.status === 'fulfilled') {
           dash = dashRes.value.data || {};
+          this.userStatus = dash.status || user.status || 'active';
           this.bookings = dash.upcoming_services || [];
           this.userPoints = dash.e_points || 0;
           this.userEarningMoney = dash.earning_money || 0;
@@ -956,27 +1093,85 @@ export default {
         }
       } catch (e) { console.error('loadData error:', e); }
     },
-    async fetchSlots() {
+    onCenterChange() {
+      if (this.bf.franchisee_id) {
+        localStorage.setItem('selected_franchisee_id', this.bf.franchisee_id);
+      }
       this.bf.slot_time = '';
       this.availableSlots = [];
-      if (!this.bf.franchisee_id || !this.bf.booking_date) return;
+      if (!this.bf.booking_date) {
+        this.bf.booking_date = this.minDate;
+      }
+      if (this.bf.franchisee_id && this.bf.booking_date) {
+        this.fetchSlots();
+      }
+    },
+    onBookingDateChange() {
+      this.bf.slot_time = '';
+      this.availableSlots = [];
+      this.fetchSlots();
+    },
+    async fetchSlots() {
+      this.bf.slot_time = '';
+      if (!this.bf.franchisee_id || !this.bf.booking_date) {
+        this.availableSlots = [];
+        return;
+      }
+      const reqKey = `${this.bf.franchisee_id}_${this.bf.booking_date}`;
+      if (this.slotsLoading && this._currentSlotsReqKey === reqKey) {
+        return;
+      }
+      this._currentSlotsReqKey = reqKey;
       this.slotsLoading = true;
       try {
-        const { data } = await axios.get('/api/bookings/slots', { params: { franchisee_id: this.bf.franchisee_id, date: this.bf.booking_date } });
-        this.availableSlots = data;
-      } catch (e) { console.error(e); }
-      this.slotsLoading = false;
+        const { data } = await axios.get('/api/bookings/slots', {
+          params: { franchisee_id: this.bf.franchisee_id, date: this.bf.booking_date }
+        });
+        if (this._currentSlotsReqKey === reqKey) {
+          this.availableSlots = Array.isArray(data) ? data : [];
+        }
+      } catch (e) {
+        console.error('fetchSlots error:', e);
+        if (this._currentSlotsReqKey === reqKey) {
+          this.availableSlots = [];
+        }
+      } finally {
+        if (this._currentSlotsReqKey === reqKey) {
+          this.slotsLoading = false;
+        }
+      }
     },
-    async fetchPostponeSlots() {
+    onPostponeDateChange() {
       this.pf.slot_time = '';
       this.postponeSlots = [];
-      if (!this.postponeBooking || !this.pf.booking_date) return;
+      this.fetchPostponeSlots(false);
+    },
+    async fetchPostponeSlots(keepSlot = false) {
+      if (!keepSlot) {
+        this.pf.slot_time = '';
+      }
+      if (!this.postponeBooking || !this.pf.booking_date) {
+        this.postponeSlots = [];
+        return;
+      }
       this.postponeSlotsLoading = true;
       try {
-        const { data } = await axios.get('/api/bookings/slots', { params: { franchisee_id: this.postponeBooking.franchisee_id, date: this.pf.booking_date } });
-        this.postponeSlots = data;
-      } catch (e) { console.error(e); }
-      this.postponeSlotsLoading = false;
+        const { data } = await axios.get('/api/bookings/slots', {
+          params: { franchisee_id: this.postponeBooking.franchisee_id, date: this.pf.booking_date }
+        });
+        this.postponeSlots = Array.isArray(data) ? data : [];
+        if (this.pf.slot_time) {
+          const match = this.postponeSlots.find(s => s.time_range === this.pf.slot_time);
+          if (match && (match.current_bookings >= match.max_bookings || match.is_full)) {
+            this.pf.slot_time = '';
+          }
+        }
+      } catch (e) {
+        console.error('fetchPostponeSlots error:', e);
+        this.postponeSlots = [];
+      } finally {
+        this.postponeSlotsLoading = false;
+      }
     },
 
     /**
@@ -984,10 +1179,23 @@ export default {
      */
     async createBooking() {
       this.bookingMsg = '';
+      if (this.isCustomerBlocked) {
+        this.bookingMsg = 'Your account is currently blocked/suspended. You cannot book any services. Please contact support.';
+        this.bookingError = true;
+        return;
+      }
       if (!this.bf.address || !this.bf.address.trim()) {
         this.bookingMsg = 'Please enter your doorstep service address.';
         this.bookingError = true;
         return;
+      }
+      if (this.bf.slot_time) {
+        const selectedSlot = this.availableSlots.find(s => s.time_range === this.bf.slot_time);
+        if (selectedSlot && (selectedSlot.current_bookings >= selectedSlot.max_bookings || selectedSlot.is_full)) {
+          this.bookingMsg = `Slot Full: ${this.bf.slot_time}. Please select another time slot.`;
+          this.bookingError = true;
+          return;
+        }
       }
 
       this.bookingLoading = true;
@@ -1015,12 +1223,12 @@ export default {
         // For COD / subscription, just show success
         this.bookingMsg = data.message;
         this.bookingError = false;
-        this.showBookingModal = false;
+        const savedCenter = this.bf.franchisee_id || localStorage.getItem('selected_franchisee_id') || '';
         this.bf = {
           vehicle_id: '',
-          franchisee_id: '',
+          franchisee_id: savedCenter ? Number(savedCenter) : '',
           package_id: '',
-          booking_date: '',
+          booking_date: this.minDate,
           slot_time: '',
           address: this.savedAddress || '',
           save_as_default_address: true,
@@ -1250,11 +1458,11 @@ export default {
         return;
       }
       this.postponeBooking = b;
-      this.pf.booking_date = b.booking_date || '';
+      this.pf.booking_date = (b.booking_date && b.booking_date >= this.minDate) ? b.booking_date : this.minDate;
       this.pf.slot_time = b.slot_time || '';
       this.postponeSlots = [];
       if (this.pf.booking_date) {
-        this.fetchPostponeSlots();
+        this.fetchPostponeSlots(true);
       }
     },
     async submitPostpone() {
@@ -1262,6 +1470,13 @@ export default {
       if (this.postponeBooking.status === 'completed') {
         Swal.fire('Wash Completed', 'Completed wash bookings cannot be edited.', 'error');
         return;
+      }
+      if (this.pf.slot_time) {
+        const selectedSlot = this.postponeSlots.find(s => s.time_range === this.pf.slot_time);
+        if (selectedSlot && (selectedSlot.current_bookings >= selectedSlot.max_bookings || selectedSlot.is_full)) {
+          Swal.fire('Slot Full', `Slot Full: ${this.pf.slot_time}. Please choose another available slot.`, 'warning');
+          return;
+        }
       }
       this.submittingPostpone = true;
       try {

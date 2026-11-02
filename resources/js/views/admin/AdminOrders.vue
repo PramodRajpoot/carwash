@@ -198,7 +198,7 @@
           <div class="grid grid-2 gap-2">
             <div class="form-group">
               <label>Wash Date</label>
-              <input v-model="form.booking_date" type="date" class="form-input" required />
+              <input v-model="form.booking_date" type="date" class="form-input" :min="minDate" required />
             </div>
             <div class="form-group">
               <label>Time Slot</label>
@@ -235,7 +235,8 @@
 
           <div class="form-group">
             <label>Override Total Wash Price (₹)</label>
-            <input v-model="form.total_price" type="number" min="0" class="form-input" required />
+            <input v-model.number="form.total_price" type="number" step="1" min="0" class="form-input" required />
+            <small class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">Only integer amounts accepted (e.g., 100, 210, 1078)</small>
           </div>
 
           <div class="flex gap-2" style="margin-top: 1.5rem;">
@@ -307,6 +308,13 @@ export default {
     },
     totalPages() {
       return Math.ceil(this.filteredOrders.length / this.itemsPerPage) || 1;
+    },
+    minDate() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
   },
   watch: {
@@ -369,16 +377,17 @@ export default {
       this.selectedOrder = o;
       this.form = {
         franchisee_id: o.franchisee_id || '',
-        booking_date: o.booking_date,
+        booking_date: (o.booking_date && o.booking_date >= this.minDate) ? o.booking_date : this.minDate,
         slot_time: o.slot_time,
         status: o.status,
         payment_status: o.payment_status,
-        total_price: o.total_price
+        total_price: Math.round(Number(o.total_price || 0))
       };
     },
     async updateOrder() {
       this.submitting = true;
       try {
+        this.form.total_price = Math.round(Number(this.form.total_price || 0));
         await axios.put(`/api/admin/orders/${this.selectedOrder.id}`, this.form);
         this.selectedOrder = null;
         this.loadData();

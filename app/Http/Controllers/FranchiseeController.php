@@ -113,6 +113,8 @@ class FranchiseeController extends Controller
             'status'         => 'required|string|in:pending,assigned,ongoing,completed,cancelled,postponed',
             'washer_id'      => 'nullable|exists:washers,id',
             'payment_status' => 'nullable|string|in:unpaid,paid,partially_paid',
+            'postponed_date' => 'nullable|date|after_or_equal:today',
+            'postponed_slot' => 'nullable|string',
         ]);
 
         if ($request->has('washer_id')) {
@@ -148,6 +150,14 @@ class FranchiseeController extends Controller
 
         $oldStatus = $booking->status;
         $booking->status = $request->status;
+
+        if ($request->status === 'postponed' && $request->filled('postponed_date')) {
+            $booking->booking_date = $request->postponed_date;
+            if ($request->filled('postponed_slot')) {
+                $booking->slot_time = $request->postponed_slot;
+            }
+        }
+
         $booking->save();
 
         // When booking is completed, confirm pending E-Points for referrer as Earning Money
@@ -354,7 +364,7 @@ class FranchiseeController extends Controller
         }
 
         $request->validate([
-            'booking_date' => 'required|date',
+            'booking_date' => 'required|date|after_or_equal:today',
             'slot_time'    => 'required|string',
         ]);
 

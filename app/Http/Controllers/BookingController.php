@@ -84,6 +84,28 @@ class BookingController extends Controller
             $slots = collect($generatedSlots);
         }
 
+        $masterSlots = \App\Models\MasterSlot::where('status', 'active')->get()->keyBy('time_range');
+
+        foreach ($slots as $slot) {
+            $actual = Booking::where('franchisee_id', $request->franchisee_id)
+                ->where('booking_date', $request->date)
+                ->where('slot_time', $slot->time_range)
+                ->whereNotIn('status', ['cancelled'])
+                ->count();
+            if ($slot->current_bookings !== $actual) {
+                $slot->current_bookings = $actual;
+            }
+            if (isset($masterSlots[$slot->time_range])) {
+                $ms = $masterSlots[$slot->time_range];
+                if (!$slot->max_bookings || $slot->max_bookings == 5) {
+                    $slot->max_bookings = $ms->default_max_bookings;
+                }
+            }
+            $slot->save();
+            $max = $slot->max_bookings ?: (isset($masterSlots[$slot->time_range]) ? $masterSlots[$slot->time_range]->default_max_bookings : 3);
+            $slot->is_full = ($slot->current_bookings >= $max);
+        }
+
         return response()->json($slots);
     }
 
@@ -91,11 +113,18 @@ class BookingController extends Controller
     {
         $user = $request->user();
 
+        if ($user->status !== 'active') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Your account is currently blocked/suspended. You cannot book any services. Please contact support.',
+            ], 403);
+        }
+
         $request->validate([
             'vehicle_id' => 'required|exists:vehicles,id',
             'franchisee_id' => 'required|exists:franchisees,id',
             'package_id' => 'required|exists:service_packages,id',
-            'booking_date' => 'required|date',
+            'booking_date' => 'required|date|after_or_equal:today',
             'slot_time' => 'required|string',
             'address' => 'required|string|min:5|max:1000',
             'save_as_default_address' => 'nullable|boolean',
@@ -212,9 +241,9 @@ class BookingController extends Controller
                     }
 
                     if ($coupon->discount_type === 'percentage') {
-                        $couponDiscount = round($price * ($coupon->discount_value / 100), 2);
+                        $couponDiscount = (float) round($price * ($coupon->discount_value / 100));
                     } else {
-                        $couponDiscount = min((float)$coupon->discount_value, (float)$price);
+                        $couponDiscount = min((float) round($coupon->discount_value), (float)$price);
                     }
 
                     $price -= $couponDiscount;
@@ -274,8 +303,8 @@ class BookingController extends Controller
 
         // Calculate 18% GST on taxable subtotal (unless subscription booking)
         $taxableSubtotal = max(0, (float)$price);
-        $gstAmount = ($request->payment_method === 'subscription') ? 0.00 : round($taxableSubtotal * 0.18, 2);
-        $totalPrice = round($taxableSubtotal + $gstAmount, 2);
+        $gstAmount = ($request->payment_method === 'subscription') ? 0.00 : (float) round($taxableSubtotal * 0.18);
+        $totalPrice = (float) round($taxableSubtotal + $gstAmount);
 
         // Determine payment type and advance amount
         $paymentType = 'full';
@@ -513,7 +542,7 @@ class BookingController extends Controller
         }
 
         $request->validate([
-            'booking_date' => 'required|date',
+            'booking_date' => 'required|date|after_or_equal:today',
             'slot_time' => 'required|string',
         ]);
 
@@ -610,19 +639,16 @@ class BookingController extends Controller
             }
         }
 
-        $price = $request->price;
+        $price = (float) $request->price;
         $discountAmount = 0.00;
 
         if ($coupon->discount_type === 'percentage') {
-            $discountAmount = $price * ($coupon->discount_value / 100);
+            $discountAmount = (float) round($price * ($coupon->discount_value / 100));
         } else {
-            $discountAmount = $coupon->discount_value;
+            $discountAmount = (float) round($coupon->discount_value);
         }
 
-        $finalPrice = $price - $discountAmount;
-        if ($finalPrice < 0) {
-            $finalPrice = 0.00;
-        }
+        $finalPrice = max(0, (float) round($price - $discountAmount));
 
         return response()->json([
             'status' => 'success',
