@@ -57,6 +57,12 @@ class BookingController extends Controller
             'date' => 'required|date'
         ]);
 
+        $activeWashersCount = \App\Models\Washer::where('franchisee_id', $request->franchisee_id)
+            ->where('status', 'active')
+            ->count();
+        // Slot capacity cannot exceed active washers available at the center (default 1)
+        $washerCapacity = $activeWashersCount > 0 ? $activeWashersCount : 1;
+
         $slots = Slot::where('franchisee_id', $request->franchisee_id)
             ->where('date', $request->date)
             ->where('is_active', true)
@@ -66,6 +72,7 @@ class BookingController extends Controller
             $masterSlots = \App\Models\MasterSlot::where('status', 'active')->orderBy('id', 'asc')->get();
             $generatedSlots = [];
             foreach ($masterSlots as $ms) {
+                $maxCap = min($ms->default_max_bookings ?? 1, $washerCapacity);
                 $slot = Slot::firstOrCreate(
                     [
                         'franchisee_id' => $request->franchisee_id,
@@ -73,7 +80,7 @@ class BookingController extends Controller
                         'time_range' => $ms->time_range
                     ],
                     [
-                        'max_bookings' => $ms->default_max_bookings ?? 3,
+                        'max_bookings' => $maxCap,
                         'current_bookings' => 0,
                         'is_active' => true,
                         'status' => 'active'
@@ -84,8 +91,6 @@ class BookingController extends Controller
             $slots = collect($generatedSlots);
         }
 
-        $masterSlots = \App\Models\MasterSlot::where('status', 'active')->get()->keyBy('time_range');
-
         foreach ($slots as $slot) {
             $actual = Booking::where('franchisee_id', $request->franchisee_id)
                 ->where('booking_date', $request->date)
@@ -95,14 +100,12 @@ class BookingController extends Controller
             if ($slot->current_bookings !== $actual) {
                 $slot->current_bookings = $actual;
             }
-            if (isset($masterSlots[$slot->time_range])) {
-                $ms = $masterSlots[$slot->time_range];
-                if (!$slot->max_bookings || $slot->max_bookings == 5) {
-                    $slot->max_bookings = $ms->default_max_bookings;
-                }
+            $max = $washerCapacity;
+            if ($slot->max_bookings && $slot->max_bookings <= $washerCapacity) {
+                $max = $slot->max_bookings;
             }
+            $slot->max_bookings = $max;
             $slot->save();
-            $max = $slot->max_bookings ?: (isset($masterSlots[$slot->time_range]) ? $masterSlots[$slot->time_range]->default_max_bookings : 3);
             $slot->is_full = ($slot->current_bookings >= $max);
         }
 
@@ -143,6 +146,11 @@ class BookingController extends Controller
         $franchisee = Franchisee::findOrFail($request->franchisee_id);
 
         // Check if there is capacity in the selected slot
+        $activeWashersCount = \App\Models\Washer::where('franchisee_id', $franchisee->id)
+            ->where('status', 'active')
+            ->count();
+        $washerCapacity = $activeWashersCount > 0 ? $activeWashersCount : 1;
+
         $slot = Slot::where('franchisee_id', $franchisee->id)
             ->where('date', $request->booking_date)
             ->where('time_range', $request->slot_time)
@@ -155,7 +163,14 @@ class BookingController extends Controller
             ], 400);
         }
 
-        if ($slot && $slot->current_bookings >= $slot->max_bookings) {
+        $effectiveMax = $slot ? min($slot->max_bookings, $washerCapacity) : $washerCapacity;
+        $actualCurrentBookings = Booking::where('franchisee_id', $franchisee->id)
+            ->where('booking_date', $request->booking_date)
+            ->where('slot_time', $request->slot_time)
+            ->whereNotIn('status', ['cancelled'])
+            ->count();
+
+        if ($actualCurrentBookings >= $effectiveMax) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Selected slot is fully booked. Please choose another slot.'
@@ -287,17 +302,16 @@ class BookingController extends Controller
 
         // Increment or create Slot bookings count
         if ($slot) {
-            $slot->increment('current_bookings');
+            $slot->current_bookings = $actualCurrentBookings + 1;
+            $slot->max_bookings = $effectiveMax;
+            $slot->save();
         } else {
-            $masterSlot = \App\Models\MasterSlot::where('time_range', $request->slot_time)->first();
-            $maxBookings = $masterSlot ? $masterSlot->default_max_bookings : 3;
-            
             Slot::create([
                 'franchisee_id' => $franchisee->id,
                 'date' => $request->booking_date,
                 'time_range' => $request->slot_time,
-                'max_bookings' => $maxBookings,
-                'current_bookings' => 1
+                'max_bookings' => $effectiveMax,
+                'current_bookings' => $actualCurrentBookings + 1
             ]);
         }
 
@@ -547,12 +561,24 @@ class BookingController extends Controller
         ]);
 
         // Check capacity of the NEW slot
+        $activeWashersCount = \App\Models\Washer::where('franchisee_id', $booking->franchisee_id)
+            ->where('status', 'active')
+            ->count();
+        $washerCapacity = $activeWashersCount > 0 ? $activeWashersCount : 1;
+
         $newSlot = Slot::where('franchisee_id', $booking->franchisee_id)
             ->where('date', $request->booking_date)
             ->where('time_range', $request->slot_time)
             ->first();
 
-        if ($newSlot && $newSlot->current_bookings >= $newSlot->max_bookings) {
+        $effectiveNewMax = $newSlot ? min($newSlot->max_bookings, $washerCapacity) : $washerCapacity;
+        $actualNewCount = Booking::where('franchisee_id', $booking->franchisee_id)
+            ->where('booking_date', $request->booking_date)
+            ->where('slot_time', $request->slot_time)
+            ->whereNotIn('status', ['cancelled'])
+            ->count();
+
+        if ($actualNewCount >= $effectiveNewMax) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Selected slot is fully booked. Please choose another slot.'
@@ -571,17 +597,16 @@ class BookingController extends Controller
 
         // Increment NEW slot
         if ($newSlot) {
-            $newSlot->increment('current_bookings');
+            $newSlot->current_bookings = $actualNewCount + 1;
+            $newSlot->max_bookings = $effectiveNewMax;
+            $newSlot->save();
         } else {
-            $masterSlot = \App\Models\MasterSlot::where('time_range', $request->slot_time)->first();
-            $maxBookings = $masterSlot ? $masterSlot->default_max_bookings : 3;
-
             Slot::create([
                 'franchisee_id' => $booking->franchisee_id,
                 'date' => $request->booking_date,
                 'time_range' => $request->slot_time,
-                'max_bookings' => $maxBookings,
-                'current_bookings' => 1
+                'max_bookings' => $effectiveNewMax,
+                'current_bookings' => $actualNewCount + 1
             ]);
         }
 
