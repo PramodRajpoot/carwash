@@ -61,7 +61,7 @@ export default {
     typeLabel(t) { return t === 'percentage' ? '🏷️ Percentage Discount' : '💵 Fixed Discount'; },
     async copy(code) {
       if (!code) return;
-      const ok = await copyToClipboard(code, 'Copied');
+      const ok = await copyToClipboard(code, 'Coupon code copied to clipboard!');
       if (ok) {
         this.copiedCode = code;
         setTimeout(() => {
