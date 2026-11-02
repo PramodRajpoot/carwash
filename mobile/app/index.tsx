@@ -94,10 +94,11 @@ export default function ServicesScreen() {
     fetchPackages();
   };
 
-  const filteredPackages =
+  const filteredPackages = (
     activeFilter === 'all'
       ? packages
-      : packages.filter((p) => p.vehicle_type === activeFilter);
+      : packages.filter((p) => p.vehicle_type === activeFilter)
+  ).filter((p) => !p.is_addon);
 
   if (loading) {
     return (
