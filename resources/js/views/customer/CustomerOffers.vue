@@ -13,7 +13,14 @@
             {{ c.discount_type === 'percentage' ? c.discount_value + '% OFF' : '₹' + c.discount_value + ' OFF' }}
           </div>
           <div class="text-muted" style="font-size:0.78rem;margin-bottom:0.75rem">{{ c.expires_at ? 'Expires: ' + c.expires_at : 'No expiry' }}</div>
-          <button class="btn btn-sm btn-outline" style="width:100%" @click="copy(c.code)">📋 Copy Code</button>
+          <button
+            class="btn btn-sm"
+            :class="copiedCode === c.code ? 'btn-primary' : 'btn-outline'"
+            :style="copiedCode === c.code ? 'background:var(--accent-emerald);border-color:var(--accent-emerald);color:#fff;width:100%' : 'width:100%'"
+            @click="copy(c.code)"
+          >
+            {{ copiedCode === c.code ? '✓ Copied' : '📋 Copy Code' }}
+          </button>
         </div>
       </div>
     </div>
@@ -33,11 +40,14 @@
 </template>
 <script>
 import axios from 'axios';
+import { copyToClipboard } from '../../utils/clipboard.js';
+
 export default {
   name: 'CustomerOffers',
   data() {
     return {
       coupons: [],
+      copiedCode: null,
       loading: true,
       banners: [
         { title: 'Monsoon Special', icon: '🌧️', desc: 'Keep your car protected this monsoon season. Extra care package now available!', color: 'var(--accent-cyan)' },
@@ -49,7 +59,18 @@ export default {
   },
   methods: {
     typeLabel(t) { return t === 'percentage' ? '🏷️ Percentage Discount' : '💵 Fixed Discount'; },
-    copy(code) { navigator.clipboard?.writeText(code); },
+    async copy(code) {
+      if (!code) return;
+      const ok = await copyToClipboard(code, 'Coupon code copied to clipboard!');
+      if (ok) {
+        this.copiedCode = code;
+        setTimeout(() => {
+          if (this.copiedCode === code) {
+            this.copiedCode = null;
+          }
+        }, 2000);
+      }
+    },
   },
   async mounted() {
     try { const { data } = await axios.get('/api/customer/dashboard'); this.coupons = data.active_coupons || []; }

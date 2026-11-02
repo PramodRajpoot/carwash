@@ -29,7 +29,14 @@
       <h4 style="margin-bottom:0.75rem">🔗 Your Referral Code</h4>
       <div style="display:flex;align-items:center;gap:0.75rem;background:var(--bg-secondary);padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px dashed var(--border-glow)">
         <span style="font-size:1.5rem;font-weight:800;color:var(--accent-cyan);letter-spacing:3px;flex:1">{{ data.referral_code }}</span>
-        <button class="btn btn-sm btn-outline" @click="copy">Copy</button>
+        <button
+          class="btn btn-sm"
+          :class="copiedCode === data.referral_code ? 'btn-primary' : 'btn-outline'"
+          :style="copiedCode === data.referral_code ? 'background:var(--accent-emerald);border-color:var(--accent-emerald);color:#fff' : ''"
+          @click="copy"
+        >
+          {{ copiedCode === data.referral_code ? '✓ Copied' : 'Copy' }}
+        </button>
       </div>
       <p class="text-muted" style="font-size:0.82rem;margin-top:0.6rem">
         When a friend registers with your code:<br>
@@ -88,15 +95,28 @@
 </template>
 <script>
 import axios from 'axios';
+import { copyToClipboard } from '../../utils/clipboard.js';
+
 export default {
   name: 'CustomerReferrals',
-  data() { return { data: {}, loading: true }; },
+  data() { return { data: {}, copiedCode: null, loading: true }; },
   computed: {
     appUrl() { return window.location.origin; }
   },
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },
-    copy() { navigator.clipboard?.writeText(this.data.referral_code); },
+    async copy() {
+      if (!this.data.referral_code) return;
+      const ok = await copyToClipboard(this.data.referral_code, 'Referral code copied to clipboard!');
+      if (ok) {
+        this.copiedCode = this.data.referral_code;
+        setTimeout(() => {
+          if (this.copiedCode === this.data.referral_code) {
+            this.copiedCode = null;
+          }
+        }, 2000);
+      }
+    },
   },
   async mounted() {
     try { const { data } = await axios.get('/api/customer/referrals'); this.data = data; }

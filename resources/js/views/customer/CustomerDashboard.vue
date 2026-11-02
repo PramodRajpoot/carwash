@@ -44,7 +44,14 @@
           <div class="text-muted" style="font-size:0.8rem;margin-top:0.25rem">
             {{ c.discount_type === 'percentage' ? c.discount_value + '% OFF' : '₹' + c.discount_value + ' OFF' }}
           </div>
-          <button class="btn btn-sm btn-outline" style="margin-top:0.5rem;width:100%" @click="copy(c.code)">Copy Code</button>
+          <button
+            class="btn btn-sm"
+            :class="copiedCode === c.code ? 'btn-primary' : 'btn-outline'"
+            :style="copiedCode === c.code ? 'background:var(--accent-emerald);border-color:var(--accent-emerald);color:#fff;margin-top:0.5rem;width:100%' : 'margin-top:0.5rem;width:100%'"
+            @click="copy(c.code, 'Coupon code')"
+          >
+            {{ copiedCode === c.code ? '✓ Copied' : 'Copy Code' }}
+          </button>
         </div>
       </div>
     </div>
@@ -72,7 +79,14 @@
         <h4 style="margin-bottom:1rem">🔗 Your Referral Code</h4>
         <div style="display:flex;align-items:center;gap:0.75rem;background:var(--bg-secondary);padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px dashed var(--border-glow)">
           <span style="font-size:1.25rem;font-weight:700;color:var(--accent-cyan);letter-spacing:2px;flex:1">{{ data.referral_code || 'N/A' }}</span>
-          <button class="btn btn-sm btn-outline" @click="copy(data.referral_code)">Copy</button>
+          <button
+            class="btn btn-sm"
+            :class="copiedCode === data.referral_code ? 'btn-primary' : 'btn-outline'"
+            :style="copiedCode === data.referral_code ? 'background:var(--accent-emerald);border-color:var(--accent-emerald);color:#fff' : ''"
+            @click="copy(data.referral_code, 'Referral code')"
+          >
+            {{ copiedCode === data.referral_code ? '✓ Copied' : 'Copy' }}
+          </button>
         </div>
         <p class="text-muted" style="font-size:0.8rem;margin-top:0.5rem">Share & earn 10% commission per successful referral!</p>
         <div class="flex gap-3" style="margin-top:0.75rem">
@@ -111,9 +125,16 @@
 </template>
 <script>
 import axios from 'axios';
+import { copyToClipboard } from '../../utils/clipboard.js';
+
 export default {
   name: 'CustomerDashboard',
-  data() { return { data: {} }; },
+  data() {
+    return {
+      data: {},
+      copiedCode: null,
+    };
+  },
   computed: {
     progressPct() {
       if (!this.data.subscription?.package) return 0;
@@ -123,8 +144,17 @@ export default {
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },
     statusBadge(s) { return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan'; },
-    copy(text) {
-      if (text) { navigator.clipboard?.writeText(text); }
+    async copy(text, label = 'Code') {
+      if (!text) return;
+      const ok = await copyToClipboard(text, `${label} copied to clipboard!`);
+      if (ok) {
+        this.copiedCode = text;
+        setTimeout(() => {
+          if (this.copiedCode === text) {
+            this.copiedCode = null;
+          }
+        }, 2000);
+      }
     },
   },
   async mounted() {
