@@ -94,8 +94,8 @@ export default {
           axios.get('/api/packages'),
           axios.get('/api/customer/subscriptions')
         ]);
-        // Filter packages that are recurring monthly packages (frequency_days = 30)
-        this.packages = pk.data.filter(p => p.frequency_days === 30);
+        // Filter packages that are recurring subscription packages
+        this.packages = pk.data.filter(p => p.is_subscription || (!p.is_addon && p.frequency_days >= 30));
         this.activeSub = sub.data.find(s => s.status === 'active') || null;
       } catch (e) {
         console.error(e);

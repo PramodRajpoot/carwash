@@ -94,6 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings/{id}/cancel',  [BookingController::class, 'cancelBooking']);
     Route::post('/bookings/{id}/postpone',[BookingController::class, 'postponeBooking']);
     Route::post('/bookings/{id}/payment-method', [BookingController::class, 'updatePaymentMethod']);
+    Route::get('/bookings/{id}/invoice',  [BookingController::class, 'downloadInvoice']);
 
     // Cashfree Payment
     Route::post('/cashfree/create-order',       [CashfreeController::class, 'createOrder']);
@@ -200,6 +201,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/franchisees/{id}/status',      [AdminController::class, 'updateFranchiseeStatus']);
         Route::post('/franchisees/{id}/renew',      [AdminController::class, 'renewAgreement']);
         Route::post('/franchisees/{id}/upload-document', [AdminController::class, 'uploadDocument']);
+        Route::get('/franchisees/{id}/documents/download', [AdminController::class, 'downloadDocument']);
+        Route::get('/franchisees/{id}/documents/view',     [AdminController::class, 'viewDocument']);
         Route::delete('/franchisees/{id}/document', [AdminController::class, 'deleteDocument']);
         Route::delete('/franchisees/{id}/documents/{docId?}', [AdminController::class, 'deleteDocument']);
         Route::get('/franchisees/{id}/slots',       [SuperAdminSlotController::class, 'getAssignedSlots']);
