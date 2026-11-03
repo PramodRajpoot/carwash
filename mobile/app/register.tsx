@@ -34,7 +34,7 @@ export default function RegisterScreen() {
   
   const [loading, setLoading] = useState(false);
 
-  const nameInputRef = useRef<TextInput>(null);
+  const nameInputRef = useRef<any>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {

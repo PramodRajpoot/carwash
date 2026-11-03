@@ -28,7 +28,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const emailInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<any>(null);
 
   const [identifier, setIdentifier] = useState('');
   const [otp, setOtp] = useState('');

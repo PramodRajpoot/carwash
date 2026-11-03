@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
+const WebViewComponent: any = WebView;
 import { API_BASE } from '../constants/api';
 
 // Domains that are allowed to load inside the WebView (payment flow)
@@ -24,7 +25,7 @@ const ALLOWED_HOSTS = [
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const webviewRef = useRef<WebView>(null);
+  const webviewRef = useRef<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [userData, setUserData] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -200,7 +201,7 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <WebView
+      <WebViewComponent
         ref={webviewRef}
         source={{ 
           uri: `${API_BASE}/customer`,
