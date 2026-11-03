@@ -1313,14 +1313,6 @@ export default function BookServiceModal({
                               </View>
                             ) : null}
                           </View>
-                          {pkg.description ? (
-                            <Text
-                              style={[styles.pickerOptionSub, isDark && styles.darkSubtext]}
-                              numberOfLines={2}
-                            >
-                              {pkg.description.replace(/[\r\n]+/g, ' • ')}
-                            </Text>
-                          ) : null}
                         </View>
                         <Text style={[styles.pickerPriceTag, isDark && styles.darkText]}>
                           ₹{pkg.price}
@@ -1590,14 +1582,6 @@ export default function BookServiceModal({
                               <Text style={[styles.pickerOptionTitle, isDark && styles.darkText]}>
                                 {ad.name}
                               </Text>
-                              {ad.description ? (
-                                <Text
-                                  style={[styles.pickerOptionSub, isDark && styles.darkSubtext]}
-                                  numberOfLines={1}
-                                >
-                                  {ad.description}
-                                </Text>
-                              ) : null}
                             </View>
                             <Text style={styles.addonPriceGreen}>+₹{ad.price}</Text>
                           </TouchableOpacity>
@@ -2065,17 +2049,26 @@ const styles = StyleSheet.create({
   pickerBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pickerBackdropDismiss: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   pickerSheet: {
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    borderRadius: 20,
+    width: '92%',
+    maxWidth: 500,
+    maxHeight: '72%',
     paddingBottom: 24,
+    overflow: 'hidden',
   },
   darkPickerSheet: {
     backgroundColor: '#0d1527',
