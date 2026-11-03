@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { WebView } from 'react-native-webview';
@@ -98,6 +99,8 @@ export default function BookServiceModal({
   const [useSavedAddress, setUseSavedAddress] = useState<boolean>(true);
   const [customAddress, setCustomAddress] = useState<string>('');
   const [saveAsDefaultAddress, setSaveAsDefaultAddress] = useState<boolean>(true);
+  const [liveLocationSource, setLiveLocationSource] = useState<'saved' | 'live' | 'none'>('saved');
+  const [locationLoading, setLocationLoading] = useState<boolean>(false);
 
   // Slots
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -205,6 +208,13 @@ export default function BookServiceModal({
             if (d.address) {
               setSavedAddress(d.address);
               setUseSavedAddress(true);
+              setLiveLocationSource('saved');
+            } else {
+              setSavedAddress('');
+              setUseSavedAddress(false);
+              setCustomAddress('');
+              setLiveLocationSource('none');
+              resolveLiveLocation();
             }
           }
 
@@ -480,6 +490,62 @@ export default function BookServiceModal({
       setSubmitting(false);
     }
   };
+
+  // Resolve live location address from device
+  const resolveLiveLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setSavedAddress('');
+        setCustomAddress('');
+        setLiveLocationSource('none');
+        return;
+      }
+
+      setLocationLoading(true);
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const [geo] = await Location.reverseGeocodeAsync({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      });
+
+      const formatted =
+        geo && (
+          geo.name ||
+          geo.street ||
+          geo.district ||
+          geo.city ||
+          geo.region ||
+          geo.country
+        )
+          ? [geo.name, geo.street, geo.district, geo.city, geo.region, geo.country]
+              .filter(Boolean)
+              .join(', ')
+          : `Lat ${currentLocation.coords.latitude.toFixed(4)}, Lon ${currentLocation.coords.longitude.toFixed(4)}`;
+
+      setSavedAddress(formatted);
+      setCustomAddress(formatted);
+      setLiveLocationSource('live');
+      setUseSavedAddress(true);
+    } catch (error) {
+      console.warn('Failed to fetch live location:', error);
+      setSavedAddress('');
+      setCustomAddress('');
+      setLiveLocationSource('none');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  // Update live location on modal open
+  useEffect(() => {
+    if (visible) {
+      resolveLiveLocation();
+    }
+  }, [visible]);
 
   // Label helpers
   const selectedDateLabel = useMemo(() => {
@@ -852,11 +918,19 @@ export default function BookServiceModal({
                   📍 Doorstep Service Address <Text style={styles.requiredStar}>*</Text>
                 </Text>
                 {savedAddress && useSavedAddress && (
-                  <Text style={styles.rememberedTag}>✓ Using saved</Text>
+                  <Text style={styles.rememberedTag}>
+                    {liveLocationSource === 'live' ? '✓ Using live location' : '✓ Using saved'}
+                  </Text>
                 )}
               </View>
 
-              {savedAddress ? (
+              {locationLoading && !savedAddress ? (
+                <View style={[styles.addressRadioBox, isDark ? styles.darkDropdown : styles.lightDropdown]}>
+                  <Text style={[styles.addressRadioText, isDark && styles.darkSubtext]}>
+                    Detecting your current location...
+                  </Text>
+                </View>
+              ) : savedAddress ? (
                 <View style={styles.addressBoxWrapper}>
                   <TouchableOpacity
                     style={[
@@ -2084,7 +2158,7 @@ const styles = StyleSheet.create({
   },
   pickerHeaderTitle: {
     fontSize: 15,
-    fontWeight: '800',
+       fontWeight: '800',
     color: '#0f172a',
   },
   pickerCloseBtn: {
@@ -2104,12 +2178,6 @@ const styles = StyleSheet.create({
   },
   pickerActiveItemLight: {
     backgroundColor: 'rgba(2, 132, 199, 0.04)',
-    marginHorizontal: -8,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  pickerActiveItemDark: {
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
     marginHorizontal: -8,
     paddingHorizontal: 8,
     borderRadius: 8,
