@@ -29,11 +29,19 @@ class CustomerController extends Controller
             ->where('status', 'completed')
             ->count();
 
-        $upcomingServices = Booking::where('customer_id', $user->id)
+        $limit = $request->query('limit');
+        $upcomingServicesQuery = Booking::where('customer_id', $user->id)
             ->whereIn('status', ['pending', 'assigned', 'ongoing', 'completed', 'cancelled', 'postponed'])
             ->with(['vehicle', 'franchisee', 'package'])
             ->orderBy('booking_date', 'desc')
-            ->get();
+            ->orderBy('id', 'desc');
+
+        if ($limit && is_numeric($limit)) {
+            $upcomingServicesQuery->limit((int) $limit);
+        }
+
+        $upcomingServices = $upcomingServicesQuery->get();
+        $totalBookings = Booking::where('customer_id', $user->id)->count();
 
         $wishlistCount = Wishlist::where('customer_id', $user->id)->count();
 
@@ -71,9 +79,31 @@ class CustomerController extends Controller
             \Log::warning('Could not retrieve saved address: ' . $e->getMessage());
         }
 
+        // Monthly wash activity for charts
+        $monthlyWashes = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $mDate = Carbon::now()->subMonths($i);
+            $ym = $mDate->format('Y-m');
+            $label = $mDate->format('M');
+            $completed = Booking::where('customer_id', $user->id)
+                ->where('booking_date', 'like', "{$ym}%")
+                ->where('status', 'completed')
+                ->count();
+            $total = Booking::where('customer_id', $user->id)
+                ->where('booking_date', 'like', "{$ym}%")
+                ->count();
+            $monthlyWashes[] = [
+                'month'     => $label,
+                'completed' => $completed,
+                'total'     => $total,
+            ];
+        }
+
         return response()->json([
+            'user'                  => $user,
             'subscription'          => $activeSubscription,
             'booking_count'         => $bookingCount,
+            'total_bookings'        => $totalBookings,
             'upcoming_services'     => $upcomingServices,
             'wishlist_count'        => $wishlistCount,
             'referral_coins'        => $user->referral_coins,
@@ -87,6 +117,7 @@ class CustomerController extends Controller
             'first_booking_discount' => $user->first_booking_discount,
             'earning_money'         => $user->earning_money,
             'address'               => $savedAddress,
+            'monthly_washes'        => $monthlyWashes,
             'status'                => $user->status,
         ]);
     }

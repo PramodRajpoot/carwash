@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,7 +12,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -28,6 +28,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'email' | 'otp'>('email');
   
   const emailInputRef = useRef<any>(null);
 
@@ -38,15 +39,22 @@ export default function LoginScreen() {
   const [resendCount, setResendCount] = useState(0);
   const timerRef = useRef<any>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      emailInputRef.current?.focus();
-    }, 400);
-    return () => {
-      clearTimeout(timer);
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
+  const focusEmail = useCallback(() => {
+    if (activeTab === 'email') {
+      setTimeout(() => emailInputRef.current?.focus(), 50);
+      setTimeout(() => emailInputRef.current?.focus(), 250);
+      setTimeout(() => emailInputRef.current?.focus(), 500);
+    }
+  }, [activeTab]);
+
+  useFocusEffect(
+    useCallback(() => {
+      focusEmail();
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+    }, [focusEmail])
+  );
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -67,9 +75,6 @@ export default function LoginScreen() {
       });
     }, 1000);
   };
-
-  // Toggle state for tabs (Email vs OTP)
-  const [activeTab, setActiveTab] = useState<'email' | 'otp'>('email');
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -196,7 +201,10 @@ export default function LoginScreen() {
             <TouchableOpacity 
               activeOpacity={0.8}
               style={[styles.tabButton, activeTab === 'email' && styles.tabButtonActive]}
-              onPress={() => setActiveTab('email')}
+              onPress={() => {
+                setActiveTab('email');
+                setTimeout(() => emailInputRef.current?.focus(), 100);
+              }}
             >
               <Ionicons 
                 name="mail-outline" 
@@ -230,7 +238,11 @@ export default function LoginScreen() {
           <View style={styles.formContainer}>
             {activeTab === 'email' ? (
               <>
-                <View style={styles.inputWrapper}>
+                <TouchableOpacity 
+                  activeOpacity={1}
+                  onPress={() => emailInputRef.current?.focus()}
+                  style={styles.inputWrapper}
+                >
                   <Ionicons name="mail-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
                   <TextInput
                     ref={emailInputRef}
@@ -240,10 +252,14 @@ export default function LoginScreen() {
                     autoCapitalize="none"
                     keyboardType="email-address"
                     autoFocus={true}
+                    caretHidden={false}
+                    cursorColor="#0284c7"
+                    selectionColor="#0284c7"
+                    showSoftInputOnFocus={true}
                     value={email}
                     onChangeText={setEmail}
                   />
-                </View>
+                </TouchableOpacity>
                 
                 <View style={styles.inputWrapper}>
                   <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
@@ -396,7 +412,7 @@ export default function LoginScreen() {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>{"Don't have an account? "}</Text>
             <TouchableOpacity onPress={() => router.push('/register')}>
               <Text style={styles.registerLink}>Register</Text>
             </TouchableOpacity>

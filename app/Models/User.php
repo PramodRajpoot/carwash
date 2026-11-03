@@ -47,6 +47,19 @@ class User extends Authenticatable
         'earning_money'           => 'decimal:2',
     ];
 
+    protected $appends = ['avatar_url'];
+
+    public function getAvatarUrlAttribute()
+    {
+        if (!$this->avatar) {
+            return null;
+        }
+        if (str_starts_with($this->avatar, 'http://') || str_starts_with($this->avatar, 'https://')) {
+            return $this->avatar;
+        }
+        return url($this->avatar);
+    }
+
     // ─── Relations ─────────────────────────────────────────────
 
     public function franchisee()
