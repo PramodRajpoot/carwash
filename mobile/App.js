@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 // ── Your Laravel server URL ──
-const API_BASE = 'https://fresh-fox-61.loca.lt';
+const API_BASE = 'http://187.126.119.129';
 
 const { width } = Dimensions.get('window');
 

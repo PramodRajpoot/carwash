@@ -35,7 +35,7 @@ export default function LoginScreen() {
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [resendCount, setResendCount] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<any>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {

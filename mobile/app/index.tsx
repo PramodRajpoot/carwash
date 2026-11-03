@@ -44,7 +44,7 @@ const FILTERS = [
 
 export default function ServicesScreen() {
   const router = useRouter();
-  const [packages, setPackages] = useState([]);
+  const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
