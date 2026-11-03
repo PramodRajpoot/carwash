@@ -553,16 +553,27 @@ class SuperAdminController extends Controller
             'category_id' => 'nullable|exists:service_categories,id',
             'custom_badge' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'is_addon' => 'nullable'
+            'is_addon' => 'nullable',
+            'is_subscription' => 'nullable',
         ];
 
         $request->validate($rules);
 
-        $data = $request->except('image');
-        $data['is_addon'] = $isAddon;
-        $data['frequency_days'] = $request->input('frequency_days', $isAddon ? 1 : 30);
-        $data['max_bookings'] = $request->input('max_bookings', 1);
-        $data['vehicle_type'] = $request->input('vehicle_type', 'all');
+        $data = [
+            'name'           => $request->input('name'),
+            'description'    => $request->input('description'),
+            'vehicle_type'   => $request->input('vehicle_type', $isAddon ? 'all' : 'all'),
+            'price'          => $request->input('price'),
+            'frequency_days' => $request->input('frequency_days', $isAddon ? 1 : 30),
+            'max_bookings'   => $request->input('max_bookings', 1),
+            'category_id'    => $request->input('category_id'),
+            'custom_badge'   => $request->input('custom_badge'),
+            'is_addon'       => $isAddon,
+        ];
+
+        if ($request->has('is_subscription')) {
+            $data['is_subscription'] = filter_var($request->input('is_subscription'), FILTER_VALIDATE_BOOLEAN);
+        }
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('services', 'public');
@@ -590,14 +601,29 @@ class SuperAdminController extends Controller
             'category_id' => 'nullable|exists:service_categories,id',
             'custom_badge' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'is_addon' => 'nullable'
+            'is_addon' => 'nullable',
+            'is_subscription' => 'nullable',
         ];
 
         $request->validate($rules);
 
-        $data = $request->except('image');
+        $data = [
+            'name'           => $request->input('name'),
+            'description'    => $request->input('description'),
+            'vehicle_type'   => $request->input('vehicle_type'),
+            'price'          => $request->input('price'),
+            'frequency_days' => $request->input('frequency_days', $isAddon ? 1 : $service->frequency_days),
+            'max_bookings'   => $request->input('max_bookings', $isAddon ? 1 : $service->max_bookings),
+            'category_id'    => $request->input('category_id'),
+            'custom_badge'   => $request->input('custom_badge'),
+        ];
+
         if ($request->has('is_addon')) {
             $data['is_addon'] = $isAddon;
+        }
+
+        if ($request->has('is_subscription')) {
+            $data['is_subscription'] = filter_var($request->input('is_subscription'), FILTER_VALIDATE_BOOLEAN);
         }
 
         if ($request->hasFile('image')) {

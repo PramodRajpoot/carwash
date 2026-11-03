@@ -29,6 +29,16 @@ class ServicePackage extends Model
         'price' => 'float',
     ];
 
+    public function setIsSubscriptionAttribute($value)
+    {
+        $this->attributes['is_subscription'] = filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+    }
+
+    public function setIsAddonAttribute($value)
+    {
+        $this->attributes['is_addon'] = filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+    }
+
     public function scopeOnlyMain($query)
     {
         return $query->where('is_addon', false);

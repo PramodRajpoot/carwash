@@ -586,13 +586,23 @@ export default {
       if (service) {
         this.editingService = service;
         this.serviceForm = {
-          ...service,
-          is_addon: !!service.is_addon
+          category_id: service.category_id || '',
+          name: service.name || '',
+          description: service.description || '',
+          vehicle_type: service.vehicle_type || (service.is_addon ? 'all' : 'sedan'),
+          price: service.price !== null && service.price !== undefined ? service.price : '',
+          frequency_days: service.frequency_days !== null && service.frequency_days !== undefined ? service.frequency_days : (service.is_addon ? 1 : 15),
+          max_bookings: service.max_bookings !== null && service.max_bookings !== undefined ? service.max_bookings : 1,
+          custom_badge: service.custom_badge || '',
+          image_path: service.image_path || '',
+          is_addon: !!service.is_addon,
+          is_subscription: !!service.is_subscription
         };
       } else {
         this.editingService = null;
         this.serviceForm = {
           is_addon: isAddon,
+          is_subscription: false,
           category_id: '',
           name: '',
           description: '',
@@ -613,12 +623,20 @@ export default {
       this.isSubmitting = true;
       try {
         const formData = new FormData();
-        for (const key in this.serviceForm) {
-          if (key === 'is_addon') {
-            formData.append('is_addon', this.serviceForm.is_addon ? '1' : '0');
-          } else if (this.serviceForm[key] !== null && this.serviceForm[key] !== '') {
+        const allowedKeys = [
+          'name', 'category_id', 'description', 'vehicle_type', 
+          'price', 'frequency_days', 'max_bookings', 'custom_badge'
+        ];
+        
+        allowedKeys.forEach(key => {
+          if (this.serviceForm[key] !== null && this.serviceForm[key] !== undefined && this.serviceForm[key] !== '') {
             formData.append(key, this.serviceForm[key]);
           }
+        });
+
+        formData.append('is_addon', this.serviceForm.is_addon ? '1' : '0');
+        if (this.serviceForm.is_subscription !== undefined && this.serviceForm.is_subscription !== null) {
+          formData.append('is_subscription', this.serviceForm.is_subscription ? '1' : '0');
         }
         
         if (this.serviceForm.is_addon) {
