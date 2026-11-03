@@ -15,8 +15,8 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
-// ── Your Laravel server URL ──
 import { API_BASE } from '../constants/api';
 
 const { width } = Dimensions.get('window');
@@ -33,13 +33,12 @@ const SAMPLE_PACKAGES = [
 
 // Vehicle type filters
 const FILTERS = [
-  { label: '🔥 All', value: 'all' },
-  { label: '🚗 Hatchback', value: 'hatchback' },
-  { label: '🚘 Sedan', value: 'sedan' },
-  { label: '🚙 SUV', value: 'suv' },
-  { label: '🚛 Commercial', value: 'commercial' },
-  { label: '🚌 Bus', value: 'bus' },
-  { label: '🚎 Volvo Bus', value: 'volvo_bus' },
+  { label: 'All Services', icon: 'sparkles', value: 'all' },
+  { label: 'Hatchback', icon: 'car-sport', value: 'hatchback' },
+  { label: 'Sedan', icon: 'car', value: 'sedan' },
+  { label: 'SUV', icon: 'speedometer', value: 'suv' },
+  { label: 'Commercial', icon: 'bus', value: 'commercial' },
+  { label: 'Bus', icon: 'navigate', value: 'bus' },
 ];
 
 export default function ServicesScreen() {
@@ -77,11 +76,10 @@ export default function ServicesScreen() {
       setPackages(SAMPLE_PACKAGES);
       setError('Showing sample data — server not reachable.');
     } finally {
-      // Add an artificial delay so the logo splash screen is visible
       setTimeout(() => {
         setLoading(false);
         setRefreshing(false);
-      }, 2000);
+      }, 800);
     }
   };
 
@@ -105,13 +103,15 @@ export default function ServicesScreen() {
       <SafeAreaView style={styles.container}>
         <StatusBar style="light" />
         <View style={styles.splashContainer}>
-          <Image 
-            source={require('../assets/images/icon.png')} 
-            style={styles.splashLogo}
-            resizeMode="contain"
-          />
-          <ActivityIndicator size="large" color="#00D4FF" />
-          <Text style={styles.loaderText}>Loading Services...</Text>
+          <View style={styles.splashBadge}>
+            <Image 
+              source={require('../assets/images/icon.png')} 
+              style={styles.splashLogo}
+              resizeMode="contain"
+            />
+          </View>
+          <ActivityIndicator size="large" color="#0ea5e9" />
+          <Text style={styles.loaderText}>Loading Packages...</Text>
         </View>
       </SafeAreaView>
     );
@@ -123,81 +123,128 @@ export default function ServicesScreen() {
 
       {/* ── Header ── */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>🚗 CleanAtDoorstep</Text>
-          <Text style={styles.headerSubtitle}>Professional Vehicle Detailing</Text>
+        <View style={styles.brandRow}>
+          <Image 
+            source={require('../assets/images/icon.png')} 
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.headerTitle}>CleanAtDoorstep</Text>
+            <View style={styles.statusRow}>
+              <View style={styles.liveDot} />
+              <Text style={styles.headerSubtitle}>Doorstep Detailing</Text>
+            </View>
+          </View>
         </View>
+
         <TouchableOpacity 
           style={styles.loginBtnHeader} 
           onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
+          activeOpacity={0.8}
         >
+          <Ionicons 
+            name={isLoggedIn ? 'speedometer-outline' : 'person-circle-outline'} 
+            size={16} 
+            color="#38bdf8" 
+            style={{ marginRight: 5 }}
+          />
           <Text style={styles.loginBtnHeaderText}>
-            {isLoggedIn ? 'Dashboard' : 'Login'}
+            {isLoggedIn ? 'Dashboard' : 'Sign In'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* ── Section Title ── */}
-      <View style={styles.sectionTitle}>
-        <Text style={styles.sectionHeading}>
-          Our <Text style={styles.textGradient}>Services</Text>
-        </Text>
-        <Text style={styles.sectionDesc}>
-          Professional vehicle detailing packages for every need.
-        </Text>
-      </View>
-
-      {/* ── Filters ── */}
-      <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
-          {FILTERS.map((f) => (
-            <TouchableOpacity
-              key={f.value}
-              style={[
-                styles.filterBtn,
-                activeFilter === f.value && styles.filterBtnActive,
-              ]}
-              onPress={() => setActiveFilter(f.value)}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  activeFilter === f.value && styles.filterTextActive,
-                ]}
-              >
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* ── Package Cards ── */}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.cardsContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#00D4FF"
-            colors={['#00D4FF']}
+            tintColor="#0ea5e9"
+            colors={['#0ea5e9']}
           />
         }
       >
+        {/* ── Hero Banner ── */}
+        <View style={styles.heroBanner}>
+          <View style={styles.heroBadge}>
+            <Ionicons name="sparkles" size={13} color="#38bdf8" />
+            <Text style={styles.heroBadgeText}>DOORSTEP VEHICLE CARE</Text>
+          </View>
+          <Text style={styles.heroTitle}>
+            Premium Detailing <Text style={styles.textGradient}>At Your Home</Text>
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            Save time. Our expert washers arrive equipped with water, power & pro detailing gear.
+          </Text>
+          
+          <View style={styles.featureRow}>
+            <View style={styles.featurePill}>
+              <Ionicons name="flash-outline" size={13} color="#10b981" />
+              <Text style={styles.featureText}>45 Min Wash</Text>
+            </View>
+            <View style={styles.featurePill}>
+              <Ionicons name="water-outline" size={13} color="#38bdf8" />
+              <Text style={styles.featureText}>Eco Foam</Text>
+            </View>
+            <View style={styles.featurePill}>
+              <Ionicons name="star" size={13} color="#fbbf24" />
+              <Text style={styles.featureText}>4.9/5 Rating</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Filters ── */}
+        <View style={styles.filterWrapper}>
+          <Text style={styles.sectionHeading}>Choose Category</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}
+          >
+            {FILTERS.map((f) => (
+              <TouchableOpacity
+                key={f.value}
+                style={[
+                  styles.filterBtn,
+                  activeFilter === f.value && styles.filterBtnActive,
+                ]}
+                onPress={() => setActiveFilter(f.value)}
+                activeOpacity={0.8}
+              >
+                <Ionicons 
+                  name={f.icon as any} 
+                  size={14} 
+                  color={activeFilter === f.value ? '#ffffff' : '#94a3b8'} 
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.filterText,
+                    activeFilter === f.value && styles.filterTextActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {error && (
           <View style={styles.infoBanner}>
-            <Text style={styles.infoBannerText}>ℹ️ {error}</Text>
+            <Ionicons name="information-circle-outline" size={16} color="#38bdf8" />
+            <Text style={styles.infoBannerText}>{error}</Text>
           </View>
         )}
 
+        {/* ── Package Cards ── */}
         {filteredPackages.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📦</Text>
+            <Ionicons name="car-outline" size={48} color="#475569" />
             <Text style={styles.emptyText}>
               No packages found for this category.
             </Text>
@@ -212,13 +259,14 @@ export default function ServicesScreen() {
                     {pkg.vehicle_type?.toUpperCase()}
                   </Text>
                 </View>
+
                 {pkg.frequency_days > 0 ? (
                   <View style={styles.badgeGreen}>
-                    <Text style={styles.badgeGreenText}>Monthly</Text>
+                    <Text style={styles.badgeGreenText}>MONTHLY SUBSCRIPTION</Text>
                   </View>
                 ) : (
                   <View style={styles.badgePurple}>
-                    <Text style={styles.badgePurpleText}>One-Time</Text>
+                    <Text style={styles.badgePurpleText}>ONE-TIME WASH</Text>
                   </View>
                 )}
               </View>
@@ -227,28 +275,34 @@ export default function ServicesScreen() {
               <Text style={styles.cardTitle}>{pkg.name}</Text>
 
               {/* Description */}
-              <Text style={styles.cardDesc}>{pkg.description}</Text>
+              <Text style={styles.cardDesc} numberOfLines={3}>
+                {pkg.description}
+              </Text>
 
               {/* Price + Book */}
               <View style={styles.cardFooter}>
                 <View>
-                  <Text style={styles.price}>
-                    ₹{pkg.price}
+                  <View style={styles.priceRow}>
+                    <Text style={styles.priceSymbol}>₹</Text>
+                    <Text style={styles.priceValue}>{pkg.price}</Text>
                     {pkg.frequency_days > 0 && (
-                      <Text style={styles.priceUnit}> / month</Text>
+                      <Text style={styles.priceUnit}> / mo</Text>
                     )}
-                  </Text>
+                  </View>
                   {pkg.max_bookings > 1 && (
                     <Text style={styles.washCount}>
-                      Includes {pkg.max_bookings} washes
+                      ⚡ {pkg.max_bookings} washes included
                     </Text>
                   )}
                 </View>
+
                 <TouchableOpacity 
+                  activeOpacity={0.85}
                   style={styles.bookBtn}
                   onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
                 >
-                  <Text style={styles.bookBtnText}>Book Now</Text>
+                  <Text style={styles.bookBtnText}>Book Wash</Text>
+                  <Ionicons name="arrow-forward" size={15} color="#fff" style={{ marginLeft: 4 }} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -256,7 +310,7 @@ export default function ServicesScreen() {
         )}
 
         {/* Bottom spacer */}
-        <View style={{ height: 30 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -265,173 +319,271 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0e27',
+    backgroundColor: '#090d16', // Deep sleek midnight dark
   },
-
-  // ── Loader / Splash ──
   splashContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0a0e27',
+    backgroundColor: '#090d16',
+  },
+  splashBadge: {
+    width: 90,
+    height: 90,
+    borderRadius: 24,
+    backgroundColor: 'rgba(14, 165, 233, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(14, 165, 233, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   splashLogo: {
-    width: 200,
-    height: 200,
-    marginBottom: 30,
+    width: 56,
+    height: 56,
   },
   loaderText: {
-    color: '#8892b0',
-    marginTop: 12,
+    color: '#94a3b8',
+    marginTop: 14,
     fontSize: 14,
+    fontWeight: '500',
   },
-
   header: {
-    backgroundColor: '#0f1336',
-    paddingTop: Platform.OS === 'android' ? 44 : 10,
-    paddingBottom: 16,
+    backgroundColor: '#0f172a',
+    paddingTop: Platform.OS === 'android' ? 44 : 12,
+    paddingBottom: 14,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 212, 255, 0.12)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerLogo: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+  },
   headerTitle: {
     color: '#ffffff',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: -0.3,
   },
-  headerSubtitle: {
-    color: '#5a6380',
-    fontSize: 12,
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginTop: 2,
   },
-  loginBtnHeader: {
-    backgroundColor: 'rgba(0, 212, 255, 0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.3)',
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10b981',
   },
-  loginBtnHeaderText: {
-    color: '#00D4FF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // ── Section Title ──
-  sectionTitle: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 6,
-  },
-  sectionHeading: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  textGradient: {
-    color: '#00D4FF',
-  },
-  sectionDesc: {
-    color: '#5a6380',
-    fontSize: 13,
-    marginTop: 4,
-  },
-
-  // ── Filters ──
-  filterWrapper: {
-    paddingVertical: 12,
-  },
-  filterScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  filterBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    marginRight: 8,
-  },
-  filterBtnActive: {
-    backgroundColor: '#00D4FF',
-    borderColor: '#00D4FF',
-  },
-  filterText: {
-    color: '#8892b0',
-    fontSize: 13,
+  headerSubtitle: {
+    color: '#94a3b8',
+    fontSize: 11,
     fontWeight: '500',
   },
-  filterTextActive: {
-    color: '#0a0e27',
+  loginBtnHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(14, 165, 233, 0.12)',
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.28)',
+  },
+  loginBtnHeaderText: {
+    color: '#38bdf8',
+    fontSize: 13,
     fontWeight: '700',
   },
-
-  // ── Cards ──
   scrollView: {
     flex: 1,
   },
-  cardsContainer: {
+  scrollContent: {
+    paddingTop: 16,
+  },
+  heroBanner: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    backgroundColor: '#1e293b',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10,
+    gap: 5,
+  },
+  heroBadgeText: {
+    color: '#38bdf8',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  heroTitle: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '800',
+    lineHeight: 28,
+  },
+  textGradient: {
+    color: '#38bdf8',
+  },
+  heroSubtitle: {
+    color: '#94a3b8',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 6,
+    marginBottom: 14,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  featurePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 5,
+  },
+  featureText: {
+    color: '#e2e8f0',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  filterWrapper: {
     paddingHorizontal: 16,
-    paddingTop: 4,
+    marginBottom: 16,
+  },
+  sectionHeading: {
+    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  filterScroll: {
+    gap: 8,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  filterBtnActive: {
+    backgroundColor: '#0d9488',
+    borderColor: '#0d9488',
+  },
+  filterText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  filterTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 10,
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    borderRadius: 10,
+    gap: 6,
+  },
+  infoBannerText: {
+    color: '#38bdf8',
+    fontSize: 12,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+    gap: 12,
+  },
+  emptyText: {
+    color: '#64748b',
+    fontSize: 14,
   },
   card: {
-    backgroundColor: 'rgba(15, 19, 54, 0.8)',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#111827',
+    borderRadius: 18,
+    padding: 18,
+    marginHorizontal: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-
-  // ── Badges ──
   badgeRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   badgeCyan: {
-    backgroundColor: 'rgba(0, 212, 255, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(14, 165, 233, 0.14)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
   },
   badgeCyanText: {
-    color: '#00D4FF',
+    color: '#38bdf8',
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   badgeGreen: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
   },
   badgeGreenText: {
-    color: '#10B981',
+    color: '#34d399',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   badgePurple: {
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(168, 85, 247, 0.14)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
   },
   badgePurpleText: {
-    color: '#8B5CF6',
+    color: '#c084fc',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
-
-  // ── Card Content ──
   cardTitle: {
     color: '#ffffff',
     fontSize: 18,
@@ -439,104 +591,57 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   cardDesc: {
-    color: '#6b7394',
+    color: '#94a3b8',
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 18,
     marginBottom: 16,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
   },
-  price: {
-    color: '#00D4FF',
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  priceSymbol: {
+    color: '#38bdf8',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  priceValue: {
+    color: '#ffffff',
     fontSize: 22,
     fontWeight: '800',
+    letterSpacing: -0.5,
   },
   priceUnit: {
-    color: '#5a6380',
+    color: '#94a3b8',
     fontSize: 12,
-    fontWeight: '400',
+    fontWeight: '500',
+    marginLeft: 2,
   },
   washCount: {
-    color: '#5a6380',
+    color: '#10b981',
     fontSize: 11,
+    fontWeight: '600',
     marginTop: 2,
   },
   bookBtn: {
-    backgroundColor: '#00D4FF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0d9488',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 12,
   },
   bookBtnText: {
-    color: '#0a0e27',
-    fontWeight: '700',
+    color: '#ffffff',
     fontSize: 13,
-  },
-
-  // ── Info Banner ──
-  infoBanner: {
-    backgroundColor: 'rgba(0, 212, 255, 0.08)',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
-  },
-  infoBannerText: {
-    color: '#00D4FF',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-
-  // ── Error ──
-  errorContainer: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  errorIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  errorTitle: {
-    color: '#ff6b6b',
-    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 8,
-  },
-  errorText: {
-    color: '#8892b0',
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 30,
-  },
-  retryBtn: {
-    marginTop: 24,
-    backgroundColor: 'rgba(0, 212, 255, 0.1)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  retryText: {
-    color: '#00D4FF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-
-  // ── Empty ──
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyText: {
-    color: '#5a6380',
-    fontSize: 14,
   },
 });

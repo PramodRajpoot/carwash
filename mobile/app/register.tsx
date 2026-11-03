@@ -10,11 +10,13 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons';
 import { API_BASE } from '../constants/api';
 
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
@@ -39,13 +41,13 @@ export default function RegisterScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       nameInputRef.current?.focus();
-    }, 400); // 400ms delay ensures screen transition is complete
+    }, 400);
     return () => clearTimeout(timer);
   }, []);
 
   const handleRegister = async () => {
     if (!name || !email || !phone || !password || !passwordConfirm) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
 
@@ -76,7 +78,7 @@ export default function RegisterScreen() {
           : 'Registration successful! You earned 50 E-Points as a welcome bonus!';
 
         Alert.alert('Welcome! 🎉', welcomeMessage, [
-          { text: 'OK', onPress: () => router.replace('/dashboard') }
+          { text: 'Get Started', onPress: () => router.replace('/dashboard') }
         ]);
       } else {
         Alert.alert('Registration Failed', response.data.message || 'Could not register');
@@ -85,7 +87,6 @@ export default function RegisterScreen() {
       console.error(error);
       let msg = 'Network error, please try again.';
       if (error.response?.data?.errors) {
-        // Laravel validation returns errors as an object of field: [messages]
         const errors = error.response.data.errors;
         msg = Object.values(errors).flat().join('\n');
       } else if (error.response?.data?.message) {
@@ -105,88 +106,123 @@ export default function RegisterScreen() {
       <StatusBar style="dark" />
       
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Back navigation button */}
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={22} color="#0f172a" />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+
         <View style={styles.card}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.brandTitle}>CleanAtDoorstep</Text>
-            <Text style={styles.subtitle}>Create a new account</Text>
+            <View style={styles.logoBadge}>
+              <Image 
+                source={require('../assets/images/icon.png')} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.brandTitle}>Create Account</Text>
+            <Text style={styles.subtitle}>Join CleanAtDoorstep for hassle-free doorstep car care</Text>
           </View>
 
           {/* Form */}
           <View style={styles.formContainer}>
-            <TextInput
-              ref={nameInputRef}
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor="#a0aec0"
-              autoFocus={true}
-              value={name}
-              onChangeText={setName}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              placeholderTextColor="#a0aec0"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Mobile Number (10 digits)"
-              placeholderTextColor="#a0aec0"
-              keyboardType="numeric"
-              maxLength={10}
-              value={phone}
-              onChangeText={setPhone}
-            />
-            
-            <View style={styles.passwordContainer}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
               <TextInput
-                style={styles.passwordInput}
-                placeholder="Password"
-                placeholderTextColor="#a0aec0"
+                ref={nameInputRef}
+                style={styles.input}
+                placeholder="Full Name *"
+                placeholderTextColor="#94a3b8"
+                autoFocus={true}
+                value={name}
+                onChangeText={setName}
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email Address *"
+                placeholderTextColor="#94a3b8"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="call-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Mobile Number (10 digits) *"
+                placeholderTextColor="#94a3b8"
+                keyboardType="phone-pad"
+                maxLength={10}
+                value={phone}
+                onChangeText={setPhone}
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password *"
+                placeholderTextColor="#94a3b8"
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-                <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                <Ionicons 
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
+                  size={20} 
+                  color="#64748b" 
+                />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.passwordContainer}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
               <TextInput
-                style={styles.passwordInput}
-                placeholder="Confirm Password"
-                placeholderTextColor="#a0aec0"
+                style={styles.input}
+                placeholder="Confirm Password *"
+                placeholderTextColor="#94a3b8"
                 secureTextEntry={!showPasswordConfirm}
                 value={passwordConfirm}
                 onChangeText={setPasswordConfirm}
               />
               <TouchableOpacity onPress={() => setShowPasswordConfirm(!showPasswordConfirm)} style={styles.eyeButton}>
-                <Text style={styles.eyeIcon}>{showPasswordConfirm ? '🙈' : '👁️'}</Text>
+                <Ionicons 
+                  name={showPasswordConfirm ? 'eye-off-outline' : 'eye-outline'} 
+                  size={20} 
+                  color="#64748b" 
+                />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.referralContainer}>
+            <View style={[styles.inputWrapper, { backgroundColor: '#f0fdfa', borderColor: '#99f6e4' }]}>
+              <Ionicons name="gift-outline" size={20} color="#0d9488" style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { marginBottom: referralCode ? 4 : 16 }]}
-                placeholder="Referral Code (Optional)"
-                placeholderTextColor="#a0aec0"
+                style={styles.input}
+                placeholder="Referral Code (Optional - earn 50 pts)"
+                placeholderTextColor="#0f766e"
                 autoCapitalize="characters"
                 value={referralCode}
                 onChangeText={setReferralCode}
               />
-              {referralCode.length > 0 && (
-                <Text style={styles.discountText}>🎉 10% discount on first booking + 50 E-Points bonus!</Text>
-              )}
             </View>
 
             <TouchableOpacity 
+              activeOpacity={0.85}
               style={styles.registerButton} 
               onPress={handleRegister}
               disabled={loading}
@@ -194,7 +230,10 @@ export default function RegisterScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.registerButtonText}>Register Now</Text>
+                <View style={styles.buttonContent}>
+                  <Text style={styles.registerButtonText}>Create Account</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 6 }} />
+                </View>
               )}
             </TouchableOpacity>
           </View>
@@ -202,7 +241,7 @@ export default function RegisterScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity onPress={() => router.push('/login')}>
               <Text style={styles.loginLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
@@ -215,115 +254,144 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0f172a', // Deep navy matching login
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
+    paddingVertical: 36,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  backText: {
+    color: '#e2e8f0',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 22,
+  },
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#f0fdfa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#99f6e4',
+    shadowColor: '#0d9488',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  logoImage: {
+    width: 40,
+    height: 40,
   },
   brandTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
-    color: '#00b4d8', 
-    marginBottom: 8,
+    color: '#0f172a',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#718096',
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 4,
+    textAlign: 'center',
   },
   formContainer: {
     marginBottom: 10,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: '#2d3748',
-    marginBottom: 16,
-  },
-  passwordContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
     borderColor: '#e2e8f0',
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    marginBottom: 12,
   },
-  passwordInput: {
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
     fontSize: 15,
-    color: '#2d3748',
+    color: '#0f172a',
   },
   eyeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  eyeIcon: {
-    color: '#a0aec0',
-    fontSize: 18,
+    padding: 6,
   },
   registerButton: {
-    backgroundColor: '#0bb79e', 
-    borderRadius: 30,
-    paddingVertical: 16,
+    backgroundColor: '#0d9488',
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 24,
-    shadowColor: '#0bb79e',
+    justifyContent: 'center',
+    shadowColor: '#0d9488',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
-    elevation: 5,
+    elevation: 4,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   registerButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
   },
   footerText: {
-    color: '#a0aec0',
-    fontSize: 14,
+    color: '#64748b',
+    fontSize: 13,
   },
   loginLink: {
-    color: '#00b4d8',
-    fontSize: 14,
+    color: '#0d9488',
+    fontSize: 13,
     fontWeight: '700',
-  },
-  referralContainer: {
-    marginBottom: 0,
-  },
-  discountText: {
-    fontSize: 12,
-    color: '#10b981', // Emerald green
-    marginBottom: 16,
-    marginLeft: 4,
   },
 });
