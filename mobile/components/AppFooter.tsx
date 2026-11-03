@@ -101,7 +101,7 @@ export default function AppFooter({
             color={getIconColor('book')}
           />
           <Text style={getLabelStyle('book')} numberOfLines={1}>
-            Book Wash
+            Wash List
           </Text>
         </TouchableOpacity>
 

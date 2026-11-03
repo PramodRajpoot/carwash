@@ -239,27 +239,6 @@ export default function CountingStatsSection({
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Quick Click to Switch to Graph */}
-          <TouchableOpacity
-            style={[styles.graphCtaPill, isDark ? styles.darkGraphCta : styles.lightGraphCta]}
-            onPress={() => toggleViewMode('chart')}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="bar-chart-outline"
-              size={13}
-              color={isDark ? '#38bdf8' : '#0284c7'}
-            />
-            <Text style={[styles.graphCtaText, isDark && styles.darkGraphCtaText]}>
-              Show in graph view
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={12}
-              color={isDark ? '#38bdf8' : '#0284c7'}
-            />
-          </TouchableOpacity>
         </View>
       )}
 
@@ -382,7 +361,7 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginTop: 18,
-    marginBottom: 8,
+    marginBottom: 18,
   },
   headerRow: {
     flexDirection: 'row',

@@ -30,6 +30,7 @@ import QuickActionsGrid from '../components/QuickActionsGrid';
 import CouponsCarousel from '../components/CouponsCarousel';
 import CountingStatsSection from '../components/CountingStatsSection';
 import AppFooter, { FooterTab } from '../components/AppFooter';
+import BookServiceModal from '../components/BookServiceModal';
 
 const WebViewComponent: any = WebView;
 
@@ -67,6 +68,7 @@ export default function DashboardScreen() {
   const webviewRef = useRef<any>(null);
   const scrollViewRef = useRef<any>(null);
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('home');
+  const [bookingSheetVisible, setBookingSheetVisible] = useState(false);
 
   const fetchDashboardData = useCallback(async (authToken?: string) => {
     const activeToken = authToken || token;
@@ -210,6 +212,17 @@ export default function DashboardScreen() {
     fetchDashboardData();
   };
 
+  const openBookingModal = () => {
+    safeHapticMedium();
+    setBookingSheetVisible(true);
+  };
+
+  const closeBookingModal = () => {
+    setBookingSheetVisible(false);
+    // Refresh dashboard data in case of new bookings
+    fetchDashboardData();
+  };
+
   const handleFooterTabPress = (tab: FooterTab) => {
     if (tab === 'home') {
       if (modalVisible) {
@@ -225,7 +238,7 @@ export default function DashboardScreen() {
         openActionView('My Garage', '/customer/vehicles', 'garage');
         break;
       case 'book':
-        router.push('/bookings');
+        openBookingModal();
         break;
       case 'support':
         openActionView('Help & Support', '/customer/support', 'support');
@@ -362,7 +375,7 @@ export default function DashboardScreen() {
         {/* Services & Features (8 Compact Icon Boxes in 4 Columns) */}
         <QuickActionsGrid
           isDark={isDark}
-          onBookWashPress={() => router.push('/bookings')}
+          onBookWashPress={openBookingModal}
           onGaragePress={() =>
             openActionView('My Garage', '/customer/vehicles', 'garage')
           }
@@ -415,6 +428,18 @@ export default function DashboardScreen() {
         activeTab={activeFooterTab}
         isDark={isDark}
         onTabPress={handleFooterTabPress}
+      />
+
+      <BookServiceModal
+        visible={bookingSheetVisible}
+        onClose={() => setBookingSheetVisible(false)}
+        onSuccess={() => {
+          setBookingSheetVisible(false);
+          fetchDashboardData();
+        }}
+        isDark={isDark}
+        token={token}
+        user={user}
       />
 
       {/* In-App Flow Modal Sheet */}
