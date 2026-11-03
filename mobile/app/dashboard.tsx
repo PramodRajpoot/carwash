@@ -225,7 +225,7 @@ export default function DashboardScreen() {
         openActionView('My Garage', '/customer/vehicles', 'garage');
         break;
       case 'book':
-        openActionView('Book Service', '/customer/bookings?book=true', 'book');
+        router.push('/bookings');
         break;
       case 'support':
         openActionView('Help & Support', '/customer/support', 'support');
@@ -362,9 +362,7 @@ export default function DashboardScreen() {
         {/* Services & Features (8 Compact Icon Boxes in 4 Columns) */}
         <QuickActionsGrid
           isDark={isDark}
-          onBookWashPress={() =>
-            openActionView('Book Service', '/customer/bookings?book=true', 'book')
-          }
+          onBookWashPress={() => router.push('/bookings')}
           onGaragePress={() =>
             openActionView('My Garage', '/customer/vehicles', 'garage')
           }
@@ -399,9 +397,7 @@ export default function DashboardScreen() {
         <CountingStatsSection
           dashData={dashData}
           isDark={isDark}
-          onWashesPress={() =>
-            openActionView('My Washes & Bookings', '/customer/bookings')
-          }
+          onWashesPress={() => router.push('/bookings')}
           onEarningMoneyPress={() =>
             openActionView('Earning Money Wallet', '/customer/wallet')
           }
@@ -562,7 +558,10 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               style={styles.menuItem}
-              onPress={() => openActionView('All Bookings', '/customer/bookings')}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push('/bookings');
+              }}
             >
               <View style={[styles.menuItemIcon, { backgroundColor: '#eff6ff' }]}>
                 <Ionicons name="calendar-outline" size={20} color="#2563eb" />
