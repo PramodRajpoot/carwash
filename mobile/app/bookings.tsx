@@ -403,6 +403,15 @@ export default function BookingsScreen() {
 
         <View style={styles.headerRight}>
           <TouchableOpacity
+            style={styles.bookHeaderBtnCompact}
+            onPress={openBookingModal}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add" size={14} color="#ffffff" />
+            <Text style={styles.bookHeaderBtnTextCompact}>Book Wash</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.headerIconBtn}
             onPress={toggleTheme}
             activeOpacity={0.7}
@@ -412,15 +421,6 @@ export default function BookingsScreen() {
               size={20}
               color={isDark ? '#fbbf24' : '#334155'}
             />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.bookHeaderBtnCompact}
-            onPress={openBookingModal}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={14} color="#ffffff" />
-            <Text style={styles.bookHeaderBtnTextCompact}>Book Wash</Text>
           </TouchableOpacity>
 
           <View style={styles.headerFilterWrap}>
