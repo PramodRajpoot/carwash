@@ -44,6 +44,164 @@
       </div>
     </div>
 
+    <!-- Partner Feedback -->
+    <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
+      <div class="container">
+        <div class="section-title">
+          <h2>Our Partners' <span class="text-gradient">Valuable Feedback</span></h2>
+          <p>Hear directly from our successful franchise partners across India.</p>
+        </div>
+        <div class="grid grid-3 gap-3">
+          <div v-for="(feedback, i) in partnerFeedback" :key="i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
+            <div class="feedback-thumb">
+               <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
+               <div v-else class="feedback-thumb-placeholder"></div>
+               <!-- Play button overlay -->
+               <div class="play-btn-overlay" v-if="feedback.video_path">
+                 <div class="play-btn-circle">
+                   <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                 </div>
+               </div>
+            </div>
+            <div style="padding:1.5rem">
+               <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city }} Partner</h4>
+               <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Lightbox Modal -->
+      <transition name="lightbox">
+        <div v-if="lightboxOpen" class="video-lightbox-overlay" @click.self="closeLightbox">
+          <!-- Floating ambient particles -->
+          <div class="lightbox-particle lightbox-particle-1"></div>
+          <div class="lightbox-particle lightbox-particle-2"></div>
+          <div class="lightbox-particle lightbox-particle-3"></div>
+
+          <div class="video-lightbox-content">
+            <!-- Animated gradient border glow -->
+            <div class="lightbox-glow"></div>
+
+            <button class="lightbox-close-btn" @click="closeLightbox" aria-label="Close video">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+            </button>
+
+            <div class="lightbox-video-wrapper">
+              <video v-if="lightboxFeedback && lightboxFeedback.video_path" ref="lightboxVideo" controls autoplay :poster="lightboxFeedback.thumbnail_path" class="lightbox-video">
+                <source :src="lightboxFeedback.video_path" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+              <div v-else class="lightbox-no-video">
+                <img v-if="lightboxFeedback && lightboxFeedback.thumbnail_path" :src="lightboxFeedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover;" />
+                <p v-else class="text-muted" style="text-align:center;padding:3rem;">No video available</p>
+              </div>
+            </div>
+
+            <div v-if="lightboxFeedback" class="lightbox-info">
+              <div class="lightbox-info-inner">
+                <div class="lightbox-partner-badge">
+                  <span class="lightbox-badge-icon">📍</span>
+                  <span>{{ lightboxFeedback.city }}</span>
+                </div>
+                <h4 class="lightbox-title">{{ lightboxFeedback.city }} Partner</h4>
+                <p class="lightbox-quote">"{{ lightboxFeedback.quote }}"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </section>
+
+    <!-- Vehicle Categories -->
+    <section class="section">
+      <div class="container">
+        <div class="section-title">
+          <h2>Vehicle <span class="text-gradient">Categories</span></h2>
+          <p>We service every type of vehicle — from compact hatchbacks to luxury Volvo buses.</p>
+        </div>
+        <div class="grid grid-3 gap-3">
+          <div v-for="cat in categories" :key="cat.type" class="glass-card text-center" style="cursor:pointer" @click="$router.push('/services')">
+            <div style="font-size:3rem;margin-bottom:0.75rem">{{ cat.icon }}</div>
+            <h4>{{ cat.name }}</h4>
+            <p class="text-muted" style="font-size:0.85rem;margin-top:0.3rem">Starting ₹{{ cat.price }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Us -->
+    <section class="section" v-if="aboutUs">
+      <div class="container">
+        <div class="about-grid">
+          
+          <!-- Content Left -->
+          <div class="about-content fade-in-up">
+            <span class="about-label">ABOUT US</span>
+            <h2 class="about-title" v-html="aboutUs.title"></h2>
+            <p class="about-desc">{{ aboutUs.description }}</p>
+            
+            <div class="features-grid">
+              <div v-for="(feature, idx) in aboutUs.features" :key="'feat-'+idx" class="feature-item">
+                <div class="feature-icon">
+                  <svg v-if="feature.icon === 'truck'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                  <svg v-else-if="feature.icon === 'shield'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
+                  <svg v-else-if="feature.icon === 'users'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  <svg v-else-if="feature.icon === 'sparkles'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>
+                  <svg v-else-if="feature.icon === 'star'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  <svg v-else-if="feature.icon === 'clock'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span v-else>📌</span>
+                </div>
+                <div class="feature-text">
+                  <h4>{{ feature.title }}</h4>
+                  <p>{{ feature.description }}</p>
+                </div>
+              </div>
+            </div>
+            
+            <router-link to="/about" class="btn btn-primary mt-4" style="border-radius: 50px; background: #002e5b;">Know More &rarr;</router-link>
+          </div>
+
+          <!-- Image Collage Right -->
+          <div class="about-images fade-in-up delay-1" v-if="aboutUs.images && aboutUs.images.length === 3">
+            <div class="img-tall">
+              <img :src="aboutUs.images[0]" alt="Car Wash Service 1" />
+            </div>
+            <div class="img-stack">
+              <div class="img-square">
+                <img :src="aboutUs.images[1]" alt="Car Wash Service 2" />
+              </div>
+              <div class="img-landscape">
+                <img :src="aboutUs.images[2]" alt="Car Wash Service 3" />
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section" v-if="testimonials && testimonials.length > 0">
+      <div class="container">
+        <div class="section-title">
+          <h2>Customer <span class="text-gradient">Testimonials</span></h2>
+          <p>What our happy customers say about CleanAtDoorstep.</p>
+        </div>
+        <div class="grid grid-3 gap-3">
+          <div v-for="(t, i) in testimonials" :key="i" class="glass-card fade-in-up" :class="'delay-' + (i+1)" style="position:relative">
+            <div style="font-size:3rem; color:var(--border-color); position:absolute; top:10px; right:20px; font-family:serif; line-height:1">""</div>
+            <div style="color:var(--accent-amber); font-size:1.1rem; margin-bottom:0.75rem;">⭐⭐⭐⭐⭐</div>
+            <p style="font-style:italic;margin-bottom:1.5rem;position:relative;z-index:1;color:var(--text-secondary);">"{{ t.text }}"</p>
+            <div class="flex items-center gap-2">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-btn);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.8rem">{{ t.name.charAt(0) }}</div>
+              <div><div style="font-weight:600;font-size:0.9rem">{{ t.name }}</div><div class="text-muted" style="font-size:0.75rem">{{ t.role }}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Refer & Earn Section -->
     <section class="refer-earn-section">
       <!-- Animated background particles -->
@@ -110,238 +268,15 @@
       </div>
     </section>
 
-    <!-- Testimonials -->
-    <section class="section" v-if="testimonials && testimonials.length > 0">
-      <div class="container">
-        <div class="section-title">
-          <h2>Customer <span class="text-gradient">Testimonials</span></h2>
-          <p>What our happy customers say about CleanAtDoorstep.</p>
-        </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="(t, i) in testimonials" :key="i" class="glass-card fade-in-up" :class="'delay-' + (i+1)" style="position:relative">
-            <div style="font-size:3rem; color:var(--border-color); position:absolute; top:10px; right:20px; font-family:serif; line-height:1">""</div>
-            <div style="color:var(--accent-amber); font-size:1.1rem; margin-bottom:0.75rem;">⭐⭐⭐⭐⭐</div>
-            <p style="font-style:italic;margin-bottom:1.5rem;position:relative;z-index:1;color:var(--text-secondary);">"{{ t.text }}"</p>
-            <div class="flex items-center gap-2">
-              <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-btn);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.8rem">{{ t.name.charAt(0) }}</div>
-              <div><div style="font-weight:600;font-size:0.9rem">{{ t.name }}</div><div class="text-muted" style="font-size:0.75rem">{{ t.role }}</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Trusted by Customers Stats -->
-    <section class="section" style="padding-top:0;">
-      <div class="container">
-        <div class="grid grid-4 gap-3 glass-card text-center" style="padding: 2rem;">
-          <div class="fade-in-up">
-            <div style="font-size:2.5rem;font-weight:700;color:var(--accent-cyan)">5000+</div>
-            <div class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Happy Customers</div>
-          </div>
-          <div class="fade-in-up delay-1">
-            <div style="font-size:2.5rem;font-weight:700;color:var(--accent-emerald)">15+</div>
-            <div class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Active Centers</div>
-          </div>
-          <div class="fade-in-up delay-2">
-            <div style="font-size:2.5rem;font-weight:700;color:var(--accent-amber)">100%</div>
-            <div class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Eco-friendly Wash</div>
-          </div>
-          <div class="fade-in-up delay-3">
-            <div style="font-size:2.5rem;font-weight:700;color:var(--accent-violet)">4.9★</div>
-            <div class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Average Rating</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- About Us -->
-    <section class="section" v-if="aboutUs">
-      <div class="container">
-        <div class="about-grid">
-          
-          <!-- Content Left -->
-          <div class="about-content fade-in-up">
-            <span class="about-label">ABOUT US</span>
-            <h2 class="about-title" v-html="aboutUs.title"></h2>
-            <p class="about-desc">{{ aboutUs.description }}</p>
-            
-            <div class="features-grid">
-              <div v-for="(feature, idx) in aboutUs.features" :key="'feat-'+idx" class="feature-item">
-                <div class="feature-icon">
-                  <svg v-if="feature.icon === 'truck'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-                  <svg v-else-if="feature.icon === 'shield'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
-                  <svg v-else-if="feature.icon === 'users'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                  <svg v-else-if="feature.icon === 'sparkles'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>
-                  <svg v-else-if="feature.icon === 'star'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                  <svg v-else-if="feature.icon === 'clock'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  <span v-else>📌</span>
-                </div>
-                <div class="feature-text">
-                  <h4>{{ feature.title }}</h4>
-                  <p>{{ feature.description }}</p>
-                </div>
-              </div>
-            </div>
-            
-            <router-link to="/about" class="btn btn-primary mt-4" style="border-radius: 50px; background: #002e5b;">Know More &rarr;</router-link>
-          </div>
-
-          <!-- Image Collage Right -->
-          <div class="about-images fade-in-up delay-1" v-if="aboutUs.images && aboutUs.images.length === 3">
-            <div class="img-tall">
-              <img :src="aboutUs.images[0]" alt="Car Wash Service 1" />
-            </div>
-            <div class="img-stack">
-              <div class="img-square">
-                <img :src="aboutUs.images[1]" alt="Car Wash Service 2" />
-              </div>
-              <div class="img-landscape">
-                <img :src="aboutUs.images[2]" alt="Car Wash Service 3" />
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- Mission & Vision -->
-    <section class="section" style="background:var(--bg-secondary)">
-      <div class="container">
-        <div class="section-title">
-          <h2>Our <span class="text-gradient">Mission & Vision</span></h2>
-          <p>Building a cleaner tomorrow with sustainable vehicle care solutions.</p>
-        </div>
-        <div class="grid grid-3 gap-4">
-          <div class="glass-card fade-in-up text-center">
-            <div style="font-size:2.5rem;margin-bottom:0.75rem">🎯</div>
-            <h4>Our Mission</h4>
-            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">To deliver premium doorstep car cleaning that saves water and time while providing showroom-quality results.</p>
-          </div>
-          <div class="glass-card fade-in-up delay-1 text-center">
-            <div style="font-size:2.5rem;margin-bottom:0.75rem">🔭</div>
-            <h4>Our Vision</h4>
-            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">To become India's leading eco-friendly vehicle care franchise network with 500+ centers by 2028.</p>
-          </div>
-          <div class="glass-card fade-in-up delay-2 text-center">
-            <div style="font-size:2.5rem;margin-bottom:0.75rem">💎</div>
-            <h4>Our Values</h4>
-            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Quality, sustainability, customer trust, and innovation drive every wash we deliver.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Vehicle Categories -->
-    <section class="section">
-      <div class="container">
-        <div class="section-title">
-          <h2>Vehicle <span class="text-gradient">Categories</span></h2>
-          <p>We service every type of vehicle — from compact hatchbacks to luxury Volvo buses.</p>
-        </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="cat in categories" :key="cat.type" class="glass-card text-center" style="cursor:pointer" @click="$router.push('/services')">
-            <div style="font-size:3rem;margin-bottom:0.75rem">{{ cat.icon }}</div>
-            <h4>{{ cat.name }}</h4>
-            <p class="text-muted" style="font-size:0.85rem;margin-top:0.3rem">Starting ₹{{ cat.price }}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Authorised Service Partner -->
-    <section class="section" style="background:var(--bg-secondary)">
-      <div class="container">
-        <div class="section-title">
-          <h2>Authorised <span class="text-gradient">Service Partners</span></h2>
-          <p>Trusted by industry leaders to deliver exceptional care.</p>
-        </div>
-      </div>
-      <div v-if="partners.length > 0" class="offers-ticker" style="border: none; background: transparent; padding: 1rem 0;">
-        <div class="ticker-content">
-          <template v-for="n in 12" :key="'loop-'+n">
-            <div v-for="partner in partners" :key="n+'-'+partner.id" class="ticker-item" style="margin-right: 4rem; vertical-align: middle;">
-               <img v-if="partner.image_path" :src="partner.image_path" :alt="partner.name" style="height: 95px; width: auto; object-fit: contain; filter: grayscale(100%) opacity(0.7); transition: all 0.3s ease;" onmouseover="this.style.filter='grayscale(0) opacity(1)'" onmouseout="this.style.filter='grayscale(100%) opacity(0.7)'">
-               <div v-else style="font-weight:700;font-size:1.5rem;color:var(--text-muted);">{{ partner.name }}</div>
-            </div>
-          </template>
-        </div>
-      </div>
-    </section>
-
-
-    <!-- Services -->
-    <section class="section" id="services">
-      <div class="container">
-        <div class="section-title">
-          <h2>Our <span class="text-gradient">Services</span></h2>
-          <p>Professional vehicle detailing packages for every need.</p>
-        </div>
-        <div class="flex gap-2 justify-center" style="margin-bottom:2rem;flex-wrap:wrap">
-          <button v-for="f in filters" :key="f.value" class="btn btn-sm" :class="activeFilter === f.value ? 'btn-primary' : 'btn-outline'" @click="activeFilter = f.value">{{ f.label }}</button>
-        </div>
-        <div v-if="loadingServices" class="text-center text-muted" style="padding:3rem">Loading services...</div>
-        <div v-else class="grid grid-3 gap-3">
-          <div v-for="pkg in filteredServices" :key="pkg.id" class="glass-card">
-            <div class="flex justify-between items-center" style="margin-bottom:0.75rem">
-              <span class="badge badge-cyan" style="text-transform: uppercase;">{{ pkg.vehicle_type }}</span>
-              <span class="badge badge-violet">One-Time</span>
-              <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white; margin-left: auto;">{{ pkg.custom_badge }}</span>
-            </div>
-            <h4 style="margin-bottom:0.5rem">{{ pkg.name }}</h4>
-            <p class="text-muted" style="font-size:0.85rem;line-height:1.6;margin-bottom:1rem">{{ pkg.description }}</p>
-            <div class="flex justify-between items-center">
-              <div><span style="font-size:1.5rem;font-weight:700;color:var(--accent-cyan)">₹{{ pkg.price }}</span></div>
-              <router-link to="/register" class="btn btn-primary btn-sm">Book Now</router-link>
-            </div>
-            <div v-if="pkg.max_bookings > 1" class="text-muted" style="font-size:0.75rem;margin-top:0.5rem">Includes {{ pkg.max_bookings }} washes</div>
-          </div>
-        </div>
-        <div v-if="!loadingServices && filteredServices.length === 0" class="empty-state"><div class="empty-icon">📦</div><p>No services found for this category.</p></div>
-      </div>
-    </section>
-
-    <!-- Monthly Packages -->
-    <section class="section" id="monthly-packages" style="padding-top:0">
-      <div class="container">
-        <div class="section-title">
-          <h2>Monthly <span class="text-gradient">Packages</span></h2>
-          <p>Affordable recurring care plans with free detailing perks.</p>
-        </div>
-        <div class="flex gap-2 justify-center" style="margin-bottom:2rem;flex-wrap:wrap">
-          <button v-for="f in filters" :key="f.value" class="btn btn-sm" :class="activeMonthlyFilter === f.value ? 'btn-primary' : 'btn-outline'" @click="activeMonthlyFilter = f.value">{{ f.label }}</button>
-        </div>
-        <div v-if="loadingServices" class="text-center text-muted" style="padding:3rem">Loading packages...</div>
-        <div v-else class="grid grid-3 gap-3">
-          <div v-for="pkg in filteredMonthlyPackages" :key="pkg.id" class="glass-card" style="border: 1px solid rgba(139, 92, 246, 0.25);">
-            <div class="flex justify-between items-center" style="margin-bottom:0.75rem">
-              <span class="badge badge-cyan" style="text-transform: uppercase;">{{ pkg.vehicle_type }}</span>
-              <span class="badge badge-emerald">Monthly</span>
-              <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white; margin-left: auto;">{{ pkg.custom_badge }}</span>
-            </div>
-            <h4 style="margin-bottom:0.5rem">{{ pkg.name }}</h4>
-            <p class="text-muted" style="font-size:0.85rem;line-height:1.6;margin-bottom:1rem">{{ pkg.description }}</p>
-            <div class="flex justify-between items-center">
-              <div><span style="font-size:1.5rem;font-weight:700;color:var(--accent-cyan)">₹{{ pkg.price }}</span><span class="text-muted" style="font-size:0.8rem"> / month</span></div>
-              <router-link to="/register" class="btn btn-primary btn-sm">Book Now</router-link>
-            </div>
-            <div v-if="pkg.max_bookings > 1" class="text-muted" style="font-size:0.75rem;margin-top:0.5rem">Includes {{ pkg.max_bookings }} washes</div>
-          </div>
-        </div>
-        <div v-if="!loadingServices && filteredMonthlyPackages.length === 0" class="empty-state"><div class="empty-icon">📦</div><p>No monthly packages found for this category.</p></div>
-      </div>
-    </section>
-
     <!-- Partner Feedback -->
-    <section class="section" style="background:var(--bg-secondary)">
+    <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
       <div class="container">
         <div class="section-title">
           <h2>Our Partners' <span class="text-gradient">Valuable Feedback</span></h2>
           <p>Hear directly from our successful franchise partners across India.</p>
         </div>
         <div class="grid grid-3 gap-3">
-          <div v-for="(feedback, i) in partnerFeedback" :key="i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
+          <div v-for="(feedback, i) in partnerFeedback" :key="'copy-' + i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
             <div class="feedback-thumb">
                <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
                <div v-else class="feedback-thumb-placeholder"></div>
@@ -359,47 +294,26 @@
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- Video Lightbox Modal -->
-      <transition name="lightbox">
-        <div v-if="lightboxOpen" class="video-lightbox-overlay" @click.self="closeLightbox">
-          <!-- Floating ambient particles -->
-          <div class="lightbox-particle lightbox-particle-1"></div>
-          <div class="lightbox-particle lightbox-particle-2"></div>
-          <div class="lightbox-particle lightbox-particle-3"></div>
-
-          <div class="video-lightbox-content">
-            <!-- Animated gradient border glow -->
-            <div class="lightbox-glow"></div>
-
-            <button class="lightbox-close-btn" @click="closeLightbox" aria-label="Close video">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
-            </button>
-
-            <div class="lightbox-video-wrapper">
-              <video v-if="lightboxFeedback && lightboxFeedback.video_path" ref="lightboxVideo" controls autoplay :poster="lightboxFeedback.thumbnail_path" class="lightbox-video">
-                <source :src="lightboxFeedback.video_path" type="video/mp4">
-                Your browser does not support the video tag.
-              </video>
-              <div v-else class="lightbox-no-video">
-                <img v-if="lightboxFeedback && lightboxFeedback.thumbnail_path" :src="lightboxFeedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover;" />
-                <p v-else class="text-muted" style="text-align:center;padding:3rem;">No video available</p>
-              </div>
+    <!-- FAQ -->
+    <section class="section">
+      <div class="container" style="max-width:800px">
+        <div class="section-title">
+          <h2>Frequently Asked <span class="text-gradient">Questions</span></h2>
+          <p>Everything you need to know about our services.</p>
+        </div>
+        <div v-if="faqs.length > 0" style="display:flex;flex-direction:column;gap:1rem">
+          <div v-for="(faq, i) in faqs" :key="faq.id || i" class="glass-card" style="padding:1.25rem;cursor:pointer" @click="toggleFaq(i)">
+            <div class="flex justify-between items-center">
+              <h4 style="font-size:1.05rem;margin:0">{{ faq.question }}</h4>
+              <span style="font-size:1.5rem;color:var(--accent-cyan);transition:transform 0.3s" :style="{ transform: faq.open ? 'rotate(45deg)' : 'rotate(0)' }">+</span>
             </div>
-
-            <div v-if="lightboxFeedback" class="lightbox-info">
-              <div class="lightbox-info-inner">
-                <div class="lightbox-partner-badge">
-                  <span class="lightbox-badge-icon">📍</span>
-                  <span>{{ lightboxFeedback.city }}</span>
-                </div>
-                <h4 class="lightbox-title">{{ lightboxFeedback.city }} Partner</h4>
-                <p class="lightbox-quote">"{{ lightboxFeedback.quote }}"</p>
-              </div>
-            </div>
+            <p v-if="faq.open" class="text-secondary" style="margin-top:1rem;font-size:0.95rem;animation:fadeInUp 0.3s ease">{{ faq.answer }}</p>
           </div>
         </div>
-      </transition>
+        <div v-else class="text-center text-muted" style="padding:2rem;">No FAQs available.</div>
+      </div>
     </section>
 
     <!-- Franchise Form -->
@@ -477,23 +391,74 @@
       </div>
     </section>
 
-    <!-- FAQ -->
+    <!-- Trusted by Customers Stats -->
     <section class="section">
-      <div class="container" style="max-width:800px">
-        <div class="section-title">
-          <h2>Frequently Asked <span class="text-gradient">Questions</span></h2>
-          <p>Everything you need to know about our services.</p>
-        </div>
-        <div v-if="faqs.length > 0" style="display:flex;flex-direction:column;gap:1rem">
-          <div v-for="(faq, i) in faqs" :key="faq.id || i" class="glass-card" style="padding:1.25rem;cursor:pointer" @click="toggleFaq(i)">
-            <div class="flex justify-between items-center">
-              <h4 style="font-size:1.05rem;margin:0">{{ faq.question }}</h4>
-              <span style="font-size:1.5rem;color:var(--accent-cyan);transition:transform 0.3s" :style="{ transform: faq.open ? 'rotate(45deg)' : 'rotate(0)' }">+</span>
-            </div>
-            <p v-if="faq.open" class="text-secondary" style="margin-top:1rem;font-size:0.95rem;animation:fadeInUp 0.3s ease">{{ faq.answer }}</p>
+      <div class="container">
+        <div class="grid grid-4 gap-3 glass-card text-center" style="padding: 2rem;">
+          <div class="fade-in-up">
+            <div style="font-size:2.5rem;font-weight:700;color:var(--accent-cyan)">5000+</div>
+            <div class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Happy Customers</div>
+          </div>
+          <div class="fade-in-up delay-1">
+            <div style="font-size:2.5rem;font-weight:700;color:var(--accent-emerald)">15+</div>
+            <div class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Active Centers</div>
+          </div>
+          <div class="fade-in-up delay-2">
+            <div style="font-size:2.5rem;font-weight:700;color:var(--accent-amber)">100%</div>
+            <div class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Eco-friendly Wash</div>
+          </div>
+          <div class="fade-in-up delay-3">
+            <div style="font-size:2.5rem;font-weight:700;color:var(--accent-violet)">4.9★</div>
+            <div class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Average Rating</div>
           </div>
         </div>
-        <div v-else class="text-center text-muted" style="padding:2rem;">No FAQs available.</div>
+      </div>
+    </section>
+
+    <!-- Mission & Vision -->
+    <section class="section" style="background:var(--bg-secondary)">
+      <div class="container">
+        <div class="section-title">
+          <h2>Our <span class="text-gradient">Mission & Vision</span></h2>
+          <p>Building a cleaner tomorrow with sustainable vehicle care solutions.</p>
+        </div>
+        <div class="grid grid-3 gap-4">
+          <div class="glass-card fade-in-up text-center">
+            <div style="font-size:2.5rem;margin-bottom:0.75rem">🎯</div>
+            <h4>Our Mission</h4>
+            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">To deliver premium doorstep car cleaning that saves water and time while providing showroom-quality results.</p>
+          </div>
+          <div class="glass-card fade-in-up delay-1 text-center">
+            <div style="font-size:2.5rem;margin-bottom:0.75rem">🔭</div>
+            <h4>Our Vision</h4>
+            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">To become India's leading eco-friendly vehicle care franchise network with 500+ centers by 2028.</p>
+          </div>
+          <div class="glass-card fade-in-up delay-2 text-center">
+            <div style="font-size:2.5rem;margin-bottom:0.75rem">💎</div>
+            <h4>Our Values</h4>
+            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Quality, sustainability, customer trust, and innovation drive every wash we deliver.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Authorised Service Partner -->
+    <section class="section" style="background:var(--bg-secondary)">
+      <div class="container">
+        <div class="section-title">
+          <h2>Authorised <span class="text-gradient">Service Partners</span></h2>
+          <p>Trusted by industry leaders to deliver exceptional care.</p>
+        </div>
+      </div>
+      <div v-if="partners.length > 0" class="offers-ticker" style="border: none; background: transparent; padding: 1rem 0;">
+        <div class="ticker-content">
+          <template v-for="n in 12" :key="'loop-'+n">
+            <div v-for="partner in partners" :key="n+'-'+partner.id" class="ticker-item" style="margin-right: 4rem; vertical-align: middle;">
+               <img v-if="partner.image_path" :src="partner.image_path" :alt="partner.name" style="height: 95px; width: auto; object-fit: contain; filter: grayscale(100%) opacity(0.7); transition: all 0.3s ease;" onmouseover="this.style.filter='grayscale(0) opacity(1)'" onmouseout="this.style.filter='grayscale(100%) opacity(0.7)'">
+               <div v-else style="font-weight:700;font-size:1.5rem;color:var(--text-muted);">{{ partner.name }}</div>
+            </div>
+          </template>
+        </div>
       </div>
     </section>
 
