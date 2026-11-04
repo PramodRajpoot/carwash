@@ -360,14 +360,14 @@ export default function CountingStatsSection({
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
-    marginTop: 18,
-    marginBottom: 18,
+    marginTop: 6,
+    marginBottom: 10,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   titleWithIcon: {
     flexDirection: 'row',

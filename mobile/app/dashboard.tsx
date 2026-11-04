@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 12,
-    paddingBottom: 95,
+    paddingBottom: 110,
   },
   modalContainer: {
     flex: 1,
