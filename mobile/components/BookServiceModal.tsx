@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { WebView } from 'react-native-webview';
@@ -60,6 +61,7 @@ interface Props {
   isDark?: boolean;
   token: string | null;
   user: any;
+  defaultAddress?: string;
 }
 
 type PickerType = 'vehicle' | 'center' | 'package' | 'date' | 'slot' | 'addons' | null;
@@ -71,6 +73,7 @@ export default function BookServiceModal({
   isDark = false,
   token,
   user,
+  defaultAddress,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -98,6 +101,8 @@ export default function BookServiceModal({
   const [useSavedAddress, setUseSavedAddress] = useState<boolean>(true);
   const [customAddress, setCustomAddress] = useState<string>('');
   const [saveAsDefaultAddress, setSaveAsDefaultAddress] = useState<boolean>(true);
+  const [liveLocationSource, setLiveLocationSource] = useState<'saved' | 'live' | 'none'>('saved');
+  const [locationLoading, setLocationLoading] = useState<boolean>(false);
 
   // Slots
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -200,11 +205,25 @@ export default function BookServiceModal({
 
           if (dashRes.status === 'fulfilled') {
             const d = dashRes.value.data || {};
+            const savedDbAddress = typeof d.address === 'string' ? d.address.trim() : '';
+            const validSavedAddress = savedDbAddress && savedDbAddress !== 'Select Location';
             setUserPoints(d.e_points || 0);
             setUserEarningMoney(parseFloat(d.earning_money || 0));
-            if (d.address) {
-              setSavedAddress(d.address);
+            if (validSavedAddress) {
+              setSavedAddress(savedDbAddress);
+              setCustomAddress(savedDbAddress);
               setUseSavedAddress(true);
+              setLiveLocationSource('saved');
+            } else {
+              const fallbackAddress = (defaultAddress || '').trim();
+              const finalDefaultAddress = fallbackAddress && fallbackAddress !== 'Select Location' ? fallbackAddress : '';
+              setSavedAddress(finalDefaultAddress);
+              setCustomAddress(finalDefaultAddress);
+              setUseSavedAddress(true);
+              setLiveLocationSource(finalDefaultAddress ? 'live' : 'none');
+              if (!finalDefaultAddress) {
+                resolveLiveLocation();
+              }
             }
           }
 
@@ -480,6 +499,62 @@ export default function BookServiceModal({
       setSubmitting(false);
     }
   };
+
+  // Resolve live location address from device
+  const resolveLiveLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setSavedAddress('');
+        setCustomAddress('');
+        setLiveLocationSource('none');
+        return;
+      }
+
+      setLocationLoading(true);
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const [geo] = await Location.reverseGeocodeAsync({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      });
+
+      const formatted =
+        geo && (
+          geo.name ||
+          geo.street ||
+          geo.district ||
+          geo.city ||
+          geo.region ||
+          geo.country
+        )
+          ? [geo.name, geo.street, geo.district, geo.city, geo.region, geo.country]
+              .filter(Boolean)
+              .join(', ')
+          : `Lat ${currentLocation.coords.latitude.toFixed(4)}, Lon ${currentLocation.coords.longitude.toFixed(4)}`;
+
+      setSavedAddress(formatted);
+      setCustomAddress(formatted);
+      setLiveLocationSource('live');
+      setUseSavedAddress(true);
+    } catch (error) {
+      console.warn('Failed to fetch live location:', error);
+      setSavedAddress('');
+      setCustomAddress('');
+      setLiveLocationSource('none');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  // Update live location on modal open
+  useEffect(() => {
+    if (visible) {
+      resolveLiveLocation();
+    }
+  }, [visible]);
 
   // Label helpers
   const selectedDateLabel = useMemo(() => {
@@ -852,11 +927,19 @@ export default function BookServiceModal({
                   📍 Doorstep Service Address <Text style={styles.requiredStar}>*</Text>
                 </Text>
                 {savedAddress && useSavedAddress && (
-                  <Text style={styles.rememberedTag}>✓ Using saved</Text>
+                  <Text style={styles.rememberedTag}>
+                    {liveLocationSource === 'live' ? '✓ Using live location' : '✓ Using saved'}
+                  </Text>
                 )}
               </View>
 
-              {savedAddress ? (
+              {locationLoading && !savedAddress ? (
+                <View style={[styles.addressRadioBox, isDark ? styles.darkDropdown : styles.lightDropdown]}>
+                  <Text style={[styles.addressRadioText, isDark && styles.darkSubtext]}>
+                    Detecting your current location...
+                  </Text>
+                </View>
+              ) : savedAddress ? (
                 <View style={styles.addressBoxWrapper}>
                   <TouchableOpacity
                     style={[
@@ -1313,14 +1396,6 @@ export default function BookServiceModal({
                               </View>
                             ) : null}
                           </View>
-                          {pkg.description ? (
-                            <Text
-                              style={[styles.pickerOptionSub, isDark && styles.darkSubtext]}
-                              numberOfLines={2}
-                            >
-                              {pkg.description.replace(/[\r\n]+/g, ' • ')}
-                            </Text>
-                          ) : null}
                         </View>
                         <Text style={[styles.pickerPriceTag, isDark && styles.darkText]}>
                           ₹{pkg.price}
@@ -1590,14 +1665,6 @@ export default function BookServiceModal({
                               <Text style={[styles.pickerOptionTitle, isDark && styles.darkText]}>
                                 {ad.name}
                               </Text>
-                              {ad.description ? (
-                                <Text
-                                  style={[styles.pickerOptionSub, isDark && styles.darkSubtext]}
-                                  numberOfLines={1}
-                                >
-                                  {ad.description}
-                                </Text>
-                              ) : null}
                             </View>
                             <Text style={styles.addonPriceGreen}>+₹{ad.price}</Text>
                           </TouchableOpacity>
@@ -2065,17 +2132,26 @@ const styles = StyleSheet.create({
   pickerBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pickerBackdropDismiss: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   pickerSheet: {
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    borderRadius: 20,
+    width: '92%',
+    maxWidth: 500,
+    maxHeight: '72%',
     paddingBottom: 24,
+    overflow: 'hidden',
   },
   darkPickerSheet: {
     backgroundColor: '#0d1527',
@@ -2116,7 +2192,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   pickerActiveItemDark: {
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
     marginHorizontal: -8,
     paddingHorizontal: 8,
     borderRadius: 8,

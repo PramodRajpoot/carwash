@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { safeHapticLight, safeHapticMedium, safeHapticWarning } from '../utils/haptics';
 import { getAvatarUri } from '../utils/avatar';
 
@@ -30,6 +31,7 @@ import QuickActionsGrid from '../components/QuickActionsGrid';
 import CouponsCarousel from '../components/CouponsCarousel';
 import CountingStatsSection from '../components/CountingStatsSection';
 import AppFooter, { FooterTab } from '../components/AppFooter';
+import BookServiceModal from '../components/BookServiceModal';
 
 const WebViewComponent: any = WebView;
 
@@ -67,6 +69,54 @@ export default function DashboardScreen() {
   const webviewRef = useRef<any>(null);
   const scrollViewRef = useRef<any>(null);
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('home');
+  const [bookingSheetVisible, setBookingSheetVisible] = useState(false);
+  const [liveHeaderAddress, setLiveHeaderAddress] = useState<string>('');
+
+  const resolvedDashboardAddress = typeof dashData.address === 'string' ? dashData.address.trim() : '';
+
+  const resolveLiveHeaderAddress = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLiveHeaderAddress('');
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const [geo] = await Location.reverseGeocodeAsync({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      });
+
+      const formatted =
+        geo && (
+          geo.name ||
+          geo.street ||
+          geo.district ||
+          geo.city ||
+          geo.region ||
+          geo.country
+        )
+          ? [geo.name, geo.street, geo.district, geo.city, geo.region, geo.country]
+              .filter(Boolean)
+              .join(', ')
+          : `Lat ${currentLocation.coords.latitude.toFixed(4)}, Lon ${currentLocation.coords.longitude.toFixed(4)}`;
+
+      setLiveHeaderAddress(formatted);
+    } catch (error) {
+      console.warn('Failed to resolve live header address:', error);
+      setLiveHeaderAddress('');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (token && (!resolvedDashboardAddress || resolvedDashboardAddress === 'Select Location')) {
+      resolveLiveHeaderAddress();
+    }
+  }, [token, resolvedDashboardAddress, resolveLiveHeaderAddress]);
 
   const fetchDashboardData = useCallback(async (authToken?: string) => {
     const activeToken = authToken || token;
@@ -210,6 +260,17 @@ export default function DashboardScreen() {
     fetchDashboardData();
   };
 
+  const openBookingModal = () => {
+    safeHapticMedium();
+    setBookingSheetVisible(true);
+  };
+
+  const closeBookingModal = () => {
+    setBookingSheetVisible(false);
+    // Refresh dashboard data in case of new bookings
+    fetchDashboardData();
+  };
+
   const handleFooterTabPress = (tab: FooterTab) => {
     if (tab === 'home') {
       if (modalVisible) {
@@ -324,6 +385,10 @@ export default function DashboardScreen() {
     );
   }
 
+  const headerAddress = resolvedDashboardAddress && resolvedDashboardAddress !== 'Select Location'
+    ? resolvedDashboardAddress
+    : liveHeaderAddress;
+
   return (
     <View style={[styles.safeArea, isDark && styles.darkSafeArea]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -331,7 +396,7 @@ export default function DashboardScreen() {
       {/* Top Header (BookMyShow style) */}
       <DashboardHeader
         user={user}
-        address={dashData.address}
+        address={headerAddress}
         unreadCount={dashData.unread_notifications || 0}
         isDark={isDark}
         onLocationPress={() =>
@@ -362,7 +427,7 @@ export default function DashboardScreen() {
         {/* Services & Features (8 Compact Icon Boxes in 4 Columns) */}
         <QuickActionsGrid
           isDark={isDark}
-          onBookWashPress={() => router.push('/bookings')}
+          onBookWashPress={openBookingModal}
           onGaragePress={() =>
             openActionView('My Garage', '/customer/vehicles', 'garage')
           }
@@ -415,6 +480,19 @@ export default function DashboardScreen() {
         activeTab={activeFooterTab}
         isDark={isDark}
         onTabPress={handleFooterTabPress}
+      />
+
+      <BookServiceModal
+        visible={bookingSheetVisible}
+        onClose={() => setBookingSheetVisible(false)}
+        onSuccess={() => {
+          setBookingSheetVisible(false);
+          fetchDashboardData();
+        }}
+        isDark={isDark}
+        token={token}
+        user={user}
+        defaultAddress={headerAddress}
       />
 
       {/* In-App Flow Modal Sheet */}
@@ -778,7 +856,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 12,
-    paddingBottom: 95,
+    paddingBottom: 110,
   },
   modalContainer: {
     flex: 1,

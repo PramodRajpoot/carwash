@@ -29,9 +29,11 @@ export default function DashboardHeader({
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
 
-  // Extract city or short area from address or fallback
-  const locationText = address
-    ? address.split(',')[0].trim()
+  const safeAddress = typeof address === 'string' ? address.trim() : '';
+
+  // Show the full address when available; otherwise keep the default placeholder.
+  const locationText = safeAddress && safeAddress !== 'Select Location'
+    ? safeAddress
     : 'Select Location';
 
   const userInitial = user?.name
