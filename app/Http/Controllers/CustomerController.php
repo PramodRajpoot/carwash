@@ -131,7 +131,7 @@ class CustomerController extends Controller
     public function addVehicle(Request $request)
     {
         $request->validate([
-            'vehicle_type' => 'required|string|in:hatchback,sedan,suv,commercial,bus,volvo_bus',
+            'vehicle_type' => 'required|string|in:hatchback,sedan,suv,luxury,commercial,bus,volvo_bus',
             'make_model'   => 'required|string|max:255',
             'plate_number' => 'nullable|string|max:50',
         ]);

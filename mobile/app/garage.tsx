@@ -48,6 +48,7 @@ export default function GarageScreen() {
   const [loading, setLoading] = useState(true);
   const [isRegisterModalVisible, setRegisterModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState('Sedan');
+  const [typeDropdownVisible, setTypeDropdownVisible] = useState(false);
   const [makeModel, setMakeModel] = useState('');
   const [plateNumber, setPlateNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -140,7 +141,14 @@ export default function GarageScreen() {
       return;
     }
 
-    const normalizedType = selectedType.toLowerCase();
+    const vehicleTypeMap: Record<string, string> = {
+      Hatchback: 'hatchback',
+      Sedan: 'sedan',
+      SUV: 'suv',
+      Luxury: 'luxury',
+      Commercial: 'commercial',
+    };
+    const normalizedType = vehicleTypeMap[selectedType] || selectedType.toLowerCase();
 
     try {
       safeHapticMedium();
@@ -175,7 +183,13 @@ export default function GarageScreen() {
       Alert.alert('Vehicle registered successfully');
     } catch (error: any) {
       console.error('Register vehicle error:', error);
-      Alert.alert('Unable to register vehicle', error?.response?.data?.message || 'Please try again.');
+      const validationMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.vehicle_type?.[0] ||
+        error?.message ||
+        'Please try again.';
+
+      Alert.alert('Unable to register vehicle', validationMessage);
     } finally {
       setSubmitting(false);
     }
@@ -342,60 +356,110 @@ export default function GarageScreen() {
         visible={isRegisterModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setRegisterModalVisible(false)}
+        onRequestClose={() => {
+          setTypeDropdownVisible(false);
+          setRegisterModalVisible(false);
+        }}
       >
         <View style={styles.modalBackdrop}>
           <TouchableOpacity
             style={styles.modalBackdropPress}
             activeOpacity={1}
-            onPress={() => setRegisterModalVisible(false)}
+            onPress={() => {
+              setTypeDropdownVisible(false);
+              setRegisterModalVisible(false);
+            }}
           />
 
           <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Register Vehicle</Text>
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
-                onPress={() => setRegisterModalVisible(false)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="close" size={20} color="#475569" />
-              </TouchableOpacity>
+            <View style={styles.topBar}>
+            <View style={styles.topBarLeft}>
+              <View style={styles.titleIconSquircle}>
+                <Ionicons name="car-sport" size={17} color="#0284c7" />
+              </View>
+              <View>
+                <Text style={styles.modalTitle}>Register Vehicle</Text>
+                <Text style={styles.modalSub}>Add your car details</Text>
+              </View>
             </View>
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => {
+                setTypeDropdownVisible(false);
+                setRegisterModalVisible(false);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close" size={22} color="#64748b" />
+            </TouchableOpacity>
+          </View>
 
             <View style={styles.formWrap}>
-              <Text style={styles.fieldLabel}>Vehicle Type</Text>
-              <TouchableOpacity
-                style={styles.pickerField}
-                activeOpacity={0.8}
-                onPress={() => {
-                  safeHapticLight();
-                  const currentIndex = vehicleTypeOptions.indexOf(selectedType);
-                  const nextType = vehicleTypeOptions[(currentIndex + 1) % vehicleTypeOptions.length];
-                  setSelectedType(nextType);
-                }}
-              >
-                <Text style={styles.pickerText}>{selectedType}</Text>
-                <Ionicons name="chevron-down" size={18} color="#64748b" />
-              </TouchableOpacity>
+              <View style={styles.formGroup}>
+                <Text style={styles.fieldLabel}>Vehicle Type</Text>
+                <View style={styles.pickerWrap}>
+                  <TouchableOpacity
+                    style={[styles.pickerField, typeDropdownVisible && styles.pickerFieldActive]}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      safeHapticLight();
+                      setTypeDropdownVisible((prev) => !prev);
+                    }}
+                  >
+                    <View style={styles.dropdownLeft}>
+                      <Ionicons name="car-outline" size={17} color="#0284c7" style={{ marginRight: 8 }} />
+                      <Text style={styles.pickerText}>{selectedType}</Text>
+                    </View>
+                    <Ionicons name={typeDropdownVisible ? 'chevron-up' : 'chevron-down'} size={18} color="#64748b" />
+                  </TouchableOpacity>
 
-              <Text style={styles.fieldLabel}>Make & Model</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="e.g. Hyundai i20 / Honda City"
-                placeholderTextColor="#94a3b8"
-                value={makeModel}
-                onChangeText={setMakeModel}
-              />
+                  {typeDropdownVisible && (
+                    <View style={styles.typeMenu}>
+                      {vehicleTypeOptions.map((type) => (
+                        <TouchableOpacity
+                          key={type}
+                          style={[
+                            styles.typeMenuItem,
+                            selectedType === type && styles.typeMenuItemActive,
+                          ]}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            safeHapticLight();
+                            setSelectedType(type);
+                            setTypeDropdownVisible(false);
+                          }}
+                        >
+                          <Text style={[styles.typeMenuItemText, selectedType === type && styles.typeMenuItemTextActive]}>
+                            {type}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
 
-              <Text style={styles.fieldLabel}>License Plate Number (Optional)</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="e.g. MH 12 AB 1234"
-                placeholderTextColor="#94a3b8"
-                value={plateNumber}
-                onChangeText={setPlateNumber}
-              />
+              <View style={styles.formGroup}>
+                <Text style={styles.fieldLabel}>Make & Model</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Hyundai i20 / Honda City"
+                  placeholderTextColor="#94a3b8"
+                  value={makeModel}
+                  onChangeText={setMakeModel}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.fieldLabel}>License Plate Number</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. MH 12 AB 1234"
+                  placeholderTextColor="#94a3b8"
+                  value={plateNumber}
+                  onChangeText={setPlateNumber}
+                />
+              </View>
 
               <View style={styles.modalActions}>
                 <TouchableOpacity
@@ -409,14 +473,6 @@ export default function GarageScreen() {
                   ) : (
                     <Text style={styles.addVehicleButtonText}>Add Vehicle</Text>
                   )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  activeOpacity={0.8}
-                  onPress={() => setRegisterModalVisible(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -698,6 +754,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.28)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 18,
   },
   modalBackdropPress: {
     position: 'absolute',
@@ -707,102 +764,164 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   modalCard: {
-    width: '88%',
-    backgroundColor: '#f4f8fd',
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#ffffff',
     borderRadius: 22,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
+    shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+    shadowRadius: 16,
+    elevation: 8,
     zIndex: 1,
   },
-  modalHeader: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
-  modalTitle: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.6,
+  topBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  titleIconSquircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(2, 132, 199, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  modalSub: {
+    fontSize: 10,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  closeBtn: {
+    padding: 6,
+  },
   formWrap: {
-    marginTop: 14,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  formGroup: {
+    marginBottom: 14,
   },
   fieldLabel: {
-    fontSize: 16,
+    fontSize: 12,
+    fontWeight: '700',
     color: '#0f172a',
-    fontWeight: '600',
-    marginBottom: 10,
-    marginTop: 14,
+    marginBottom: 6,
+  },
+  pickerWrap: {
+    position: 'relative',
+    zIndex: 10,
   },
   pickerField: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#dfeaf3',
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
+    borderWidth: 1.5,
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  pickerFieldActive: {
+    borderColor: '#0284c7',
+    backgroundColor: '#f0f9ff',
+  },
+  dropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
   },
   pickerText: {
-    fontSize: 16,
+    fontSize: 13,
     color: '#0f172a',
-    fontWeight: '500',
+    fontWeight: '600',
+    flex: 1,
   },
-  textInput: {
+  typeMenu: {
+    position: 'absolute',
+    top: 48,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#dfeaf3',
-    backgroundColor: '#ffffff',
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-    fontSize: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  typeMenuItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+  },
+  typeMenuItemActive: {
+    backgroundColor: '#e0f2fe',
+  },
+  typeMenuItemText: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '600',
+  },
+  typeMenuItemTextActive: {
+    color: '#0369a1',
+    fontWeight: '700',
+  },
+  textInput: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
     color: '#0f172a',
   },
   modalActions: {
-    marginTop: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 14,
+    marginTop: 4,
   },
   addVehicleButton: {
-    flex: 1,
     backgroundColor: '#0284c7',
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: 22,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0284c7',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 4,
   },
   addVehicleButtonText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: '800',
-  },
-  cancelButton: {
-    flex: 0.5,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    color: '#0f172a',
-    fontSize: 18,
-    fontWeight: '700',
   },
 });

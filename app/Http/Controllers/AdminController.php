@@ -785,7 +785,7 @@ class AdminController extends Controller
         $request->validate([
             'name'           => 'required|string|max:255',
             'description'    => 'nullable|string',
-            'vehicle_type'   => 'required|string|in:hatchback,sedan,suv,commercial,bus,volvo_bus',
+            'vehicle_type'   => 'required|string|in:hatchback,sedan,suv,luxury,commercial,bus,volvo_bus',
             'price'          => 'required|numeric|min:0',
             'frequency_days' => 'required|integer|min:0',
             'max_bookings'   => 'required|integer|min:1',
@@ -806,7 +806,7 @@ class AdminController extends Controller
         $request->validate([
             'name'           => 'nullable|string|max:255',
             'description'    => 'nullable|string',
-            'vehicle_type'   => 'nullable|string|in:hatchback,sedan,suv,commercial,bus,volvo_bus',
+            'vehicle_type'   => 'nullable|string|in:hatchback,sedan,suv,luxury,commercial,bus,volvo_bus',
             'price'          => 'nullable|numeric|min:0',
             'frequency_days' => 'nullable|integer|min:0',
             'max_bookings'   => 'nullable|integer|min:1',
