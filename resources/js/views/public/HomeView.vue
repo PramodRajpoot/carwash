@@ -415,33 +415,6 @@
       </div>
     </section>
 
-    <!-- Mission & Vision -->
-    <section class="section" style="background:var(--bg-secondary)">
-      <div class="container">
-        <div class="section-title">
-          <h2>Our <span class="text-gradient">Mission & Vision</span></h2>
-          <p>Building a cleaner tomorrow with sustainable vehicle care solutions.</p>
-        </div>
-        <div class="grid grid-3 gap-4">
-          <div class="glass-card fade-in-up text-center">
-            <div style="font-size:2.5rem;margin-bottom:0.75rem">🎯</div>
-            <h4>Our Mission</h4>
-            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">To deliver premium doorstep car cleaning that saves water and time while providing showroom-quality results.</p>
-          </div>
-          <div class="glass-card fade-in-up delay-1 text-center">
-            <div style="font-size:2.5rem;margin-bottom:0.75rem">🔭</div>
-            <h4>Our Vision</h4>
-            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">To become India's leading eco-friendly vehicle care franchise network with 500+ centers by 2028.</p>
-          </div>
-          <div class="glass-card fade-in-up delay-2 text-center">
-            <div style="font-size:2.5rem;margin-bottom:0.75rem">💎</div>
-            <h4>Our Values</h4>
-            <p class="text-muted" style="font-size:0.9rem;margin-top:0.5rem">Quality, sustainability, customer trust, and innovation drive every wash we deliver.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Authorised Service Partner -->
     <section class="section" style="background:var(--bg-secondary)">
       <div class="container">
