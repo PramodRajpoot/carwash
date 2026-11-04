@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { safeHapticLight, safeHapticMedium, safeHapticWarning } from '../utils/haptics';
 import { getAvatarUri } from '../utils/avatar';
 
@@ -69,6 +70,53 @@ export default function DashboardScreen() {
   const scrollViewRef = useRef<any>(null);
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('home');
   const [bookingSheetVisible, setBookingSheetVisible] = useState(false);
+  const [liveHeaderAddress, setLiveHeaderAddress] = useState<string>('');
+
+  const resolvedDashboardAddress = typeof dashData.address === 'string' ? dashData.address.trim() : '';
+
+  const resolveLiveHeaderAddress = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLiveHeaderAddress('');
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const [geo] = await Location.reverseGeocodeAsync({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      });
+
+      const formatted =
+        geo && (
+          geo.name ||
+          geo.street ||
+          geo.district ||
+          geo.city ||
+          geo.region ||
+          geo.country
+        )
+          ? [geo.name, geo.street, geo.district, geo.city, geo.region, geo.country]
+              .filter(Boolean)
+              .join(', ')
+          : `Lat ${currentLocation.coords.latitude.toFixed(4)}, Lon ${currentLocation.coords.longitude.toFixed(4)}`;
+
+      setLiveHeaderAddress(formatted);
+    } catch (error) {
+      console.warn('Failed to resolve live header address:', error);
+      setLiveHeaderAddress('');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (token && (!resolvedDashboardAddress || resolvedDashboardAddress === 'Select Location')) {
+      resolveLiveHeaderAddress();
+    }
+  }, [token, resolvedDashboardAddress, resolveLiveHeaderAddress]);
 
   const fetchDashboardData = useCallback(async (authToken?: string) => {
     const activeToken = authToken || token;
@@ -337,6 +385,10 @@ export default function DashboardScreen() {
     );
   }
 
+  const headerAddress = resolvedDashboardAddress && resolvedDashboardAddress !== 'Select Location'
+    ? resolvedDashboardAddress
+    : liveHeaderAddress;
+
   return (
     <View style={[styles.safeArea, isDark && styles.darkSafeArea]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -344,7 +396,7 @@ export default function DashboardScreen() {
       {/* Top Header (BookMyShow style) */}
       <DashboardHeader
         user={user}
-        address={dashData.address}
+        address={headerAddress}
         unreadCount={dashData.unread_notifications || 0}
         isDark={isDark}
         onLocationPress={() =>
