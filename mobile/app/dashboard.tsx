@@ -286,7 +286,7 @@ export default function DashboardScreen() {
         openActionView('My Garage', '/customer/vehicles', 'garage');
         break;
       case 'book':
-        openBookingModal();
+        router.push('/bookings');
         break;
       case 'support':
         openActionView('Help & Support', '/customer/support', 'support');
@@ -492,6 +492,7 @@ export default function DashboardScreen() {
         isDark={isDark}
         token={token}
         user={user}
+        defaultAddress={headerAddress}
       />
 
       {/* In-App Flow Modal Sheet */}

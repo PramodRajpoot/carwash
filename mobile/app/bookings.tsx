@@ -211,8 +211,8 @@ export default function BookingsScreen() {
     } else if (tab === 'support') {
       openActionUrl('Help & Support', '/customer/support');
     } else if (tab === 'book') {
-      // Already on washes/book page; scroll to top
-      openBookingModal();
+      // Already on washes/book page; keep the current list open
+      return;
     }
   };
 

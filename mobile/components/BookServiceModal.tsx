@@ -61,6 +61,7 @@ interface Props {
   isDark?: boolean;
   token: string | null;
   user: any;
+  defaultAddress?: string;
 }
 
 type PickerType = 'vehicle' | 'center' | 'package' | 'date' | 'slot' | 'addons' | null;
@@ -72,6 +73,7 @@ export default function BookServiceModal({
   isDark = false,
   token,
   user,
+  defaultAddress,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -203,18 +205,25 @@ export default function BookServiceModal({
 
           if (dashRes.status === 'fulfilled') {
             const d = dashRes.value.data || {};
+            const savedDbAddress = typeof d.address === 'string' ? d.address.trim() : '';
+            const validSavedAddress = savedDbAddress && savedDbAddress !== 'Select Location';
             setUserPoints(d.e_points || 0);
             setUserEarningMoney(parseFloat(d.earning_money || 0));
-            if (d.address) {
-              setSavedAddress(d.address);
+            if (validSavedAddress) {
+              setSavedAddress(savedDbAddress);
+              setCustomAddress(savedDbAddress);
               setUseSavedAddress(true);
               setLiveLocationSource('saved');
             } else {
-              setSavedAddress('');
-              setUseSavedAddress(false);
-              setCustomAddress('');
-              setLiveLocationSource('none');
-              resolveLiveLocation();
+              const fallbackAddress = (defaultAddress || '').trim();
+              const finalDefaultAddress = fallbackAddress && fallbackAddress !== 'Select Location' ? fallbackAddress : '';
+              setSavedAddress(finalDefaultAddress);
+              setCustomAddress(finalDefaultAddress);
+              setUseSavedAddress(true);
+              setLiveLocationSource(finalDefaultAddress ? 'live' : 'none');
+              if (!finalDefaultAddress) {
+                resolveLiveLocation();
+              }
             }
           }
 
@@ -2158,7 +2167,7 @@ const styles = StyleSheet.create({
   },
   pickerHeaderTitle: {
     fontSize: 15,
-       fontWeight: '800',
+    fontWeight: '800',
     color: '#0f172a',
   },
   pickerCloseBtn: {
@@ -2178,6 +2187,12 @@ const styles = StyleSheet.create({
   },
   pickerActiveItemLight: {
     backgroundColor: 'rgba(2, 132, 199, 0.04)',
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  pickerActiveItemDark: {
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
     marginHorizontal: -8,
     paddingHorizontal: 8,
     borderRadius: 8,
