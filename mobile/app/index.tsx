@@ -145,19 +145,31 @@ export default function ServicesScreen() {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const [expandedPackages, setExpandedPackages] = useState<Record<string | number, boolean>>({});
 
   const activeVehicleLabel = VEHICLE_FILTERS.find((f) => f.value === activeVehicle)?.label || 'All';
 
   useFocusEffect(
     React.useCallback(() => {
-      const checkAuth = async () => {
+      const checkAuthAndTheme = async () => {
         const token = await AsyncStorage.getItem('userToken');
         setIsLoggedIn(!!token);
+        const storedTheme = await AsyncStorage.getItem('app_theme');
+        if (storedTheme) {
+          setIsDark(storedTheme === 'dark');
+        }
       };
-      checkAuth();
+      checkAuthAndTheme();
     }, [])
   );
+
+  const toggleTheme = async () => {
+    safeHapticLight();
+    const next = !isDark;
+    setIsDark(next);
+    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
+  };
 
   const fetchPackagesData = async () => {
     try {
@@ -288,7 +300,7 @@ export default function ServicesScreen() {
     const hasMore = allLines.length > 1;
 
     return (
-      <View style={styles.featuresContainer}>
+      <View style={[styles.featuresContainer, !isDark && styles.featuresContainerLight]}>
         {visibleLines.map((item, idx) => {
           const isLastVisible = idx === visibleLines.length - 1;
           const showToggleHere = hasMore && isLastVisible;
@@ -296,7 +308,7 @@ export default function ServicesScreen() {
           return (
             <View key={idx} style={styles.featureItemRow}>
               <Ionicons name="checkmark-circle" size={14} color="#10b981" style={styles.featureCheckIcon} />
-              <Text style={styles.featureItemText}>
+              <Text style={[styles.featureItemText, !isDark && styles.featureItemTextLight]}>
                 {item}
                 {showToggleHere && (
                   <Text
@@ -316,9 +328,9 @@ export default function ServicesScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="light" />
-        <View style={styles.splashContainer}>
+      <SafeAreaView style={[styles.container, !isDark && styles.containerLight]}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <View style={[styles.splashContainer, !isDark && styles.containerLight]}>
           <View style={styles.splashBadge}>
             <Image 
               source={require('../assets/images/icon.png')} 
@@ -327,18 +339,18 @@ export default function ServicesScreen() {
             />
           </View>
           <ActivityIndicator size="large" color="#0ea5e9" />
-          <Text style={styles.loaderText}>Loading Packages...</Text>
+          <Text style={[styles.loaderText, !isDark && styles.loaderTextLight]}>Loading Packages...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.container, !isDark && styles.containerLight]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* ── Top Header ── */}
-      <View style={styles.header}>
+      <View style={[styles.header, !isDark && styles.headerLight]}>
         <View style={styles.brandRow}>
           <View style={styles.headerLogoContainer}>
             <Image
@@ -348,17 +360,17 @@ export default function ServicesScreen() {
             />
           </View>
           <View>
-            <Text style={styles.headerTitle}>CleanAtDoorstep</Text>
+            <Text style={[styles.headerTitle, !isDark && styles.headerTitleLight]}>CleanAtDoorstep</Text>
             <View style={styles.statusRow}>
               <View style={styles.livePulseDot} />
-              <Text style={styles.headerSubtitle}>Doorstep Detailing • On-Demand</Text>
+              <Text style={[styles.headerSubtitle, !isDark && styles.headerSubtitleLight]}>Doorstep Detailing • On-Demand</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.headerRightRow}>
           <TouchableOpacity
-            style={styles.loginBtnHeader}
+            style={[styles.loginBtnHeader, !isDark && styles.loginBtnHeaderLight]}
             onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
             activeOpacity={0.8}
           >
@@ -368,9 +380,21 @@ export default function ServicesScreen() {
               color="#38bdf8"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.loginBtnHeaderText}>
+            <Text style={[styles.loginBtnHeaderText, !isDark && styles.loginBtnHeaderTextLight]}>
               {isLoggedIn ? 'Dashboard' : 'Sign In'}
             </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.headerIconBtn, !isDark && styles.headerIconBtnLight]}
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isDark ? 'sunny' : 'moon-outline'}
+              size={19}
+              color={isDark ? '#fbbf24' : '#334155'}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -386,11 +410,11 @@ export default function ServicesScreen() {
           style={styles.modalBackdrop}
           onPress={() => setFilterMenuVisible(false)}
         >
-          <View style={styles.filterMenuDropdown}>
+          <View style={[styles.filterMenuDropdown, !isDark && styles.filterMenuDropdownLight]}>
             <View style={styles.filterMenuHeader}>
               <View style={styles.filterMenuTitleWrap}>
                 <Ionicons name="funnel" size={14} color="#38bdf8" />
-                <Text style={styles.filterMenuHeading}>Filter by Vehicle</Text>
+                <Text style={[styles.filterMenuHeading, !isDark && styles.filterMenuHeadingLight]}>Filter by Vehicle</Text>
               </View>
               {activeVehicle !== 'all' && (
                 <TouchableOpacity
@@ -406,7 +430,7 @@ export default function ServicesScreen() {
               )}
             </View>
 
-            <View style={styles.filterMenuDivider} />
+            <View style={[styles.filterMenuDivider, !isDark && styles.filterMenuDividerLight]} />
 
             {VEHICLE_FILTERS.map((option) => {
               const isSelected = activeVehicle === option.value;
@@ -416,7 +440,7 @@ export default function ServicesScreen() {
                   key={option.value}
                   style={[
                     styles.filterMenuItem,
-                    isSelected && styles.activeFilterMenuItem,
+                    isSelected && (isDark ? styles.activeFilterMenuItem : styles.activeFilterMenuItemLight),
                   ]}
                   onPress={() => {
                     safeHapticLight();
@@ -428,12 +452,13 @@ export default function ServicesScreen() {
                   <Ionicons
                     name={option.icon as any}
                     size={16}
-                    color={isSelected ? '#38bdf8' : '#94a3b8'}
+                    color={isSelected ? '#38bdf8' : (isDark ? '#94a3b8' : '#64748b')}
                     style={{ marginRight: 10 }}
                   />
                   <Text
                     style={[
                       styles.filterMenuItemText,
+                      !isDark && styles.filterMenuItemTextLight,
                       isSelected && styles.activeFilterMenuItemText,
                     ]}
                   >
@@ -442,12 +467,14 @@ export default function ServicesScreen() {
                   <View
                     style={[
                       styles.filterMenuCountBadge,
+                      !isDark && styles.filterMenuCountBadgeLight,
                       isSelected && styles.filterMenuCountBadgeActive,
                     ]}
                   >
                     <Text
                       style={[
                         styles.filterMenuCountText,
+                        !isDark && styles.filterMenuCountTextLight,
                         isSelected && styles.filterMenuCountTextActive,
                       ]}
                     >
@@ -471,7 +498,7 @@ export default function ServicesScreen() {
 
       <ScrollView
         ref={scrollViewRef}
-        style={styles.scrollView}
+        style={[styles.scrollView, !isDark && styles.containerLight]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -485,17 +512,17 @@ export default function ServicesScreen() {
       >
         {/* ── Section Title: Our Services ── */}
         <View style={styles.servicesHeaderWrap}>
-          <Text style={styles.servicesTitle}>Our Services</Text>
+          <Text style={[styles.servicesTitle, !isDark && styles.servicesTitleLight]}>Our Services</Text>
         </View>
 
         {/* ── Search Bar & Filter Button ── */}
         <View style={styles.searchRowWrapper}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search-outline" size={18} color="#64748b" style={styles.searchIcon} />
+          <View style={[styles.searchContainer, !isDark && styles.searchContainerLight]}>
+            <Ionicons name="search-outline" size={18} color={isDark ? '#64748b' : '#94a3b8'} style={styles.searchIcon} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, !isDark && styles.searchInputLight]}
               placeholder="Search services (e.g. Foam, Deep, Coating)..."
-              placeholderTextColor="#64748b"
+              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
               value={searchQuery}
               onChangeText={handleSearchChange}
               returnKeyType="search"
@@ -511,6 +538,7 @@ export default function ServicesScreen() {
           <TouchableOpacity
             style={[
               styles.searchFilterTrigger,
+              !isDark && styles.searchFilterTriggerLight,
               activeVehicle !== 'all' && styles.searchFilterTriggerActive,
             ]}
             onPress={() => {
@@ -522,7 +550,7 @@ export default function ServicesScreen() {
             <Ionicons
               name="funnel-outline"
               size={18}
-              color={activeVehicle !== 'all' ? '#38bdf8' : '#cbd5e1'}
+              color={activeVehicle !== 'all' ? '#38bdf8' : (isDark ? '#cbd5e1' : '#475569')}
             />
             {activeVehicle !== 'all' && <View style={styles.activeFilterDot} />}
           </TouchableOpacity>
@@ -531,10 +559,10 @@ export default function ServicesScreen() {
         {/* ── Items Counter & Quick Summary ── */}
         <View style={styles.resultsSummaryRow}>
           <View style={styles.resultsCountWrap}>
-            <Text style={styles.resultsCountText}>
-              Showing <Text style={styles.highlightText}>{totalItems > 0 ? (validCurrentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</Text>–
-              <Text style={styles.highlightText}>{Math.min(validCurrentPage * ITEMS_PER_PAGE, totalItems)}</Text> of{' '}
-              <Text style={styles.highlightText}>{totalItems}</Text> Services
+            <Text style={[styles.resultsCountText, !isDark && styles.resultsCountTextLight]}>
+              Showing <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{totalItems > 0 ? (validCurrentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</Text>–
+              <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{Math.min(validCurrentPage * ITEMS_PER_PAGE, totalItems)}</Text> of{' '}
+              <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{totalItems}</Text> Services
             </Text>
             {activeVehicle !== 'all' && (
               <TouchableOpacity
@@ -558,12 +586,12 @@ export default function ServicesScreen() {
 
         {/* ── Package Cards ── */}
         {paginatedPackages.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="search-outline" size={40} color="#64748b" />
+          <View style={[styles.emptyContainer, !isDark && styles.emptyContainerLight]}>
+            <View style={[styles.emptyIconCircle, !isDark && styles.emptyIconCircleLight]}>
+              <Ionicons name="search-outline" size={40} color={isDark ? '#64748b' : '#94a3b8'} />
             </View>
-            <Text style={styles.emptyTitle}>No Services Found</Text>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyTitle, !isDark && styles.emptyTitleLight]}>No Services Found</Text>
+            <Text style={[styles.emptyText, !isDark && styles.emptyTextLight]}>
               We could not find any packages matching your active category and filters.
             </Text>
             <TouchableOpacity
@@ -580,14 +608,14 @@ export default function ServicesScreen() {
             const hasMonthly = pkg.frequency_days > 0;
 
             return (
-              <View key={pkg.id} style={styles.card}>
+              <View key={pkg.id} style={[styles.card, !isDark && styles.cardLight]}>
                 {/* Badges Header */}
                 <View style={styles.cardBadgesRow}>
                   <View style={styles.leftBadges}>
                     {pkg.vehicle_type && (
-                      <View style={styles.badgeVehicle}>
-                        <Ionicons name="car-sport-outline" size={10} color="#cbd5e1" style={{ marginRight: 3 }} />
-                        <Text style={styles.badgeVehicleText}>
+                      <View style={[styles.badgeVehicle, !isDark && styles.badgeVehicleLight]}>
+                        <Ionicons name="car-sport-outline" size={10} color={isDark ? '#cbd5e1' : '#64748b'} style={{ marginRight: 3 }} />
+                        <Text style={[styles.badgeVehicleText, !isDark && styles.badgeVehicleTextLight]}>
                           {pkg.vehicle_type.toUpperCase()}
                         </Text>
                       </View>
@@ -614,25 +642,25 @@ export default function ServicesScreen() {
                 </View>
 
                 {/* Package Title */}
-                <Text style={styles.cardTitle}>{pkg.name}</Text>
+                <Text style={[styles.cardTitle, !isDark && styles.cardTitleLight]}>{pkg.name}</Text>
 
                 {/* Key Features Breakdown */}
                 {renderFeaturesList(pkg.description, pkg.id)}
 
                 {/* Price + CTA Footer */}
-                <View style={styles.cardFooter}>
+                <View style={[styles.cardFooter, !isDark && styles.cardFooterLight]}>
                   <View>
                     <View style={styles.priceRow}>
                       <Text style={styles.priceSymbol}>₹</Text>
-                      <Text style={styles.priceValue}>
+                      <Text style={[styles.priceValue, !isDark && styles.priceValueLight]}>
                         {typeof pkg.price === 'number' ? pkg.price.toFixed(2) : pkg.price}
                       </Text>
-                      {hasMonthly && <Text style={styles.priceUnit}> / mo</Text>}
+                      {hasMonthly && <Text style={[styles.priceUnit, !isDark && styles.priceUnitLight]}> / mo</Text>}
                     </View>
                     {pkg.max_bookings > 1 && (
                       <View style={styles.washCountRow}>
                         <Ionicons name="flash" size={12} color="#10b981" />
-                        <Text style={styles.washCount}>
+                        <Text style={[styles.washCount, !isDark && styles.washCountLight]}>
                           {pkg.max_bookings} washes included
                         </Text>
                       </View>
@@ -659,6 +687,7 @@ export default function ServicesScreen() {
             <TouchableOpacity
               style={[
                 styles.pageNavBtn,
+                !isDark && styles.pageNavBtnLight,
                 validCurrentPage === 1 && styles.pageNavBtnDisabled,
               ]}
               onPress={() => handlePageChange(validCurrentPage - 1)}
@@ -668,12 +697,12 @@ export default function ServicesScreen() {
               <Ionicons
                 name="chevron-back-outline"
                 size={14}
-                color={validCurrentPage === 1 ? '#64748b' : '#38bdf8'}
+                color={validCurrentPage === 1 ? (isDark ? '#64748b' : '#94a3b8') : '#38bdf8'}
               />
             </TouchableOpacity>
 
-            <View style={styles.pageIndicator}>
-              <Text style={styles.pageIndicatorText}>
+            <View style={[styles.pageIndicator, !isDark && styles.pageIndicatorLight]}>
+              <Text style={[styles.pageIndicatorText, !isDark && styles.pageIndicatorTextLight]}>
                 {validCurrentPage}/{totalPages}
               </Text>
             </View>
@@ -681,6 +710,7 @@ export default function ServicesScreen() {
             <TouchableOpacity
               style={[
                 styles.pageNavBtn,
+                !isDark && styles.pageNavBtnLight,
                 validCurrentPage === totalPages && styles.pageNavBtnDisabled,
               ]}
               onPress={() => handlePageChange(validCurrentPage + 1)}
@@ -690,7 +720,7 @@ export default function ServicesScreen() {
               <Ionicons
                 name="chevron-forward-outline"
                 size={14}
-                color={validCurrentPage === totalPages ? '#64748b' : '#38bdf8'}
+                color={validCurrentPage === totalPages ? (isDark ? '#64748b' : '#94a3b8') : '#38bdf8'}
               />
             </TouchableOpacity>
           </View>
@@ -1300,5 +1330,150 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     color: '#f8fafc',
+  },
+
+  /* ── Header Icon Button ── */
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  headerIconBtnLight: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+  },
+  loginBtnHeaderLight: {
+    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+    borderColor: 'rgba(2, 132, 199, 0.25)',
+  },
+  loginBtnHeaderTextLight: {
+    color: '#0284c7',
+  },
+
+  /* ── Light Mode Overrides ── */
+  containerLight: {
+    backgroundColor: '#f8fafc',
+  },
+  loaderTextLight: {
+    color: '#64748b',
+  },
+  headerLight: {
+    backgroundColor: '#ffffff',
+    borderBottomColor: '#e2e8f0',
+  },
+  headerTitleLight: {
+    color: '#0f172a',
+  },
+  headerSubtitleLight: {
+    color: '#64748b',
+  },
+  servicesTitleLight: {
+    color: '#0f172a',
+  },
+  searchContainerLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  searchInputLight: {
+    color: '#0f172a',
+  },
+  searchFilterTriggerLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  resultsCountTextLight: {
+    color: '#64748b',
+  },
+  highlightTextLight: {
+    color: '#0f172a',
+  },
+  cardLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardTitleLight: {
+    color: '#0f172a',
+  },
+  cardFooterLight: {
+    borderTopColor: '#f1f5f9',
+  },
+  badgeVehicleLight: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+  },
+  badgeVehicleTextLight: {
+    color: '#475569',
+  },
+  featuresContainerLight: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#f1f5f9',
+  },
+  featureItemTextLight: {
+    color: '#334155',
+  },
+  priceValueLight: {
+    color: '#0f172a',
+  },
+  priceUnitLight: {
+    color: '#64748b',
+  },
+  washCountLight: {
+    color: '#059669',
+  },
+  emptyContainerLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  emptyIconCircleLight: {
+    backgroundColor: '#f1f5f9',
+  },
+  emptyTitleLight: {
+    color: '#0f172a',
+  },
+  emptyTextLight: {
+    color: '#64748b',
+  },
+  pageNavBtnLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  pageIndicatorLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  pageIndicatorTextLight: {
+    color: '#334155',
+  },
+  filterMenuDropdownLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  filterMenuHeadingLight: {
+    color: '#0f172a',
+  },
+  filterMenuDividerLight: {
+    backgroundColor: '#f1f5f9',
+  },
+  filterMenuItemTextLight: {
+    color: '#334155',
+  },
+  filterMenuCountBadgeLight: {
+    backgroundColor: '#f1f5f9',
+  },
+  filterMenuCountTextLight: {
+    color: '#64748b',
+  },
+  activeFilterMenuItemLight: {
+    backgroundColor: 'rgba(2, 132, 199, 0.08)',
   },
 });
