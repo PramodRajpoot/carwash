@@ -9,10 +9,8 @@
             <div v-for="c in centers" :key="c.id" class="glass-card">
               <div style="font-size:2.5rem;margin-bottom:0.75rem">📍</div>
               <h4>{{ c.center_name }}</h4>
-              <p class="text-muted" style="font-size:0.85rem;margin-top:0.25rem">{{ c.address }}</p>
-              <div class="flex items-center gap-1" style="margin-top:0.5rem">
+              <div class="flex items-center gap-1" style="margin-top:0.75rem" v-if="c.city">
                 <span class="badge badge-cyan">{{ c.city }}</span>
-                <span class="badge" :class="c.status === 'active' ? 'badge-emerald' : 'badge-amber'">{{ c.status }}</span>
               </div>
             </div>
           </div>
