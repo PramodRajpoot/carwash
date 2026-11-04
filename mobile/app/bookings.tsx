@@ -213,7 +213,7 @@ export default function BookingsScreen() {
     if (tab === 'home') {
       router.replace('/dashboard');
     } else if (tab === 'garage') {
-      openActionUrl('My Garage', '/customer/vehicles');
+      router.push('/garage');
     } else if (tab === 'support') {
       openActionUrl('Help & Support', '/customer/support');
     } else if (tab === 'book') {

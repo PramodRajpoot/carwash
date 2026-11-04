@@ -246,6 +246,12 @@ export default function DashboardScreen() {
 
   // Open In-App Action Sheet (for Booking, Vehicles, Packages, etc.)
   const openActionView = (title: string, path: string, tab: FooterTab = 'home') => {
+    if (title === 'My Garage' && path === '/customer/vehicles') {
+      setMenuVisible(false);
+      router.push('/garage');
+      return;
+    }
+
     setMenuVisible(false);
     setActiveFooterTab(tab);
     setModalTitle(title);
@@ -283,7 +289,7 @@ export default function DashboardScreen() {
 
     switch (tab) {
       case 'garage':
-        openActionView('My Garage', '/customer/vehicles', 'garage');
+        router.push('/garage');
         break;
       case 'book':
         router.push('/bookings');
