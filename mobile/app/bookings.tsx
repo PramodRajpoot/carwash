@@ -77,7 +77,7 @@ interface BookingItem {
   addon_services?: Array<{ id: number; name: string; price: number }>;
 }
 
-type FilterType = 'all' | 'upcoming' | 'completed' | 'cancelled';
+type FilterType = 'all' | 'upcoming' | 'assigned' | 'completed' | 'cancelled';
 
 export default function BookingsScreen() {
   const router = useRouter();
@@ -90,6 +90,9 @@ export default function BookingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [filterMenuVisible, setFilterMenuVisible] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedBookingIds, setExpandedBookingIds] = useState<Record<number, boolean>>({});
 
   // Booking / Action Modal Sheet state
   const [modalVisible, setModalVisible] = useState(false);
@@ -116,7 +119,10 @@ export default function BookingsScreen() {
       });
 
       const list: BookingItem[] = response.data?.upcoming_services || [];
-      setBookings(list);
+      const dedupedList = Array.from(
+        new Map(list.map((item) => [item.id, item])).values()
+      );
+      setBookings(dedupedList);
     } catch (err) {
       console.error('Failed to fetch bookings list:', err);
     }
@@ -221,6 +227,9 @@ export default function BookingsScreen() {
     if (activeFilter === 'upcoming') {
       return ['pending', 'assigned', 'ongoing', 'postponed'].includes(b.status);
     }
+    if (activeFilter === 'assigned') {
+      return b.status === 'assigned';
+    }
     if (activeFilter === 'completed') {
       return b.status === 'completed';
     }
@@ -230,11 +239,38 @@ export default function BookingsScreen() {
     return true;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter]);
+
+  const PAGE_SIZE = 6;
+  const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const visibleBookings = filteredBookings.slice(startIndex, startIndex + PAGE_SIZE);
+
   const upcomingCount = bookings.filter((b) =>
     ['pending', 'assigned', 'ongoing', 'postponed'].includes(b.status)
   ).length;
+  const assignedCount = bookings.filter((b) => b.status === 'assigned').length;
   const completedCount = bookings.filter((b) => b.status === 'completed').length;
   const cancelledCount = bookings.filter((b) => b.status === 'cancelled').length;
+
+  const filterOptions: Array<{ key: FilterType; label: string; count: number }> = [
+    { key: 'all', label: 'All', count: bookings.length },
+    { key: 'upcoming', label: 'Upcoming', count: upcomingCount },
+    { key: 'assigned', label: 'Assigned', count: assignedCount },
+    { key: 'completed', label: 'Completed', count: completedCount },
+    { key: 'cancelled', label: 'Cancelled', count: cancelledCount },
+  ];
+
+  const activeFilterLabel = filterOptions.find((option) => option.key === activeFilter)?.label || 'All';
+
+  const toggleBookingExpansion = (bookingId: number) => {
+    setExpandedBookingIds((prev) => ({
+      ...prev,
+      [bookingId]: !prev[bookingId],
+    }));
+  };
 
   const injectedJS = `
     try {
@@ -355,17 +391,6 @@ export default function BookingsScreen() {
         ]}
       >
         <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={[styles.backBtn, isDark && styles.darkBackBtn]}
-            onPress={() => router.replace('/dashboard')}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={22}
-              color={isDark ? '#f8fafc' : '#0f172a'}
-            />
-          </TouchableOpacity>
           <View>
             <Text style={[styles.headerTitle, isDark && styles.darkText]}>
               My Washes
@@ -388,14 +413,66 @@ export default function BookingsScreen() {
               color={isDark ? '#fbbf24' : '#334155'}
             />
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={styles.bookHeaderBtn}
+            style={styles.bookHeaderBtnCompact}
             onPress={openBookingModal}
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={16} color="#ffffff" />
-            <Text style={styles.bookHeaderBtnText}>Book Wash</Text>
+            <Ionicons name="add" size={14} color="#ffffff" />
+            <Text style={styles.bookHeaderBtnTextCompact}>Book Wash</Text>
           </TouchableOpacity>
+
+          <View style={styles.headerFilterWrap}>
+            <TouchableOpacity
+              style={[styles.filterTrigger, isDark && styles.darkFilterTrigger]}
+              onPress={() => {
+                safeHapticLight();
+                setFilterMenuVisible((prev) => !prev);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="funnel-outline"
+                size={16}
+                color={isDark ? '#e2e8f0' : '#334155'}
+              />
+            </TouchableOpacity>
+
+            {filterMenuVisible && (
+              <View style={[styles.filterMenu, isDark && styles.darkFilterMenu]}>
+                {filterOptions.map((option) => {
+                  const isSelected = activeFilter === option.key;
+
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      style={[
+                        styles.filterMenuItem,
+                        isSelected && (isDark ? styles.activeFilterMenuItemDark : styles.activeFilterMenuItemLight),
+                      ]}
+                      onPress={() => {
+                        safeHapticLight();
+                        setActiveFilter(option.key);
+                        setFilterMenuVisible(false);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          isDark && styles.darkSubtext,
+                          isSelected && styles.activeFilterMenuItemText,
+                        ]}
+                      >
+                        {option.label} ({option.count})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -413,124 +490,6 @@ export default function BookingsScreen() {
           />
         }
       >
-        {/* Banner CTA: Book a Wash */}
-        <View style={[styles.ctaBanner, isDark && styles.darkCtaBanner]}>
-          <View style={styles.ctaBannerLeft}>
-            <View style={styles.ctaIconBox}>
-              <Text style={{ fontSize: 22 }}>✨</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.ctaBannerTitle}>Doorstep Car Care</Text>
-              <Text style={styles.ctaBannerSub}>
-                Expert washing at your doorstep & time slot
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={styles.ctaBannerBtn}
-            onPress={openBookingModal}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="sparkles" size={14} color="#ffffff" style={{ marginRight: 4 }} />
-            <Text style={styles.ctaBannerBtnText}>Book Wash</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Filter Pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          <TouchableOpacity
-            style={[
-              styles.filterPill,
-              isDark && styles.darkFilterPill,
-              activeFilter === 'all' && (isDark ? styles.activeFilterDark : styles.activeFilterLight),
-            ]}
-            onPress={() => {
-              safeHapticLight();
-              setActiveFilter('all');
-            }}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                isDark && styles.darkSubtext,
-                activeFilter === 'all' && styles.activeFilterText,
-              ]}
-            >
-              All ({bookings.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.filterPill,
-              isDark && styles.darkFilterPill,
-              activeFilter === 'upcoming' && (isDark ? styles.activeFilterDark : styles.activeFilterLight),
-            ]}
-            onPress={() => {
-              safeHapticLight();
-              setActiveFilter('upcoming');
-            }}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                isDark && styles.darkSubtext,
-                activeFilter === 'upcoming' && styles.activeFilterText,
-              ]}
-            >
-              Upcoming ({upcomingCount})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.filterPill,
-              isDark && styles.darkFilterPill,
-              activeFilter === 'completed' && (isDark ? styles.activeFilterDark : styles.activeFilterLight),
-            ]}
-            onPress={() => {
-              safeHapticLight();
-              setActiveFilter('completed');
-            }}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                isDark && styles.darkSubtext,
-                activeFilter === 'completed' && styles.activeFilterText,
-              ]}
-            >
-              Completed ({completedCount})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.filterPill,
-              isDark && styles.darkFilterPill,
-              activeFilter === 'cancelled' && (isDark ? styles.activeFilterDark : styles.activeFilterLight),
-            ]}
-            onPress={() => {
-              safeHapticLight();
-              setActiveFilter('cancelled');
-            }}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                isDark && styles.darkSubtext,
-                activeFilter === 'cancelled' && styles.activeFilterText,
-              ]}
-            >
-              Cancelled ({cancelledCount})
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-
         {/* Bookings List */}
         {filteredBookings.length === 0 ? (
           <View style={[styles.emptyContainer, isDark && styles.darkEmpty]}>
@@ -557,165 +516,263 @@ export default function BookingsScreen() {
           </View>
         ) : (
           <View style={styles.listContainer}>
-            {filteredBookings.map((b) => (
-              <View
-                key={b.id}
-                style={[styles.bookingCard, isDark ? styles.darkCard : styles.lightCard]}
-              >
-                {/* Card Top: Order ID & Status */}
-                <View style={styles.cardHeader}>
-                  <View style={styles.orderIdBadge}>
-                    <Text style={[styles.orderIdText, isDark && styles.darkSubtext]}>
-                      #BOK-{b.id}
-                    </Text>
-                  </View>
-                  {renderStatusBadge(b.status)}
-                </View>
+            {visibleBookings.map((b) => {
+              const isExpanded = !!expandedBookingIds[b.id];
+              const uniqueAddonServices = Array.from(
+                new Map(
+                  (b.addon_services || []).map((service) => [
+                    `${service.id ?? service.name}-${service.name}`,
+                    service,
+                  ])
+                ).values()
+              );
 
-                {/* Vehicle & Package Section */}
-                <View style={styles.vehicleRow}>
-                  <View style={[styles.carIconBox, isDark && styles.darkCarIconBox]}>
-                    <Ionicons
-                      name="car-sport"
-                      size={20}
-                      color={isDark ? '#38bdf8' : '#0284c7'}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.vehicleName, isDark && styles.darkText]}>
-                      {b.vehicle?.make_model || 'Vehicle'}
-                    </Text>
-                    <View style={styles.vehicleSubRow}>
-                      {b.vehicle?.plate_number && (
-                        <View style={[styles.plateTag, isDark && styles.darkPlateTag]}>
-                          <Text style={[styles.plateText, isDark && styles.darkSubtext]}>
-                            {b.vehicle.plate_number}
+              return (
+                <View
+                  key={b.id}
+                  style={[styles.bookingCard, isDark ? styles.darkCard : styles.lightCard]}
+                >
+                  {!isExpanded ? (
+                    <View style={styles.summaryRow}>
+                      <View style={styles.summaryTextWrap}>
+                        <Text style={[styles.summaryValue, isDark && styles.darkText]}>
+                          #BOK-{b.id}
+                        </Text>
+                        <Text style={[styles.summaryTitle, isDark && styles.darkText]}>
+                          {b.vehicle?.make_model || 'Vehicle'}{' '}
+                          <Text style={[styles.summaryDateInline, isDark && styles.darkSubtext]}>
+                            ({b.booking_date || 'No date'})
                           </Text>
-                        </View>
-                      )}
-                      <Text style={[styles.packageName, isDark && styles.darkCyanText]}>
-                        {b.package?.name || 'Standard Package'}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Addons if any */}
-                {b.addon_services && b.addon_services.length > 0 && (
-                  <View style={styles.addonsRow}>
-                    {b.addon_services.map((ad, i) => (
-                      <View
-                        key={ad.id || i}
-                        style={[styles.addonPill, isDark && styles.darkAddonPill]}
-                      >
-                        <Text style={styles.addonPlus}>+</Text>
-                        <Text style={[styles.addonText, isDark && styles.darkSubtext]}>
-                          {ad.name}
                         </Text>
                       </View>
-                    ))}
-                  </View>
-                )}
 
-                {/* Schedule & Location */}
-                <View style={[styles.infoGrid, isDark && styles.darkInfoGrid]}>
-                  <View style={styles.infoCol}>
-                    <View style={styles.infoItem}>
-                      <Ionicons
-                        name="calendar-outline"
-                        size={13}
-                        color={isDark ? '#94a3b8' : '#64748b'}
-                      />
-                      <Text style={[styles.infoVal, isDark && styles.darkText]}>
-                        {b.booking_date}
-                      </Text>
-                    </View>
-                    <View style={styles.infoItem}>
-                      <Ionicons
-                        name="time-outline"
-                        size={13}
-                        color={isDark ? '#94a3b8' : '#64748b'}
-                      />
-                      <Text style={[styles.infoVal, isDark && styles.darkText]}>
-                        {b.slot_time}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {b.address && (
-                    <View style={styles.infoLocationRow}>
-                      <Ionicons
-                        name="location-outline"
-                        size={13}
-                        color={isDark ? '#94a3b8' : '#64748b'}
-                      />
-                      <Text
-                        style={[styles.infoLocationText, isDark && styles.darkSubtext]}
-                        numberOfLines={1}
-                      >
-                        {b.address}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Price & Payment Footer */}
-                <View style={[styles.cardFooter, isDark && styles.darkCardFooter]}>
-                  <View>
-                    <Text style={[styles.priceLabel, isDark && styles.darkSubtext]}>
-                      Total Amount
-                    </Text>
-                    <Text style={[styles.priceValue, isDark && styles.darkText]}>
-                      ₹{parseFloat(String(b.total_price || 0)).toFixed(2)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.cardFooterRight}>
-                    {renderPaymentBadge(b)}
-
-                    {/* Action buttons */}
-                    {b.payment_status !== 'paid' && b.status !== 'cancelled' ? (
                       <TouchableOpacity
-                        style={styles.payBtn}
-                        onPress={() =>
-                          openActionUrl(
-                            `Pay for Wash #${b.id}`,
-                            `/customer/bookings?pay=${b.id}`
-                          )
-                        }
+                        style={styles.toggleBtn}
+                        onPress={() => toggleBookingExpansion(b.id)}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.payBtnText}>
-                          {b.payment_type === 'partial' ? 'Pay Advance' : 'Pay Now'}
+                        <Ionicons
+                          name="chevron-down-outline"
+                          size={18}
+                          color={isDark ? '#cbd5e1' : '#334155'}
+                        />
+                        <Text style={[styles.toggleText, isDark && styles.darkSubtext]}>
+                          View more
                         </Text>
                       </TouchableOpacity>
-                    ) : b.status === 'completed' ? (
+                    </View>
+                  ) : (
+                    <>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.orderIdBadge}>
+                          <Text style={[styles.orderIdText, isDark && styles.darkSubtext]}>
+                            #BOK-{b.id}
+                          </Text>
+                        </View>
+                        {renderStatusBadge(b.status)}
+                      </View>
+
+                      <View style={styles.vehicleRow}>
+                        <View style={[styles.carIconBox, isDark && styles.darkCarIconBox]}>
+                          <Ionicons
+                            name="car-sport"
+                            size={20}
+                            color={isDark ? '#38bdf8' : '#0284c7'}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.vehicleName, isDark && styles.darkText]}>
+                            {b.vehicle?.make_model || 'Vehicle'}
+                          </Text>
+                          <View style={styles.vehicleSubRow}>
+                            {b.vehicle?.plate_number && (
+                              <View style={[styles.plateTag, isDark && styles.darkPlateTag]}>
+                                <Text style={[styles.plateText, isDark && styles.darkSubtext]}>
+                                  {b.vehicle.plate_number}
+                                </Text>
+                              </View>
+                            )}
+                            <Text style={[styles.packageName, isDark && styles.darkCyanText]}>
+                              {b.package?.name || 'Standard Package'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {uniqueAddonServices.length > 0 && (
+                        <View style={styles.addonsRow}>
+                          {uniqueAddonServices.map((ad, i) => (
+                            <View
+                              key={`${ad.id ?? ad.name}-${i}`}
+                              style={[styles.addonPill, isDark && styles.darkAddonPill]}
+                            >
+                              <Text style={styles.addonPlus}>+</Text>
+                              <Text style={[styles.addonText, isDark && styles.darkSubtext]}>
+                                {ad.name}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      <View style={[styles.infoGrid, isDark && styles.darkInfoGrid]}>
+                        <View style={styles.infoCol}>
+                          <View style={styles.infoItem}>
+                            <Ionicons
+                              name="calendar-outline"
+                              size={13}
+                              color={isDark ? '#94a3b8' : '#64748b'}
+                            />
+                            <Text style={[styles.infoVal, isDark && styles.darkText]}>
+                              {b.booking_date}
+                            </Text>
+                          </View>
+                          <View style={styles.infoItem}>
+                            <Ionicons
+                              name="time-outline"
+                              size={13}
+                              color={isDark ? '#94a3b8' : '#64748b'}
+                            />
+                            <Text style={[styles.infoVal, isDark && styles.darkText]}>
+                              {b.slot_time}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {b.address && (
+                          <View style={styles.infoLocationRow}>
+                            <Ionicons
+                              name="location-outline"
+                              size={13}
+                              color={isDark ? '#94a3b8' : '#64748b'}
+                            />
+                            <Text
+                              style={[styles.infoLocationText, isDark && styles.darkSubtext]}
+                              numberOfLines={1}
+                            >
+                              {b.address}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={[styles.cardFooter, isDark && styles.darkCardFooter]}>
+                        <View>
+                          <Text style={[styles.priceLabel, isDark && styles.darkSubtext]}>
+                            Total Amount
+                          </Text>
+                          <Text style={[styles.priceValue, isDark && styles.darkText]}>
+                            ₹{parseFloat(String(b.total_price || 0)).toFixed(2)}
+                          </Text>
+                        </View>
+
+                        <View style={styles.cardFooterRight}>
+                          {renderPaymentBadge(b)}
+
+                          {b.payment_status !== 'paid' && b.status !== 'cancelled' ? (
+                            <TouchableOpacity
+                              style={styles.payBtn}
+                              onPress={() =>
+                                openActionUrl(
+                                  `Pay for Wash #${b.id}`,
+                                  `/customer/bookings?pay=${b.id}`
+                                )
+                              }
+                              activeOpacity={0.8}
+                            >
+                              <Text style={styles.payBtnText}>
+                                {b.payment_type === 'partial' ? 'Pay Advance' : 'Pay Now'}
+                              </Text>
+                            </TouchableOpacity>
+                          ) : b.status === 'completed' ? (
+                            <TouchableOpacity
+                              style={[styles.invoiceBtn, isDark && styles.darkInvoiceBtn]}
+                              onPress={() =>
+                                openActionUrl(`Invoice #${b.id}`, `/api/bookings/${b.id}/invoice`)
+                              }
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons
+                                name="document-text-outline"
+                                size={12}
+                                color={isDark ? '#38bdf8' : '#0284c7'}
+                              />
+                              <Text
+                                style={[
+                                  styles.invoiceBtnText,
+                                  isDark && styles.darkCyanText,
+                                ]}
+                              >
+                                Invoice
+                              </Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </View>
+                      </View>
+
                       <TouchableOpacity
-                        style={[styles.invoiceBtn, isDark && styles.darkInvoiceBtn]}
-                        onPress={() =>
-                          openActionUrl(`Invoice #${b.id}`, `/api/bookings/${b.id}/invoice`)
-                        }
-                        activeOpacity={0.7}
+                        style={styles.collapseBtn}
+                        onPress={() => toggleBookingExpansion(b.id)}
+                        activeOpacity={0.8}
                       >
                         <Ionicons
-                          name="document-text-outline"
-                          size={12}
-                          color={isDark ? '#38bdf8' : '#0284c7'}
+                          name="chevron-up-outline"
+                          size={16}
+                          color={isDark ? '#cbd5e1' : '#334155'}
                         />
-                        <Text
-                          style={[
-                            styles.invoiceBtnText,
-                            isDark && styles.darkCyanText,
-                          ]}
-                        >
-                          Invoice
+                        <Text style={[styles.toggleText, isDark && styles.darkSubtext]}>
+                          View less
                         </Text>
                       </TouchableOpacity>
-                    ) : null}
-                  </View>
+                    </>
+                  )}
                 </View>
+              );
+            })}
+
+            {totalPages > 1 && (
+              <View style={styles.paginationRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.pageNavBtn,
+                    currentPage === 1 && styles.pageNavBtnDisabled,
+                    isDark && styles.darkPageNavBtn,
+                  ]}
+                  onPress={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="chevron-back-outline"
+                    size={14}
+                    color={currentPage === 1 ? '#94a3b8' : isDark ? '#e2e8f0' : '#334155'}
+                  />
+                </TouchableOpacity>
+
+                <View style={[styles.pageIndicator, isDark && styles.darkPageIndicator]}>
+                  <Text style={[styles.pageIndicatorText, isDark && styles.darkSubtext]}>
+                    {currentPage}/{totalPages}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.pageNavBtn,
+                    currentPage === totalPages && styles.pageNavBtnDisabled,
+                    isDark && styles.darkPageNavBtn,
+                  ]}
+                  onPress={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={14}
+                    color={currentPage === totalPages ? '#94a3b8' : isDark ? '#e2e8f0' : '#334155'}
+                  />
+                </TouchableOpacity>
               </View>
-            ))}
+            )}
           </View>
         )}
       </ScrollView>
@@ -969,40 +1026,244 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
-  filterRow: {
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 14,
+  headerFilterWrap: {
+    position: 'relative',
   },
-  filterPill: {
-    paddingHorizontal: 13,
+  filterMenuWrap: {
+    position: 'relative',
+    paddingHorizontal: 16,
+    marginBottom: 14,
+    alignItems: 'stretch',
+  },
+  filterInlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    width: '100%',
+  },
+  filterActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.2,
+  },
+  filterTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 14,
     backgroundColor: '#f1f5f9',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#e2e8f0',
   },
-  darkFilterPill: {
+  bookHeaderBtnCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 12,
+    gap: 4,
+    shadowColor: '#0284c7',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  bookHeaderBtnTextCompact: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  darkFilterTrigger: {
     backgroundColor: '#1e293b',
+    borderColor: '#334155',
   },
-  activeFilterLight: {
-    backgroundColor: '#0284c7',
+  filterTriggerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
   },
-  activeFilterDark: {
-    backgroundColor: '#0284c7',
+  filterMenu: {
+    position: 'absolute',
+    right: 16,
+    top: 42,
+    width: 180,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingVertical: 6,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+    zIndex: 20,
   },
-  filterText: {
+  darkFilterMenu: {
+    backgroundColor: '#0f172a',
+    borderColor: '#334155',
+  },
+  filterMenuItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  activeFilterMenuItemLight: {
+    backgroundColor: '#e0f2fe',
+  },
+  activeFilterMenuItemDark: {
+    backgroundColor: '#082f49',
+  },
+  filterMenuItemText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#475569',
   },
-  activeFilterText: {
-    color: '#ffffff',
+  activeFilterMenuItemText: {
+    color: '#0284c7',
     fontWeight: '700',
   },
   listContainer: {
     paddingHorizontal: 16,
     gap: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  summaryTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  summaryLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  summaryValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.2,
+  },
+  summaryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 1,
+  },
+  summaryDateInline: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748b',
+  },
+  toggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    minWidth: 94,
+  },
+  toggleText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  collapseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 8,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  loadMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginTop: 4,
+  },
+  darkLoadMoreBtn: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+  },
+  loadMoreText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 8,
+    paddingBottom: 8,
+  },
+  pageNavBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  pageNavBtnDisabled: {
+    opacity: 0.5,
+  },
+  darkPageNavBtn: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+  },
+  pageIndicator: {
+    minWidth: 72,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+  },
+  darkPageIndicator: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+  },
+  pageIndicatorText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
   },
   bookingCard: {
     borderRadius: 16,
@@ -1172,10 +1433,10 @@ const styles = StyleSheet.create({
   },
   infoGrid: {
     backgroundColor: '#f8fafc',
-    borderRadius: 10,
-    padding: 9,
-    gap: 6,
-    marginBottom: 10,
+    borderRadius: 9,
+    padding: 7,
+    gap: 5,
+    marginBottom: 8,
   },
   darkInfoGrid: {
     backgroundColor: '#111827',
@@ -1183,15 +1444,15 @@ const styles = StyleSheet.create({
   infoCol: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 10,
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
   },
   infoVal: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '600',
     color: '#334155',
   },
@@ -1199,10 +1460,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 2,
+    marginTop: 1,
   },
   infoLocationText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#64748b',
     flex: 1,
   },

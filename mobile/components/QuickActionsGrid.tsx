@@ -33,15 +33,6 @@ export default function QuickActionsGrid({
 
   const TILES = [
     {
-      id: 'book',
-      title: 'Book Wash',
-      icon: 'sparkles',
-      color: '#0284c7',
-      bg: '#f0f9ff',
-      borderColor: '#bae6fd',
-      action: onBookWashPress,
-    },
-    {
       id: 'garage',
       title: 'My Vehicles',
       icon: 'car-sport',
@@ -49,6 +40,15 @@ export default function QuickActionsGrid({
       bg: '#ecfdf5',
       borderColor: '#a7f3d0',
       action: onGaragePress,
+    },
+    {
+      id: 'book',
+      title: 'Book Wash',
+      icon: 'sparkles',
+      color: '#0284c7',
+      bg: '#f0f9ff',
+      borderColor: '#bae6fd',
+      action: onBookWashPress,
     },
     {
       id: 'plans',

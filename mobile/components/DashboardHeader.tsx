@@ -108,7 +108,7 @@ export default function DashboardHeader({
         >
           <Ionicons
             name="notifications-outline"
-            size={22}
+            size={18}
             color={isDark ? '#f8fafc' : '#1e293b'}
           />
           {unreadCount > 0 && (
@@ -128,7 +128,7 @@ export default function DashboardHeader({
         >
           <Ionicons
             name={isDark ? 'sunny' : 'moon-outline'}
-            size={21}
+            size={18}
             color={isDark ? '#fbbf24' : '#334155'}
           />
         </TouchableOpacity>
@@ -202,10 +202,10 @@ const styles = StyleSheet.create({
   rightActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 0,
   },
   iconBtn: {
-    padding: 6,
+    padding: 4,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -235,21 +235,21 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   avatarImg: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
   },
   initialsCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#0284c7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   initialsText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
   },
 });
