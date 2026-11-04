@@ -48,6 +48,7 @@ Route::get('/auth/google', [App\Http\Controllers\GoogleAuthController::class, 'r
 Route::get('/auth/google/callback', [App\Http\Controllers\GoogleAuthController::class, 'callback']);
 
 // Public service data
+Route::get('/categories', [BookingController::class, 'getCategories']);
 Route::get('/packages', [BookingController::class, 'getPackages']);
 Route::get('/centers',  [BookingController::class, 'getCenters']);
 Route::get('/offers',   [BookingController::class, 'getOffers']);

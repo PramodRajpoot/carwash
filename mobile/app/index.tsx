@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
   StyleSheet,
@@ -9,46 +10,144 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Platform,
-  Dimensions,
   RefreshControl,
   Image,
+  TextInput,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
 import { API_BASE } from '../constants/api';
+import { safeHapticLight } from '../utils/haptics';
 
-const { width } = Dimensions.get('window');
+const ITEMS_PER_PAGE = 4;
 
-// Sample data - shown when API is unreachable
+// Sample fallback packages
 const SAMPLE_PACKAGES = [
-  { id: 1, name: 'Basic Exterior Wash', vehicle_type: 'hatchback', description: 'Quick exterior wash including rinse, foam, hand wash, and wipe dry. Perfect for regular maintenance.', price: 299, frequency_days: 0, max_bookings: 1 },
-  { id: 2, name: 'Full Interior + Exterior', vehicle_type: 'sedan', description: 'Complete interior vacuuming, dashboard polish, exterior wash, tire dressing, and glass cleaning.', price: 799, frequency_days: 0, max_bookings: 1 },
-  { id: 3, name: 'Monthly Premium Plan', vehicle_type: 'suv', description: 'Unlimited exterior washes with bi-weekly interior cleaning. Includes ceramic coating touch-up.', price: 2499, frequency_days: 30, max_bookings: 8 },
-  { id: 4, name: 'Deep Detailing Package', vehicle_type: 'sedan', description: 'Engine bay cleaning, clay bar treatment, paint correction, and premium wax coating for long-lasting shine.', price: 3999, frequency_days: 0, max_bookings: 1 },
-  { id: 5, name: 'Monthly Basic Plan', vehicle_type: 'hatchback', description: '4 exterior washes per month with interior dusting. Best value for daily commuters.', price: 999, frequency_days: 30, max_bookings: 4 },
-  { id: 6, name: 'Commercial Fleet Wash', vehicle_type: 'commercial', description: 'Heavy-duty wash for commercial vehicles including undercarriage cleaning and sanitization.', price: 1499, frequency_days: 0, max_bookings: 1 },
+  {
+    id: 1,
+    name: 'Happywash Express',
+    category_id: 1,
+    category: { id: 1, name: 'Carwash' },
+    vehicle_type: 'hatchback',
+    description: "Foam Exterior Wash\nInterior Vacuum clean\nMat cleaning\nGlass Cleaning\nTyre Dressing",
+    price: 245.18,
+    frequency_days: 30,
+    max_bookings: 4,
+    custom_badge: 'POPULAR',
+  },
+  {
+    id: 2,
+    name: 'Happy Wash + Car Shine',
+    category_id: 1,
+    category: { id: 1, name: 'Carwash' },
+    vehicle_type: 'hatchback',
+    description: "Foam Exterior Wash\nInterior Vacuum clean\nEngine & underbody cleaning\nDashboard Polish\nFull Body Wax",
+    price: 409.18,
+    frequency_days: 30,
+    max_bookings: 4,
+    custom_badge: 'BEST VALUE',
+  },
+  {
+    id: 3,
+    name: 'Full Interior Spa + Exterior',
+    category_id: 1,
+    category: { id: 1, name: 'Carwash' },
+    vehicle_type: 'sedan',
+    description: "Complete interior vacuuming\nDashboard UV polish\nExterior snow foam wash\nTire dressing & rim detail\nAnti-bacterial sanitization",
+    price: 799,
+    frequency_days: 0,
+    max_bookings: 1,
+  },
+  {
+    id: 4,
+    name: 'Monthly Premium Detailing Pass',
+    category_id: 1,
+    category: { id: 1, name: 'Carwash' },
+    vehicle_type: 'suv',
+    description: "8 Doorstep exterior washes\nBi-weekly deep interior vacuum\nCeramic wax coating touch-up\nEngine bay steam clean",
+    price: 2499,
+    frequency_days: 30,
+    max_bookings: 8,
+    custom_badge: 'PREMIUM',
+  },
+  {
+    id: 5,
+    name: 'Complete Home Deep Cleaning',
+    category_id: 2,
+    category: { id: 2, name: 'Home Cleaning' },
+    vehicle_type: 'all',
+    description: "Living room & bedroom dusting\nBathroom deep scrub & disinfection\nKitchen oil & grease stain removal\nFloor mechanical scrubbing",
+    price: 1999,
+    frequency_days: 0,
+    max_bookings: 1,
+  },
+  {
+    id: 6,
+    name: 'Kitchen & Bathroom Sanitization',
+    category_id: 2,
+    category: { id: 2, name: 'Home Cleaning' },
+    vehicle_type: 'all',
+    description: "High-pressure tile cleaning\nSink & fixture descaling\nChimney & stove degreasing\nFull anti-microbial steam wipe",
+    price: 1299,
+    frequency_days: 0,
+    max_bookings: 1,
+  },
+  {
+    id: 7,
+    name: 'Teflon Coating & Paint Correction',
+    category_id: 1,
+    category: { id: 1, name: 'Carwash' },
+    vehicle_type: 'sedan',
+    description: "Multi-stage machine paint polish\nMinor swirl & scratch removal\nHydrophobic Teflon sealant\n12-month shine protection",
+    price: 5999,
+    frequency_days: 0,
+    max_bookings: 1,
+    custom_badge: 'TOP SHINE',
+  },
+  {
+    id: 8,
+    name: 'Commercial Fleet Maintenance',
+    category_id: 1,
+    category: { id: 1, name: 'Carwash' },
+    vehicle_type: 'commercial',
+    description: "Heavy-duty power wash\nChassis & undercarriage pressure rinse\nInterior sanitizing spray\nExpress turnaround time",
+    price: 1499,
+    frequency_days: 0,
+    max_bookings: 1,
+  },
 ];
 
-// Vehicle type filters
-const FILTERS = [
-  { label: 'All Services', icon: 'sparkles', value: 'all' },
-  { label: 'Hatchback', icon: 'car-sport', value: 'hatchback' },
-  { label: 'Sedan', icon: 'car', value: 'sedan' },
-  { label: 'SUV', icon: 'speedometer', value: 'suv' },
-  { label: 'Commercial', icon: 'bus', value: 'commercial' },
-  { label: 'Bus', icon: 'navigate', value: 'bus' },
+// Vehicle type filter options (matches wash service page)
+const VEHICLE_FILTERS = [
+  { label: 'All', icon: 'sparkles-outline', value: 'all' },
+  { label: 'Hatchback', icon: 'car-sport-outline', value: 'hatchback' },
+  { label: 'Sedan', icon: 'car-outline', value: 'sedan' },
+  { label: 'SUV', icon: 'speedometer-outline', value: 'suv' },
+  { label: 'Commercial', icon: 'bus-outline', value: 'commercial' },
+  { label: 'Bus', icon: 'navigate-outline', value: 'bus' },
+  { label: 'Volvo Bus', icon: 'trail-sign-outline', value: 'volvo_bus' },
 ];
 
 export default function ServicesScreen() {
   const router = useRouter();
+  const scrollViewRef = useRef<any>(null);
+
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeVehicle, setActiveVehicle] = useState('all');
+  const [filterMenuVisible, setFilterMenuVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [expandedPackages, setExpandedPackages] = useState<Record<string | number, boolean>>({});
+
+  const activeVehicleLabel = VEHICLE_FILTERS.find((f) => f.value === activeVehicle)?.label || 'All';
 
   useFocusEffect(
     React.useCallback(() => {
@@ -60,18 +159,20 @@ export default function ServicesScreen() {
     }, [])
   );
 
-  const fetchPackages = async () => {
+  const fetchPackagesData = async () => {
     try {
       setError(null);
       const res = await fetch(`${API_BASE}/api/packages`, {
-        headers: { 
+        headers: {
           'ngrok-skip-browser-warning': 'true',
-          'Bypass-Tunnel-Reminder': 'true'
-        }
+          'Bypass-Tunnel-Reminder': 'true',
+        },
       });
+
+      if (!res.ok) throw new Error('Failed to fetch packages');
       const data = await res.json();
-      setPackages(data);
-    } catch (e) {
+      setPackages(Array.isArray(data) ? data : []);
+    } catch {
       console.log('API unreachable, using sample data');
       setPackages(SAMPLE_PACKAGES);
       setError('Showing sample data — server not reachable.');
@@ -79,24 +180,139 @@ export default function ServicesScreen() {
       setTimeout(() => {
         setLoading(false);
         setRefreshing(false);
-      }, 800);
+      }, 600);
     }
   };
 
   useEffect(() => {
-    fetchPackages();
+    fetchPackagesData();
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchPackages();
+    fetchPackagesData();
   };
 
-  const filteredPackages = (
-    activeFilter === 'all'
-      ? packages
-      : packages.filter((p) => p.vehicle_type === activeFilter)
-  ).filter((p) => !p.is_addon);
+  const handleVehicleSelect = (val: string) => {
+    safeHapticLight();
+    setActiveVehicle(val);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    safeHapticLight();
+    setActiveVehicle('all');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
+
+  const vehicleCounts = useMemo(() => {
+    const activePkgs = packages.filter((pkg) => !pkg.is_addon);
+    const counts: Record<string, number> = { all: activePkgs.length };
+    for (const vf of VEHICLE_FILTERS) {
+      if (vf.value === 'all') continue;
+      counts[vf.value] = activePkgs.filter(
+        (p) => (p.vehicle_type || '').toLowerCase() === vf.value.toLowerCase()
+      ).length;
+    }
+    return counts;
+  }, [packages]);
+
+  const filteredPackages = useMemo(() => {
+    return packages.filter((pkg) => {
+      if (pkg.is_addon) return false;
+
+      // Vehicle filter
+      if (activeVehicle !== 'all') {
+        const pkgVeh = (pkg.vehicle_type || '').toLowerCase();
+        if (pkgVeh !== 'all' && pkgVeh !== activeVehicle.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const name = (pkg.name || '').toLowerCase();
+        const desc = (pkg.description || '').toLowerCase();
+        if (!name.includes(q) && !desc.includes(q)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [packages, activeVehicle, searchQuery]);
+
+  // Pagination calculation
+  const totalItems = filteredPackages.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedPackages = useMemo(() => {
+    const startIndex = (validCurrentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPackages.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredPackages, validCurrentPage]);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages || page === validCurrentPage) return;
+    safeHapticLight();
+    setCurrentPage(page);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const togglePackageExpand = (id: string | number) => {
+    safeHapticLight();
+    setExpandedPackages((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const renderFeaturesList = (desc: string, pkgId: string | number) => {
+    if (!desc) return null;
+    const allLines = desc
+      .split(/\r?\n|•|,/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+
+    if (allLines.length === 0) return null;
+
+    const isExpanded = !!expandedPackages[pkgId];
+    const visibleLines = isExpanded ? allLines : allLines.slice(0, 1);
+    const hasMore = allLines.length > 1;
+
+    return (
+      <View style={styles.featuresContainer}>
+        {visibleLines.map((item, idx) => {
+          const isLastVisible = idx === visibleLines.length - 1;
+          const showToggleHere = hasMore && isLastVisible;
+
+          return (
+            <View key={idx} style={styles.featureItemRow}>
+              <Ionicons name="checkmark-circle" size={14} color="#10b981" style={styles.featureCheckIcon} />
+              <Text style={styles.featureItemText}>
+                {item}
+                {showToggleHere && (
+                  <Text
+                    style={styles.readMoreInlineText}
+                    onPress={() => togglePackageExpand(pkgId)}
+                  >
+                    {isExpanded ? '  Read Less...' : '  Read More...'}
+                  </Text>
+                )}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -121,41 +337,140 @@ export default function ServicesScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
-      {/* ── Header ── */}
+      {/* ── Top Header ── */}
       <View style={styles.header}>
         <View style={styles.brandRow}>
-          <Image 
-            source={require('../assets/images/icon.png')} 
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          <View style={styles.headerLogoContainer}>
+            <Image
+              source={require('../assets/images/icon.png')}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+          </View>
           <View>
             <Text style={styles.headerTitle}>CleanAtDoorstep</Text>
             <View style={styles.statusRow}>
-              <View style={styles.liveDot} />
-              <Text style={styles.headerSubtitle}>Doorstep Detailing</Text>
+              <View style={styles.livePulseDot} />
+              <Text style={styles.headerSubtitle}>Doorstep Detailing • On-Demand</Text>
             </View>
           </View>
         </View>
 
-        <TouchableOpacity 
-          style={styles.loginBtnHeader} 
-          onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
-          activeOpacity={0.8}
-        >
-          <Ionicons 
-            name={isLoggedIn ? 'speedometer-outline' : 'person-circle-outline'} 
-            size={16} 
-            color="#38bdf8" 
-            style={{ marginRight: 5 }}
-          />
-          <Text style={styles.loginBtnHeaderText}>
-            {isLoggedIn ? 'Dashboard' : 'Sign In'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerRightRow}>
+          <TouchableOpacity
+            style={styles.loginBtnHeader}
+            onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={isLoggedIn ? 'speedometer-outline' : 'person-circle-outline'}
+              size={15}
+              color="#38bdf8"
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.loginBtnHeaderText}>
+              {isLoggedIn ? 'Dashboard' : 'Sign In'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
+      {/* ── Vehicle Filter Modal Dropdown (exact match to bookings.tsx UX) ── */}
+      <Modal
+        visible={filterMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFilterMenuVisible(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setFilterMenuVisible(false)}
+        >
+          <View style={styles.filterMenuDropdown}>
+            <View style={styles.filterMenuHeader}>
+              <View style={styles.filterMenuTitleWrap}>
+                <Ionicons name="funnel" size={14} color="#38bdf8" />
+                <Text style={styles.filterMenuHeading}>Filter by Vehicle</Text>
+              </View>
+              {activeVehicle !== 'all' && (
+                <TouchableOpacity
+                  onPress={() => {
+                    safeHapticLight();
+                    handleVehicleSelect('all');
+                    setFilterMenuVisible(false);
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.clearFilterText}>Reset</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.filterMenuDivider} />
+
+            {VEHICLE_FILTERS.map((option) => {
+              const isSelected = activeVehicle === option.value;
+              const count = vehicleCounts[option.value] ?? 0;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.filterMenuItem,
+                    isSelected && styles.activeFilterMenuItem,
+                  ]}
+                  onPress={() => {
+                    safeHapticLight();
+                    handleVehicleSelect(option.value);
+                    setFilterMenuVisible(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={option.icon as any}
+                    size={16}
+                    color={isSelected ? '#38bdf8' : '#94a3b8'}
+                    style={{ marginRight: 10 }}
+                  />
+                  <Text
+                    style={[
+                      styles.filterMenuItemText,
+                      isSelected && styles.activeFilterMenuItemText,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  <View
+                    style={[
+                      styles.filterMenuCountBadge,
+                      isSelected && styles.filterMenuCountBadgeActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterMenuCountText,
+                        isSelected && styles.filterMenuCountTextActive,
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Ionicons
+                      name="checkmark"
+                      size={16}
+                      color="#38bdf8"
+                      style={{ marginLeft: 8 }}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
+
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -168,70 +483,70 @@ export default function ServicesScreen() {
           />
         }
       >
-        {/* ── Hero Banner ── */}
-        <View style={styles.heroBanner}>
-          <View style={styles.heroBadge}>
-            <Ionicons name="sparkles" size={13} color="#38bdf8" />
-            <Text style={styles.heroBadgeText}>DOORSTEP VEHICLE CARE</Text>
-          </View>
-          <Text style={styles.heroTitle}>
-            Premium Detailing <Text style={styles.textGradient}>At Your Home</Text>
-          </Text>
-          <Text style={styles.heroSubtitle}>
-            Save time. Our expert washers arrive equipped with water, power & pro detailing gear.
-          </Text>
-          
-          <View style={styles.featureRow}>
-            <View style={styles.featurePill}>
-              <Ionicons name="flash-outline" size={13} color="#10b981" />
-              <Text style={styles.featureText}>45 Min Wash</Text>
-            </View>
-            <View style={styles.featurePill}>
-              <Ionicons name="water-outline" size={13} color="#38bdf8" />
-              <Text style={styles.featureText}>Eco Foam</Text>
-            </View>
-            <View style={styles.featurePill}>
-              <Ionicons name="star" size={13} color="#fbbf24" />
-              <Text style={styles.featureText}>4.9/5 Rating</Text>
-            </View>
-          </View>
+        {/* ── Section Title: Our Services ── */}
+        <View style={styles.servicesHeaderWrap}>
+          <Text style={styles.servicesTitle}>Our Services</Text>
         </View>
 
-        {/* ── Filters ── */}
-        <View style={styles.filterWrapper}>
-          <Text style={styles.sectionHeading}>Choose Category</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterScroll}
-          >
-            {FILTERS.map((f) => (
-              <TouchableOpacity
-                key={f.value}
-                style={[
-                  styles.filterBtn,
-                  activeFilter === f.value && styles.filterBtnActive,
-                ]}
-                onPress={() => setActiveFilter(f.value)}
-                activeOpacity={0.8}
-              >
-                <Ionicons 
-                  name={f.icon as any} 
-                  size={14} 
-                  color={activeFilter === f.value ? '#ffffff' : '#94a3b8'} 
-                  style={{ marginRight: 6 }}
-                />
-                <Text
-                  style={[
-                    styles.filterText,
-                    activeFilter === f.value && styles.filterTextActive,
-                  ]}
-                >
-                  {f.label}
-                </Text>
+        {/* ── Search Bar & Filter Button ── */}
+        <View style={styles.searchRowWrapper}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={18} color="#64748b" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search services (e.g. Foam, Deep, Coating)..."
+              placeholderTextColor="#64748b"
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearchChange('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={18} color="#94a3b8" />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            )}
+          </View>
+
+          {/* Vehicle Filter Button (right of search input) */}
+          <TouchableOpacity
+            style={[
+              styles.searchFilterTrigger,
+              activeVehicle !== 'all' && styles.searchFilterTriggerActive,
+            ]}
+            onPress={() => {
+              safeHapticLight();
+              setFilterMenuVisible((prev) => !prev);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="funnel-outline"
+              size={18}
+              color={activeVehicle !== 'all' ? '#38bdf8' : '#cbd5e1'}
+            />
+            {activeVehicle !== 'all' && <View style={styles.activeFilterDot} />}
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Items Counter & Quick Summary ── */}
+        <View style={styles.resultsSummaryRow}>
+          <View style={styles.resultsCountWrap}>
+            <Text style={styles.resultsCountText}>
+              Showing <Text style={styles.highlightText}>{totalItems > 0 ? (validCurrentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</Text>–
+              <Text style={styles.highlightText}>{Math.min(validCurrentPage * ITEMS_PER_PAGE, totalItems)}</Text> of{' '}
+              <Text style={styles.highlightText}>{totalItems}</Text> Services
+            </Text>
+            {activeVehicle !== 'all' && (
+              <TouchableOpacity
+                style={styles.activeVehicleChip}
+                onPress={() => handleVehicleSelect('all')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.activeVehicleChipText}>{activeVehicleLabel}</Text>
+                <Ionicons name="close-circle" size={13} color="#38bdf8" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {error && (
@@ -242,75 +557,147 @@ export default function ServicesScreen() {
         )}
 
         {/* ── Package Cards ── */}
-        {filteredPackages.length === 0 ? (
+        {paginatedPackages.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="car-outline" size={48} color="#475569" />
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="search-outline" size={40} color="#64748b" />
+            </View>
+            <Text style={styles.emptyTitle}>No Services Found</Text>
             <Text style={styles.emptyText}>
-              No packages found for this category.
+              We could not find any packages matching your active category and filters.
             </Text>
+            <TouchableOpacity
+              style={styles.resetBtn}
+              onPress={handleResetFilters}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="refresh-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.resetBtnText}>Reset All Filters</Text>
+            </TouchableOpacity>
           </View>
         ) : (
-          filteredPackages.map((pkg) => (
-            <View key={pkg.id} style={styles.card}>
-              {/* Badges */}
-              <View style={styles.badgeRow}>
-                <View style={styles.badgeCyan}>
-                  <Text style={styles.badgeCyanText}>
-                    {pkg.vehicle_type?.toUpperCase()}
-                  </Text>
-                </View>
+          paginatedPackages.map((pkg) => {
+            const hasMonthly = pkg.frequency_days > 0;
 
-                {pkg.frequency_days > 0 ? (
-                  <View style={styles.badgeGreen}>
-                    <Text style={styles.badgeGreenText}>MONTHLY SUBSCRIPTION</Text>
-                  </View>
-                ) : (
-                  <View style={styles.badgePurple}>
-                    <Text style={styles.badgePurpleText}>ONE-TIME WASH</Text>
-                  </View>
-                )}
-              </View>
+            return (
+              <View key={pkg.id} style={styles.card}>
+                {/* Badges Header */}
+                <View style={styles.cardBadgesRow}>
+                  <View style={styles.leftBadges}>
+                    {pkg.vehicle_type && (
+                      <View style={styles.badgeVehicle}>
+                        <Ionicons name="car-sport-outline" size={10} color="#cbd5e1" style={{ marginRight: 3 }} />
+                        <Text style={styles.badgeVehicleText}>
+                          {pkg.vehicle_type.toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
 
-              {/* Package Name */}
-              <Text style={styles.cardTitle}>{pkg.name}</Text>
-
-              {/* Description */}
-              <Text style={styles.cardDesc} numberOfLines={3}>
-                {pkg.description}
-              </Text>
-
-              {/* Price + Book */}
-              <View style={styles.cardFooter}>
-                <View>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceSymbol}>₹</Text>
-                    <Text style={styles.priceValue}>{pkg.price}</Text>
-                    {pkg.frequency_days > 0 && (
-                      <Text style={styles.priceUnit}> / mo</Text>
+                    {hasMonthly ? (
+                      <View style={styles.badgeGreen}>
+                        <Text style={styles.badgeGreenText}>MONTHLY PASS</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.badgePurple}>
+                        <Text style={styles.badgePurpleText}>ONE-TIME WASH</Text>
+                      </View>
                     )}
                   </View>
-                  {pkg.max_bookings > 1 && (
-                    <Text style={styles.washCount}>
-                      ⚡ {pkg.max_bookings} washes included
-                    </Text>
+
+                  {pkg.custom_badge && (
+                    <View style={styles.badgeHighlight}>
+                      <Text style={styles.badgeHighlightText}>
+                        {pkg.custom_badge}
+                      </Text>
+                    </View>
                   )}
                 </View>
 
-                <TouchableOpacity 
-                  activeOpacity={0.85}
-                  style={styles.bookBtn}
-                  onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
-                >
-                  <Text style={styles.bookBtnText}>Book Wash</Text>
-                  <Ionicons name="arrow-forward" size={15} color="#fff" style={{ marginLeft: 4 }} />
-                </TouchableOpacity>
+                {/* Package Title */}
+                <Text style={styles.cardTitle}>{pkg.name}</Text>
+
+                {/* Key Features Breakdown */}
+                {renderFeaturesList(pkg.description, pkg.id)}
+
+                {/* Price + CTA Footer */}
+                <View style={styles.cardFooter}>
+                  <View>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.priceSymbol}>₹</Text>
+                      <Text style={styles.priceValue}>
+                        {typeof pkg.price === 'number' ? pkg.price.toFixed(2) : pkg.price}
+                      </Text>
+                      {hasMonthly && <Text style={styles.priceUnit}> / mo</Text>}
+                    </View>
+                    {pkg.max_bookings > 1 && (
+                      <View style={styles.washCountRow}>
+                        <Ionicons name="flash" size={12} color="#10b981" />
+                        <Text style={styles.washCount}>
+                          {pkg.max_bookings} washes included
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    style={styles.bookBtn}
+                    onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
+                  >
+                    <Text style={styles.bookBtnText}>Book Wash</Text>
+                    <Ionicons name="arrow-forward" size={15} color="#ffffff" style={{ marginLeft: 6 }} />
+                  </TouchableOpacity>
+                </View>
               </View>
+            );
+          })
+        )}
+
+        {/* ── Pagination Controls (matching bookings.tsx / screenshot: < 1/4 >) ── */}
+        {totalPages > 1 && (
+          <View style={styles.paginationRow}>
+            <TouchableOpacity
+              style={[
+                styles.pageNavBtn,
+                validCurrentPage === 1 && styles.pageNavBtnDisabled,
+              ]}
+              onPress={() => handlePageChange(validCurrentPage - 1)}
+              disabled={validCurrentPage === 1}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="chevron-back-outline"
+                size={14}
+                color={validCurrentPage === 1 ? '#64748b' : '#38bdf8'}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.pageIndicator}>
+              <Text style={styles.pageIndicatorText}>
+                {validCurrentPage}/{totalPages}
+              </Text>
             </View>
-          ))
+
+            <TouchableOpacity
+              style={[
+                styles.pageNavBtn,
+                validCurrentPage === totalPages && styles.pageNavBtnDisabled,
+              ]}
+              onPress={() => handlePageChange(validCurrentPage + 1)}
+              disabled={validCurrentPage === totalPages}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="chevron-forward-outline"
+                size={14}
+                color={validCurrentPage === totalPages ? '#64748b' : '#38bdf8'}
+              />
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Bottom spacer */}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 50 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -319,13 +706,13 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090d16', // Deep sleek midnight dark
+    backgroundColor: '#080c15', // Rich luxury dark background
   },
   splashContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#090d16',
+    backgroundColor: '#080c15',
   },
   splashBadge: {
     width: 90,
@@ -348,11 +735,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+
+  /* ── Header ── */
   header: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0c1220',
     paddingTop: Platform.OS === 'android' ? 44 : 12,
     paddingBottom: 14,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     flexDirection: 'row',
@@ -362,12 +751,22 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
+  },
+  headerLogoContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(14, 165, 233, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerLogo: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
   },
   headerTitle: {
     color: '#ffffff',
@@ -381,10 +780,10 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 2,
   },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  livePulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: '#10b981',
   },
   headerSubtitle: {
@@ -396,206 +795,414 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(14, 165, 233, 0.12)',
-    paddingHorizontal: 13,
-    paddingVertical: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.28)',
+    borderColor: 'rgba(14, 165, 233, 0.3)',
   },
   loginBtnHeaderText: {
     color: '#38bdf8',
     fontSize: 13,
     fontWeight: '700',
   },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#38bdf8',
+  },
+
+  /* ── Filter Modal Dropdown ── */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: Platform.OS === 'android' ? 142 : 156,
+    paddingRight: 16,
+  },
+  filterMenuDropdown: {
+    width: 220,
+    backgroundColor: '#0f172a',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    paddingVertical: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  filterMenuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  filterMenuTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterMenuHeading: {
+    color: '#f8fafc',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  clearFilterText: {
+    color: '#38bdf8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  filterMenuDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginVertical: 4,
+  },
+  filterMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  activeFilterMenuItem: {
+    backgroundColor: 'rgba(14, 165, 233, 0.14)',
+  },
+  filterMenuItemText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#cbd5e1',
+  },
+  activeFilterMenuItemText: {
+    color: '#38bdf8',
+    fontWeight: '700',
+  },
+  filterMenuCountBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  filterMenuCountBadgeActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  filterMenuCountText: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  filterMenuCountTextActive: {
+    color: '#38bdf8',
+    fontWeight: '700',
+  },
+
+  /* ── ScrollView ── */
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingTop: 16,
   },
-  heroBanner: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
+
+  /* ── Section Title: Our Services ── */
+  servicesHeaderWrap: {
+    paddingHorizontal: 18,
+    marginBottom: 12,
   },
-  heroBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 10,
-    gap: 5,
-  },
-  heroBadgeText: {
-    color: '#38bdf8',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  heroTitle: {
+  servicesTitle: {
     color: '#ffffff',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
-    lineHeight: 28,
+    letterSpacing: -0.4,
   },
-  textGradient: {
-    color: '#38bdf8',
-  },
-  heroSubtitle: {
-    color: '#94a3b8',
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 6,
-    marginBottom: 14,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  featurePill: {
+
+  /* ── Search Bar & Filter ── */
+  searchRowWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 5,
-  },
-  featureText: {
-    color: '#e2e8f0',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  filterWrapper: {
     paddingHorizontal: 16,
     marginBottom: 16,
+    gap: 10,
   },
-  sectionHeading: {
-    color: '#f8fafc',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  filterScroll: {
-    gap: 8,
-  },
-  filterBtn: {
+  searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#111827',
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  filterBtnActive: {
-    backgroundColor: '#0d9488',
-    borderColor: '#0d9488',
+  searchIcon: {
+    marginRight: 8,
   },
-  filterText: {
-    color: '#94a3b8',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  filterTextActive: {
+  searchInput: {
+    flex: 1,
     color: '#ffffff',
+    fontSize: 13,
+    paddingVertical: 0,
+  },
+  searchFilterTrigger: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  searchFilterTriggerActive: {
+    backgroundColor: 'rgba(14, 165, 233, 0.18)',
+    borderColor: '#38bdf8',
+  },
+
+  /* ── Results Summary ── */
+  resultsSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    marginBottom: 12,
+    gap: 8,
+  },
+  resultsCountWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    flex: 1,
+  },
+  resultsCountText: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  highlightText: {
+    color: '#94a3b8',
     fontWeight: '700',
   },
+  activeVehicleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(14, 165, 233, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  activeVehicleChipText: {
+    color: '#38bdf8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  /* ── Info Banner ── */
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 14,
     padding: 10,
     backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
     gap: 6,
   },
   infoBannerText: {
     color: '#38bdf8',
     fontSize: 12,
   },
+
+  /* ── Empty State ── */
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 50,
-    gap: 12,
+    paddingHorizontal: 30,
+    marginHorizontal: 16,
+    backgroundColor: '#111827',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  emptyIconCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   emptyText: {
     color: '#64748b',
-    fontSize: 14,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 18,
   },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0d9488',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 14,
+  },
+  resetBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  /* ── Package Card ── */
   card: {
     backgroundColor: '#111827',
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 18,
     marginHorizontal: 16,
     marginBottom: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  badgeRow: {
+  cardBadgesRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  badgeCyan: {
-    backgroundColor: 'rgba(14, 165, 233, 0.14)',
-    paddingHorizontal: 8,
+  leftBadges: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+    flex: 1,
+  },
+  badgeVehicle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  badgeCyanText: {
-    color: '#38bdf8',
-    fontSize: 10,
+  badgeVehicleText: {
+    color: '#cbd5e1',
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   badgeGreen: {
     backgroundColor: 'rgba(16, 185, 129, 0.14)',
-    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
   },
   badgeGreenText: {
     color: '#34d399',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   badgePurple: {
     backgroundColor: 'rgba(168, 85, 247, 0.14)',
-    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.25)',
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
   },
   badgePurpleText: {
     color: '#c084fc',
-    fontSize: 10,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  badgeHighlight: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  badgeHighlightText: {
+    color: '#fbbf24',
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.6,
   },
   cardTitle: {
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 6,
+    fontWeight: '800',
+    marginBottom: 8,
+    letterSpacing: -0.2,
   },
-  cardDesc: {
-    color: '#94a3b8',
-    fontSize: 13,
-    lineHeight: 18,
+
+  /* ── Features Breakdown ── */
+  featuresContainer: {
+    gap: 6,
     marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    padding: 10,
+    borderRadius: 12,
   },
+  featureItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  featureCheckIcon: {
+    marginTop: 2,
+  },
+  featureItemText: {
+    flex: 1,
+    color: '#94a3b8',
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  readMoreInlineText: {
+    color: '#ef4444',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  /* ── Card Footer ── */
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -625,11 +1232,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 2,
   },
+  washCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
   washCount: {
     color: '#10b981',
     fontSize: 11,
     fontWeight: '600',
-    marginTop: 2,
   },
   bookBtn: {
     flexDirection: 'row',
@@ -638,10 +1250,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 12,
+    shadowColor: '#0d9488',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   bookBtnText: {
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
+  },
+
+  /* ── Pagination (matching bookings.tsx / screenshot: < 1/4 >) ── */
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  pageNavBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  pageNavBtnDisabled: {
+    opacity: 0.35,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  pageIndicator: {
+    minWidth: 72,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageIndicatorText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#f8fafc',
   },
 });

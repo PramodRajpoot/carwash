@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\Slot;
 use App\Models\ServicePackage;
+use App\Models\ServiceCategory;
 use App\Models\Franchisee;
 use App\Models\Vehicle;
 use App\Models\Subscription;
@@ -14,16 +15,27 @@ use Carbon\Carbon;
 
 class BookingController extends Controller
 {
+    public function getCategories(Request $request)
+    {
+        $categories = ServiceCategory::where('status', 'active')->get();
+        return response()->json($categories);
+    }
+
     public function getPackages(Request $request)
     {
         $vehicleType = $request->input('vehicle_type');
+        $categoryId = $request->input('category_id');
         $query = ServicePackage::with(['category', 'addons']);
 
         if ($request->has('is_addon')) {
             $query->where('is_addon', filter_var($request->is_addon, FILTER_VALIDATE_BOOLEAN));
         }
 
-        if ($vehicleType) {
+        if ($categoryId && $categoryId !== 'all') {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($vehicleType && $vehicleType !== 'all') {
             $query->where(function($q) use ($vehicleType) {
                 $q->where('vehicle_type', $vehicleType)
                   ->orWhere('vehicle_type', 'all');
