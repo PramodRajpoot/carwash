@@ -660,7 +660,7 @@ export default function DashboardScreen() {
                 <Ionicons name="car-sport-outline" size={20} color="#059669" />
               </View>
               <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>My Vehicles</Text>
+                <Text style={styles.menuItemTitle}>My Garage</Text>
                 <Text style={styles.menuItemSub}>Add & manage saved cars</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color="#94a3b8" />

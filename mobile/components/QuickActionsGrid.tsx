@@ -34,7 +34,7 @@ export default function QuickActionsGrid({
   const TILES = [
     {
       id: 'garage',
-      title: 'My Vehicles',
+      title: 'My Garage',
       icon: 'car-sport',
       color: '#059669',
       bg: '#ecfdf5',
