@@ -252,6 +252,13 @@ export default function DashboardScreen() {
       return;
     }
 
+    if (path === '/customer/subscriptions' || title === 'Subscriptions' || title === 'Wash Packages') {
+      setMenuVisible(false);
+      setModalVisible(false);
+      router.push('/subscriptions');
+      return;
+    }
+
     setMenuVisible(false);
     setActiveFooterTab(tab);
     setModalTitle(title);
@@ -437,9 +444,7 @@ export default function DashboardScreen() {
           onGaragePress={() =>
             openActionView('My Garage', '/customer/vehicles', 'garage')
           }
-          onSubscriptionsPress={() =>
-            openActionView('Wash Packages', '/customer/subscriptions')
-          }
+          onSubscriptionsPress={() => router.push('/subscriptions')}
           onWalletPress={() =>
             openActionView('E-Points Wallet', '/customer/wallet')
           }
@@ -675,7 +680,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               style={styles.menuItem}
-              onPress={() => openActionView('Wash Packages', '/customer/subscriptions')}
+              onPress={() => router.push('/subscriptions')}
             >
               <View style={[styles.menuItemIcon, { backgroundColor: '#fffbeb' }]}>
                 <Ionicons name="cube-outline" size={20} color="#d97706" />
