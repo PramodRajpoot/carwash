@@ -92,7 +92,7 @@ export default function BookingsScreen() {
   const [isDark, setIsDark] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(6);
   const [expandedBookingIds, setExpandedBookingIds] = useState<Record<number, boolean>>({});
 
   // Booking / Action Modal Sheet state
@@ -216,7 +216,7 @@ export default function BookingsScreen() {
     } else if (tab === 'garage') {
       router.push('/garage');
     } else if (tab === 'support') {
-      openActionUrl('Help & Support', '/customer/support');
+      router.push('/support');
     } else if (tab === 'book') {
       // Already on washes/book page; keep the current list open
       return;
@@ -241,13 +241,21 @@ export default function BookingsScreen() {
   });
 
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(6);
   }, [activeFilter]);
 
-  const PAGE_SIZE = 7;
-  const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const visibleBookings = filteredBookings.slice(startIndex, startIndex + PAGE_SIZE);
+  const PAGE_SIZE = 6;
+  const visibleBookings = filteredBookings.slice(0, visibleCount);
+
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentSize, contentOffset } = event.nativeEvent;
+    const threshold = 260;
+    const reachedEnd = layoutMeasurement.height + contentOffset.y >= contentSize.height - threshold;
+
+    if (reachedEnd && visibleCount < filteredBookings.length) {
+      setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredBookings.length));
+    }
+  };
 
   const upcomingCount = bookings.filter((b) =>
     ['pending', 'assigned', 'ongoing', 'postponed'].includes(b.status)
@@ -465,6 +473,8 @@ export default function BookingsScreen() {
         style={[styles.scrollView, isDark && styles.darkContainer]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -714,47 +724,11 @@ export default function BookingsScreen() {
               );
             })}
 
-            {totalPages > 1 && (
-              <View style={styles.paginationRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.pageNavBtn,
-                    currentPage === 1 && styles.pageNavBtnDisabled,
-                    isDark && styles.darkPageNavBtn,
-                  ]}
-                  onPress={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name="chevron-back-outline"
-                    size={14}
-                    color={currentPage === 1 ? '#94a3b8' : isDark ? '#e2e8f0' : '#334155'}
-                  />
-                </TouchableOpacity>
-
-                <View style={[styles.pageIndicator, isDark && styles.darkPageIndicator]}>
-                  <Text style={[styles.pageIndicatorText, isDark && styles.darkSubtext]}>
-                    {currentPage}/{totalPages}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  style={[
-                    styles.pageNavBtn,
-                    currentPage === totalPages && styles.pageNavBtnDisabled,
-                    isDark && styles.darkPageNavBtn,
-                  ]}
-                  onPress={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name="chevron-forward-outline"
-                    size={14}
-                    color={currentPage === totalPages ? '#94a3b8' : isDark ? '#e2e8f0' : '#334155'}
-                  />
-                </TouchableOpacity>
+            {filteredBookings.length > visibleBookings.length && (
+              <View style={[styles.loadMoreHint, isDark && styles.darkLoadMoreHint]}>
+                <Text style={[styles.loadMoreText, isDark && styles.darkSubtext]}>
+                  Scroll to load more washes
+                </Text>
               </View>
             )}
           </View>
@@ -1238,6 +1212,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#334155',
+  },
+  loadMoreHint: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginTop: 10,
+  },
+  darkLoadMoreHint: {
+    opacity: 0.9,
   },
   paginationRow: {
     flexDirection: 'row',

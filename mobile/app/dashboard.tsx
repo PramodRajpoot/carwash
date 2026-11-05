@@ -266,6 +266,13 @@ export default function DashboardScreen() {
       return;
     }
 
+    if (path === '/customer/support' || title === 'Help & Support') {
+      setMenuVisible(false);
+      setModalVisible(false);
+      router.push('/support');
+      return;
+    }
+
     setMenuVisible(false);
     setActiveFooterTab(tab);
     setModalTitle(title);
@@ -309,7 +316,7 @@ export default function DashboardScreen() {
         router.push('/bookings');
         break;
       case 'support':
-        openActionView('Help & Support', '/customer/support', 'support');
+        router.push('/support');
         break;
       case 'notifications':
         openActionView('Notifications', '/customer/notifications', 'notifications');
