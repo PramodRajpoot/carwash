@@ -486,9 +486,7 @@ export default function DashboardScreen() {
           onSupportPress={() =>
             openActionView('Help & Support', '/customer/support', 'support')
           }
-          onWishlistPress={() =>
-            openActionView('My Wishlist', '/customer/wishlist')
-          }
+          onWishlistPress={() => router.push('/wishlist')}
         />
 
         {/* Coupons & Referral Share Carousel */}
@@ -769,7 +767,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               style={styles.menuItem}
-              onPress={() => openActionView('My Wishlist', '/customer/wishlist')}
+              onPress={() => router.push('/wishlist')}
             >
               <View style={[styles.menuItemIcon, { backgroundColor: '#fff1f2' }]}>
                 <Ionicons name="heart-outline" size={20} color="#e11d48" />
