@@ -784,6 +784,7 @@ export default function BookServiceModal({
               }}
               style={{ flex: 1 }}
             />
+            <View style={{ height: 20, backgroundColor: '#ffffff' }} />
           </View>
         ) : (
           <ScrollView

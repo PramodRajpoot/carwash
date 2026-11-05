@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,6 +11,7 @@ import {
   Modal,
   RefreshControl,
   SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -27,6 +28,7 @@ import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 
 const WebViewComponent: any = WebView;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface Vehicle {
   id: number;
@@ -61,12 +63,13 @@ interface SlotItem {
   is_full?: boolean;
 }
 
-type PickerType = 'vehicle' | 'center' | 'package' | 'addons' | null;
+type PickerType = 'vehicle' | 'center' | null;
 
 export default function BookScreen() {
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<any>(null);
 
   // Authentication & User State
   const [token, setToken] = useState<string | null>(null);
@@ -143,7 +146,7 @@ export default function BookScreen() {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0f172a;
+      background-color: #0b1120;
       color: #f8fafc;
       min-height: 100vh;
       display: flex;
@@ -154,8 +157,8 @@ export default function BookScreen() {
       text-align: center;
     }
     .spinner {
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       border: 4px solid rgba(2, 132, 199, 0.2);
       border-top: 4px solid #0284c7;
       border-radius: 50%;
@@ -163,20 +166,20 @@ export default function BookScreen() {
       margin: 0 auto 20px;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    h2 { font-size: 1.25rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }
+    h2 { font-size: 1.3rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }
     p { font-size: 0.9rem; color: #94a3b8; line-height: 1.45; }
     .badge {
       margin-top: 24px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(16, 185, 129, 0.12);
       color: #10b981;
-      padding: 6px 14px;
+      padding: 8px 16px;
       border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid rgba(16, 185, 129, 0.3);
     }
     .error-box {
       display: none;
@@ -194,9 +197,9 @@ export default function BookScreen() {
 </head>
 <body>
   <div id="loader" class="spinner"></div>
-  <h2 id="title">Opening Secure Checkout</h2>
+  <h2 id="title">Opening Secure Gateway</h2>
   <p id="desc">Connecting with Cashfree Payment Gateway to complete your booking...</p>
-  <div class="badge">🔒 256-Bit SSL Encrypted</div>
+  <div class="badge">🔒 256-Bit SSL Encrypted Payment</div>
   <div id="error-msg" class="error-box"></div>
 
   <script>
@@ -235,7 +238,7 @@ export default function BookScreen() {
 
   // 14 Upcoming Dates Generator
   const dateOptions = useMemo(() => {
-    const list: Array<{ label: string; dateDisplay: string; dayName: string; value: string; isToday: boolean }> = [];
+    const list: Array<{ label: string; dateNum: string; monthName: string; dayName: string; value: string; isToday: boolean }> = [];
     const now = new Date();
     for (let i = 0; i < 14; i++) {
       const d = new Date();
@@ -246,12 +249,14 @@ export default function BookScreen() {
       const dateStr = `${year}-${month}-${day}`;
 
       let dayName = d.toLocaleDateString('en-IN', { weekday: 'short' });
+      const monthName = d.toLocaleDateString('en-IN', { month: 'short' });
       if (i === 0) dayName = 'Today';
       if (i === 1) dayName = 'Tmrw';
 
       list.push({
         label: `${day}/${month} (${dayName})`,
-        dateDisplay: `${day}/${month}`,
+        dateNum: day,
+        monthName,
         dayName,
         value: dateStr,
         isToday: i === 0,
@@ -287,7 +292,6 @@ export default function BookScreen() {
         const vList: Vehicle[] = vhRes.value.data || [];
         setVehicles(vList);
         if (vList.length > 0) {
-          // Pre-select param vehicle or first
           const paramVId = searchParams.vehicle_id ? Number(searchParams.vehicle_id) : null;
           const matchV = paramVId ? vList.find((v) => v.id === paramVId) : null;
           setSelectedVehicleId(matchV ? matchV.id : vList[0].id);
@@ -377,7 +381,6 @@ export default function BookScreen() {
     await loadData();
   };
 
-  // Toggle Dark/Light Theme
   const toggleTheme = async () => {
     safeHapticLight();
     const next = !isDark;
@@ -415,6 +418,7 @@ export default function BookScreen() {
       setCustomAddress(formatted);
       setLiveLocationSource('live');
       setUseSavedAddress(true);
+      safeHapticSuccess();
     } catch (e) {
       console.warn('Live location error:', e);
       setLiveLocationSource('none');
@@ -527,6 +531,11 @@ export default function BookScreen() {
   const taxableSubtotal = Math.max(0, priceAfterDiscounts - appliedEarningMoney);
   const calculatedGst = Math.round(taxableSubtotal * 0.18 * 100) / 100;
   const calculatedTotal = taxableSubtotal + calculatedGst;
+  const totalSavings = couponDiscount + appliedEPointsDiscount + appliedEarningMoney;
+
+  // Amount payable right now
+  const immediatePayable = paymentType === 'partial' ? 99 : calculatedTotal;
+  const remainingDue = paymentType === 'partial' ? Math.max(0, calculatedTotal - 99) : 0;
 
   // Addon Toggle
   const toggleAddon = (id: number) => {
@@ -559,7 +568,7 @@ export default function BookScreen() {
         setCouponDiscount(amt);
         setCouponFeedback({
           success: true,
-          msg: `Coupon applied: ₹${amt.toFixed(2)} off!`,
+          msg: `Coupon applied: ₹${amt.toFixed(2)} savings!`,
         });
         safeHapticSuccess();
       } else {
@@ -628,7 +637,7 @@ export default function BookScreen() {
   // Submit Booking
   const handleConfirmBooking = async () => {
     if (!selectedVehicleId) {
-      showSweetAlert('Vehicle Required', 'Please select a vehicle.', 'warning');
+      showSweetAlert('Vehicle Required', 'Please select or add a vehicle.', 'warning');
       return;
     }
     if (!selectedPackageId) {
@@ -738,7 +747,6 @@ export default function BookScreen() {
         setCashfreeHtml(null);
         setVerifiedBooking(res.data.booking || { id: res.data.booking_id });
       } else {
-        // Return to app with notice
         setCashfreeHtml(null);
         showSweetAlert(
           'Payment Pending',
@@ -761,7 +769,6 @@ export default function BookScreen() {
     } else if (tab === 'garage') {
       router.push('/garage');
     } else if (tab === 'book') {
-      // Already on book page
       return;
     } else if (tab === 'support') {
       router.push('/support');
@@ -785,6 +792,11 @@ export default function BookScreen() {
     }
   };
 
+  const scrollToSummary = () => {
+    safeHapticLight();
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  };
+
   return (
     <SafeAreaView style={[styles.root, isDark && styles.darkRoot]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -800,9 +812,9 @@ export default function BookScreen() {
             <Ionicons name="arrow-back" size={20} color={isDark ? '#f8fafc' : '#0f172a'} />
           </TouchableOpacity>
           <View>
-            <Text style={[styles.headerTitle, isDark && styles.darkText]}>Book a Wash</Text>
+            <Text style={[styles.headerTitle, isDark && styles.darkText]}>Checkout</Text>
             <Text style={[styles.headerSub, isDark && styles.darkSubtext]}>
-              Doorstep clean • Instant confirmation
+              Doorstep Wash • Instant Booking
             </Text>
           </View>
         </View>
@@ -813,7 +825,7 @@ export default function BookScreen() {
             onPress={() => router.push('/bookings')}
             activeOpacity={0.8}
           >
-            <Ionicons name="calendar-outline" size={14} color="#0284c7" />
+            <Ionicons name="calendar-outline" size={13} color="#0284c7" />
             <Text style={styles.myWashesText}>My Washes</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -821,7 +833,7 @@ export default function BookScreen() {
             onPress={toggleTheme}
             activeOpacity={0.7}
           >
-            <Ionicons name={isDark ? 'sunny' : 'moon'} size={17} color={isDark ? '#fbbf24' : '#64748b'} />
+            <Ionicons name={isDark ? 'sunny' : 'moon'} size={16} color={isDark ? '#fbbf24' : '#64748b'} />
           </TouchableOpacity>
         </View>
       </View>
@@ -831,24 +843,24 @@ export default function BookScreen() {
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color="#0284c7" />
           <Text style={[styles.centerLoadingText, isDark && styles.darkSubtext]}>
-            Preparing available services & slots...
+            Preparing available packages & slots...
           </Text>
         </View>
       ) : verifiedBooking ? (
-        // Booking Confirmed Celebratory View
+        // Celebratory Confirmed Booking Card
         <View style={styles.confirmedContainer}>
-          <View style={styles.confirmedCard}>
+          <View style={[styles.confirmedCard, isDark && styles.darkCard]}>
             <View style={styles.successIconBubble}>
-              <Ionicons name="checkmark-circle" size={64} color="#10b981" />
+              <Ionicons name="checkmark-circle" size={68} color="#10b981" />
             </View>
             <Text style={[styles.confirmedTitle, isDark && styles.darkText]}>
-              Wash Booking Confirmed!
+              Booking Confirmed!
             </Text>
             <Text style={[styles.confirmedSubtitle, isDark && styles.darkSubtext]}>
-              Booking #{verifiedBooking.id || 'CONFIRMED'} has been scheduled.
+              Booking #{verifiedBooking.id || 'CONFIRMED'} has been scheduled. Our team will reach your doorstep on time.
             </Text>
 
-            <View style={[styles.confirmedDetailsBox, isDark && styles.darkDropdown]}>
+            <View style={[styles.confirmedDetailsBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Vehicle</Text>
                 <Text style={[styles.detailValue, isDark && styles.darkText]}>
@@ -856,7 +868,7 @@ export default function BookScreen() {
                 </Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Service</Text>
+                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Package</Text>
                 <Text style={[styles.detailValue, isDark && styles.darkText]}>
                   {selectedPackage?.name || 'Car Wash Service'}
                 </Text>
@@ -869,8 +881,12 @@ export default function BookScreen() {
               </View>
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Payment</Text>
-                <Text style={[styles.detailValue, { color: '#10b981', fontWeight: '700' }]}>
-                  {paymentMethod === 'cod' ? 'Cash on Delivery' : paymentType === 'partial' ? '₹99 Advance Paid' : `₹${calculatedTotal.toFixed(2)} Paid`}
+                <Text style={[styles.detailValue, { color: '#10b981', fontWeight: '800' }]}>
+                  {paymentMethod === 'cod'
+                    ? 'Cash on Delivery (Pay after service)'
+                    : paymentType === 'partial'
+                    ? '₹99 Advance Paid'
+                    : `₹${calculatedTotal.toFixed(2)} Paid`}
                 </Text>
               </View>
             </View>
@@ -882,7 +898,7 @@ export default function BookScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="calendar" size={18} color="#ffffff" style={{ marginRight: 8 }} />
-                <Text style={styles.primaryConfirmedBtnText}>View My Bookings</Text>
+                <Text style={styles.primaryConfirmedBtnText}>View In My Washes</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.secondaryConfirmedBtn, isDark && styles.darkSecondaryBtn]}
@@ -896,75 +912,12 @@ export default function BookScreen() {
             </View>
           </View>
         </View>
-      ) : cashfreeHtml ? (
-        // Cashfree In-App WebView Checkout
-        <View style={styles.webViewWrap}>
-          <View style={styles.webViewBar}>
-            <View style={styles.webViewBarLeft}>
-              <Ionicons name="lock-closed" size={16} color="#10b981" />
-              <Text style={styles.webViewBarTitle}>Secure Cashfree Checkout</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                setCashfreeHtml(null);
-                showSweetAlert('Payment Cancelled', 'You can complete payment anytime from My Washes.', 'info');
-                router.replace('/bookings');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="close" size={22} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
-
-          <WebViewComponent
-            source={{ html: cashfreeHtml, baseUrl: 'https://sdk.cashfree.com' }}
-            originWhitelist={['*']}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            mixedContentMode="always"
-            allowFileAccess={true}
-            onShouldStartLoadWithRequest={(request: any) => {
-              if (
-                request.url.includes('/cashfree/return') ||
-                request.url.includes('cashfree_order_id=') ||
-                request.url.includes('status=success')
-              ) {
-                const match = request.url.match(/order_id=([^&]+)/);
-                const orderId = match ? decodeURIComponent(match[1]) : cashfreeOrderId;
-                if (orderId) {
-                  handleVerifyCashfreePayment(orderId);
-                } else {
-                  setCashfreeHtml(null);
-                  router.replace('/bookings');
-                }
-                return false;
-              }
-              return true;
-            }}
-            onNavigationStateChange={(nav: any) => {
-              if (
-                nav.url.includes('/cashfree/return') ||
-                nav.url.includes('cashfree_order_id=') ||
-                nav.url.includes('status=success')
-              ) {
-                const match = nav.url.match(/order_id=([^&]+)/);
-                const orderId = match ? decodeURIComponent(match[1]) : cashfreeOrderId;
-                if (orderId) {
-                  handleVerifyCashfreePayment(orderId);
-                } else {
-                  setCashfreeHtml(null);
-                  router.replace('/bookings');
-                }
-              }
-            }}
-            style={{ flex: 1 }}
-          />
-        </View>
       ) : (
-        // Main Booking Form
+        // Main Booking Checkout Form
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 140 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 170 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#0284c7']} />}
         >
@@ -975,186 +928,260 @@ export default function BookScreen() {
             </View>
           ) : null}
 
-          {/* Section 1: Vehicle Selection */}
-          <View style={[styles.sectionCard, isDark && styles.darkSectionCard]}>
-            <View style={styles.sectionHeaderRow}>
-              <View style={styles.sectionTitleGroup}>
-                <Text style={styles.sectionStepNumber}>1</Text>
-                <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Select Vehicle</Text>
+          {/* CARD 1: Selected Vehicle & Service Hub Banner */}
+          <View style={[styles.modernCard, isDark && styles.darkCard]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.badgeLabelRow}>
+                <Ionicons name="car-sport" size={16} color="#0284c7" />
+                <Text style={styles.badgeLabelText}>VEHICLE & HUB</Text>
               </View>
               <TouchableOpacity
-                style={styles.addVehicleBtn}
-                onPress={() => setAddVehicleModalVisible(true)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add-circle-outline" size={15} color="#0284c7" />
-                <Text style={styles.addVehicleBtnText}>Add Vehicle</Text>
-              </TouchableOpacity>
-            </View>
-
-            {vehicles.length === 0 ? (
-              <View style={styles.noVehiclesBox}>
-                <Ionicons name="car-outline" size={32} color="#94a3b8" />
-                <Text style={[styles.noVehiclesText, isDark && styles.darkSubtext]}>
-                  No vehicles in your garage yet.
-                </Text>
-                <TouchableOpacity
-                  style={styles.primaryMiniBtn}
-                  onPress={() => setAddVehicleModalVisible(true)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.primaryMiniBtnText}>Register Your Vehicle</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[styles.selectorTrigger, isDark ? styles.darkDropdown : styles.lightDropdown]}
+                style={styles.switchLinkBtn}
                 onPress={() => {
                   safeHapticLight();
                   setActivePicker('vehicle');
                 }}
-                activeOpacity={0.75}
+                activeOpacity={0.7}
               >
-                <View style={styles.selectorLeft}>
-                  <Text style={styles.vehicleEmoji}>{getVehicleEmoji(selectedVehicle?.vehicle_type)}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.selectorMainText, isDark && styles.darkText]} numberOfLines={1}>
-                      {selectedVehicle?.make_model || 'Select Vehicle'}
-                    </Text>
-                    <Text style={[styles.selectorSubText, isDark && styles.darkSubtext]}>
-                      {selectedVehicle ? `${selectedVehicle.plate_number ? selectedVehicle.plate_number + ' • ' : ''}${selectedVehicle.vehicle_type.toUpperCase()}` : 'Choose from your garage'}
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
+                <Text style={styles.switchLinkText}>Switch Vehicle</Text>
+                <Ionicons name="chevron-forward" size={14} color="#0284c7" />
               </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Section 2: Service Center */}
-          <View style={[styles.sectionCard, isDark && styles.darkSectionCard]}>
-            <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionStepNumber}>2</Text>
-              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Service Center</Text>
             </View>
 
+            {vehicles.length === 0 ? (
+              <View style={styles.emptyVehicleWrap}>
+                <Text style={styles.emptyVehicleIcon}>🚗</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.emptyVehicleTitle, isDark && styles.darkText]}>No vehicle in garage</Text>
+                  <Text style={[styles.emptyVehicleSub, isDark && styles.darkSubtext]}>Add your vehicle to continue</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.addMiniActionBtn}
+                  onPress={() => setAddVehicleModalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.addMiniActionText}>+ Add</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={[styles.vehicleHeroBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
+                <View style={styles.vehicleEmojiCircle}>
+                  <Text style={{ fontSize: 28 }}>{getVehicleEmoji(selectedVehicle?.vehicle_type)}</Text>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <View style={styles.vehicleTitleRow}>
+                    <Text style={[styles.vehicleNameText, isDark && styles.darkText]} numberOfLines={1}>
+                      {selectedVehicle?.make_model || 'Select Vehicle'}
+                    </Text>
+                    <View style={styles.typeBadgePill}>
+                      <Text style={styles.typeBadgeText}>
+                        {(selectedVehicle?.vehicle_type || 'CAR').toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Indian License Plate Badge */}
+                  {selectedVehicle?.plate_number ? (
+                    <View style={styles.plateContainer}>
+                      <View style={styles.plateIndStripe}>
+                        <Text style={styles.plateIndText}>IND</Text>
+                      </View>
+                      <Text style={styles.plateNumberText}>{selectedVehicle.plate_number.toUpperCase()}</Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.noPlateText, isDark && styles.darkSubtext]}>No plate registered</Text>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Service Center Link */}
             <TouchableOpacity
-              style={[styles.selectorTrigger, isDark ? styles.darkDropdown : styles.lightDropdown]}
+              style={[styles.hubSelectorRow, isDark ? styles.darkBorderTop : styles.lightBorderTop]}
               onPress={() => {
                 safeHapticLight();
                 setActivePicker('center');
               }}
-              activeOpacity={0.75}
+              activeOpacity={0.7}
             >
-              <View style={styles.selectorLeft}>
-                <View style={styles.iconSquircleBlue}>
-                  <Ionicons name="business" size={16} color="#0284c7" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.selectorMainText, isDark && styles.darkText]} numberOfLines={1}>
-                    {selectedCenter?.center_name || 'Select Service Center'}
-                  </Text>
-                  <Text style={[styles.selectorSubText, isDark && styles.darkSubtext]} numberOfLines={1}>
-                    {selectedCenter?.city || selectedCenter?.address || 'Doorstep service franchise'}
-                  </Text>
-                </View>
+              <View style={styles.hubIconCircle}>
+                <Ionicons name="location" size={14} color="#0284c7" />
               </View>
-              <Ionicons name="chevron-forward" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.hubNameText, isDark && styles.darkText]} numberOfLines={1}>
+                  {selectedCenter?.center_name || 'Select Service Center'}
+                </Text>
+                <Text style={[styles.hubSubText, isDark && styles.darkSubtext]} numberOfLines={1}>
+                  {selectedCenter?.city || selectedCenter?.address || 'Doorstep Service Station'}
+                </Text>
+              </View>
+              <Text style={styles.hubChangeText}>Change</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Section 3: Package & Add-ons */}
-          <View style={[styles.sectionCard, isDark && styles.darkSectionCard]}>
-            <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionStepNumber}>3</Text>
-              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Wash Package & Add-ons</Text>
+          {/* CARD 2: Wash Packages Selection (Direct Interactive Cards) */}
+          <View style={[styles.modernCard, isDark && styles.darkCard]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.badgeLabelRow}>
+                <Ionicons name="sparkles" size={16} color="#0284c7" />
+                <Text style={styles.badgeLabelText}>SELECT WASH PACKAGE</Text>
+              </View>
+              <Text style={[styles.headerCountTag, isDark && styles.darkSubtext]}>
+                {availableBasePackages.length} available
+              </Text>
             </View>
 
-            {/* Base Package Selector */}
-            <Text style={[styles.innerFieldLabel, isDark && styles.darkSubtext]}>Primary Package</Text>
-            <TouchableOpacity
-              style={[styles.selectorTrigger, isDark ? styles.darkDropdown : styles.lightDropdown]}
-              onPress={() => {
-                safeHapticLight();
-                setActivePicker('package');
-              }}
-              activeOpacity={0.75}
-            >
-              <View style={styles.selectorLeft}>
-                <View style={styles.iconSquircleEmerald}>
-                  <Ionicons name="sparkles" size={16} color="#10b981" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.selectorMainText, isDark && styles.darkText]} numberOfLines={1}>
-                    {selectedPackage?.name || 'Select Wash Package'}
-                  </Text>
-                  <Text style={[styles.selectorSubText, isDark && styles.darkSubtext]}>
-                    {selectedPackage ? `₹${selectedPackage.price} • ${selectedPackage.vehicle_type.toUpperCase()}` : 'Choose package'}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
-            </TouchableOpacity>
+            <View style={styles.packageListContainer}>
+              {availableBasePackages.map((pkg, idx) => {
+                const isSelected = pkg.id === selectedPackageId;
+                const isPopular = pkg.custom_badge || (idx === 0 && availableBasePackages.length > 1);
 
-            {/* Add-ons Selector */}
-            <View style={{ marginTop: 12 }}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.innerFieldLabel, isDark && styles.darkSubtext]}>Optional Add-ons</Text>
+                return (
+                  <TouchableOpacity
+                    key={pkg.id}
+                    style={[
+                      styles.packageCard,
+                      isDark ? styles.darkInnerBox : styles.lightInnerBox,
+                      isSelected && styles.packageCardSelected,
+                    ]}
+                    onPress={() => {
+                      safeHapticLight();
+                      setSelectedPackageId(pkg.id);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    {isPopular ? (
+                      <View style={styles.popularBadge}>
+                        <Text style={styles.popularBadgeText}>{pkg.custom_badge || 'RECOMMENDED'}</Text>
+                      </View>
+                    ) : null}
+
+                    <View style={styles.packageCardTop}>
+                      <View style={styles.packageCardRadio}>
+                        <Ionicons
+                          name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                          size={20}
+                          color={isSelected ? '#0284c7' : '#94a3b8'}
+                        />
+                      </View>
+
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        <Text style={[styles.packageCardTitle, isDark && styles.darkText]}>
+                          {pkg.name}
+                        </Text>
+                        <Text style={[styles.packageCardDesc, isDark && styles.darkSubtext]} numberOfLines={2}>
+                          {pkg.description || 'Full exterior foam wash, tire dressing & interior vacuuming'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.packageCardPriceWrap}>
+                        <Text style={styles.packagePriceSymbol}>₹</Text>
+                        <Text style={styles.packagePriceNum}>{pkg.price}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.packageFooterMeta}>
+                      <View style={styles.metaDurationPill}>
+                        <Ionicons name="time-outline" size={12} color="#0284c7" />
+                        <Text style={styles.metaDurationText}>45 - 60 mins</Text>
+                      </View>
+                      <View style={styles.metaDoorstepPill}>
+                        <Ionicons name="checkmark-done" size={12} color="#10b981" />
+                        <Text style={styles.metaDoorstepText}>Doorstep Equipment</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* CARD 3: Add-on Services (Interactive Carousel/Grid) */}
+          {availableAddons.length > 0 && (
+            <View style={[styles.modernCard, isDark && styles.darkCard]}>
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.badgeLabelRow}>
+                  <Ionicons name="add-circle" size={16} color="#06b6d4" />
+                  <Text style={styles.badgeLabelText}>OPTIONAL ADD-ONS</Text>
+                </View>
                 {selectedAddonIds.length > 0 && (
-                  <Text style={styles.addonCountPill}>+{selectedAddonIds.length} added</Text>
+                  <View style={styles.addedCountBadge}>
+                    <Text style={styles.addedCountText}>+{selectedAddonIds.length} Added</Text>
+                  </View>
                 )}
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.selectorTrigger,
-                  isDark ? styles.darkDropdown : styles.lightDropdown,
-                  selectedAddonIds.length > 0 && styles.activeBorderHighlight,
-                ]}
-                onPress={() => {
-                  safeHapticLight();
-                  setActivePicker('addons');
-                }}
-                activeOpacity={0.75}
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.addonScrollContent}
               >
-                <View style={styles.selectorLeft}>
-                  <View style={styles.iconSquircleCyan}>
-                    <Ionicons name="add-circle" size={16} color="#06b6d4" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.selectorMainText, isDark && styles.darkText]} numberOfLines={1}>
-                      {selectedAddonIds.length === 0
-                        ? 'Select Add-on Services'
-                        : `${selectedAddonIds.length} Add-on${selectedAddonIds.length > 1 ? 's' : ''} (+₹${addonTotal})`}
-                    </Text>
-                    <Text style={[styles.selectorSubText, isDark && styles.darkSubtext]}>
-                      Interior vacuum, polish, windshield coat & more
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
-              </TouchableOpacity>
-            </View>
-          </View>
+                {availableAddons.map((addon) => {
+                  const isChecked = selectedAddonIds.includes(addon.id);
+                  return (
+                    <TouchableOpacity
+                      key={addon.id}
+                      style={[
+                        styles.addonMiniCard,
+                        isDark ? styles.darkInnerBox : styles.lightInnerBox,
+                        isChecked && styles.addonMiniCardActive,
+                      ]}
+                      onPress={() => toggleAddon(addon.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.addonCardTop}>
+                        <View style={[styles.addonCheckIcon, isChecked && styles.addonCheckIconActive]}>
+                          <Ionicons
+                            name={isChecked ? 'checkmark' : 'add'}
+                            size={14}
+                            color={isChecked ? '#ffffff' : '#64748b'}
+                          />
+                        </View>
+                        <Text style={styles.addonPriceBadge}>+₹{addon.price}</Text>
+                      </View>
 
-          {/* Section 4: Date & Slot */}
-          <View style={[styles.sectionCard, isDark && styles.darkSectionCard]}>
-            <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionStepNumber}>4</Text>
-              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Schedule Date & Slot</Text>
+                      <Text style={[styles.addonTitleText, isDark && styles.darkText]} numberOfLines={2}>
+                        {addon.name}
+                      </Text>
+
+                      <Text style={[styles.addonDescText, isDark && styles.darkSubtext]} numberOfLines={1}>
+                        {addon.description || 'Pro detailing extra'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* CARD 4: Date & Time Schedule */}
+          <View style={[styles.modernCard, isDark && styles.darkCard]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.badgeLabelRow}>
+                <Ionicons name="calendar" size={16} color="#0284c7" />
+                <Text style={styles.badgeLabelText}>WASH SCHEDULE</Text>
+              </View>
+              <Text style={[styles.headerCountTag, isDark && styles.darkSubtext]}>
+                {selectedDate}
+              </Text>
             </View>
 
-            {/* Horizontal Date Picker */}
-            <Text style={[styles.innerFieldLabel, isDark && styles.darkSubtext]}>Select Date</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScroll}>
+            {/* Horizontal Date Pills */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.datePillsStrip}
+            >
               {dateOptions.map((item) => {
                 const isSelected = item.value === selectedDate;
                 return (
                   <TouchableOpacity
                     key={item.value}
                     style={[
-                      styles.datePill,
-                      isDark ? styles.darkDatePill : styles.lightDatePill,
-                      isSelected && styles.datePillSelected,
+                      styles.datePillBox,
+                      isDark ? styles.darkInnerBox : styles.lightInnerBox,
+                      isSelected && styles.datePillBoxSelected,
                     ]}
                     onPress={() => {
                       safeHapticLight();
@@ -1162,11 +1189,14 @@ export default function BookScreen() {
                     }}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.datePillDay, isSelected && styles.datePillTextSelected]}>
-                      {item.dayName}
+                    <Text style={[styles.datePillDayText, isSelected && styles.datePillTextActive]}>
+                      {item.dayName.toUpperCase()}
                     </Text>
-                    <Text style={[styles.datePillNum, isDark && styles.darkText, isSelected && styles.datePillTextSelected]}>
-                      {item.dateDisplay}
+                    <Text style={[styles.datePillNumText, isDark && styles.darkText, isSelected && styles.datePillTextActive]}>
+                      {item.dateNum}
+                    </Text>
+                    <Text style={[styles.datePillMonthText, isSelected && styles.datePillTextActive]}>
+                      {item.monthName}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -1174,38 +1204,38 @@ export default function BookScreen() {
             </ScrollView>
 
             {/* Time Slot Grid */}
-            <View style={{ marginTop: 14 }}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.innerFieldLabel, isDark && styles.darkSubtext]}>Select Time Slot</Text>
+            <View style={{ marginTop: 16 }}>
+              <View style={styles.slotHeaderRow}>
+                <Text style={[styles.subSectionTitle, isDark && styles.darkText]}>Select Time Slot</Text>
                 {slotsLoading && <ActivityIndicator size="small" color="#0284c7" />}
               </View>
 
               {slotsLoading ? (
                 <View style={styles.slotLoaderBox}>
                   <Text style={[styles.slotLoaderText, isDark && styles.darkSubtext]}>
-                    Loading available time slots...
+                    Fetching live technician slots...
                   </Text>
                 </View>
               ) : availableSlots.length === 0 ? (
-                <View style={styles.noSlotsBox}>
-                  <Ionicons name="time-outline" size={24} color="#94a3b8" />
+                <View style={[styles.noSlotsBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
+                  <Ionicons name="calendar-outline" size={24} color="#94a3b8" />
                   <Text style={[styles.noSlotsText, isDark && styles.darkSubtext]}>
-                    No slots available for this date. Please pick another date.
+                    No slots open for this date. Please pick another date above.
                   </Text>
                 </View>
               ) : (
-                <View style={styles.slotGrid}>
+                <View style={styles.slotsGridWrap}>
                   {availableSlots.map((slot) => {
-                    const isFull = (slot.current_bookings >= slot.max_bookings) || slot.is_full;
+                    const isFull = slot.current_bookings >= slot.max_bookings || slot.is_full;
                     const isSelected = selectedSlot === slot.time_range;
                     return (
                       <TouchableOpacity
                         key={slot.time_range}
                         style={[
-                          styles.slotCard,
-                          isDark ? styles.darkSlotCard : styles.lightSlotCard,
-                          isSelected && styles.slotCardSelected,
-                          isFull && styles.slotCardFull,
+                          styles.slotChip,
+                          isDark ? styles.darkInnerBox : styles.lightInnerBox,
+                          isSelected && styles.slotChipSelected,
+                          isFull && styles.slotChipFull,
                         ]}
                         onPress={() => {
                           if (!isFull) {
@@ -1218,24 +1248,20 @@ export default function BookScreen() {
                       >
                         <Text
                           style={[
-                            styles.slotTimeText,
+                            styles.slotChipTime,
                             isDark && styles.darkText,
-                            isSelected && styles.slotTimeSelected,
-                            isFull && styles.slotTimeFull,
+                            isSelected && styles.slotChipTextActive,
+                            isFull && styles.slotChipTextFull,
                           ]}
                           numberOfLines={1}
                         >
                           {slot.time_range}
                         </Text>
-                        <Text
-                          style={[
-                            styles.slotStatusTag,
-                            isFull ? styles.slotStatusFull : styles.slotStatusOpen,
-                            isSelected && styles.slotStatusSelected,
-                          ]}
-                        >
-                          {isFull ? 'Full' : 'Open'}
-                        </Text>
+                        <View style={[styles.slotChipStatusBadge, isFull ? styles.badgeFull : isSelected ? styles.badgeActive : styles.badgeAvailable]}>
+                          <Text style={[styles.slotChipStatusText, isFull ? styles.textFull : isSelected ? styles.textActive : styles.textAvailable]}>
+                            {isFull ? 'FULL' : 'OPEN'}
+                          </Text>
+                        </View>
                       </TouchableOpacity>
                     );
                   })}
@@ -1244,70 +1270,82 @@ export default function BookScreen() {
             </View>
           </View>
 
-          {/* Section 5: Doorstep Address */}
-          <View style={[styles.sectionCard, isDark && styles.darkSectionCard]}>
-            <View style={styles.sectionHeaderRow}>
-              <View style={styles.sectionTitleGroup}>
-                <Text style={styles.sectionStepNumber}>5</Text>
-                <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Doorstep Address</Text>
+          {/* CARD 5: Doorstep Address */}
+          <View style={[styles.modernCard, isDark && styles.darkCard]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.badgeLabelRow}>
+                <Ionicons name="navigate-circle" size={16} color="#0284c7" />
+                <Text style={styles.badgeLabelText}>SERVICE ADDRESS</Text>
               </View>
               {locationLoading && <ActivityIndicator size="small" color="#0284c7" />}
             </View>
 
-            {savedAddress ? (
-              <View style={styles.addressToggleGroup}>
-                <TouchableOpacity
-                  style={[
-                    styles.addressPillOption,
-                    isDark ? styles.darkDropdown : styles.lightDropdown,
-                    useSavedAddress && styles.activeAddressOption,
-                  ]}
-                  onPress={() => setUseSavedAddress(true)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.addressPillTop}>
-                    <Text style={[styles.addressPillTitle, isDark && styles.darkText]}>
-                      {liveLocationSource === 'live' ? '📍 Live Location' : '🏠 Profile Address'}
-                    </Text>
-                    <Ionicons
-                      name={useSavedAddress ? 'radio-button-on' : 'radio-button-off'}
-                      size={18}
-                      color={useSavedAddress ? '#0284c7' : '#94a3b8'}
-                    />
-                  </View>
-                  <Text style={[styles.addressPillText, isDark && styles.darkSubtext]} numberOfLines={2}>
-                    {savedAddress}
-                  </Text>
-                </TouchableOpacity>
+            {/* Address Option Toggle Pills */}
+            <View style={styles.addressPillRow}>
+              <TouchableOpacity
+                style={[
+                  styles.addressModePill,
+                  useSavedAddress && styles.addressModePillActive,
+                ]}
+                onPress={() => setUseSavedAddress(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={liveLocationSource === 'live' ? 'locate' : 'home'}
+                  size={14}
+                  color={useSavedAddress ? '#ffffff' : '#64748b'}
+                />
+                <Text style={[styles.addressModeText, useSavedAddress && styles.addressModeTextActive]}>
+                  {liveLocationSource === 'live' ? 'Current GPS' : 'Saved Address'}
+                </Text>
+              </TouchableOpacity>
 
+              <TouchableOpacity
+                style={[
+                  styles.addressModePill,
+                  !useSavedAddress && styles.addressModePillActive,
+                ]}
+                onPress={() => setUseSavedAddress(false)}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={14}
+                  color={!useSavedAddress ? '#ffffff' : '#64748b'}
+                />
+                <Text style={[styles.addressModeText, !useSavedAddress && styles.addressModeTextActive]}>
+                  Enter New Address
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Address Display / Form */}
+            {useSavedAddress ? (
+              <View style={[styles.addressPreviewBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
+                <View style={styles.addressPinCircle}>
+                  <Ionicons name="location" size={18} color="#0284c7" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.addressPreviewTitle, isDark && styles.darkText]}>
+                    Doorstep Delivery Point
+                  </Text>
+                  <Text style={[styles.addressPreviewText, isDark && styles.darkSubtext]}>
+                    {savedAddress || 'Fetching your location...'}
+                  </Text>
+                </View>
                 <TouchableOpacity
-                  style={[
-                    styles.addressPillOption,
-                    isDark ? styles.darkDropdown : styles.lightDropdown,
-                    !useSavedAddress && styles.activeAddressOption,
-                  ]}
-                  onPress={() => setUseSavedAddress(false)}
-                  activeOpacity={0.8}
+                  style={styles.gpsLocateBtn}
+                  onPress={resolveLiveLocation}
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.addressPillTop}>
-                    <Text style={[styles.addressPillTitle, isDark && styles.darkText]}>
-                      ✏️ Enter New Address
-                    </Text>
-                    <Ionicons
-                      name={!useSavedAddress ? 'radio-button-on' : 'radio-button-off'}
-                      size={18}
-                      color={!useSavedAddress ? '#0284c7' : '#94a3b8'}
-                    />
-                  </View>
+                  <Ionicons name="locate" size={16} color="#0284c7" />
                 </TouchableOpacity>
               </View>
-            ) : null}
-
-            {(!savedAddress || !useSavedAddress) && (
+            ) : (
               <View style={{ marginTop: 8 }}>
                 <TextInput
-                  style={[styles.addressInput, isDark && styles.darkInput]}
-                  placeholder="House/Flat number, Apartment, Landmark, City..."
+                  style={[styles.addressInputBox, isDark && styles.darkInputBox]}
+                  placeholder="House/Flat number, Building name, Landmark, City..."
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   value={customAddress}
                   onChangeText={setCustomAddress}
@@ -1315,7 +1353,7 @@ export default function BookScreen() {
                   numberOfLines={3}
                 />
                 <TouchableOpacity
-                  style={styles.saveDefaultToggle}
+                  style={styles.saveDefaultRow}
                   onPress={() => setSaveAsDefaultAddress(!saveAsDefaultAddress)}
                   activeOpacity={0.8}
                 >
@@ -1325,26 +1363,34 @@ export default function BookScreen() {
                     color="#0284c7"
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[styles.saveDefaultText, isDark && styles.darkSubtext]}>
-                    Save as my default address for future washes
+                  <Text style={[styles.saveDefaultLabel, isDark && styles.darkSubtext]}>
+                    Save as default address for future bookings
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
 
-          {/* Section 6: Coupons & Wallets */}
-          <View style={[styles.sectionCard, isDark && styles.darkSectionCard]}>
-            <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionStepNumber}>6</Text>
-              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Discounts & Loyalty</Text>
+          {/* CARD 6: Offers & Benefits */}
+          <View style={[styles.modernCard, isDark && styles.darkCard]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.badgeLabelRow}>
+                <Ionicons name="gift" size={16} color="#f59e0b" />
+                <Text style={styles.badgeLabelText}>OFFERS & BENEFITS</Text>
+              </View>
+              {totalSavings > 0 && (
+                <View style={styles.totalSavingsTag}>
+                  <Text style={styles.totalSavingsTagText}>Saving ₹{totalSavings.toFixed(2)}</Text>
+                </View>
+              )}
             </View>
 
-            {/* Coupon Code Row */}
-            <View style={styles.couponRow}>
+            {/* Modern Integrated Coupon Input */}
+            <View style={[styles.integratedCouponBar, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
+              <Ionicons name="pricetag-outline" size={16} color="#64748b" style={{ marginRight: 8 }} />
               <TextInput
-                style={[styles.couponInput, isDark && styles.darkInput]}
-                placeholder="Enter Coupon (e.g. WELCOME10)"
+                style={[styles.integratedCouponInput, isDark && styles.darkText]}
+                placeholder="Enter promo code (e.g. WELCOME10)"
                 placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                 value={couponCode}
                 onChangeText={setCouponCode}
@@ -1353,8 +1399,8 @@ export default function BookScreen() {
               />
               <TouchableOpacity
                 style={[
-                  styles.couponBtn,
-                  couponDiscount > 0 ? styles.couponBtnRemove : styles.couponBtnApply,
+                  styles.integratedCouponBtn,
+                  couponDiscount > 0 ? styles.couponBtnRed : styles.couponBtnBlue,
                   couponLoading && { opacity: 0.6 },
                 ]}
                 onPress={couponDiscount > 0 ? handleRemoveCoupon : handleApplyCoupon}
@@ -1364,36 +1410,49 @@ export default function BookScreen() {
                 {couponLoading ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Text style={styles.couponBtnText}>{couponDiscount > 0 ? 'Remove' : 'Apply'}</Text>
+                  <Text style={styles.integratedCouponBtnText}>
+                    {couponDiscount > 0 ? 'REMOVE' : 'APPLY'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
 
             {couponFeedback && (
-              <Text style={[styles.feedbackMsg, { color: couponFeedback.success ? '#10b981' : '#ef4444' }]}>
-                {couponFeedback.msg}
-              </Text>
+              <View style={[styles.feedbackBanner, couponFeedback.success ? styles.feedbackBannerSuccess : styles.feedbackBannerError]}>
+                <Ionicons
+                  name={couponFeedback.success ? 'checkmark-circle' : 'alert-circle'}
+                  size={15}
+                  color={couponFeedback.success ? '#10b981' : '#ef4444'}
+                />
+                <Text style={[styles.feedbackText, { color: couponFeedback.success ? '#10b981' : '#ef4444' }]}>
+                  {couponFeedback.msg}
+                </Text>
+              </View>
             )}
 
-            {/* E-Points Redemption */}
+            {/* E-Points Toggle */}
             {userPoints > 0 && (
               <TouchableOpacity
-                style={[styles.walletCard, isDark ? styles.darkDropdown : styles.lightDropdown]}
+                style={[
+                  styles.benefitToggleRow,
+                  isDark ? styles.darkInnerBox : styles.lightInnerBox,
+                  useEPoints && styles.benefitToggleRowActive,
+                ]}
                 onPress={() => {
                   safeHapticLight();
                   setUseEPoints(!useEPoints);
                 }}
                 activeOpacity={0.8}
               >
-                <View style={{ flex: 1 }}>
-                  <View style={styles.walletHeader}>
-                    <Text style={styles.walletIcon}>💎</Text>
-                    <Text style={[styles.walletTitle, isDark && styles.darkText]}>
-                      Redeem E-Points ({userPoints} pts)
-                    </Text>
-                  </View>
-                  <Text style={[styles.walletSub, isDark && styles.darkSubtext]}>
-                    Apply up to 12.5% max wash discount (₹{maxEPointsDiscount})
+                <View style={styles.benefitIconCircleAmber}>
+                  <Text style={{ fontSize: 16 }}>💎</Text>
+                </View>
+                <View style={{ flex: 1, marginHorizontal: 10 }}>
+                  <Text style={[styles.benefitTitle, isDark && styles.darkText]}>
+                    Redeem E-Points ({userPoints} pts)
+                  </Text>
+                  <Text style={[styles.benefitSub, isDark && styles.darkSubtext]}>
+                    Save up to 12.5% on this wash (-₹{maxEPointsDiscount})
                   </Text>
                 </View>
                 <Ionicons
@@ -1404,25 +1463,30 @@ export default function BookScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Earning Money Wallet */}
+            {/* Earning Money Wallet Toggle */}
             {userEarningMoney > 0 && (
               <TouchableOpacity
-                style={[styles.walletCard, isDark ? styles.darkDropdown : styles.lightDropdown]}
+                style={[
+                  styles.benefitToggleRow,
+                  isDark ? styles.darkInnerBox : styles.lightInnerBox,
+                  useEarningMoney && styles.benefitToggleRowActive,
+                  { marginTop: 8 },
+                ]}
                 onPress={() => {
                   safeHapticLight();
                   setUseEarningMoney(!useEarningMoney);
                 }}
                 activeOpacity={0.8}
               >
-                <View style={{ flex: 1 }}>
-                  <View style={styles.walletHeader}>
-                    <Text style={styles.walletIcon}>💵</Text>
-                    <Text style={[styles.walletTitle, isDark && styles.darkText]}>
-                      Earning Money Balance (₹{userEarningMoney.toFixed(2)})
-                    </Text>
-                  </View>
-                  <Text style={[styles.walletSub, isDark && styles.darkSubtext]}>
-                    Use available referral balance directly on wash
+                <View style={styles.benefitIconCircleEmerald}>
+                  <Text style={{ fontSize: 16 }}>💵</Text>
+                </View>
+                <View style={{ flex: 1, marginHorizontal: 10 }}>
+                  <Text style={[styles.benefitTitle, isDark && styles.darkText]}>
+                    Earning Balance (₹{userEarningMoney.toFixed(2)})
+                  </Text>
+                  <Text style={[styles.benefitSub, isDark && styles.darkSubtext]}>
+                    Use referral wallet cash directly on this booking
                   </Text>
                 </View>
                 <Ionicons
@@ -1434,20 +1498,22 @@ export default function BookScreen() {
             )}
           </View>
 
-          {/* Section 7: Payment Plan & Method */}
-          <View style={[styles.sectionCard, isDark && styles.darkSectionCard]}>
-            <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionStepNumber}>7</Text>
-              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Payment Method & Plan</Text>
+          {/* CARD 7: Payment Plan & Method */}
+          <View style={[styles.modernCard, isDark && styles.darkCard]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.badgeLabelRow}>
+                <Ionicons name="card" size={16} color="#0284c7" />
+                <Text style={styles.badgeLabelText}>PAYMENT OPTIONS</Text>
+              </View>
             </View>
 
-            {/* Payment Split Choice */}
-            <View style={styles.paymentCardsGrid}>
+            {/* Split Options: Pay Advance vs Pay Full */}
+            <View style={styles.paymentPlansRow}>
               <TouchableOpacity
                 style={[
-                  styles.paymentOptionBox,
-                  isDark ? styles.darkDropdown : styles.lightDropdown,
-                  paymentType === 'partial' && styles.paymentOptionBoxSelected,
+                  styles.paymentPlanBox,
+                  isDark ? styles.darkInnerBox : styles.lightInnerBox,
+                  paymentType === 'partial' && styles.paymentPlanBoxSelected,
                 ]}
                 onPress={() => {
                   safeHapticLight();
@@ -1455,25 +1521,25 @@ export default function BookScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <View style={styles.paymentBoxTop}>
-                  <Text style={[styles.paymentBoxTitle, isDark && styles.darkText]}>Pay ₹99 Advance</Text>
+                <View style={styles.planHeader}>
+                  <Text style={[styles.planTitle, isDark && styles.darkText]}>Pay Advance</Text>
                   <Ionicons
                     name={paymentType === 'partial' ? 'radio-button-on' : 'radio-button-off'}
                     size={16}
                     color="#0284c7"
                   />
                 </View>
-                <Text style={styles.paymentBoxPriceCyan}>₹99.00</Text>
-                <Text style={[styles.paymentBoxNote, isDark && styles.darkSubtext]}>
+                <Text style={styles.planPriceAmount}>₹99.00</Text>
+                <Text style={[styles.planNoteText, isDark && styles.darkSubtext]}>
                   Remaining ₹{Math.max(0, calculatedTotal - 99).toFixed(2)} after wash
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
-                  styles.paymentOptionBox,
-                  isDark ? styles.darkDropdown : styles.lightDropdown,
-                  paymentType === 'full' && styles.paymentOptionBoxSelected,
+                  styles.paymentPlanBox,
+                  isDark ? styles.darkInnerBox : styles.lightInnerBox,
+                  paymentType === 'full' && styles.paymentPlanBoxSelected,
                 ]}
                 onPress={() => {
                   safeHapticLight();
@@ -1481,27 +1547,27 @@ export default function BookScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <View style={styles.paymentBoxTop}>
-                  <Text style={[styles.paymentBoxTitle, isDark && styles.darkText]}>Pay Full Amount</Text>
+                <View style={styles.planHeader}>
+                  <Text style={[styles.planTitle, isDark && styles.darkText]}>Pay Full</Text>
                   <Ionicons
                     name={paymentType === 'full' ? 'radio-button-on' : 'radio-button-off'}
                     size={16}
                     color="#0284c7"
                   />
                 </View>
-                <Text style={styles.paymentBoxPriceGreen}>₹{calculatedTotal.toFixed(2)}</Text>
-                <Text style={[styles.paymentBoxNote, isDark && styles.darkSubtext]}>
-                  Pay 100% upfront (incl. GST)
+                <Text style={styles.planPriceAmountGreen}>₹{calculatedTotal.toFixed(2)}</Text>
+                <Text style={[styles.planNoteText, isDark && styles.darkSubtext]}>
+                  100% upfront • Hassle-free
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Online vs COD Toggle */}
-            <View style={styles.methodToggleRow}>
+            {/* Online vs COD Segmented Control */}
+            <View style={[styles.methodSegmentWrap, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
               <TouchableOpacity
                 style={[
-                  styles.methodTogglePill,
-                  paymentMethod === 'online' && styles.methodTogglePillActive,
+                  styles.methodSegmentBtn,
+                  paymentMethod === 'online' && styles.methodSegmentBtnActive,
                 ]}
                 onPress={() => {
                   safeHapticLight();
@@ -1510,25 +1576,25 @@ export default function BookScreen() {
                 activeOpacity={0.8}
               >
                 <Ionicons
-                  name="card-outline"
-                  size={16}
+                  name="shield-checkmark"
+                  size={15}
                   color={paymentMethod === 'online' ? '#ffffff' : isDark ? '#94a3b8' : '#64748b'}
                 />
                 <Text
                   style={[
-                    styles.methodToggleText,
-                    paymentMethod === 'online' && styles.methodToggleTextActive,
+                    styles.methodSegmentText,
+                    paymentMethod === 'online' && styles.methodSegmentTextActive,
                     isDark && paymentMethod !== 'online' && styles.darkSubtext,
                   ]}
                 >
-                  Online (UPI / Card)
+                  Online (UPI / Cards)
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
-                  styles.methodTogglePill,
-                  paymentMethod === 'cod' && styles.methodTogglePillActive,
+                  styles.methodSegmentBtn,
+                  paymentMethod === 'cod' && styles.methodSegmentBtnActive,
                 ]}
                 onPress={() => {
                   safeHapticLight();
@@ -1538,79 +1604,103 @@ export default function BookScreen() {
               >
                 <Ionicons
                   name="cash-outline"
-                  size={16}
+                  size={15}
                   color={paymentMethod === 'cod' ? '#ffffff' : isDark ? '#94a3b8' : '#64748b'}
                 />
                 <Text
                   style={[
-                    styles.methodToggleText,
-                    paymentMethod === 'cod' && styles.methodToggleTextActive,
+                    styles.methodSegmentText,
+                    paymentMethod === 'cod' && styles.methodSegmentTextActive,
                     isDark && paymentMethod !== 'cod' && styles.darkSubtext,
                   ]}
                 >
-                  Cash on Delivery (COD)
+                  Cash on Delivery
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Section 8: Price Summary */}
-          <View style={[styles.summaryCard, isDark ? styles.darkDropdown : styles.lightDropdown]}>
-            <Text style={[styles.summaryTitle, isDark && styles.darkText]}>Payment Summary</Text>
+          {/* CARD 8: Receipt Style Bill Details */}
+          <View style={[styles.receiptCard, isDark && styles.darkCard]}>
+            <View style={styles.receiptHeader}>
+              <Ionicons name="receipt-outline" size={17} color="#0284c7" />
+              <Text style={[styles.receiptTitle, isDark && styles.darkText]}>Payment Breakdown</Text>
+            </View>
 
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, isDark && styles.darkSubtext]}>Base Wash Package</Text>
-              <Text style={[styles.summaryVal, isDark && styles.darkText]}>₹{basePrice.toFixed(2)}</Text>
+            <View style={styles.receiptRow}>
+              <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>Base Wash Package</Text>
+              <Text style={[styles.receiptVal, isDark && styles.darkText]}>₹{basePrice.toFixed(2)}</Text>
             </View>
 
             {addonTotal > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, isDark && styles.darkSubtext]}>
+              <View style={styles.receiptRow}>
+                <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>
                   Add-on Services ({selectedAddonIds.length})
                 </Text>
-                <Text style={[styles.summaryVal, { color: '#0284c7' }]}>+₹{addonTotal.toFixed(2)}</Text>
+                <Text style={[styles.receiptVal, { color: '#0284c7' }]}>+₹{addonTotal.toFixed(2)}</Text>
               </View>
             )}
 
             {couponDiscount > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, isDark && styles.darkSubtext]}>
+              <View style={styles.receiptRow}>
+                <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>
                   Coupon ({couponCode})
                 </Text>
-                <Text style={[styles.summaryVal, { color: '#10b981' }]}>-₹{couponDiscount.toFixed(2)}</Text>
+                <Text style={[styles.receiptVal, { color: '#10b981', fontWeight: '700' }]}>
+                  -₹{couponDiscount.toFixed(2)}
+                </Text>
               </View>
             )}
 
             {appliedEPointsDiscount > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, isDark && styles.darkSubtext]}>E-Points Redeemed</Text>
-                <Text style={[styles.summaryVal, { color: '#f59e0b' }]}>-₹{appliedEPointsDiscount.toFixed(2)}</Text>
+              <View style={styles.receiptRow}>
+                <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>E-Points Redeemed</Text>
+                <Text style={[styles.receiptVal, { color: '#f59e0b', fontWeight: '700' }]}>
+                  -₹{appliedEPointsDiscount.toFixed(2)}
+                </Text>
               </View>
             )}
 
             {appliedEarningMoney > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, isDark && styles.darkSubtext]}>Earning Money Wallet</Text>
-                <Text style={[styles.summaryVal, { color: '#10b981' }]}>-₹{appliedEarningMoney.toFixed(2)}</Text>
+              <View style={styles.receiptRow}>
+                <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>Wallet Cash Used</Text>
+                <Text style={[styles.receiptVal, { color: '#10b981', fontWeight: '700' }]}>
+                  -₹{appliedEarningMoney.toFixed(2)}
+                </Text>
               </View>
             )}
 
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, isDark && styles.darkSubtext]}>GST (18%)</Text>
-              <Text style={[styles.summaryVal, { color: '#6366f1' }]}>+₹{calculatedGst.toFixed(2)}</Text>
+            <View style={styles.receiptRow}>
+              <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>GST (18%)</Text>
+              <Text style={[styles.receiptVal, isDark && styles.darkText]}>+₹{calculatedGst.toFixed(2)}</Text>
             </View>
 
-            <View style={[styles.summaryDivider, isDark && styles.darkDivider]} />
+            <View style={[styles.receiptDivider, isDark && styles.darkDivider]} />
 
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryTotalLabel, isDark && styles.darkText]}>Grand Total</Text>
-              <Text style={styles.summaryTotalAmount}>₹{calculatedTotal.toFixed(2)}</Text>
+            <View style={styles.receiptTotalRow}>
+              <View>
+                <Text style={[styles.receiptTotalLabel, isDark && styles.darkText]}>Grand Total</Text>
+                {paymentType === 'partial' && (
+                  <Text style={[styles.receiptAdvanceNotice, isDark && styles.darkSubtext]}>
+                    (Pay ₹99 now, ₹{remainingDue.toFixed(2)} later)
+                  </Text>
+                )}
+              </View>
+              <Text style={styles.receiptTotalAmount}>₹{calculatedTotal.toFixed(2)}</Text>
             </View>
+
+            {totalSavings > 0 && (
+              <View style={styles.receiptSavingsRibbon}>
+                <Text style={styles.receiptSavingsRibbonText}>
+                  🎉 You are saving ₹{totalSavings.toFixed(2)} on this order!
+                </Text>
+              </View>
+            )}
           </View>
         </ScrollView>
       )}
 
-      {/* Floating Bottom Booking Action Bar */}
+      {/* Floating Bottom Sticky Bar */}
       {!loading && !verifiedBooking && !cashfreeHtml && (
         <View
           style={[
@@ -1619,14 +1709,17 @@ export default function BookScreen() {
             { paddingBottom: Math.max(insets.bottom, 12) + 6 },
           ]}
         >
-          <View>
+          <TouchableOpacity onPress={scrollToSummary} activeOpacity={0.8}>
             <Text style={[styles.floatingPayableLabel, isDark && styles.darkSubtext]}>
-              {paymentType === 'partial' ? 'Pay Advance' : 'Total Payable'}
+              {paymentType === 'partial' ? 'ADVANCE PAYABLE' : 'TOTAL PAYABLE'}
             </Text>
-            <Text style={[styles.floatingPayableAmount, isDark && styles.darkText]}>
-              ₹{paymentType === 'partial' ? '99.00' : calculatedTotal.toFixed(2)}
-            </Text>
-          </View>
+            <View style={styles.floatingPriceRow}>
+              <Text style={[styles.floatingPayableAmount, isDark && styles.darkText]}>
+                ₹{immediatePayable.toFixed(2)}
+              </Text>
+              <Ionicons name="information-circle-outline" size={14} color="#0284c7" style={{ marginLeft: 4 }} />
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.floatingSubmitBtn, submitting && { opacity: 0.7 }]}
@@ -1639,9 +1732,13 @@ export default function BookScreen() {
             ) : (
               <>
                 <Text style={styles.floatingSubmitBtnText}>
-                  {paymentMethod === 'cod' ? 'Confirm Booking (COD)' : paymentType === 'partial' ? 'Pay ₹99 & Book' : 'Pay & Confirm'}
+                  {paymentMethod === 'cod'
+                    ? 'Confirm Wash'
+                    : paymentType === 'partial'
+                    ? 'Pay ₹99 & Book'
+                    : `Pay ₹${calculatedTotal.toFixed(0)} & Book`}
                 </Text>
-                <Ionicons name="arrow-forward" size={17} color="#ffffff" style={{ marginLeft: 6 }} />
+                <Ionicons name="arrow-forward" size={16} color="#ffffff" style={{ marginLeft: 6 }} />
               </>
             )}
           </TouchableOpacity>
@@ -1649,19 +1746,106 @@ export default function BookScreen() {
       )}
 
       {/* App Fixed Footer Navigation Bar */}
-      <AppFooter activeTab="book" isDark={isDark} onTabPress={handleFooterTabPress} />
+      {!cashfreeHtml && (
+        <AppFooter activeTab="book" isDark={isDark} onTabPress={handleFooterTabPress} />
+      )}
 
-      {/* Sheet Modal for Pickers (Vehicle, Center, Package, Add-ons) */}
+      {/* Dedicated Fullscreen Cashfree Payment Gateway Modal */}
+      <Modal
+        visible={!!cashfreeHtml}
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => {
+          setCashfreeHtml(null);
+          showSweetAlert('Payment Cancelled', 'You can complete payment anytime from My Washes.', 'info');
+          router.replace('/bookings');
+        }}
+      >
+        <SafeAreaView style={styles.cashfreeFullscreen}>
+          <StatusBar style="light" />
+          <View style={[styles.webViewBar, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 36 : 14) }]}>
+            <View style={styles.webViewBarLeft}>
+              <View style={styles.lockIconCircle}>
+                <Ionicons name="lock-closed" size={14} color="#10b981" />
+              </View>
+              <View>
+                <Text style={styles.webViewBarTitle}>Cashfree Secure Checkout</Text>
+                <Text style={styles.webViewBarSubtitle}>256-bit Encrypted Transaction</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.webViewCloseBtn}
+              onPress={() => {
+                setCashfreeHtml(null);
+                showSweetAlert('Payment Cancelled', 'You can complete payment anytime from My Washes.', 'info');
+                router.replace('/bookings');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={20} color="#f8fafc" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.cashfreeWebContainer}>
+            <WebViewComponent
+              source={{ html: cashfreeHtml, baseUrl: 'https://sdk.cashfree.com' }}
+              originWhitelist={['*']}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              mixedContentMode="always"
+              allowFileAccess={true}
+              onShouldStartLoadWithRequest={(request: any) => {
+                if (
+                  request.url.includes('/cashfree/return') ||
+                  request.url.includes('cashfree_order_id=') ||
+                  request.url.includes('status=success')
+                ) {
+                  const match = request.url.match(/order_id=([^&]+)/);
+                  const orderId = match ? decodeURIComponent(match[1]) : cashfreeOrderId;
+                  if (orderId) {
+                    handleVerifyCashfreePayment(orderId);
+                  } else {
+                    setCashfreeHtml(null);
+                    router.replace('/bookings');
+                  }
+                  return false;
+                }
+                return true;
+              }}
+              onNavigationStateChange={(nav: any) => {
+                if (
+                  nav.url.includes('/cashfree/return') ||
+                  nav.url.includes('cashfree_order_id=') ||
+                  nav.url.includes('status=success')
+                ) {
+                  const match = nav.url.match(/order_id=([^&]+)/);
+                  const orderId = match ? decodeURIComponent(match[1]) : cashfreeOrderId;
+                  if (orderId) {
+                    handleVerifyCashfreePayment(orderId);
+                  } else {
+                    setCashfreeHtml(null);
+                    router.replace('/bookings');
+                  }
+                }
+              }}
+              style={{ flex: 1 }}
+            />
+          </View>
+
+          {/* Dedicated bottom safe area buffer so Cashfree's "Proceed to Pay" button is completely unobstructed above system navbar */}
+          <View style={{ height: Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 12), backgroundColor: '#ffffff' }} />
+        </SafeAreaView>
+      </Modal>
+
+      {/* Sheet Modal for Pickers (Vehicle & Center) */}
       <Modal visible={activePicker !== null} transparent animationType="slide" onRequestClose={() => setActivePicker(null)}>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setActivePicker(null)} />
           <View style={[styles.modalSheet, isDark && styles.darkModalSheet]}>
             <View style={styles.modalSheetHeader}>
               <Text style={[styles.modalSheetTitle, isDark && styles.darkText]}>
-                {activePicker === 'vehicle' && 'Select Vehicle'}
-                {activePicker === 'center' && 'Select Service Center'}
-                {activePicker === 'package' && 'Select Wash Package'}
-                {activePicker === 'addons' && 'Select Add-on Services'}
+                {activePicker === 'vehicle' && 'Switch Vehicle'}
+                {activePicker === 'center' && 'Select Service Hub'}
               </Text>
               <TouchableOpacity onPress={() => setActivePicker(null)}>
                 <Ionicons name="close-circle" size={24} color={isDark ? '#94a3b8' : '#64748b'} />
@@ -1688,14 +1872,14 @@ export default function BookScreen() {
                         }}
                         activeOpacity={0.8}
                       >
-                        <Text style={{ fontSize: 24, marginRight: 12 }}>{getVehicleEmoji(v.vehicle_type)}</Text>
+                        <Text style={{ fontSize: 26, marginRight: 12 }}>{getVehicleEmoji(v.vehicle_type)}</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.sheetItemTitle, isDark && styles.darkText]}>{v.make_model}</Text>
                           <Text style={[styles.sheetItemSub, isDark && styles.darkSubtext]}>
                             {v.plate_number ? `${v.plate_number} • ` : ''}{v.vehicle_type.toUpperCase()}
                           </Text>
                         </View>
-                        {isSelected && <Ionicons name="checkmark-circle" size={20} color="#0284c7" />}
+                        {isSelected && <Ionicons name="checkmark-circle" size={22} color="#0284c7" />}
                       </TouchableOpacity>
                     );
                   })}
@@ -1732,7 +1916,7 @@ export default function BookScreen() {
                         }}
                         activeOpacity={0.8}
                       >
-                        <View style={styles.iconSquircleBlue}>
+                        <View style={styles.hubIconCircle}>
                           <Ionicons name="business" size={16} color="#0284c7" />
                         </View>
                         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -1741,97 +1925,10 @@ export default function BookScreen() {
                             {c.city || c.address || 'Doorstep Service Station'}
                           </Text>
                         </View>
-                        {isSelected && <Ionicons name="checkmark-circle" size={20} color="#0284c7" />}
+                        {isSelected && <Ionicons name="checkmark-circle" size={22} color="#0284c7" />}
                       </TouchableOpacity>
                     );
                   })}
-                </View>
-              )}
-
-              {activePicker === 'package' && (
-                <View>
-                  {availableBasePackages.map((p) => {
-                    const isSelected = p.id === selectedPackageId;
-                    return (
-                      <TouchableOpacity
-                        key={p.id}
-                        style={[
-                          styles.sheetItem,
-                          isDark ? styles.darkSheetItem : styles.lightSheetItem,
-                          isSelected && styles.sheetItemSelected,
-                        ]}
-                        onPress={() => {
-                          safeHapticLight();
-                          setSelectedPackageId(p.id);
-                          setActivePicker(null);
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <View style={styles.iconSquircleEmerald}>
-                          <Ionicons name="sparkles" size={16} color="#10b981" />
-                        </View>
-                        <View style={{ flex: 1, marginLeft: 12 }}>
-                          <Text style={[styles.sheetItemTitle, isDark && styles.darkText]}>{p.name}</Text>
-                          <Text style={[styles.sheetItemSub, isDark && styles.darkSubtext]} numberOfLines={2}>
-                            {p.description || 'Complete exterior & interior doorstep clean'}
-                          </Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
-                          <Text style={styles.packagePriceText}>₹{p.price}</Text>
-                          {isSelected && <Ionicons name="checkmark-circle" size={18} color="#0284c7" style={{ marginTop: 4 }} />}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-
-              {activePicker === 'addons' && (
-                <View>
-                  {availableAddons.length === 0 ? (
-                    <Text style={[styles.noAddonsText, isDark && styles.darkSubtext]}>
-                      No optional add-ons available for this vehicle type.
-                    </Text>
-                  ) : (
-                    availableAddons.map((addon) => {
-                      const isSelected = selectedAddonIds.includes(addon.id);
-                      return (
-                        <TouchableOpacity
-                          key={addon.id}
-                          style={[
-                            styles.sheetItem,
-                            isDark ? styles.darkSheetItem : styles.lightSheetItem,
-                            isSelected && styles.sheetItemSelected,
-                          ]}
-                          onPress={() => toggleAddon(addon.id)}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons
-                            name={isSelected ? 'checkbox' : 'square-outline'}
-                            size={22}
-                            color={isSelected ? '#0284c7' : '#94a3b8'}
-                            style={{ marginRight: 12 }}
-                          />
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.sheetItemTitle, isDark && styles.darkText]}>{addon.name}</Text>
-                            {addon.description ? (
-                              <Text style={[styles.sheetItemSub, isDark && styles.darkSubtext]}>
-                                {addon.description}
-                              </Text>
-                            ) : null}
-                          </View>
-                          <Text style={styles.addonPriceTag}>+₹{addon.price}</Text>
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
-                  <TouchableOpacity
-                    style={styles.sheetDoneBtn}
-                    onPress={() => setActivePicker(null)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.sheetDoneBtnText}>Done</Text>
-                  </TouchableOpacity>
                 </View>
               )}
             </ScrollView>
@@ -1842,15 +1939,15 @@ export default function BookScreen() {
       {/* Inline Quick Add Vehicle Modal */}
       <Modal visible={addVehicleModalVisible} transparent animationType="fade" onRequestClose={() => setAddVehicleModalVisible(false)}>
         <View style={styles.modalOverlayCenter}>
-          <View style={[styles.addVehicleBox, isDark && styles.darkSectionCard]}>
-            <View style={styles.sectionHeaderRow}>
+          <View style={[styles.addVehicleBox, isDark && styles.darkCard]}>
+            <View style={styles.cardHeaderRow}>
               <Text style={[styles.addVehicleTitle, isDark && styles.darkText]}>Add New Vehicle</Text>
               <TouchableOpacity onPress={() => setAddVehicleModalVisible(false)}>
                 <Ionicons name="close" size={22} color={isDark ? '#94a3b8' : '#64748b'} />
               </TouchableOpacity>
             </View>
 
-            <View style={{ marginTop: 12 }}>
+            <View style={{ marginTop: 14 }}>
               <Text style={[styles.inputLabel, isDark && styles.darkSubtext]}>Vehicle Type</Text>
               <View style={styles.typeSelectorRow}>
                 {['sedan', 'suv', 'hatchback', 'bike'].map((type) => {
@@ -1860,13 +1957,13 @@ export default function BookScreen() {
                       key={type}
                       style={[
                         styles.typePillOption,
-                        isDark ? styles.darkDropdown : styles.lightDropdown,
+                        isDark ? styles.darkInnerBox : styles.lightInnerBox,
                         isSel && styles.typePillSelected,
                       ]}
                       onPress={() => setNewVehicleType(type)}
                       activeOpacity={0.8}
                     >
-                      <Text style={{ fontSize: 16 }}>{getVehicleEmoji(type)}</Text>
+                      <Text style={{ fontSize: 18 }}>{getVehicleEmoji(type)}</Text>
                       <Text style={[styles.typePillText, isSel && styles.typePillTextActive]}>
                         {type.toUpperCase()}
                       </Text>
@@ -1875,22 +1972,22 @@ export default function BookScreen() {
                 })}
               </View>
 
-              <Text style={[styles.inputLabel, isDark && styles.darkSubtext, { marginTop: 12 }]}>
+              <Text style={[styles.inputLabel, isDark && styles.darkSubtext, { marginTop: 14 }]}>
                 Make & Model *
               </Text>
               <TextInput
-                style={[styles.modalInput, isDark && styles.darkInput]}
+                style={[styles.modalInput, isDark && styles.darkInputBox]}
                 placeholder="e.g. Honda City, Hyundai Creta"
                 placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                 value={newVehicleModel}
                 onChangeText={setNewVehicleModel}
               />
 
-              <Text style={[styles.inputLabel, isDark && styles.darkSubtext, { marginTop: 12 }]}>
-                Plate Number (Optional)
+              <Text style={[styles.inputLabel, isDark && styles.darkSubtext, { marginTop: 14 }]}>
+                License Plate Number (Optional)
               </Text>
               <TextInput
-                style={[styles.modalInput, isDark && styles.darkInput]}
+                style={[styles.modalInput, isDark && styles.darkInputBox]}
                 placeholder="e.g. MH 02 AB 1234"
                 placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                 value={newVehiclePlate}
@@ -1924,14 +2021,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   darkRoot: {
-    backgroundColor: '#0b1120',
+    backgroundColor: '#090d16',
   },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 14,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
@@ -1946,9 +2043,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1959,8 +2056,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0f172a',
+    letterSpacing: -0.3,
   },
   headerSub: {
     fontSize: 11,
@@ -1975,7 +2073,7 @@ const styles = StyleSheet.create({
   myWashesPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: '#f0f9ff',
     borderWidth: 1,
     borderColor: '#bae6fd',
@@ -1989,7 +2087,7 @@ const styles = StyleSheet.create({
   },
   myWashesText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0284c7',
   },
   themeBtn: {
@@ -2027,200 +2125,409 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14,
   },
-  sectionCard: {
+  modernCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  darkSectionCard: {
-    backgroundColor: '#131d33',
-    borderColor: '#1e293b',
+  darkCard: {
+    backgroundColor: '#111827',
+    borderColor: '#1f2937',
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  sectionTitleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  sectionStepNumber: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#0284c7',
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  addVehicleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  addVehicleBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0284c7',
-  },
-  noVehiclesBox: {
-    alignItems: 'center',
-    paddingVertical: 18,
-    gap: 8,
-  },
-  noVehiclesText: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  primaryMiniBtn: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 4,
-  },
-  primaryMiniBtnText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  selectorTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  lightDropdown: {
+  lightInnerBox: {
     backgroundColor: '#f8fafc',
     borderColor: '#e2e8f0',
+    borderWidth: 1,
   },
-  darkDropdown: {
-    backgroundColor: '#0f172a',
+  darkInnerBox: {
+    backgroundColor: '#0b1120',
     borderColor: '#1e293b',
+    borderWidth: 1,
   },
-  selectorLeft: {
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    gap: 10,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  vehicleEmoji: {
-    fontSize: 24,
+  badgeLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  selectorMainText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  selectorSubText: {
+  badgeLabelText: {
     fontSize: 11,
-    color: '#64748b',
-    marginTop: 1,
+    fontWeight: '800',
+    color: '#0284c7',
+    letterSpacing: 0.6,
   },
-  iconSquircleBlue: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(2, 132, 199, 0.1)',
+  switchLinkBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 2,
   },
-  iconSquircleEmerald: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconSquircleCyan: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(6, 182, 212, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  innerFieldLabel: {
+  switchLinkText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
-    marginBottom: 6,
-  },
-  addonCountPill: {
-    fontSize: 11,
     fontWeight: '700',
     color: '#0284c7',
+  },
+  headerCountTag: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  emptyVehicleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  emptyVehicleIcon: {
+    fontSize: 28,
+  },
+  emptyVehicleTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  emptyVehicleSub: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  addMiniActionBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  addMiniActionText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  vehicleHeroBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    gap: 12,
+  },
+  vehicleEmojiCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#e0f2fe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vehicleTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  vehicleNameText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+    flex: 1,
+  },
+  typeBadgePill: {
     backgroundColor: 'rgba(2, 132, 199, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 6,
+    marginLeft: 6,
   },
-  activeBorderHighlight: {
-    borderColor: '#0284c7',
+  typeBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#0284c7',
   },
-  dateScroll: {
+  plateContainer: {
     flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 4,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    overflow: 'hidden',
   },
-  datePill: {
-    width: 68,
-    height: 60,
-    borderRadius: 12,
+  plateIndStripe: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  plateIndText: {
+    color: '#ffffff',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  plateNumberText: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0f172a',
+    paddingHorizontal: 6,
+    letterSpacing: 0.8,
+  },
+  noPlateText: {
+    fontSize: 11,
+    color: '#94a3b8',
+  },
+  hubSelectorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 12,
+    marginTop: 12,
+    gap: 8,
+  },
+  lightBorderTop: {
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  darkBorderTop: {
+    borderTopWidth: 1,
+    borderTopColor: '#1e293b',
+  },
+  hubIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(2, 132, 199, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
-  lightDatePill: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#e2e8f0',
-  },
-  darkDatePill: {
-    backgroundColor: '#0f172a',
-    borderColor: '#1e293b',
-  },
-  datePillSelected: {
-    backgroundColor: '#0284c7',
-    borderColor: '#0284c7',
-  },
-  datePillDay: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  datePillNum: {
+  hubNameText: {
     fontSize: 13,
     fontWeight: '700',
     color: '#0f172a',
+  },
+  hubSubText: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  hubChangeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284c7',
+  },
+  packageListContainer: {
+    gap: 10,
+  },
+  packageCard: {
+    borderRadius: 16,
+    padding: 14,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  packageCardSelected: {
+    borderColor: '#0284c7',
+    borderWidth: 2,
+    backgroundColor: 'rgba(2, 132, 199, 0.04)',
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderBottomLeftRadius: 8,
+  },
+  popularBadgeText: {
+    color: '#ffffff',
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  packageCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  packageCardRadio: {
+    marginRight: 10,
     marginTop: 2,
   },
-  datePillTextSelected: {
+  packageCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 2,
+  },
+  packageCardDesc: {
+    fontSize: 11,
+    color: '#64748b',
+    lineHeight: 15,
+  },
+  packageCardPriceWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginLeft: 6,
+  },
+  packagePriceSymbol: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0284c7',
+  },
+  packagePriceNum: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0284c7',
+  },
+  packageFooterMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 163, 184, 0.15)',
+  },
+  metaDurationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  metaDurationText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#0284c7',
+  },
+  metaDoorstepPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  metaDoorstepText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#10b981',
+  },
+  addonScrollContent: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  addonMiniCard: {
+    width: 140,
+    padding: 12,
+    borderRadius: 14,
+  },
+  addonMiniCardActive: {
+    borderColor: '#06b6d4',
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(6, 182, 212, 0.06)',
+  },
+  addonCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  addonCheckIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addonCheckIconActive: {
+    backgroundColor: '#06b6d4',
+  },
+  addonPriceBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#06b6d4',
+  },
+  addonTitleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+    height: 32,
+  },
+  addonDescText: {
+    fontSize: 10,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  addedCountBadge: {
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  addedCountText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#06b6d4',
+  },
+  datePillsStrip: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  datePillBox: {
+    width: 64,
+    height: 72,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  datePillBoxSelected: {
+    backgroundColor: '#0284c7',
+    borderColor: '#0284c7',
+  },
+  datePillDayText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+    marginBottom: 2,
+  },
+  datePillNumText: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  datePillMonthText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#94a3b8',
+    marginTop: 1,
+  },
+  datePillTextActive: {
     color: '#ffffff',
   },
+  slotHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  subSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
   slotLoaderBox: {
-    paddingVertical: 20,
+    paddingVertical: 18,
     alignItems: 'center',
   },
   slotLoaderText: {
@@ -2229,7 +2536,8 @@ const styles = StyleSheet.create({
   },
   noSlotsBox: {
     alignItems: 'center',
-    paddingVertical: 18,
+    padding: 16,
+    borderRadius: 12,
     gap: 6,
   },
   noSlotsText: {
@@ -2237,288 +2545,384 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
-  slotGrid: {
+  slotsGridWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  slotCard: {
-    width: '48%',
+  slotChip: {
+    width: '48.5%',
     padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  lightSlotCard: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#e2e8f0',
-  },
-  darkSlotCard: {
-    backgroundColor: '#0f172a',
-    borderColor: '#1e293b',
-  },
-  slotCardSelected: {
+  slotChipSelected: {
     backgroundColor: '#0284c7',
     borderColor: '#0284c7',
   },
-  slotCardFull: {
+  slotChipFull: {
     opacity: 0.45,
   },
-  slotTimeText: {
-    fontSize: 12,
-    fontWeight: '600',
+  slotChipTime: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#0f172a',
+    flex: 1,
   },
-  slotTimeSelected: {
+  slotChipTextActive: {
     color: '#ffffff',
   },
-  slotTimeFull: {
+  slotChipTextFull: {
     textDecorationLine: 'line-through',
   },
-  slotStatusTag: {
-    fontSize: 10,
-    fontWeight: '700',
+  slotChipStatusBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    marginLeft: 4,
   },
-  slotStatusOpen: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  badgeAvailable: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+  },
+  badgeFull: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  badgeActive: {
+    backgroundColor: '#ffffff',
+  },
+  slotChipStatusText: {
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  textAvailable: {
     color: '#10b981',
   },
-  slotStatusFull: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  textFull: {
     color: '#ef4444',
   },
-  slotStatusSelected: {
-    backgroundColor: '#ffffff',
+  textActive: {
     color: '#0284c7',
   },
-  addressToggleGroup: {
+  addressPillRow: {
+    flexDirection: 'row',
     gap: 8,
+    marginBottom: 10,
   },
-  addressPillOption: {
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  activeAddressOption: {
-    borderColor: '#0284c7',
-  },
-  addressPillTop: {
+  addressModePill: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(148, 163, 184, 0.12)',
   },
-  addressPillTitle: {
-    fontSize: 13,
+  addressModePillActive: {
+    backgroundColor: '#0284c7',
+  },
+  addressModeText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#0f172a',
-  },
-  addressPillText: {
-    fontSize: 12,
     color: '#64748b',
   },
-  addressInput: {
+  addressModeTextActive: {
+    color: '#ffffff',
+  },
+  addressPreviewBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    gap: 10,
+  },
+  addressPinCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(2, 132, 199, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressPreviewTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 2,
+  },
+  addressPreviewText: {
+    fontSize: 12,
+    color: '#64748b',
+    lineHeight: 16,
+  },
+  gpsLocateBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(2, 132, 199, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressInputBox: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     fontSize: 13,
     color: '#0f172a',
     textAlignVertical: 'top',
-    minHeight: 70,
+    minHeight: 74,
   },
-  darkInput: {
-    backgroundColor: '#0f172a',
+  darkInputBox: {
+    backgroundColor: '#0b1120',
     borderColor: '#1e293b',
     color: '#f8fafc',
   },
-  saveDefaultToggle: {
+  saveDefaultRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
   },
-  saveDefaultText: {
-    fontSize: 12,
+  saveDefaultLabel: {
+    fontSize: 11,
     color: '#64748b',
   },
-  couponRow: {
+  integratedCouponBar: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  couponInput: {
-    flex: 1,
-    height: 42,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
+    alignItems: 'center',
+    borderRadius: 12,
     paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  integratedCouponInput: {
+    flex: 1,
+    height: 40,
     fontSize: 13,
+    fontWeight: '600',
     color: '#0f172a',
   },
-  couponBtn: {
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+  integratedCouponBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
   },
-  couponBtnApply: {
+  couponBtnBlue: {
     backgroundColor: '#0284c7',
   },
-  couponBtnRemove: {
+  couponBtnRed: {
     backgroundColor: '#ef4444',
   },
-  couponBtnText: {
+  integratedCouponBtnText: {
     color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  feedbackMsg: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 6,
-  },
-  walletCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 10,
-  },
-  walletHeader: {
+  feedbackBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
   },
-  walletIcon: {
-    fontSize: 15,
+  feedbackBannerSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
-  walletTitle: {
+  feedbackBannerError: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  feedbackText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  benefitToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  benefitToggleRowActive: {
+    borderColor: '#0284c7',
+  },
+  benefitIconCircleAmber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitIconCircleEmerald: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitTitle: {
     fontSize: 13,
     fontWeight: '700',
     color: '#0f172a',
   },
-  walletSub: {
+  benefitSub: {
     fontSize: 11,
     color: '#64748b',
     marginTop: 2,
   },
-  paymentCardsGrid: {
+  totalSavingsTag: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  totalSavingsTagText: {
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  paymentPlansRow: {
     flexDirection: 'row',
     gap: 10,
+    marginBottom: 12,
   },
-  paymentOptionBox: {
+  paymentPlanBox: {
     flex: 1,
     padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 14,
   },
-  paymentOptionBoxSelected: {
+  paymentPlanBoxSelected: {
     borderColor: '#0284c7',
-    borderWidth: 1.5,
+    borderWidth: 2,
+    backgroundColor: 'rgba(2, 132, 199, 0.04)',
   },
-  paymentBoxTop: {
+  planHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  paymentBoxTitle: {
+  planTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0f172a',
   },
-  paymentBoxPriceCyan: {
-    fontSize: 16,
-    fontWeight: '800',
+  planPriceAmount: {
+    fontSize: 18,
+    fontWeight: '900',
     color: '#0284c7',
     marginTop: 4,
   },
-  paymentBoxPriceGreen: {
-    fontSize: 16,
-    fontWeight: '800',
+  planPriceAmountGreen: {
+    fontSize: 18,
+    fontWeight: '900',
     color: '#10b981',
     marginTop: 4,
   },
-  paymentBoxNote: {
+  planNoteText: {
     fontSize: 10,
     color: '#64748b',
-    marginTop: 2,
+    marginTop: 3,
   },
-  methodToggleRow: {
+  methodSegmentWrap: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
     borderRadius: 12,
     padding: 4,
-    marginTop: 12,
-    gap: 6,
+    gap: 4,
   },
-  methodTogglePill: {
+  methodSegmentBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 9,
+    borderRadius: 9,
   },
-  methodTogglePillActive: {
+  methodSegmentBtnActive: {
     backgroundColor: '#0284c7',
   },
-  methodToggleText: {
-    fontSize: 12,
-    fontWeight: '600',
+  methodSegmentText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#64748b',
   },
-  methodToggleTextActive: {
+  methodSegmentTextActive: {
     color: '#ffffff',
   },
-  summaryCard: {
-    borderRadius: 16,
-    padding: 16,
+  receiptCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 18,
     borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  summaryTitle: {
+  receiptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 14,
+  },
+  receiptTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0f172a',
-    marginBottom: 10,
   },
-  summaryRow: {
+  receiptRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 5,
   },
-  summaryLabel: {
+  receiptLabel: {
     fontSize: 12,
     color: '#64748b',
   },
-  summaryVal: {
+  receiptVal: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0f172a',
   },
-  summaryDivider: {
+  receiptDivider: {
     height: 1,
     backgroundColor: '#e2e8f0',
-    marginVertical: 8,
+    marginVertical: 10,
   },
   darkDivider: {
     backgroundColor: '#1e293b',
   },
-  summaryTotalLabel: {
-    fontSize: 14,
-    fontWeight: '700',
+  receiptTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  receiptTotalLabel: {
+    fontSize: 15,
+    fontWeight: '800',
     color: '#0f172a',
   },
-  summaryTotalAmount: {
-    fontSize: 17,
+  receiptAdvanceNotice: {
+    fontSize: 10,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  receiptTotalAmount: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0284c7',
+  },
+  receiptSavingsRibbon: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  receiptSavingsRibbonText: {
+    fontSize: 11,
     fontWeight: '800',
     color: '#10b981',
   },
@@ -2531,27 +2935,34 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
     paddingTop: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 10,
   },
   darkFloatingBar: {
     backgroundColor: '#0f172a',
     borderTopColor: '#1e293b',
   },
   floatingPayableLabel: {
-    fontSize: 11,
+    fontSize: 10,
+    fontWeight: '800',
     color: '#64748b',
+    letterSpacing: 0.5,
+  },
+  floatingPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 1,
   },
   floatingPayableAmount: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '900',
     color: '#0f172a',
   },
   floatingSubmitBtn: {
@@ -2560,13 +2971,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingHorizontal: 22,
+    borderRadius: 14,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
   },
   floatingSubmitBtnText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   errorAlert: {
     flexDirection: 'row',
@@ -2574,7 +2990,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 10,
     gap: 8,
   },
@@ -2591,14 +3007,19 @@ const styles = StyleSheet.create({
   },
   confirmedCard: {
     width: '100%',
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 22,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   successIconBubble: {
-    marginBottom: 14,
+    marginBottom: 12,
   },
   confirmedTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     color: '#0f172a',
     marginBottom: 6,
   },
@@ -2607,14 +3028,14 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     marginBottom: 20,
+    lineHeight: 18,
   },
   confirmedDetailsBox: {
     width: '100%',
     borderRadius: 14,
     padding: 16,
-    borderWidth: 1,
     gap: 10,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   detailRow: {
     flexDirection: 'row',
@@ -2627,7 +3048,7 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0f172a',
   },
   confirmedActions: {
@@ -2640,19 +3061,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
   },
   primaryConfirmedBtnText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   secondaryConfirmedBtn: {
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
   },
   darkSecondaryBtn: {
     backgroundColor: '#1e293b',
@@ -2660,7 +3081,15 @@ const styles = StyleSheet.create({
   secondaryConfirmedBtnText: {
     color: '#0f172a',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  cashfreeFullscreen: {
+    flex: 1,
+    backgroundColor: '#0b1120',
+  },
+  cashfreeWebContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
   },
   webViewWrap: {
     flex: 1,
@@ -2669,23 +3098,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0b1120',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   webViewBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
+  },
+  lockIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   webViewBarTitle: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  webViewBarSubtitle: {
+    color: '#94a3b8',
+    fontSize: 10,
+  },
+  webViewCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
@@ -2710,7 +3159,7 @@ const styles = StyleSheet.create({
   },
   modalSheetTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0f172a',
   },
   modalSheetScroll: {
@@ -2720,46 +3169,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 14,
     marginBottom: 8,
   },
   lightSheetItem: {
     backgroundColor: '#f8fafc',
     borderColor: '#e2e8f0',
+    borderWidth: 1,
   },
   darkSheetItem: {
     backgroundColor: '#1e293b',
     borderColor: '#334155',
+    borderWidth: 1,
   },
   sheetItemSelected: {
     borderColor: '#0284c7',
   },
   sheetItemTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0f172a',
   },
   sheetItemSub: {
     fontSize: 11,
     color: '#64748b',
-    marginTop: 1,
-  },
-  packagePriceText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#10b981',
-  },
-  addonPriceTag: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0284c7',
-  },
-  noAddonsText: {
-    fontSize: 13,
-    color: '#64748b',
-    textAlign: 'center',
-    paddingVertical: 20,
+    marginTop: 2,
   },
   sheetAddBtn: {
     flexDirection: 'row',
@@ -2771,25 +3205,12 @@ const styles = StyleSheet.create({
   },
   sheetAddBtnText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#0284c7',
-  },
-  sheetDoneBtn: {
-    backgroundColor: '#0284c7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 12,
-  },
-  sheetDoneBtnText: {
-    color: '#ffffff',
-    fontSize: 14,
     fontWeight: '700',
+    color: '#0284c7',
   },
   modalOverlayCenter: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -2797,17 +3218,17 @@ const styles = StyleSheet.create({
   addVehicleBox: {
     width: '100%',
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 22,
+    padding: 22,
   },
   addVehicleTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: '#0f172a',
   },
   inputLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#64748b',
     marginBottom: 6,
   },
@@ -2819,18 +3240,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    gap: 2,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 3,
   },
   typePillSelected: {
-    backgroundColor: 'rgba(2, 132, 199, 0.1)',
+    backgroundColor: 'rgba(2, 132, 199, 0.12)',
     borderColor: '#0284c7',
+    borderWidth: 1.5,
   },
   typePillText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#64748b',
   },
   typePillTextActive: {
@@ -2839,9 +3260,9 @@ const styles = StyleSheet.create({
   modalInput: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    height: 42,
+    height: 44,
     fontSize: 13,
     color: '#0f172a',
   },
@@ -2849,13 +3270,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#0284c7',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 16,
+    paddingVertical: 13,
+    borderRadius: 14,
+    marginTop: 18,
   },
   saveVehicleBtnText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });
