@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [removingAvatar, setRemovingAvatar] = useState(false);
+  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'security'>('profile');
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('home');
 
   const [profileForm, setProfileForm] = useState({
@@ -300,58 +300,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleRemoveAvatar = async () => {
-    safeHapticLight();
-
-    if (!avatarUri) {
-      return;
-    }
-
-    if (!token) {
-      Alert.alert('Session expired', 'Please log in again.');
-      router.replace('/login');
-      return;
-    }
-
-    Alert.alert('Remove profile photo', 'Are you sure you want to delete your profile image?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setRemovingAvatar(true);
-
-            const response = await axios.post(
-              `${API_BASE}/api/auth/avatar/remove`,
-              {},
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  'Bypass-Tunnel-Reminder': 'true',
-                  'ngrok-skip-browser-warning': 'true',
-                },
-              }
-            );
-
-            const updatedUser = response.data?.user
-              ? { ...response.data.user, avatar: null, avatar_url: null }
-              : { ...user, avatar: null, avatar_url: null };
-
-            setUser(updatedUser);
-            await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-            Alert.alert('Success', response.data?.message || 'Profile photo removed.');
-          } catch (error: any) {
-            const message = error.response?.data?.message || 'Unable to remove profile image.';
-            Alert.alert('Remove failed', message);
-          } finally {
-            setRemovingAvatar(false);
-          }
-        },
-      },
-    ]);
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.centeredContainer}>
@@ -412,181 +360,188 @@ export default function ProfileScreen() {
                 </View>
               </View>
             </View>
-
-            {avatarUri && (
-              <View style={styles.avatarActions}>
-                <TouchableOpacity style={styles.textLinkButton} onPress={handleRemoveAvatar} disabled={removingAvatar}>
-                  {removingAvatar ? (
-                    <ActivityIndicator size="small" color="#ef4444" />
-                  ) : (
-                    <Text style={styles.textLinkText}>Remove photo</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
 
           <View style={styles.sectionsWrap}>
-            <View style={[styles.card, isDark && styles.darkCard]}>
-              <View style={styles.cardHeader}>
-                <View style={[styles.cardIcon, { backgroundColor: '#e0f2fe' }]}>
-                  <Ionicons name="person-outline" size={20} color="#0284c7" />
-                </View>
-                <View style={styles.cardTitleWrap}>
-                  <Text style={[styles.cardTitle, isDark && styles.darkCardTitle]}>Personal Information</Text>
-                  <Text style={[styles.cardSubtitle, isDark && styles.darkCardSubtitle]}>Update your name, email and phone number</Text>
-                </View>
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, isDark && styles.darkLabel]}>Full Name *</Text>
-                <TextInput
-                  value={profileForm.name}
-                  onChangeText={(text) => setProfileForm({ ...profileForm, name: text })}
-                  style={[styles.input, isDark && styles.darkInput]}
-                  placeholder="Full Name"
-                  placeholderTextColor={isDark ? '#94a3b8' : '#94a3b8'}
-                />
-              </View>
-
-              <View style={styles.twoColumn}>
-                <View style={styles.formGroupFlex}>
-                  <Text style={[styles.label, isDark && styles.darkLabel]}>Email Address *</Text>
-                  <TextInput
-                    value={profileForm.email}
-                    onChangeText={(text) => setProfileForm({ ...profileForm, email: text })}
-                    style={[styles.input, isDark && styles.darkInput]}
-                    placeholder="Email Address"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor="#94a3b8"
-                  />
-                </View>
-
-                <View style={styles.formGroupFlex}>
-                  <Text style={[styles.label, isDark && styles.darkLabel]}>Mobile Number</Text>
-                  <TextInput
-                    value={profileForm.phone}
-                    onChangeText={(text) => setProfileForm({ ...profileForm, phone: text.replace(/[^0-9]/g, '') })}
-                    style={[styles.input, isDark && styles.darkInput]}
-                    placeholder="Mobile Number"
-                    keyboardType="numeric"
-                    maxLength={10}
-                    placeholderTextColor="#94a3b8"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, isDark && styles.darkLabel]}>Default Doorstep Service Address</Text>
-                <TextInput
-                  value={profileForm.address}
-                  onChangeText={(text) => setProfileForm({ ...profileForm, address: text })}
-                  style={[styles.input, styles.textArea, isDark && styles.darkInput]}
-                  placeholder="Flat/House No., Building, Street, Landmark, Area, City, Pincode"
-                  multiline
-                  numberOfLines={4}
-                  placeholderTextColor="#94a3b8"
-                />
-                <Text style={[styles.helperText, isDark && styles.darkHelperText]}>
-                  This address will be automatically suggested when you book a car wash slot.
+            <View style={styles.tabBar}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[styles.tabButton, activeProfileTab === 'profile' && styles.activeTabButton]}
+                onPress={() => setActiveProfileTab('profile')}
+              >
+                <Text style={[styles.tabButtonText, activeProfileTab === 'profile' && styles.activeTabButtonText]}>
+                  Profile Information
                 </Text>
-              </View>
+              </TouchableOpacity>
 
-              <TouchableOpacity style={styles.primaryButton} onPress={updateProfile} disabled={savingProfile}>
-                <Text style={styles.primaryButtonText}>{savingProfile ? 'Saving...' : 'Save Changes'}</Text>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[styles.tabButton, activeProfileTab === 'security' && styles.activeTabButton]}
+                onPress={() => setActiveProfileTab('security')}
+              >
+                <Text style={[styles.tabButtonText, activeProfileTab === 'security' && styles.activeTabButtonText]}>
+                  Security
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <View style={[styles.card, isDark && styles.darkCard]}>
-              <View style={styles.cardHeader}>
-                <View style={[styles.cardIcon, { backgroundColor: '#dcfce7' }]}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#16a34a" />
-                </View>
-                <View style={styles.cardTitleWrap}>
-                  <Text style={[styles.cardTitle, isDark && styles.darkCardTitle]}>Security</Text>
-                  <Text style={[styles.cardSubtitle, isDark && styles.darkCardSubtitle]}>Change your account password</Text>
-                </View>
-              </View>
-
-              <View style={styles.twoColumn}>
-                <View style={styles.formGroupFlex}>
-                  <Text style={[styles.label, isDark && styles.darkLabel]}>Current Password *</Text>
-                  <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
-                    <TextInput
-                      value={passwordForm.current_password}
-                      onChangeText={(text) => setPasswordForm({ ...passwordForm, current_password: text })}
-                      style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
-                      secureTextEntry={!showCurrentPassword}
-                      placeholder="Enter current password"
-                      placeholderTextColor="#94a3b8"
-                    />
-                    <TouchableOpacity onPress={() => setShowCurrentPassword((prev) => !prev)}>
-                      <Ionicons
-                        name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
-                        size={18}
-                        color="#64748b"
-                      />
-                    </TouchableOpacity>
+            {activeProfileTab === 'profile' ? (
+              <View style={[styles.card, isDark && styles.darkCard]}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#e0f2fe' }]}>
+                    <Ionicons name="person-outline" size={20} color="#0284c7" />
                   </View>
-                </View>
-              </View>
-
-              <View style={styles.twoColumn}>
-                <View style={styles.formGroupFlex}>
-                  <Text style={[styles.label, isDark && styles.darkLabel]}>New Password *</Text>
-                  <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
-                    <TextInput
-                      value={passwordForm.password}
-                      onChangeText={(text) => setPasswordForm({ ...passwordForm, password: text })}
-                      style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
-                      secureTextEntry={!showNewPassword}
-                      placeholder="Min 6 characters"
-                      placeholderTextColor="#94a3b8"
-                    />
-                    <TouchableOpacity onPress={() => setShowNewPassword((prev) => !prev)}>
-                      <Ionicons
-                        name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
-                        size={18}
-                        color="#64748b"
-                      />
-                    </TouchableOpacity>
+                  <View style={styles.cardTitleWrap}>
+                    <Text style={[styles.cardTitle, isDark && styles.darkCardTitle]}>Personal Information</Text>
+                    <Text style={[styles.cardSubtitle, isDark && styles.darkCardSubtitle]}>Update your name, email and phone number</Text>
                   </View>
                 </View>
 
-                <View style={styles.formGroupFlex}>
-                  <Text style={[styles.label, isDark && styles.darkLabel]}>Confirm Password *</Text>
-                  <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, isDark && styles.darkLabel]}>Full Name *</Text>
+                  <TextInput
+                    value={profileForm.name}
+                    onChangeText={(text) => setProfileForm({ ...profileForm, name: text })}
+                    style={[styles.input, isDark && styles.darkInput]}
+                    placeholder="Full Name"
+                    placeholderTextColor="#94a3b8"
+                  />
+                </View>
+
+                <View style={styles.twoColumn}>
+                  <View style={styles.formGroupFlex}>
+                    <Text style={[styles.label, isDark && styles.darkLabel]}>Email Address *</Text>
                     <TextInput
-                      value={passwordForm.password_confirmation}
-                      onChangeText={(text) =>
-                        setPasswordForm({ ...passwordForm, password_confirmation: text })
-                      }
-                      style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
-                      secureTextEntry={!showConfirmPassword}
-                      placeholder="Re-enter new password"
+                      value={profileForm.email}
+                      onChangeText={(text) => setProfileForm({ ...profileForm, email: text })}
+                      style={[styles.input, isDark && styles.darkInput]}
+                      placeholder="Email Address"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
                       placeholderTextColor="#94a3b8"
                     />
-                    <TouchableOpacity onPress={() => setShowConfirmPassword((prev) => !prev)}>
-                      <Ionicons
-                        name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                        size={18}
-                        color="#64748b"
-                      />
-                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.formGroupFlex}>
+                    <Text style={[styles.label, isDark && styles.darkLabel]}>Mobile Number</Text>
+                    <TextInput
+                      value={profileForm.phone}
+                      onChangeText={(text) => setProfileForm({ ...profileForm, phone: text.replace(/[^0-9]/g, '') })}
+                      style={[styles.input, isDark && styles.darkInput]}
+                      placeholder="Mobile Number"
+                      keyboardType="numeric"
+                      maxLength={10}
+                      placeholderTextColor="#94a3b8"
+                    />
                   </View>
                 </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, isDark && styles.darkLabel]}>Default Doorstep Service Address</Text>
+                  <TextInput
+                    value={profileForm.address}
+                    onChangeText={(text) => setProfileForm({ ...profileForm, address: text })}
+                    style={[styles.input, styles.textArea, isDark && styles.darkInput]}
+                    placeholder="Flat/House No., Building, Street, Landmark, Area, City, Pincode"
+                    multiline
+                    numberOfLines={4}
+                    placeholderTextColor="#94a3b8"
+                  />
+                  <Text style={[styles.helperText, isDark && styles.darkHelperText]}>
+                    This address will be automatically suggested when you book a car wash slot.
+                  </Text>
+                </View>
+
+                <TouchableOpacity style={styles.primaryButton} onPress={updateProfile} disabled={savingProfile}>
+                  <Text style={styles.primaryButtonText}>{savingProfile ? 'Saving...' : 'Save Changes'}</Text>
+                </TouchableOpacity>
               </View>
+            ) : (
+              <View style={[styles.card, isDark && styles.darkCard]}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#dcfce7' }]}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#16a34a" />
+                  </View>
+                  <View style={styles.cardTitleWrap}>
+                    <Text style={[styles.cardTitle, isDark && styles.darkCardTitle]}>Security</Text>
+                    <Text style={[styles.cardSubtitle, isDark && styles.darkCardSubtitle]}>Change your account password</Text>
+                  </View>
+                </View>
 
-              <TouchableOpacity style={styles.secondaryButton} onPress={updatePassword} disabled={updatingPassword}>
-                <Text style={styles.secondaryButtonText}>{updatingPassword ? 'Updating...' : 'Update Password'}</Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.twoColumn}>
+                  <View style={styles.formGroupFlex}>
+                    <Text style={[styles.label, isDark && styles.darkLabel]}>Current Password *</Text>
+                    <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
+                      <TextInput
+                        value={passwordForm.current_password}
+                        onChangeText={(text) => setPasswordForm({ ...passwordForm, current_password: text })}
+                        style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
+                        secureTextEntry={!showCurrentPassword}
+                        placeholder="Enter current password"
+                        placeholderTextColor="#94a3b8"
+                      />
+                      <TouchableOpacity onPress={() => setShowCurrentPassword((prev) => !prev)}>
+                        <Ionicons
+                          name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={18}
+                          color="#64748b"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
 
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={20} color="#ffffff" />
-              <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
+                <View style={styles.twoColumn}>
+                  <View style={styles.formGroupFlex}>
+                    <Text style={[styles.label, isDark && styles.darkLabel]}>New Password *</Text>
+                    <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
+                      <TextInput
+                        value={passwordForm.password}
+                        onChangeText={(text) => setPasswordForm({ ...passwordForm, password: text })}
+                        style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
+                        secureTextEntry={!showNewPassword}
+                        placeholder="Min 6 characters"
+                        placeholderTextColor="#94a3b8"
+                      />
+                      <TouchableOpacity onPress={() => setShowNewPassword((prev) => !prev)}>
+                        <Ionicons
+                          name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={18}
+                          color="#64748b"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.formGroupFlex}>
+                    <Text style={[styles.label, isDark && styles.darkLabel]}>Confirm Password *</Text>
+                    <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
+                      <TextInput
+                        value={passwordForm.password_confirmation}
+                        onChangeText={(text) =>
+                          setPasswordForm({ ...passwordForm, password_confirmation: text })
+                        }
+                        style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
+                        secureTextEntry={!showConfirmPassword}
+                        placeholder="Re-enter new password"
+                        placeholderTextColor="#94a3b8"
+                      />
+                      <TouchableOpacity onPress={() => setShowConfirmPassword((prev) => !prev)}>
+                        <Ionicons
+                          name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={18}
+                          color="#64748b"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.secondaryButton} onPress={updatePassword} disabled={updatingPassword}>
+                  <Text style={styles.secondaryButtonText}>{updatingPassword ? 'Updating...' : 'Update Password'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -673,23 +628,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#ffffff',
   },
-  avatarActions: {
-    marginTop: 12,
-    alignItems: 'flex-start',
-  },
-  textLinkButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  textLinkText: {
-    fontSize: 12,
-    color: '#dc2626',
-    fontWeight: '700',
-  },
   profileInfo: {
     flex: 1,
   },
@@ -723,6 +661,42 @@ const styles = StyleSheet.create({
   },
   sectionsWrap: {
     gap: 18,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#e2e8f0',
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 12,
+    alignSelf: 'center',
+    width: '88%',
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    minHeight: 34,
+  },
+  activeTabButton: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  tabButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    textAlign: 'center',
+  },
+  activeTabButtonText: {
+    color: '#0284c7',
+    fontWeight: '800',
   },
   card: {
     backgroundColor: '#ffffff',

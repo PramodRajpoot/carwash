@@ -360,10 +360,14 @@ class AuthController extends Controller
 
         $user->update(['avatar' => null]);
 
+        $freshUser = $user->fresh();
+        $freshUser->avatar = null;
+        $freshUser->avatar_url = null;
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Profile photo removed successfully.',
-            'user'    => $user->fresh(),
+            'user'    => $freshUser,
         ]);
     }
 
