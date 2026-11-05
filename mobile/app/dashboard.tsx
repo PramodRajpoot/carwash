@@ -23,6 +23,7 @@ import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { safeHapticLight, safeHapticMedium, safeHapticWarning } from '../utils/haptics';
+import { showSweetAlert } from '../utils/sweetAlert';
 import { getAvatarUri } from '../utils/avatar';
 
 import { API_BASE } from '../constants/api';
@@ -216,31 +217,25 @@ export default function DashboardScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
+    showSweetAlert(
       'Sign Out',
       'Are you sure you want to sign out of your account?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            safeHapticWarning();
-            try {
-              if (token) {
-                await axios.post(
-                  `${API_BASE}/api/auth/logout`,
-                  {},
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-              }
-            } catch {}
-            await AsyncStorage.removeItem('userToken');
-            await AsyncStorage.removeItem('userData');
-            router.replace('/login');
-          },
-        },
-      ]
+      'warning',
+      async () => {
+        safeHapticWarning();
+        try {
+          if (token) {
+            await axios.post(
+              `${API_BASE}/api/auth/logout`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+        } catch {}
+        await AsyncStorage.removeItem('userToken');
+        await AsyncStorage.removeItem('userData');
+        router.replace('/login');
+      }
     );
   };
 
@@ -249,6 +244,13 @@ export default function DashboardScreen() {
     if (title === 'My Garage' && path === '/customer/vehicles') {
       setMenuVisible(false);
       router.push('/garage');
+      return;
+    }
+
+    if (path === '/customer/offers' || title === 'Offers & Deals') {
+      setMenuVisible(false);
+      setModalVisible(false);
+      router.push('/offer');
       return;
     }
 
@@ -463,7 +465,7 @@ export default function DashboardScreen() {
             openActionView('E-Points Wallet', '/customer/wallet')
           }
           onOffersPress={() =>
-            openActionView('Offers & Deals', '/customer/offers')
+            router.push('/offer')
           }
           onReferPress={() =>
             openActionView('Refer & Earn', '/customer/referrals')
@@ -739,7 +741,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               style={styles.menuItem}
-              onPress={() => openActionView('Offers & Deals', '/customer/offers')}
+              onPress={() => router.push('/offer')}
             >
               <View style={[styles.menuItemIcon, { backgroundColor: '#fff1f2' }]}>
                 <Ionicons name="ticket-outline" size={20} color="#e11d48" />

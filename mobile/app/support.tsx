@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Platform,
   RefreshControl,
@@ -23,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_BASE } from '../constants/api';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
+import { showSweetAlert } from '../utils/sweetAlert';
 
 interface SupportTicket {
   id: number;
@@ -131,7 +131,7 @@ export default function SupportScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission required', 'Please allow access to your photos to upload a screenshot.');
+        showSweetAlert('Permission required', 'Please allow access to your photos to upload a screenshot.', 'warning');
         return;
       }
 
@@ -145,7 +145,7 @@ export default function SupportScreen() {
         setSelectedImage(result.assets[0]);
       }
     } catch (error) {
-      Alert.alert('Upload failed', 'Unable to select an image right now.');
+      showSweetAlert('Upload failed', 'Unable to select an image right now.', 'error');
     }
   };
 
@@ -153,7 +153,7 @@ export default function SupportScreen() {
 
   const handleSubmit = async () => {
     if (!subject.trim() || !body.trim()) {
-      Alert.alert('Missing details', 'Please provide both subject and issue description.');
+      showSweetAlert('Missing details', 'Please provide both subject and issue description.', 'warning');
       return;
     }
 
@@ -161,7 +161,7 @@ export default function SupportScreen() {
       setSubmitting(true);
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Session expired', 'Please log in again.');
+        showSweetAlert('Session expired', 'Please log in again.', 'warning');
         router.replace('/login');
         return;
       }
@@ -189,9 +189,9 @@ export default function SupportScreen() {
 
       clearForm();
       await loadTickets();
-      Alert.alert('Success', 'Your support ticket has been submitted.');
+      showSweetAlert('Success', 'Your support ticket has been submitted.', 'success');
     } catch (error: any) {
-      Alert.alert('Error', error?.response?.data?.message || 'Failed to submit ticket.');
+      showSweetAlert('Error', error?.response?.data?.message || 'Failed to submit ticket.', 'error');
     } finally {
       setSubmitting(false);
     }

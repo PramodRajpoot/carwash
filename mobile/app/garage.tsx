@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   SafeAreaView,
@@ -23,6 +22,7 @@ import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
 import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
+import { showSweetAlert } from '../utils/sweetAlert';
 
 interface Vehicle {
   id: number;
@@ -98,7 +98,7 @@ export default function GarageScreen() {
       setVehicles(list);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
-      Alert.alert('Unable to load vehicles');
+      showSweetAlert('Unable to load vehicles', undefined, 'error');
     }
   };
 
@@ -138,7 +138,7 @@ export default function GarageScreen() {
 
   const handleRegisterVehicle = async () => {
     if (!makeModel.trim()) {
-      Alert.alert('Please enter make & model');
+      showSweetAlert('Please enter make & model', undefined, 'warning');
       return;
     }
 
@@ -156,7 +156,7 @@ export default function GarageScreen() {
       setSubmitting(true);
 
       if (!token) {
-        Alert.alert('Session expired');
+        showSweetAlert('Session expired', undefined, 'warning');
         return;
       }
 
@@ -181,7 +181,7 @@ export default function GarageScreen() {
       setSelectedType('Sedan');
       setRegisterModalVisible(false);
       await fetchVehicles(token);
-      Alert.alert('Vehicle registered successfully');
+      showSweetAlert('Vehicle registered successfully', undefined, 'success');
     } catch (error: any) {
       console.error('Register vehicle error:', error);
       const validationMessage =
@@ -190,7 +190,7 @@ export default function GarageScreen() {
         error?.message ||
         'Please try again.';
 
-      Alert.alert('Unable to register vehicle', validationMessage);
+      showSweetAlert('Unable to register vehicle', validationMessage, 'error');
     } finally {
       setSubmitting(false);
     }

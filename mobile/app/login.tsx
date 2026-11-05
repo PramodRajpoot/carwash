@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   ScrollView,
   Image,
 } from 'react-native';
@@ -18,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE } from '../constants/api';
+import { showSweetAlert } from '../utils/sweetAlert';
 
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
@@ -78,7 +78,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      showSweetAlert('Error', 'Please fill in all fields.', 'error');
       return;
     }
 
@@ -94,9 +94,10 @@ export default function LoginScreen() {
 
         // Only customers are allowed to login via the mobile app
         if (user.role !== 'customer') {
-          Alert.alert(
+          showSweetAlert(
             'Access Denied',
-            'Only customers can login to the mobile app. Please use the web portal for admin or franchise access.'
+            'Only customers can login to the mobile app. Please use the web portal for admin or franchise access.',
+            'warning'
           );
           return;
         }
@@ -107,12 +108,12 @@ export default function LoginScreen() {
         
         router.replace('/dashboard');
       } else {
-        Alert.alert('Login Failed', response.data.message || 'Invalid credentials');
+        showSweetAlert('Login Failed', response.data.message || 'Invalid credentials', 'error');
       }
     } catch (error: any) {
       console.error(error);
       const msg = error.response?.data?.message || 'Network error, please try again.';
-      Alert.alert('Login Failed', msg);
+      showSweetAlert('Login Failed', msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -120,7 +121,7 @@ export default function LoginScreen() {
 
   const handleSendOtp = async (isResend = false) => {
     if (!identifier) {
-      Alert.alert('Error', 'Please enter a valid mobile number or email.');
+      showSweetAlert('Error', 'Please enter a valid mobile number or email.', 'error');
       return;
     }
     if (isResend && resendCount >= 2) return;
@@ -132,7 +133,7 @@ export default function LoginScreen() {
       startCountdown();
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to send OTP.');
+      showSweetAlert('Error', error.response?.data?.message || 'Failed to send OTP.', 'error');
     } finally {
       setLoading(false);
     }
@@ -140,7 +141,7 @@ export default function LoginScreen() {
 
   const handleVerifyOtp = async () => {
     if (!identifier || !otp) {
-      Alert.alert('Error', 'Please enter the OTP.');
+      showSweetAlert('Error', 'Please enter the OTP.', 'error');
       return;
     }
     setLoading(true);
@@ -149,7 +150,7 @@ export default function LoginScreen() {
       if (response.data.status === 'success') {
         const user = response.data.user;
         if (user.role !== 'customer') {
-          Alert.alert('Access Denied', 'Only customers can login to the mobile app.');
+          showSweetAlert('Access Denied', 'Only customers can login to the mobile app.', 'warning');
           return;
         }
         await AsyncStorage.setItem('userToken', response.data.access_token);
@@ -158,7 +159,7 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', error.response?.data?.message || 'Invalid OTP.');
+      showSweetAlert('Error', error.response?.data?.message || 'Invalid OTP.', 'error');
     } finally {
       setLoading(false);
     }

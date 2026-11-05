@@ -19,6 +19,7 @@ import axios from 'axios';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE } from '../constants/api';
+import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
 
@@ -232,45 +233,40 @@ export default function SubscriptionsScreen() {
       return;
     }
 
-    Alert.alert(
+    showSweetAlert(
       'Subscribe plan',
       'Subscribing will activate this package immediately and expire any previous active plan. Proceed?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Proceed',
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem('userToken');
-              if (!token) {
-                router.push('/login');
-                return;
-              }
+      'warning',
+      async () => {
+        try {
+          const token = await AsyncStorage.getItem('userToken');
+          if (!token) {
+            router.push('/login');
+            return;
+          }
 
-              setSubscribingId(plan.id);
-              const response = await axios.post(
-                `${API_BASE}/api/customer/subscriptions`,
-                { package_id: plan.id },
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    'ngrok-skip-browser-warning': 'true',
-                    'Bypass-Tunnel-Reminder': 'true',
-                  },
-                }
-              );
-
-              Alert.alert('Success', response.data?.message || 'Subscription activated successfully.');
-              await loadPlans();
-            } catch (error: any) {
-              const message = error?.response?.data?.message || 'Failed to subscribe.';
-              Alert.alert('Subscription failed', message);
-            } finally {
-              setSubscribingId(null);
+          setSubscribingId(plan.id);
+          const response = await axios.post(
+            `${API_BASE}/api/customer/subscriptions`,
+            { package_id: plan.id },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'ngrok-skip-browser-warning': 'true',
+                'Bypass-Tunnel-Reminder': 'true',
+              },
             }
-          },
-        },
-      ]
+          );
+
+          showSweetAlert('Success', response.data?.message || 'Subscription activated successfully.', 'success');
+          await loadPlans();
+        } catch (error: any) {
+          const message = error?.response?.data?.message || 'Failed to subscribe.';
+          showSweetAlert('Subscription failed', message, 'error');
+        } finally {
+          setSubscribingId(null);
+        }
+      }
     );
   };
 

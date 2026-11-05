@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   ScrollView,
   Image,
 } from 'react-native';
@@ -18,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE } from '../constants/api';
+import { showSweetAlert } from '../utils/sweetAlert';
 
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
@@ -47,12 +47,12 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name || !email || !phone || !password || !passwordConfirm) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+      showSweetAlert('Error', 'Please fill in all required fields.', 'error');
       return;
     }
 
     if (password !== passwordConfirm) {
-      Alert.alert('Error', 'Passwords do not match.');
+      showSweetAlert('Error', 'Passwords do not match.', 'error');
       return;
     }
 
@@ -77,11 +77,9 @@ export default function RegisterScreen() {
           ? 'Registration successful! You and your referrer both earned 50 E-Points!'
           : 'Registration successful! You earned 50 E-Points as a welcome bonus!';
 
-        Alert.alert('Welcome! 🎉', welcomeMessage, [
-          { text: 'Get Started', onPress: () => router.replace('/dashboard') }
-        ]);
+        showSweetAlert('Welcome! 🎉', welcomeMessage, 'success', () => router.replace('/dashboard'));
       } else {
-        Alert.alert('Registration Failed', response.data.message || 'Could not register');
+        showSweetAlert('Registration Failed', response.data.message || 'Could not register', 'error');
       }
     } catch (error: any) {
       console.error(error);
@@ -92,7 +90,7 @@ export default function RegisterScreen() {
       } else if (error.response?.data?.message) {
         msg = error.response.data.message;
       }
-      Alert.alert('Registration Failed', msg);
+      showSweetAlert('Registration Failed', msg, 'error');
     } finally {
       setLoading(false);
     }

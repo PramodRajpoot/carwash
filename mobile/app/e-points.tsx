@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   RefreshControl,
   SafeAreaView,
@@ -21,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_BASE } from '../constants/api';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
+import { showSweetAlert } from '../utils/sweetAlert';
 
 interface WalletBalance {
   earning_money?: number | string;
@@ -206,7 +206,7 @@ export default function EPointsScreen() {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Session expired', 'Please log in again to update your bank details.');
+        showSweetAlert('Session expired', 'Please log in again to update your bank details.', 'warning');
         router.replace('/login');
         return;
       }
@@ -225,10 +225,10 @@ export default function EPointsScreen() {
         }
       );
 
-      Alert.alert('Success', 'Bank details saved successfully.');
+      showSweetAlert('Success', 'Bank details saved successfully.', 'success');
       await loadWalletData();
     } catch (error: any) {
-      Alert.alert('Error', error?.response?.data?.message || 'Failed to save bank details.');
+      showSweetAlert('Error', error?.response?.data?.message || 'Failed to save bank details.', 'error');
     } finally {
       setSavingBank(false);
     }
@@ -238,19 +238,19 @@ export default function EPointsScreen() {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Session expired', 'Please log in again to continue.');
+        showSweetAlert('Session expired', 'Please log in again to continue.', 'warning');
         router.replace('/login');
         return;
       }
 
       if (!hasBankDetails) {
-        Alert.alert('Bank details missing', 'Please save your bank or UPI details first.');
+        showSweetAlert('Bank details missing', 'Please save your bank or UPI details first.', 'warning');
         return;
       }
 
       const amount = Number(redeemAmount);
       if (!Number.isFinite(amount) || amount < minWithdrawal || amount > earningMoney) {
-        Alert.alert('Invalid amount', 'Minimum withdrawal is ₹2,000.00 and cannot exceed your current balance.');
+        showSweetAlert('Invalid amount', 'Minimum withdrawal is ₹2,000.00 and cannot exceed your current balance.', 'warning');
         return;
       }
 
@@ -268,11 +268,11 @@ export default function EPointsScreen() {
         }
       );
 
-      Alert.alert('Success', 'Withdrawal request submitted successfully.');
+      showSweetAlert('Success', 'Withdrawal request submitted successfully.', 'success');
       setRedeemAmount('2000');
       await loadWalletData();
     } catch (error: any) {
-      Alert.alert('Error', error?.response?.data?.message || 'Withdrawal request failed.');
+      showSweetAlert('Error', error?.response?.data?.message || 'Withdrawal request failed.', 'error');
     } finally {
       setRedeeming(false);
     }
