@@ -259,6 +259,13 @@ export default function DashboardScreen() {
       return;
     }
 
+    if (path === '/customer/wallet' || title === 'E-Points Wallet' || title === 'Earning Money Wallet') {
+      setMenuVisible(false);
+      setModalVisible(false);
+      router.push('/e-points');
+      return;
+    }
+
     setMenuVisible(false);
     setActiveFooterTab(tab);
     setModalTitle(title);
