@@ -119,7 +119,7 @@ export default function OfferScreen() {
     }
 
     if (tab === 'book') {
-      router.push('/book');
+      router.push('/bookings');
       return;
     }
 

@@ -184,12 +184,12 @@ export default function EPointsScreen() {
     }
 
     if (tab === 'book') {
-      router.push('/book');
+      router.push('/bookings');
       return;
     }
 
     if (tab === 'support') {
-      router.replace('/dashboard');
+      router.push('/support');
     }
   };
 

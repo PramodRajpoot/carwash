@@ -216,7 +216,7 @@ export default function SupportScreen() {
     }
 
     if (tab === 'book') {
-      router.push('/book');
+      router.push('/bookings');
       return;
     }
 

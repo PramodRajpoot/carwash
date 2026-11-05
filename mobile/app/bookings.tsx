@@ -104,6 +104,7 @@ export default function BookingsScreen() {
   const [webProgress, setWebProgress] = useState(0);
   const [canGoBack, setCanGoBack] = useState(false);
   const webviewRef = useRef<any>(null);
+  const scrollViewRef = useRef<any>(null);
 
   const buildCashfreeCheckoutHtml = (sessionId: string, environment: string = 'sandbox') => {
     const mode = environment.toLowerCase() === 'production' ? 'production' : 'sandbox';
@@ -351,7 +352,7 @@ export default function BookingsScreen() {
     } else if (tab === 'support') {
       router.push('/support');
     } else if (tab === 'book') {
-      router.push('/book');
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
   };
@@ -546,7 +547,7 @@ export default function BookingsScreen() {
       />
 
       <View style={[styles.sectionHeaderRow, isDark && styles.darkSectionHeaderRow]}>
-        <Text style={[styles.sectionTitle, isDark && styles.darkText]}>My Washes</Text>
+        <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Wash List</Text>
 
         <View style={[styles.filterTriggerWrap, isDark && styles.darkFilterTriggerWrap]}>
           <TouchableOpacity
@@ -602,6 +603,7 @@ export default function BookingsScreen() {
 
       {/* Main Scroll Content */}
       <ScrollView
+        ref={scrollViewRef}
         style={[styles.scrollView, isDark && styles.darkContainer]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

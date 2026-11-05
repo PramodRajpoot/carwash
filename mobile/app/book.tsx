@@ -812,6 +812,7 @@ export default function BookScreen() {
     } else if (tab === 'garage') {
       router.push('/garage');
     } else if (tab === 'book') {
+      router.push('/bookings');
       return;
     } else if (tab === 'support') {
       router.push('/support');
@@ -1811,7 +1812,7 @@ export default function BookScreen() {
 
       {/* App Fixed Footer Navigation Bar */}
       {!cashfreeHtml && (
-        <AppFooter activeTab="book" isDark={isDark} onTabPress={handleFooterTabPress} />
+        <AppFooter activeTab="none" isDark={isDark} onTabPress={handleFooterTabPress} />
       )}
 
       {/* Dedicated Fullscreen Cashfree Payment Gateway Modal */}

@@ -13,7 +13,7 @@ import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
 export type FooterTab = 'home' | 'garage' | 'book' | 'support' | 'notifications';
 
 interface Props {
-  activeTab?: FooterTab;
+  activeTab?: FooterTab | 'none';
   isDark?: boolean;
   onTabPress: (tab: FooterTab) => void;
 }

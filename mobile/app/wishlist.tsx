@@ -144,7 +144,7 @@ export default function WishlistScreen() {
     }
 
     if (tab === 'book') {
-      router.push('/book');
+      router.push('/bookings');
       return;
     }
 

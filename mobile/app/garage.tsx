@@ -205,11 +205,11 @@ export default function GarageScreen() {
       return;
     }
     if (tab === 'book') {
-      router.push('/book');
+      router.push('/bookings');
       return;
     }
     if (tab === 'support') {
-      router.push('/dashboard');
+      router.push('/support');
     }
   };
 

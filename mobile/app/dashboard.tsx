@@ -321,7 +321,7 @@ export default function DashboardScreen() {
         router.push('/garage');
         break;
       case 'book':
-        router.push('/book');
+        router.push('/bookings');
         break;
       case 'support':
         router.push('/support');
