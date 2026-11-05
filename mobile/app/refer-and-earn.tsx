@@ -67,6 +67,7 @@ export default function ReferAndEarnScreen() {
   const [user, setUser] = useState<any>({ name: 'User' });
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [data, setData] = useState<ReferralData>({});
 
   const syncTheme = useCallback(async () => {
@@ -196,6 +197,9 @@ export default function ReferAndEarnScreen() {
 
   const referralUsers = data.referred_users || [];
   const visibleReferralUsers = expanded ? referralUsers : referralUsers.slice(0, 2);
+  const referralDescription =
+    'When a friend registers with your code: • Your friend gets a 10% discount and 50 E-Points bonus • You earn 10% of their first booking value in E-Points • Points are credited to you after their first completed service';
+  const truncatedDescription = descriptionExpanded ? referralDescription : `${referralDescription.slice(0, 96)}...`;
 
   if (loading) {
     return (
@@ -284,9 +288,21 @@ export default function ReferAndEarnScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.helperText, isDark && styles.darkSubtext]}>
-            {`When a friend registers with your code:\n• Your friend gets a 10% discount and 50 E-Points bonus\n• You earn 10% of their first booking value in E-Points\n• Points are credited to you after their first completed service`}
-          </Text>
+          <View style={styles.descriptionRow}>
+            <Text style={[styles.helperText, isDark && styles.darkSubtext]}>
+              {truncatedDescription}
+            </Text>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setDescriptionExpanded((prev) => !prev)}
+              style={styles.readMoreBtn}
+            >
+              <Text style={[styles.readMoreText, isDark && styles.darkReadMoreText]}>
+                {descriptionExpanded ? 'Read less' : 'Read more'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.shareSection}>
             <Text style={[styles.shareLabel, isDark && styles.darkText]}>Share via</Text>
@@ -418,21 +434,25 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 16,
-    gap: 10,
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    gap: 4,
   },
   statCard: {
-    width: '46.5%',
-    borderRadius: 16,
-    padding: 14,
+    flex: 1,
+    minWidth: 0,
+    height: 72,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.01,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
   },
   darkStatCard: {
     backgroundColor: '#0f172a',
@@ -451,22 +471,24 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   statIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 3,
   },
   statValue: {
-    fontSize: 22,
+    fontSize: 13,
     fontWeight: '800',
     color: '#0f172a',
+    lineHeight: 16,
   },
   statLabel: {
-    marginTop: 4,
-    fontSize: 12,
+    marginTop: 1,
+    fontSize: 7.5,
     color: '#64748b',
+    lineHeight: 9,
   },
   card: {
     backgroundColor: '#fff',
@@ -536,11 +558,27 @@ const styles = StyleSheet.create({
   copyBtnTextSuccess: {
     color: '#166534',
   },
-  helperText: {
+  descriptionRow: {
     marginTop: 12,
+    width: '100%',
+  },
+  helperText: {
     color: '#475569',
     fontSize: 12,
     lineHeight: 18,
+    width: '100%',
+  },
+  readMoreBtn: {
+    marginTop: 4,
+    alignSelf: 'flex-end',
+  },
+  readMoreText: {
+    color: '#0369a1',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  darkReadMoreText: {
+    color: '#7dd3fc',
   },
   shareSection: {
     marginTop: 16,
