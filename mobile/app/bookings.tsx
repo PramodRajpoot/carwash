@@ -243,7 +243,7 @@ export default function BookingsScreen() {
     setCurrentPage(1);
   }, [activeFilter]);
 
-  const PAGE_SIZE = 6;
+  const PAGE_SIZE = 7;
   const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const visibleBookings = filteredBookings.slice(startIndex, startIndex + PAGE_SIZE);
