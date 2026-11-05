@@ -9,20 +9,47 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../constants/api';
 import { getAvatarUri } from '../utils/avatar';
 import { safeHapticLight } from '../utils/haptics';
+import DashboardHeader from '../components/DashboardHeader';
+import AppFooter, { FooterTab } from '../components/AppFooter';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
+  });
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -38,7 +65,14 @@ export default function ProfileScreen() {
         setToken(storedToken);
 
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setProfileForm({
+            name: parsedUser.name || '',
+            email: parsedUser.email || '',
+            phone: parsedUser.phone || '',
+            address: parsedUser.address || '',
+          });
         }
 
         const response = await axios.get(`${API_BASE}/api/auth/me`, {
@@ -49,10 +83,15 @@ export default function ProfileScreen() {
           },
         });
 
-        if (response.data) {
-          setUser(response.data);
-          await AsyncStorage.setItem('userData', JSON.stringify(response.data));
-        }
+        const meUser = response.data || {};
+        setUser(meUser);
+        setProfileForm({
+          name: meUser.name || '',
+          email: meUser.email || '',
+          phone: meUser.phone || '',
+          address: meUser.address || '',
+        });
+        await AsyncStorage.setItem('userData', JSON.stringify(meUser));
       } catch (error) {
         console.error('Profile fetch error:', error);
         Alert.alert('Unable to load profile', 'Please try again later.');
@@ -64,11 +103,98 @@ export default function ProfileScreen() {
     bootstrap();
   }, [router]);
 
+  useEffect(() => {
+    const loadTheme = async () => {
+      const theme = await AsyncStorage.getItem('app_theme');
+      setIsDark(theme === 'dark');
+    };
+    loadTheme();
+  }, []);
+
   const userName = user?.name || 'Customer';
-  const userEmail = user?.email || 'No email';
-  const userPhone = user?.phone || 'No phone number';
+  const userEmail = user?.email || 'customer@example.com';
   const avatarUri = getAvatarUri(user);
-  const initials = userName.charAt(0).toUpperCase();
+  const initials = userName.charAt(0).toUpperCase() || 'U';
+
+  const updateProfile = async () => {
+    safeHapticLight();
+    if (!profileForm.name.trim() || !profileForm.email.trim()) {
+      Alert.alert('Required fields missing', 'Full Name and Email are required.');
+      return;
+    }
+
+    setSavingProfile(true);
+
+    try {
+      const response = await axios.put(
+        `${API_BASE}/api/auth/profile`,
+        profileForm,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Bypass-Tunnel-Reminder': 'true',
+            'ngrok-skip-browser-warning': 'true',
+          },
+        }
+      );
+
+      const updatedUser = response.data?.user || { ...user, ...profileForm };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+      Alert.alert('Profile updated', response.data?.message || 'Your profile was updated successfully.');
+    } catch (error: any) {
+      const message = error.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join(' ')
+        : error.response?.data?.message || 'Unable to update profile.';
+      Alert.alert('Update failed', message);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const updatePassword = async () => {
+    safeHapticLight();
+    if (!passwordForm.current_password || !passwordForm.password || !passwordForm.password_confirmation) {
+      Alert.alert('All fields required', 'Please fill the current, new and confirm password fields.');
+      return;
+    }
+
+    if (passwordForm.password.length < 6) {
+      Alert.alert('Password too short', 'New password must be at least 6 characters.');
+      return;
+    }
+
+    if (passwordForm.password !== passwordForm.password_confirmation) {
+      Alert.alert('Passwords do not match', 'New password and confirm password should be same.');
+      return;
+    }
+
+    setUpdatingPassword(true);
+
+    try {
+      const response = await axios.put(
+        `${API_BASE}/api/auth/password`,
+        passwordForm,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Bypass-Tunnel-Reminder': 'true',
+            'ngrok-skip-browser-warning': 'true',
+          },
+        }
+      );
+
+      setPasswordForm({ current_password: '', password: '', password_confirmation: '' });
+      Alert.alert('Password updated', response.data?.message || 'Your password was changed successfully.');
+    } catch (error: any) {
+      const message = error.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join(' ')
+        : error.response?.data?.message || 'Unable to update password.';
+      Alert.alert('Password update failed', message);
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
 
   const handleLogout = async () => {
     safeHapticLight();
@@ -95,9 +221,123 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleFooterTabPress = (tab: FooterTab) => {
+    if (tab === 'home') {
+      router.push('/dashboard');
+    } else if (tab === 'garage') {
+      router.push('/garage');
+    } else if (tab === 'book') {
+      router.push('/bookings');
+    } else if (tab === 'support') {
+      router.push('/support');
+    }
+  };
+
+  const toggleTheme = async () => {
+    safeHapticLight();
+    const next = !isDark;
+    setIsDark(next);
+    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
+  };
+
+  const handleAvatarPick = async () => {
+    safeHapticLight();
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission required', 'Please allow access to photos to upload your profile image.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (result.canceled || !result.assets?.[0]) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      if (!token) {
+        Alert.alert('Session expired', 'Please log in again.');
+        router.replace('/login');
+        return;
+      }
+
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append('avatar', {
+        uri: asset.uri,
+        name: asset.fileName || `profile-${Date.now()}.jpg`,
+        type: asset.mimeType || 'image/jpeg',
+      } as any);
+
+      const response = await axios.post(`${API_BASE}/api/auth/avatar`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
+        },
+      });
+
+      const updatedUser = response.data?.user || { ...user, avatar: response.data?.avatar };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+      Alert.alert('Success', response.data?.message || 'Profile image updated successfully.');
+    } catch (error: any) {
+      const message = error.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join(' ')
+        : error.response?.data?.message || 'Unable to upload profile image.';
+      Alert.alert('Upload failed', message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    safeHapticLight();
+
+    if (!avatarUri) {
+      return;
+    }
+
+    Alert.alert('Remove profile photo', 'Are you sure you want to delete your profile image?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setRemovingAvatar(true);
+            const response = await axios.delete(`${API_BASE}/api/auth/avatar`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'ngrok-skip-browser-warning': 'true',
+                'Bypass-Tunnel-Reminder': 'true',
+              },
+            });
+
+            const updatedUser = response.data?.user || { ...user, avatar: null };
+            setUser(updatedUser);
+            await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+            Alert.alert('Success', response.data?.message || 'Profile photo removed.');
+          } catch (error: any) {
+            const message = error.response?.data?.message || 'Unable to remove profile image.';
+            Alert.alert('Remove failed', message);
+          } finally {
+            setRemovingAvatar(false);
+          }
+        },
+      },
+    ]);
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centeredContainer}>
         <ActivityIndicator size="large" color="#0ea5e9" />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </SafeAreaView>
@@ -105,74 +345,236 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#0f172a" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity onPress={() => router.push('/dashboard')} style={styles.backBtn}>
-            <Ionicons name="home-outline" size={22} color="#0f172a" />
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={[styles.safeArea, isDark && styles.darkSafeArea]}>
+      <DashboardHeader
+        user={user}
+        title="Profile"
+        showLocation={false}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        onProfilePress={() => router.push('/profile')}
+        onNotificationPress={() => router.push('/support')}
+      />
 
-        <View style={styles.profileCard}>
-          <View style={styles.avatarWrap}>
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatar} />
-            ) : (
-              <View style={styles.initialsCircle}>
-                <Text style={styles.initialsText}>{initials}</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+          <View style={styles.heroCard}>
+            <View style={styles.heroGlow} />
+            <View style={styles.profileHeader}>
+              <View style={styles.avatarWrap}>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Text style={styles.avatarText}>{initials}</Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.avatarEditButton}
+                  onPress={handleAvatarPick}
+                  disabled={uploadingAvatar}
+                >
+                  {uploadingAvatar ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Ionicons name="camera" size={16} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.profileInfo}>
+                <Text style={styles.nameText}>{userName}</Text>
+                <Text style={styles.emailText}>{userEmail}</Text>
+                <View style={styles.badgeRow}>
+                  <Ionicons name="shield-checkmark" size={12} color="#0369a1" />
+                  <Text style={styles.badgeText}>VERIFIED CUSTOMER</Text>
+                </View>
+              </View>
+            </View>
+
+            {avatarUri && (
+              <View style={styles.avatarActions}>
+                <TouchableOpacity style={styles.textLinkButton} onPress={handleRemoveAvatar} disabled={removingAvatar}>
+                  {removingAvatar ? (
+                    <ActivityIndicator size="small" color="#ef4444" />
+                  ) : (
+                    <Text style={styles.textLinkText}>Remove photo</Text>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
           </View>
 
-          <Text style={styles.name}>{userName}</Text>
-          <Text style={styles.email}>{userEmail}</Text>
+          <View style={styles.sectionsWrap}>
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIcon, { backgroundColor: '#e0f2fe' }]}>
+                  <Ionicons name="person-outline" size={20} color="#0284c7" />
+                </View>
+                <View style={styles.cardTitleWrap}>
+                  <Text style={styles.cardTitle}>Personal Information</Text>
+                  <Text style={styles.cardSubtitle}>Update your name, email and phone number</Text>
+                </View>
+              </View>
 
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>VERIFIED CUSTOMER</Text>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Full Name *</Text>
+                <TextInput
+                  value={profileForm.name}
+                  onChangeText={(text) => setProfileForm({ ...profileForm, name: text })}
+                  style={styles.input}
+                  placeholder="Full Name"
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
+
+              <View style={styles.twoColumn}>
+                <View style={styles.formGroupFlex}>
+                  <Text style={styles.label}>Email Address *</Text>
+                  <TextInput
+                    value={profileForm.email}
+                    onChangeText={(text) => setProfileForm({ ...profileForm, email: text })}
+                    style={styles.input}
+                    placeholder="Email Address"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholderTextColor="#94a3b8"
+                  />
+                </View>
+
+                <View style={styles.formGroupFlex}>
+                  <Text style={styles.label}>Mobile Number</Text>
+                  <TextInput
+                    value={profileForm.phone}
+                    onChangeText={(text) => setProfileForm({ ...profileForm, phone: text.replace(/[^0-9]/g, '') })}
+                    style={styles.input}
+                    placeholder="Mobile Number"
+                    keyboardType="numeric"
+                    maxLength={10}
+                    placeholderTextColor="#94a3b8"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Default Doorstep Service Address</Text>
+                <TextInput
+                  value={profileForm.address}
+                  onChangeText={(text) => setProfileForm({ ...profileForm, address: text })}
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Flat/House No., Building, Street, Landmark, Area, City, Pincode"
+                  multiline
+                  numberOfLines={4}
+                  placeholderTextColor="#94a3b8"
+                />
+                <Text style={styles.helperText}>
+                  This address will be automatically suggested when you book a car wash slot.
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.primaryButton} onPress={updateProfile} disabled={savingProfile}>
+                <Text style={styles.primaryButtonText}>{savingProfile ? 'Saving...' : 'Save Changes'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIcon, { backgroundColor: '#dcfce7' }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#16a34a" />
+                </View>
+                <View style={styles.cardTitleWrap}>
+                  <Text style={styles.cardTitle}>Security</Text>
+                  <Text style={styles.cardSubtitle}>Change your account password</Text>
+                </View>
+              </View>
+
+              <View style={styles.twoColumn}>
+                <View style={styles.formGroupFlex}>
+                  <Text style={styles.label}>Current Password *</Text>
+                  <View style={styles.passwordField}>
+                    <TextInput
+                      value={passwordForm.current_password}
+                      onChangeText={(text) => setPasswordForm({ ...passwordForm, current_password: text })}
+                      style={styles.passwordInput}
+                      secureTextEntry={!showCurrentPassword}
+                      placeholder="Enter current password"
+                      placeholderTextColor="#94a3b8"
+                    />
+                    <TouchableOpacity onPress={() => setShowCurrentPassword((prev) => !prev)}>
+                      <Ionicons
+                        name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={18}
+                        color="#64748b"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.twoColumn}>
+                <View style={styles.formGroupFlex}>
+                  <Text style={styles.label}>New Password *</Text>
+                  <View style={styles.passwordField}>
+                    <TextInput
+                      value={passwordForm.password}
+                      onChangeText={(text) => setPasswordForm({ ...passwordForm, password: text })}
+                      style={styles.passwordInput}
+                      secureTextEntry={!showNewPassword}
+                      placeholder="Min 6 characters"
+                      placeholderTextColor="#94a3b8"
+                    />
+                    <TouchableOpacity onPress={() => setShowNewPassword((prev) => !prev)}>
+                      <Ionicons
+                        name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={18}
+                        color="#64748b"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.formGroupFlex}>
+                  <Text style={styles.label}>Confirm Password *</Text>
+                  <View style={styles.passwordField}>
+                    <TextInput
+                      value={passwordForm.password_confirmation}
+                      onChangeText={(text) =>
+                        setPasswordForm({ ...passwordForm, password_confirmation: text })
+                      }
+                      style={styles.passwordInput}
+                      secureTextEntry={!showConfirmPassword}
+                      placeholder="Re-enter new password"
+                      placeholderTextColor="#94a3b8"
+                    />
+                    <TouchableOpacity onPress={() => setShowConfirmPassword((prev) => !prev)}>
+                      <Ionicons
+                        name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={18}
+                        color="#64748b"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.secondaryButton} onPress={updatePassword} disabled={updatingPassword}>
+                <Text style={styles.secondaryButtonText}>{updatingPassword ? 'Updating...' : 'Update Password'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={20} color="#ffffff" />
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconWrap}>
-              <Ionicons name="mail-outline" size={18} color="#2563eb" />
-            </View>
-            <View style={styles.infoTextWrap}>
-              <Text style={styles.label}>Email</Text>
-              <Text style={styles.value}>{userEmail}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconWrap}>
-              <Ionicons name="call-outline" size={18} color="#059669" />
-            </View>
-            <View style={styles.infoTextWrap}>
-              <Text style={styles.label}>Phone</Text>
-              <Text style={styles.value}>{userPhone}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconWrap}>
-              <Ionicons name="shield-checkmark-outline" size={18} color="#7c3aed" />
-            </View>
-            <View style={styles.infoTextWrap}>
-              <Text style={styles.label}>Account Status</Text>
-              <Text style={styles.value}>Verified</Text>
-            </View>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#fff" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </ScrollView>
+      <AppFooter activeTab="home" isDark={isDark} onTabPress={handleFooterTabPress} />
     </SafeAreaView>
   );
 }
@@ -180,13 +582,16 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f7fb',
   },
-  centered: {
+  darkSafeArea: {
+    backgroundColor: '#090d16',
+  },
+  centeredContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f7fb',
   },
   loadingText: {
     marginTop: 12,
@@ -195,154 +600,285 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   container: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 110,
   },
-  topBar: {
+  heroCard: {
+    backgroundColor: '#0f172a',
+    borderRadius: 26,
+    padding: 18,
+    marginBottom: 18,
+    overflow: 'hidden',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
+  },
+  heroGlow: {
+    position: 'absolute',
+    right: -30,
+    top: -36,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(14, 165, 233, 0.18)',
+  },
+  profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  backBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  profileCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 22,
-    alignItems: 'center',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
-    marginBottom: 18,
+    zIndex: 1,
   },
   avatarWrap: {
-    marginBottom: 12,
+    marginRight: 14,
+    position: 'relative',
   },
   avatar: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 4,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
     borderColor: '#dbeafe',
   },
-  initialsCircle: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: '#0ea5e9',
+  avatarPlaceholder: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#0284c7',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: '#dbeafe',
   },
-  initialsText: {
-    fontSize: 34,
+  avatarText: {
+    fontSize: 28,
     fontWeight: '800',
     color: '#ffffff',
   },
-  name: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
+  avatarActions: {
+    marginTop: 12,
+    alignItems: 'flex-start',
   },
-  email: {
-    fontSize: 14,
-    color: '#475569',
+  textLinkButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  textLinkText: {
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '700',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  nameText: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.5,
+  },
+  emailText: {
+    fontSize: 13,
+    color: '#cbd5e1',
     marginTop: 4,
   },
-  badge: {
-    marginTop: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#e0f2fe',
-    borderRadius: 999,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    color: '#0369a1',
-  },
-  infoCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    paddingVertical: 8,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-    marginBottom: 24,
-  },
-  infoRow: {
+  badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    alignSelf: 'flex-start',
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginTop: 12,
+    gap: 6,
   },
-  infoIconWrap: {
-    width: 38,
-    height: 38,
+  badgeText: {
+    fontSize: 9,
+    color: '#0369a1',
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  sectionsWrap: {
+    gap: 18,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f8fafc',
     marginRight: 12,
   },
-  infoTextWrap: {
+  cardTitleWrap: {
     flex: 1,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  formGroup: {
+    marginBottom: 14,
+  },
+  formGroupFlex: {
+    flex: 1,
+    marginBottom: 14,
   },
   label: {
     fontSize: 12,
-    color: '#64748b',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    color: '#475569',
+    marginBottom: 8,
+    fontWeight: '700',
   },
-  value: {
+  input: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#dfe7f1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     fontSize: 15,
     color: '#0f172a',
-    fontWeight: '600',
+  },
+  textArea: {
+    minHeight: 92,
+    textAlignVertical: 'top',
+  },
+  helperText: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 8,
+    lineHeight: 16,
+  },
+  twoColumn: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  passwordField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#dfe7f1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#0f172a',
+  },
+  primaryButton: {
+    backgroundColor: '#0ea5e9',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    marginTop: 6,
+    shadowColor: '#0ea5e9',
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  secondaryButton: {
+    backgroundColor: '#22c55e',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    marginTop: 8,
+    shadowColor: '#22c55e',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  secondaryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
   },
   logoutButton: {
     backgroundColor: '#ef4444',
     borderRadius: 18,
     paddingVertical: 15,
-    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 4,
     shadowColor: '#ef4444',
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.20,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    elevation: 3,
   },
   logoutText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     marginLeft: 8,
+  },
+  editAvatarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  avatarEditButton: {
+    position: 'absolute',
+    right: -4,
+    bottom: -2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
 });
