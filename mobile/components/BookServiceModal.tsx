@@ -8,7 +8,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +18,7 @@ import { WebView } from 'react-native-webview';
 
 import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
+import { showSweetAlert } from '../utils/sweetAlert';
 
 const WebViewComponent: any = WebView;
 
@@ -416,21 +416,21 @@ export default function BookServiceModal({
   // Submit Booking
   const handleConfirmBooking = async () => {
     if (!selectedVehicleId) {
-      Alert.alert('Vehicle Required', 'Please select a vehicle from the dropdown.');
+      showSweetAlert('Vehicle Required', 'Please select a vehicle from the dropdown.', 'warning');
       return;
     }
     if (!selectedPackageId) {
-      Alert.alert('Package Required', 'Please select a package from the dropdown.');
+      showSweetAlert('Package Required', 'Please select a package from the dropdown.', 'warning');
       return;
     }
     if (!selectedSlot) {
-      Alert.alert('Time Slot Required', 'Please choose a time slot.');
+      showSweetAlert('Time Slot Required', 'Please choose a time slot.', 'warning');
       return;
     }
 
     const finalAddress = useSavedAddress ? savedAddress : customAddress;
     if (!finalAddress.trim()) {
-      Alert.alert('Address Required', 'Please provide a doorstep service address.');
+      showSweetAlert('Address Required', 'Please provide a doorstep service address.', 'warning');
       return;
     }
 

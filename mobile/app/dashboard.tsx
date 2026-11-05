@@ -11,7 +11,6 @@ import {
   Linking,
   BackHandler,
   TouchableOpacity,
-  Alert,
   Modal,
   Image,
 } from 'react-native';
