@@ -385,8 +385,8 @@ export default function BookingsScreen() {
 
       <DashboardHeader
         user={user}
-        title="My Washes"
-        subtitle={`${bookings.length} total services`}
+        title=""
+        subtitle=""
         unreadCount={0}
         isDark={isDark}
         showLocation={false}
@@ -405,7 +405,9 @@ export default function BookingsScreen() {
         onToggleTheme={toggleTheme}
       />
 
-      <View style={[styles.filterHeaderRow, isDark && styles.darkFilterHeaderRow]}>
+      <View style={[styles.sectionHeaderRow, isDark && styles.darkSectionHeaderRow]}>
+        <Text style={[styles.sectionTitle, isDark && styles.darkText]}>My Washes</Text>
+
         <View style={[styles.filterTriggerWrap, isDark && styles.darkFilterTriggerWrap]}>
           <TouchableOpacity
             style={[styles.filterTrigger, isDark && styles.darkFilterTrigger]}
@@ -529,7 +531,7 @@ export default function BookingsScreen() {
                       </View>
 
                       <TouchableOpacity
-                        style={styles.toggleBtn}
+                        style={[styles.toggleBtn, isDark && styles.darkToggleBtn]}
                         onPress={() => toggleBookingExpansion(b.id)}
                         activeOpacity={0.8}
                       >
@@ -693,7 +695,7 @@ export default function BookingsScreen() {
                       </View>
 
                       <TouchableOpacity
-                        style={styles.collapseBtn}
+                        style={[styles.collapseBtn, isDark && styles.darkCollapseBtn]}
                         onPress={() => toggleBookingExpansion(b.id)}
                         activeOpacity={0.8}
                       >
@@ -1008,18 +1010,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
-  filterHeaderRow: {
+  sectionHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingVertical: 12,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
-  darkFilterHeaderRow: {
+  darkSectionHeaderRow: {
     backgroundColor: '#090d16',
     borderBottomColor: '#1f2937',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.2,
   },
   filterTriggerWrap: {
     position: 'relative',
@@ -1189,6 +1198,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#475569',
   },
+  darkToggleBtn: {
+    backgroundColor: '#111827',
+    borderColor: '#334155',
+  },
   collapseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1200,6 +1213,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
+  },
+  darkCollapseBtn: {
+    backgroundColor: '#111827',
+    borderColor: '#334155',
   },
   loadMoreBtn: {
     flexDirection: 'row',

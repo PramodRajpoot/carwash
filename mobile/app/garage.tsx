@@ -219,8 +219,8 @@ export default function GarageScreen() {
 
       <DashboardHeader
         user={null}
-        title="My Garage"
-        subtitle={`${filteredVehicles.length} registered vehicles`}
+        title=""
+        subtitle=""
         unreadCount={0}
         isDark={isDark}
         showLocation={false}
@@ -243,9 +243,11 @@ export default function GarageScreen() {
       />
 
       <View style={[styles.filterRow, isDark && styles.darkFilterRow]}>
+        <Text style={[styles.sectionTitle, isDark && styles.darkText]}>My Garage</Text>
+
         <View style={styles.headerFilterWrap}>
           <TouchableOpacity
-            style={styles.filterTrigger}
+            style={[styles.filterTrigger, isDark && styles.darkFilterTrigger]}
             activeOpacity={0.8}
             onPress={() => {
               safeHapticLight();
@@ -273,7 +275,14 @@ export default function GarageScreen() {
                       setFilterMenuVisible(false);
                     }}
                   >
-                    <Text style={[styles.filterMenuItemText, isSelected && styles.activeFilterMenuItemText]}>
+                    <Text
+                      style={[
+                        styles.filterMenuItemText,
+                        isDark && styles.darkFilterMenuItemText,
+                        isSelected && styles.activeFilterMenuItemText,
+                        isSelected && isDark && styles.darkActiveFilterMenuItemText,
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
@@ -485,9 +494,10 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingVertical: 12,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
@@ -495,6 +505,12 @@ const styles = StyleSheet.create({
   darkFilterRow: {
     backgroundColor: '#090d16',
     borderBottomColor: '#1f2937',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.2,
   },
   header: {
     flexDirection: 'row',
@@ -543,8 +559,14 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  darkFilterTrigger: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
   },
   headerFilterWrap: {
     position: 'relative',
@@ -585,9 +607,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  darkFilterMenuItemText: {
+    color: '#cbd5e1',
+  },
   activeFilterMenuItemText: {
     color: '#0369a1',
     fontWeight: '700',
+  },
+  darkActiveFilterMenuItemText: {
+    color: '#7dd3fc',
   },
   primaryActionBtn: {
     flexDirection: 'row',
@@ -650,16 +678,16 @@ const styles = StyleSheet.create({
   },
   vehicleCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 1,
   },
   darkVehicleCard: {
     backgroundColor: '#0f172a',
@@ -669,31 +697,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   typePill: {
     backgroundColor: '#dbeafe',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   typePillText: {
     color: '#0369a1',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   vehicleDate: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#64748b',
   },
   vehicleTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '800',
     color: '#0f172a',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   metaRow: {
     flexDirection: 'row',
@@ -701,15 +729,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingTop: 10,
+    paddingTop: 8,
   },
   metaLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#64748b',
   },
   metaValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#0f172a',
     textAlign: 'right',
