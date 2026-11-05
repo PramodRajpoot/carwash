@@ -240,7 +240,7 @@ export default function WishlistScreen() {
                     <TouchableOpacity
                       activeOpacity={0.8}
                       style={styles.bookBtn}
-                      onPress={() => router.push('/bookings')}
+                      onPress={() => router.push(pkg?.id ? `/book?package_id=${pkg.id}` : '/book')}
                     >
                       <Text style={styles.bookBtnText}>Book Service</Text>
                     </TouchableOpacity>

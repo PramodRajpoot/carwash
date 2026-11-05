@@ -13,7 +13,8 @@
             <div class="flex justify-between items-center" style="margin-bottom:0.75rem">
               <span class="badge badge-cyan" style="text-transform: uppercase;">{{ pkg.vehicle_type }}</span>
               <span class="badge badge-violet">One-Time</span>
-              <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white; margin-left: auto;">{{ pkg.custom_badge }}</span>
+              <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white;">{{ pkg.custom_badge }}</span>
+              <button type="button" @click.stop="toggleWishlist(pkg)" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; margin-left: auto; padding: 2px 4px; transition: transform 0.2s;" :title="isWishlisted(pkg.id) ? 'Remove from wishlist' : 'Add to wishlist'">{{ isWishlisted(pkg.id) ? '❤️' : '🤍' }}</button>
             </div>
             <h4 style="margin-bottom:0.5rem">{{ pkg.name }}</h4>
             <p class="text-muted" style="font-size:0.85rem;line-height:1.6;margin-bottom:1rem">{{ pkg.description }}</p>
@@ -41,7 +42,8 @@
             <div class="flex justify-between items-center" style="margin-bottom:0.75rem">
               <span class="badge badge-cyan" style="text-transform: uppercase;">{{ pkg.vehicle_type }}</span>
               <span class="badge badge-emerald">Monthly</span>
-              <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white; margin-left: auto;">{{ pkg.custom_badge }}</span>
+              <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white;">{{ pkg.custom_badge }}</span>
+              <button type="button" @click.stop="toggleWishlist(pkg)" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; margin-left: auto; padding: 2px 4px; transition: transform 0.2s;" :title="isWishlisted(pkg.id) ? 'Remove from wishlist' : 'Add to wishlist'">{{ isWishlisted(pkg.id) ? '❤️' : '🤍' }}</button>
             </div>
             <h4 style="margin-bottom:0.5rem">{{ pkg.name }}</h4>
             <p class="text-muted" style="font-size:0.85rem;line-height:1.6;margin-bottom:1rem">{{ pkg.description }}</p>
@@ -64,6 +66,7 @@ export default {
   data() {
     return {
       packages: [],
+      wishlistIds: [],
       loading: true,
       activeFilter: 'all',
       activeMonthlyFilter: 'all',
@@ -95,11 +98,44 @@ export default {
       return this.filteredServices;
     },
   },
+  methods: {
+    isWishlisted(pkgId) {
+      return this.wishlistIds.includes(pkgId);
+    },
+    async toggleWishlist(pkg) {
+      if (this.isWishlisted(pkg.id)) {
+        this.wishlistIds = this.wishlistIds.filter(id => id !== pkg.id);
+        try {
+          await axios.delete(`/api/customer/wishlist/${pkg.id}`);
+        } catch (e) {
+          this.wishlistIds.push(pkg.id);
+        }
+      } else {
+        this.wishlistIds.push(pkg.id);
+        try {
+          await axios.post('/api/customer/wishlist', { package_id: pkg.id });
+        } catch (e) {
+          this.wishlistIds = this.wishlistIds.filter(id => id !== pkg.id);
+          if (e.response && e.response.status === 401) {
+            this.$router.push('/login');
+          }
+        }
+      }
+    },
+  },
   async mounted() {
     try {
       const { data } = await axios.get('/api/packages');
       this.packages = data;
     } catch (e) { console.error(e); }
+
+    try {
+      const { data: wish } = await axios.get('/api/customer/wishlist');
+      if (Array.isArray(wish)) {
+        this.wishlistIds = wish.map(w => w.package_id || w.package?.id).filter(Boolean);
+      }
+    } catch (_) {}
+
     this.loading = false;
   },
 };

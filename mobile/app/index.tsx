@@ -19,9 +19,11 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 
 import { API_BASE } from '../constants/api';
-import { safeHapticLight } from '../utils/haptics';
+import { safeHapticLight, safeHapticSuccess } from '../utils/haptics';
+import { showSweetAlert } from '../utils/sweetAlert';
 
 const ITEMS_PER_PAGE = 3;
 
@@ -148,8 +150,34 @@ export default function ServicesScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [expandedPackages, setExpandedPackages] = useState<Record<string | number, boolean>>({});
+  const [wishlistPackageIds, setWishlistPackageIds] = useState<number[]>([]);
 
   const activeVehicleLabel = VEHICLE_FILTERS.find((f) => f.value === activeVehicle)?.label || 'All';
+
+  const fetchWishlist = async (authToken?: string | null) => {
+    try {
+      const token = authToken !== undefined ? authToken : await AsyncStorage.getItem('userToken');
+      if (!token) {
+        setWishlistPackageIds([]);
+        return;
+      }
+      const res = await axios.get(`${API_BASE}/api/customer/wishlist`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
+        },
+      });
+      if (Array.isArray(res.data)) {
+        const ids = res.data
+          .map((item: any) => item.package_id || item.package?.id)
+          .filter(Boolean);
+        setWishlistPackageIds(ids);
+      }
+    } catch (err) {
+      console.warn('Wishlist fetch error:', err);
+    }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -159,6 +187,11 @@ export default function ServicesScreen() {
         const storedTheme = await AsyncStorage.getItem('app_theme');
         if (storedTheme) {
           setIsDark(storedTheme === 'dark');
+        }
+        if (token) {
+          fetchWishlist(token);
+        } else {
+          setWishlistPackageIds([]);
         }
       };
       checkAuthAndTheme();
@@ -170,6 +203,55 @@ export default function ServicesScreen() {
     const next = !isDark;
     setIsDark(next);
     await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
+  };
+
+  const handleToggleWishlist = async (pkg: any) => {
+    safeHapticLight();
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      showSweetAlert('Sign In Required', 'Please log in to add washes to your wishlist.', 'info');
+      router.push('/login');
+      return;
+    }
+
+    const isFav = wishlistPackageIds.includes(pkg.id);
+    // Optimistic update
+    setWishlistPackageIds((prev) =>
+      isFav ? prev.filter((id) => id !== pkg.id) : [...prev, pkg.id]
+    );
+
+    try {
+      if (isFav) {
+        await axios.delete(`${API_BASE}/api/customer/wishlist/${pkg.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'ngrok-skip-browser-warning': 'true',
+            'Bypass-Tunnel-Reminder': 'true',
+          },
+        });
+        showSweetAlert('Removed', `${pkg.name} removed from your wishlist.`, 'success');
+      } else {
+        await axios.post(
+          `${API_BASE}/api/customer/wishlist`,
+          { package_id: pkg.id },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'ngrok-skip-browser-warning': 'true',
+              'Bypass-Tunnel-Reminder': 'true',
+            },
+          }
+        );
+        safeHapticSuccess();
+        showSweetAlert('Added to Wishlist', `${pkg.name} saved to your wishlist!`, 'success');
+      }
+    } catch (err: any) {
+      // Revert optimistic update
+      setWishlistPackageIds((prev) =>
+        isFav ? [...prev, pkg.id] : prev.filter((id) => id !== pkg.id)
+      );
+      showSweetAlert('Error', err.response?.data?.message || 'Failed to update wishlist.', 'error');
+    }
   };
 
   const fetchPackagesData = async () => {
@@ -368,6 +450,23 @@ export default function ServicesScreen() {
         </View>
 
         <View style={styles.headerRightRow}>
+          <TouchableOpacity
+            style={[styles.headerIconBtn, isDark ? styles.headerIconBtnDark : styles.headerIconBtnLight]}
+            onPress={() => router.push(isLoggedIn ? '/wishlist' : '/login')}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={wishlistPackageIds.length > 0 ? 'heart' : 'heart-outline'}
+              size={18}
+              color={wishlistPackageIds.length > 0 ? '#e11d48' : isDark ? '#94a3b8' : '#334155'}
+            />
+            {wishlistPackageIds.length > 0 && (
+              <View style={styles.wishlistCountBadge}>
+                <Text style={styles.wishlistCountBadgeText}>{wishlistPackageIds.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.loginBtnHeader, isDark ? styles.loginBtnHeaderDark : styles.loginBtnHeaderLight]}
             onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
@@ -607,6 +706,7 @@ export default function ServicesScreen() {
         ) : (
           visiblePackages.map((pkg) => {
             const hasMonthly = pkg.frequency_days > 0;
+            const isWishlisted = wishlistPackageIds.includes(pkg.id);
 
             return (
               <View key={pkg.id} style={[styles.card, !isDark && styles.cardLight]}>
@@ -633,13 +733,33 @@ export default function ServicesScreen() {
                     )}
                   </View>
 
-                  {pkg.custom_badge && (
-                    <View style={styles.badgeHighlight}>
-                      <Text style={styles.badgeHighlightText}>
-                        {pkg.custom_badge}
-                      </Text>
-                    </View>
-                  )}
+                  <View style={styles.rightBadgesGroup}>
+                    {pkg.custom_badge && (
+                      <View style={styles.badgeHighlight}>
+                        <Text style={styles.badgeHighlightText}>
+                          {pkg.custom_badge}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Wishlist Heart Icon Button */}
+                    <TouchableOpacity
+                      style={[
+                        styles.wishlistHeartBtn,
+                        isWishlisted && styles.wishlistHeartBtnActive,
+                        !isDark && styles.wishlistHeartBtnLight,
+                      ]}
+                      onPress={() => handleToggleWishlist(pkg)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons
+                        name={isWishlisted ? 'heart' : 'heart-outline'}
+                        size={17}
+                        color={isWishlisted ? '#e11d48' : isDark ? '#94a3b8' : '#64748b'}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {/* Package Title */}
@@ -671,7 +791,7 @@ export default function ServicesScreen() {
                   <TouchableOpacity
                     activeOpacity={0.85}
                     style={styles.bookBtn}
-                    onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
+                    onPress={() => router.push(isLoggedIn ? `/book?package_id=${pkg.id}` : '/login')}
                   >
                     <Text style={styles.bookBtnText}>Book Wash</Text>
                     <Ionicons name="arrow-forward" size={15} color="#ffffff" style={{ marginLeft: 6 }} />
@@ -1161,6 +1281,46 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.6,
+  },
+  rightBadgesGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  wishlistHeartBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wishlistHeartBtnLight: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+  },
+  wishlistHeartBtnActive: {
+    backgroundColor: 'rgba(225, 29, 72, 0.12)',
+    borderColor: 'rgba(225, 29, 72, 0.35)',
+  },
+  wishlistCountBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#e11d48',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  wishlistCountBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '800',
   },
   cardTitle: {
     color: '#ffffff',

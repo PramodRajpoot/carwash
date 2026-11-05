@@ -84,6 +84,7 @@ export default function BookScreen() {
   const [packages, setPackages] = useState<ServicePkg[]>([]);
   const [userPoints, setUserPoints] = useState(0);
   const [userEarningMoney, setUserEarningMoney] = useState(0);
+  const [wishlistPackageIds, setWishlistPackageIds] = useState<number[]>([]);
 
   // Form Fields
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
@@ -273,7 +274,7 @@ export default function BookScreen() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const [vhRes, ctRes, pkRes, dashRes] = await Promise.allSettled([
+      const [vhRes, ctRes, pkRes, dashRes, wishRes] = await Promise.allSettled([
         axios.get(`${API_BASE}/api/customer/vehicles`, {
           headers: { Authorization: `Bearer ${activeToken}` },
         }),
@@ -286,7 +287,17 @@ export default function BookScreen() {
         axios.get(`${API_BASE}/api/customer/dashboard`, {
           headers: { Authorization: `Bearer ${activeToken}` },
         }),
+        axios.get(`${API_BASE}/api/customer/wishlist`, {
+          headers: { Authorization: `Bearer ${activeToken}` },
+        }),
       ]);
+
+      if (wishRes.status === 'fulfilled' && Array.isArray(wishRes.value.data)) {
+        const ids = wishRes.value.data
+          .map((item: any) => item.package_id || item.package?.id)
+          .filter(Boolean);
+        setWishlistPackageIds(ids);
+      }
 
       if (vhRes.status === 'fulfilled') {
         const vList: Vehicle[] = vhRes.value.data || [];
@@ -536,6 +547,38 @@ export default function BookScreen() {
   // Amount payable right now
   const immediatePayable = paymentType === 'partial' ? 99 : calculatedTotal;
   const remainingDue = paymentType === 'partial' ? Math.max(0, calculatedTotal - 99) : 0;
+
+  // Wishlist Toggle
+  const toggleWishlist = async (pkg: ServicePkg) => {
+    safeHapticLight();
+    if (!token) return;
+    const isFav = wishlistPackageIds.includes(pkg.id);
+    setWishlistPackageIds((prev) =>
+      isFav ? prev.filter((id) => id !== pkg.id) : [...prev, pkg.id]
+    );
+
+    try {
+      if (isFav) {
+        await axios.delete(`${API_BASE}/api/customer/wishlist/${pkg.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        showSweetAlert('Removed', `${pkg.name} removed from your wishlist.`, 'success');
+      } else {
+        await axios.post(
+          `${API_BASE}/api/customer/wishlist`,
+          { package_id: pkg.id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        safeHapticSuccess();
+        showSweetAlert('Added to Wishlist', `${pkg.name} saved to your wishlist!`, 'success');
+      }
+    } catch (err: any) {
+      setWishlistPackageIds((prev) =>
+        isFav ? [...prev, pkg.id] : prev.filter((id) => id !== pkg.id)
+      );
+      showSweetAlert('Error', err.response?.data?.message || 'Could not update wishlist.', 'error');
+    }
+  };
 
   // Addon Toggle
   const toggleAddon = (id: number) => {
@@ -1027,15 +1070,23 @@ export default function BookScreen() {
                 <Ionicons name="sparkles" size={16} color="#0284c7" />
                 <Text style={styles.badgeLabelText}>SELECT WASH PACKAGE</Text>
               </View>
-              <Text style={[styles.headerCountTag, isDark && styles.darkSubtext]}>
-                {availableBasePackages.length} available
-              </Text>
+              <TouchableOpacity
+                style={styles.switchLinkBtn}
+                onPress={() => router.push('/wishlist')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="heart" size={13} color="#e11d48" />
+                <Text style={[styles.switchLinkText, { color: '#e11d48', marginLeft: 3 }]}>
+                  Wishlist{wishlistPackageIds.length > 0 ? ` (${wishlistPackageIds.length})` : ''}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.packageListContainer}>
               {availableBasePackages.map((pkg, idx) => {
                 const isSelected = pkg.id === selectedPackageId;
                 const isPopular = pkg.custom_badge || (idx === 0 && availableBasePackages.length > 1);
+                const isFav = wishlistPackageIds.includes(pkg.id);
 
                 return (
                   <TouchableOpacity
@@ -1075,9 +1126,22 @@ export default function BookScreen() {
                         </Text>
                       </View>
 
-                      <View style={styles.packageCardPriceWrap}>
-                        <Text style={styles.packagePriceSymbol}>₹</Text>
-                        <Text style={styles.packagePriceNum}>{pkg.price}</Text>
+                      <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                        <View style={styles.packageCardPriceWrap}>
+                          <Text style={styles.packagePriceSymbol}>₹</Text>
+                          <Text style={styles.packagePriceNum}>{pkg.price}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => toggleWishlist(pkg)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={{ padding: 2 }}
+                        >
+                          <Ionicons
+                            name={isFav ? 'heart' : 'heart-outline'}
+                            size={18}
+                            color={isFav ? '#e11d48' : isDark ? '#94a3b8' : '#64748b'}
+                          />
+                        </TouchableOpacity>
                       </View>
                     </View>
 
