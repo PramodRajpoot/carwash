@@ -415,26 +415,6 @@
       </div>
     </section>
 
-    <!-- Authorised Service Partner -->
-    <section class="section" style="background:var(--bg-secondary)">
-      <div class="container">
-        <div class="section-title">
-          <h2>Authorised <span class="text-gradient">Service Partners</span></h2>
-          <p>Trusted by industry leaders to deliver exceptional care.</p>
-        </div>
-      </div>
-      <div v-if="partners.length > 0" class="offers-ticker" style="border: none; background: transparent; padding: 1rem 0;">
-        <div class="ticker-content">
-          <template v-for="n in 12" :key="'loop-'+n">
-            <div v-for="partner in partners" :key="n+'-'+partner.id" class="ticker-item" style="margin-right: 4rem; vertical-align: middle;">
-               <img v-if="partner.image_path" :src="partner.image_path" :alt="partner.name" style="height: 95px; width: auto; object-fit: contain; filter: grayscale(100%) opacity(0.7); transition: all 0.3s ease;" onmouseover="this.style.filter='grayscale(0) opacity(1)'" onmouseout="this.style.filter='grayscale(100%) opacity(0.7)'">
-               <div v-else style="font-weight:700;font-size:1.5rem;color:var(--text-muted);">{{ partner.name }}</div>
-            </div>
-          </template>
-        </div>
-      </div>
-    </section>
-
     <!-- Newsletter -->
     <section class="section" style="padding:4rem 0">
       <div class="container text-center">
@@ -567,7 +547,6 @@ export default {
         { type: 'bus', name: 'Buses', icon: '🚌', price: 1499 },
         { type: 'volvo_bus', name: 'Volvo Buses', icon: '🚍', price: 2499 },
       ],
-      partners: [],
       testimonials: [],
       partnerFeedback: [],
       faqs: [],
@@ -578,7 +557,6 @@ export default {
     this.fetchPackages();
     this.fetchOffers();
     this.fetchBanners();
-    this.fetchPartners();
     this.fetchTestimonials();
     this.fetchPartnerFeedback();
     this.fetchFaqs();
@@ -603,16 +581,6 @@ export default {
         }
       } catch (error) {
         console.error('Failed to fetch banners:', error);
-      }
-    },
-    async fetchPartners() {
-      try {
-        const response = await fetch('/api/service-partners');
-        if (response.ok) {
-          this.partners = await response.json();
-        }
-      } catch (error) {
-        console.error('Failed to fetch partners:', error);
       }
     },
     async fetchTestimonials() {

@@ -23,7 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { API_BASE } from '../constants/api';
 import { safeHapticLight } from '../utils/haptics';
 
-const ITEMS_PER_PAGE = 4;
+const ITEMS_PER_PAGE = 3;
 
 // Sample fallback packages
 const SAMPLE_PACKAGES = [
@@ -143,6 +143,7 @@ export default function ServicesScreen() {
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(3);
   const [error, setError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -214,6 +215,7 @@ export default function ServicesScreen() {
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
     setCurrentPage(1);
+    setVisibleCount(3);
   };
 
   const handleResetFilters = () => {
@@ -221,7 +223,12 @@ export default function ServicesScreen() {
     setActiveVehicle('all');
     setSearchQuery('');
     setCurrentPage(1);
+    setVisibleCount(3);
   };
+
+  useEffect(() => {
+    setVisibleCount(3);
+  }, [activeVehicle, searchQuery]);
 
   const vehicleCounts = useMemo(() => {
     const activePkgs = packages.filter((pkg) => !pkg.is_addon);
@@ -261,21 +268,15 @@ export default function ServicesScreen() {
     });
   }, [packages, activeVehicle, searchQuery]);
 
-  // Pagination calculation
   const totalItems = filteredPackages.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
-  const validCurrentPage = Math.min(currentPage, totalPages);
+  const visiblePackages = useMemo(() => filteredPackages.slice(0, visibleCount), [filteredPackages, visibleCount]);
 
-  const paginatedPackages = useMemo(() => {
-    const startIndex = (validCurrentPage - 1) * ITEMS_PER_PAGE;
-    return filteredPackages.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredPackages, validCurrentPage]);
-
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages || page === validCurrentPage) return;
-    safeHapticLight();
-    setCurrentPage(page);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 120;
+    if (isNearBottom && visibleCount < totalItems) {
+      setVisibleCount((prev) => Math.min(prev + 3, totalItems));
+    }
   };
 
   const togglePackageExpand = (id: string | number) => {
@@ -350,7 +351,7 @@ export default function ServicesScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* ── Top Header ── */}
-      <View style={[styles.header, !isDark && styles.headerLight]}>
+      <View style={[styles.header, isDark ? styles.headerDark : styles.headerLight]}>
         <View style={styles.brandRow}>
           <View style={styles.headerLogoContainer}>
             <Image
@@ -359,40 +360,38 @@ export default function ServicesScreen() {
               resizeMode="contain"
             />
           </View>
-          <View>
+
+          <View style={styles.brandTextWrap}>
             <Text style={[styles.headerTitle, !isDark && styles.headerTitleLight]}>CleanAtDoorstep</Text>
-            <View style={styles.statusRow}>
-              <View style={styles.livePulseDot} />
-              <Text style={[styles.headerSubtitle, !isDark && styles.headerSubtitleLight]}>Doorstep Detailing • On-Demand</Text>
-            </View>
+            <Text style={[styles.headerSubtitle, !isDark && styles.headerSubtitleLight]}>Doorstep Detailing • On-Demand</Text>
           </View>
         </View>
 
         <View style={styles.headerRightRow}>
           <TouchableOpacity
-            style={[styles.loginBtnHeader, !isDark && styles.loginBtnHeaderLight]}
+            style={[styles.loginBtnHeader, isDark ? styles.loginBtnHeaderDark : styles.loginBtnHeaderLight]}
             onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
             activeOpacity={0.8}
           >
             <Ionicons
               name={isLoggedIn ? 'speedometer-outline' : 'person-circle-outline'}
-              size={15}
+              size={12}
               color="#38bdf8"
-              style={{ marginRight: 6 }}
+              style={{ marginRight: 4 }}
             />
-            <Text style={[styles.loginBtnHeaderText, !isDark && styles.loginBtnHeaderTextLight]}>
-              {isLoggedIn ? 'Dashboard' : 'Sign In'}
+            <Text style={[styles.loginBtnHeaderText, isDark ? styles.loginBtnHeaderTextDark : styles.loginBtnHeaderTextLight]}>
+              Dashboard
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.headerIconBtn, !isDark && styles.headerIconBtnLight]}
+            style={[styles.headerIconBtn, isDark ? styles.headerIconBtnDark : styles.headerIconBtnLight]}
             onPress={toggleTheme}
             activeOpacity={0.7}
           >
             <Ionicons
-              name={isDark ? 'sunny' : 'moon-outline'}
-              size={19}
+              name={isDark ? 'sunny-outline' : 'moon-outline'}
+              size={18}
               color={isDark ? '#fbbf24' : '#334155'}
             />
           </TouchableOpacity>
@@ -501,6 +500,8 @@ export default function ServicesScreen() {
         style={[styles.scrollView, !isDark && styles.containerLight]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -560,8 +561,8 @@ export default function ServicesScreen() {
         <View style={styles.resultsSummaryRow}>
           <View style={styles.resultsCountWrap}>
             <Text style={[styles.resultsCountText, !isDark && styles.resultsCountTextLight]}>
-              Showing <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{totalItems > 0 ? (validCurrentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</Text>–
-              <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{Math.min(validCurrentPage * ITEMS_PER_PAGE, totalItems)}</Text> of{' '}
+              Showing <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{totalItems > 0 ? 1 : 0}</Text>–
+              <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{Math.min(visiblePackages.length, totalItems)}</Text> of{' '}
               <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{totalItems}</Text> Services
             </Text>
             {activeVehicle !== 'all' && (
@@ -585,7 +586,7 @@ export default function ServicesScreen() {
         )}
 
         {/* ── Package Cards ── */}
-        {paginatedPackages.length === 0 ? (
+        {visiblePackages.length === 0 ? (
           <View style={[styles.emptyContainer, !isDark && styles.emptyContainerLight]}>
             <View style={[styles.emptyIconCircle, !isDark && styles.emptyIconCircleLight]}>
               <Ionicons name="search-outline" size={40} color={isDark ? '#64748b' : '#94a3b8'} />
@@ -604,7 +605,7 @@ export default function ServicesScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          paginatedPackages.map((pkg) => {
+          visiblePackages.map((pkg) => {
             const hasMonthly = pkg.frequency_days > 0;
 
             return (
@@ -681,48 +682,9 @@ export default function ServicesScreen() {
           })
         )}
 
-        {/* ── Pagination Controls (matching bookings.tsx / screenshot: < 1/4 >) ── */}
-        {totalPages > 1 && (
-          <View style={styles.paginationRow}>
-            <TouchableOpacity
-              style={[
-                styles.pageNavBtn,
-                !isDark && styles.pageNavBtnLight,
-                validCurrentPage === 1 && styles.pageNavBtnDisabled,
-              ]}
-              onPress={() => handlePageChange(validCurrentPage - 1)}
-              disabled={validCurrentPage === 1}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name="chevron-back-outline"
-                size={14}
-                color={validCurrentPage === 1 ? (isDark ? '#64748b' : '#94a3b8') : '#38bdf8'}
-              />
-            </TouchableOpacity>
-
-            <View style={[styles.pageIndicator, !isDark && styles.pageIndicatorLight]}>
-              <Text style={[styles.pageIndicatorText, !isDark && styles.pageIndicatorTextLight]}>
-                {validCurrentPage}/{totalPages}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.pageNavBtn,
-                !isDark && styles.pageNavBtnLight,
-                validCurrentPage === totalPages && styles.pageNavBtnDisabled,
-              ]}
-              onPress={() => handlePageChange(validCurrentPage + 1)}
-              disabled={validCurrentPage === totalPages}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name="chevron-forward-outline"
-                size={14}
-                color={validCurrentPage === totalPages ? (isDark ? '#64748b' : '#94a3b8') : '#38bdf8'}
-              />
-            </TouchableOpacity>
+        {visibleCount < totalItems && (
+          <View style={styles.loadMoreHint}>
+            <Text style={[styles.loadMoreHintText, !isDark && styles.loadMoreHintTextLight]}>Scroll for more services</Text>
           </View>
         )}
 
@@ -768,78 +730,82 @@ const styles = StyleSheet.create({
 
   /* ── Header ── */
   header: {
-    backgroundColor: '#0c1220',
-    paddingTop: Platform.OS === 'android' ? 44 : 12,
-    paddingBottom: 14,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#dfefff',
+    borderRadius: 22,
+    marginTop: 50,
+    marginHorizontal: 14,
+    paddingTop: Platform.OS === 'android' ? 14 : 10,
+    paddingBottom: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.22)',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    shadowColor: '#7dd3fc',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    elevation: 2,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  brandTextWrap: {
+    flex: 1,
   },
   headerLogoContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(14, 165, 233, 0.12)',
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.25)',
+    borderColor: 'rgba(14, 165, 233, 0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerLogo: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 7,
   },
   headerTitle: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: '#0f172a',
+    fontSize: 13,
     fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
-  },
-  livePulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#10b981',
+    letterSpacing: -0.2,
   },
   headerSubtitle: {
-    color: '#94a3b8',
-    fontSize: 11,
-    fontWeight: '500',
+    color: '#475569',
+    fontSize: 9,
+    fontWeight: '600',
   },
   loginBtnHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(14, 165, 233, 0.12)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    justifyContent: 'center',
+    backgroundColor: '#eaf5ff',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.3)',
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+    minWidth: 92,
   },
   loginBtnHeaderText: {
-    color: '#38bdf8',
-    fontSize: 13,
-    fontWeight: '700',
+    color: '#0ea5e9',
+    fontSize: 10,
+    fontWeight: '800',
   },
   headerRightRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexShrink: 0,
   },
   activeFilterDot: {
     position: 'absolute',
@@ -1198,7 +1164,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     marginBottom: 8,
     letterSpacing: -0.2,
@@ -1252,7 +1218,7 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     color: '#ffffff',
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
@@ -1331,28 +1297,58 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#f8fafc',
   },
+  loadMoreHint: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadMoreHintText: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  loadMoreHintTextLight: {
+    color: '#64748b',
+  },
 
   /* ── Header Icon Button ── */
   headerIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#f2f8ff',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(148, 163, 184, 0.3)',
+  },
+  headerIconBtnDark: {
+    backgroundColor: '#111827',
+    borderColor: 'rgba(56, 189, 248, 0.2)',
   },
   headerIconBtnLight: {
     backgroundColor: '#f1f5f9',
     borderColor: '#e2e8f0',
   },
+  loginBtnHeaderDark: {
+    backgroundColor: 'rgba(14, 165, 233, 0.12)',
+    borderColor: 'rgba(56, 189, 248, 0.24)',
+  },
   loginBtnHeaderLight: {
     backgroundColor: 'rgba(2, 132, 199, 0.08)',
     borderColor: 'rgba(2, 132, 199, 0.25)',
   },
-  loginBtnHeaderTextLight: {
-    color: '#0284c7',
+  loginBtnHeaderTextDark: {
+    color: '#7dd3fc',
+  },
+  headerLight: {
+    backgroundColor: '#ffffff',
+    borderBottomColor: '#e2e8f0',
+  },
+  headerDark: {
+    backgroundColor: '#0f172a',
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+    shadowColor: '#020817',
   },
 
   /* ── Light Mode Overrides ── */
@@ -1362,9 +1358,8 @@ const styles = StyleSheet.create({
   loaderTextLight: {
     color: '#64748b',
   },
-  headerLight: {
-    backgroundColor: '#ffffff',
-    borderBottomColor: '#e2e8f0',
+  loginBtnHeaderTextLight: {
+    color: '#0284c7',
   },
   headerTitleLight: {
     color: '#0f172a',
