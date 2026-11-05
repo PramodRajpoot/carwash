@@ -88,6 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/auth/password',     [AuthController::class, 'changePassword']);
     Route::post('/auth/avatar',      [AuthController::class, 'uploadAvatar']);
     Route::post('/auth/avatar/remove',[AuthController::class, 'removeAvatar']);
+    Route::delete('/auth/avatar/remove', [AuthController::class, 'removeAvatar']);
     Route::delete('/auth/avatar',    [AuthController::class, 'deleteAvatar']);
 
     // Booking actions

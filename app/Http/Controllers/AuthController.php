@@ -371,4 +371,9 @@ class AuthController extends Controller
     {
         return $this->deleteAvatar($request);
     }
+
+    public function deleteAvatarByRoute(Request $request)
+    {
+        return $this->deleteAvatar($request);
+    }
 }
