@@ -57,6 +57,8 @@ export default function EPointsScreen() {
   const [savingBank, setSavingBank] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('home');
+  const [walletTab, setWalletTab] = useState<'bank' | 'history'>('bank');
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [user, setUser] = useState<any>({ name: 'User' });
   const [balance, setBalance] = useState<WalletBalance>({});
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -366,184 +368,235 @@ export default function EPointsScreen() {
           {renderStatCard('Referred Users', String(referralCount), 'cyan', '👥')}
         </View>
 
-        <View style={styles.sectionRow}>
-          <View style={[styles.card, isDark && styles.darkCard]}>
-            <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Bank & UPI Details</Text>
-            <Text style={[styles.helperText, isDark && styles.darkSubtext]}>
-              Add your bank details or UPI ID to receive payouts.
+        <View style={[styles.card, isDark && styles.darkCard]}>
+          <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Withdraw Earning Money</Text>
+          <Text style={[styles.helperText, isDark && styles.darkSubtext]}>
+            Request a withdrawal of your Earning Money to your bank account.
+          </Text>
+
+          {!hasBankDetails && (
+            <View style={styles.warningBox}>
+              <Text style={styles.warningText}>Please save your bank details first before requesting a withdrawal.</Text>
+            </View>
+          )}
+
+          <Text style={[styles.mutedText, isDark && styles.darkSubtext]}>
+            Minimum <Text style={styles.highlightText}>₹2,000.00</Text> required to withdraw.
+          </Text>
+
+          <View style={[styles.progressTrack, isDark && styles.darkProgressTrack]}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${withdrawalProgress}%` },
+                earningMoney >= minWithdrawal ? styles.progressFillReady : styles.progressFillWarning,
+              ]}
+            />
+          </View>
+
+          <View style={styles.progressMeta}>
+            <Text style={[styles.progressMetaText, isDark && styles.darkSubtext]}>{formatCurrency(earningMoney)}</Text>
+            <Text style={[styles.progressMetaText, isDark && styles.darkSubtext]}>{formatCurrency(minWithdrawal)}</Text>
+          </View>
+
+          {earningMoney >= minWithdrawal ? (
+            <View style={styles.withdrawRow}>
+              <View style={styles.amountInputWrap}>
+                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Amount to Withdraw (₹)</Text>
+                <TextInput
+                  value={redeemAmount}
+                  onChangeText={setRedeemAmount}
+                  keyboardType="numeric"
+                  placeholder="2000"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  style={[styles.input, isDark && styles.darkInput]}
+                />
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[styles.primaryButton, styles.withdrawButton, redeeming && styles.disabledButton]}
+                onPress={requestWithdrawal}
+                disabled={redeeming || !hasBankDetails}
+              >
+                <Text style={styles.primaryButtonText}>{redeeming ? 'Requesting…' : 'Withdraw'}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text style={[styles.mutedText, isDark && styles.darkSubtext]}>
+              You need {formatCurrency(minWithdrawal - earningMoney)} more to unlock withdrawals.
             </Text>
+          )}
+        </View>
 
-            <View style={styles.fieldWrap}>
-              <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Account Holder Name</Text>
-              <TextInput
-                value={bankDetails.account_holder_name}
-                onChangeText={(value) => updateBankField('account_holder_name', value)}
-                placeholder="Name as per bank account"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                style={[styles.input, isDark && styles.darkInput]}
-              />
-            </View>
-
-            <View style={styles.inlineGrid}>
-              <View style={styles.fieldWrapHalf}>
-                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Bank Name</Text>
-                <TextInput
-                  value={bankDetails.bank_name}
-                  onChangeText={(value) => updateBankField('bank_name', value)}
-                  placeholder="e.g. HDFC Bank"
-                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                  style={[styles.input, isDark && styles.darkInput]}
-                />
-              </View>
-
-              <View style={styles.fieldWrapHalf}>
-                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>IFSC Code</Text>
-                <TextInput
-                  value={bankDetails.ifsc_code}
-                  onChangeText={(value) => updateBankField('ifsc_code', value)}
-                  placeholder="IFSC Code"
-                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                  style={[styles.input, isDark && styles.darkInput]}
-                />
-              </View>
-            </View>
-
-            <View style={styles.fieldWrap}>
-              <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Account Number</Text>
-              <TextInput
-                value={bankDetails.account_number}
-                onChangeText={(value) => updateBankField('account_number', value)}
-                placeholder="Account Number"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                style={[styles.input, isDark && styles.darkInput]}
-                keyboardType="number-pad"
-              />
-            </View>
-
-            <View style={styles.fieldWrap}>
-              <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>UPI ID (Optional)</Text>
-              <TextInput
-                value={bankDetails.upi_id}
-                onChangeText={(value) => updateBankField('upi_id', value)}
-                placeholder="yourname@upi"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                style={[styles.input, isDark && styles.darkInput]}
-              />
-            </View>
+        <View style={[styles.card, isDark && styles.darkCard]}>
+          <View style={styles.segmentedTabs}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setWalletTab('bank')}
+              style={[
+                styles.tabButton,
+                walletTab === 'bank' ? styles.tabButtonActive : styles.tabButtonInactive,
+                isDark && (walletTab === 'bank' ? styles.darkTabButtonActive : styles.darkTabButtonInactive),
+              ]}
+            >
+              <Text style={[
+                styles.tabButtonText,
+                walletTab === 'bank' ? styles.tabButtonTextActive : styles.tabButtonTextInactive,
+              ]}>
+                Bank Details
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[styles.primaryButton, savingBank && styles.disabledButton]}
-              onPress={saveBankDetails}
-              disabled={savingBank}
+              onPress={() => setWalletTab('history')}
+              style={[
+                styles.tabButton,
+                walletTab === 'history' ? styles.tabButtonActive : styles.tabButtonInactive,
+                isDark && (walletTab === 'history' ? styles.darkTabButtonActive : styles.darkTabButtonInactive),
+              ]}
             >
-              <Text style={styles.primaryButtonText}>
-                {savingBank ? 'Saving...' : 'Save Bank Details'}
+              <Text style={[
+                styles.tabButtonText,
+                walletTab === 'history' ? styles.tabButtonTextActive : styles.tabButtonTextInactive,
+              ]}>
+                Transaction History
               </Text>
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.card, isDark && styles.darkCard]}>
-            <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Withdraw Earning Money</Text>
-            <Text style={[styles.helperText, isDark && styles.darkSubtext]}>
-              Request a withdrawal of your Earning Money to your bank account.
-            </Text>
+          {walletTab === 'bank' ? (
+            <View style={styles.tabContent}>
+              <Text style={[styles.helperText, isDark && styles.darkSubtext]}>
+                Add your bank details or UPI ID to receive payouts.
+              </Text>
 
-            {!hasBankDetails && (
-              <View style={styles.warningBox}>
-                <Text style={styles.warningText}>Please save your bank details first before requesting a withdrawal.</Text>
+              <View style={styles.fieldWrap}>
+                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Account Holder Name</Text>
+                <TextInput
+                  value={bankDetails.account_holder_name}
+                  onChangeText={(value) => updateBankField('account_holder_name', value)}
+                  placeholder="Name as per bank account"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  style={[styles.input, isDark && styles.darkInput]}
+                />
               </View>
-            )}
 
-            <Text style={[styles.mutedText, isDark && styles.darkSubtext]}>
-              Minimum <Text style={styles.highlightText}>₹2,000.00</Text> required to withdraw.
-            </Text>
-
-            <View style={[styles.progressTrack, isDark && styles.darkProgressTrack]}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${withdrawalProgress}%` },
-                  earningMoney >= minWithdrawal ? styles.progressFillReady : styles.progressFillWarning,
-                ]}
-              />
-            </View>
-
-            <View style={styles.progressMeta}>
-              <Text style={[styles.progressMetaText, isDark && styles.darkSubtext]}>{formatCurrency(earningMoney)}</Text>
-              <Text style={[styles.progressMetaText, isDark && styles.darkSubtext]}>{formatCurrency(minWithdrawal)}</Text>
-            </View>
-
-            {earningMoney >= minWithdrawal ? (
-              <View style={styles.withdrawRow}>
-                <View style={styles.amountInputWrap}>
-                  <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Amount to Withdraw (₹)</Text>
+              <View style={styles.inlineGrid}>
+                <View style={styles.fieldWrapHalf}>
+                  <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Bank Name</Text>
                   <TextInput
-                    value={redeemAmount}
-                    onChangeText={setRedeemAmount}
-                    keyboardType="numeric"
-                    placeholder="2000"
+                    value={bankDetails.bank_name}
+                    onChangeText={(value) => updateBankField('bank_name', value)}
+                    placeholder="e.g. HDFC Bank"
                     placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                     style={[styles.input, isDark && styles.darkInput]}
                   />
                 </View>
 
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={[styles.primaryButton, styles.withdrawButton, redeeming && styles.disabledButton]}
-                  onPress={requestWithdrawal}
-                  disabled={redeeming || !hasBankDetails}
-                >
-                  <Text style={styles.primaryButtonText}>{redeeming ? 'Requesting…' : 'Withdraw'}</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <Text style={[styles.mutedText, isDark && styles.darkSubtext]}>
-                You need {formatCurrency(minWithdrawal - earningMoney)} more to unlock withdrawals.
-              </Text>
-            )}
-          </View>
-        </View>
-
-        <View style={[styles.card, isDark && styles.darkCard]}>
-          <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Transaction History</Text>
-
-          {transactions.length === 0 ? (
-            <Text style={[styles.emptyText, isDark && styles.darkSubtext]}>No transactions yet.</Text>
-          ) : (
-            transactions.map((item) => {
-              const isCredit = item.type === 'credit';
-              const amountDisplay = item.source && (item.source.includes('earning') || item.source === 'referral_commission')
-                ? formatCurrency(item.amount)
-                : `${item.amount} pts`;
-
-              return (
-                <View key={item.id} style={styles.transactionRow}>
-                  <View style={styles.transactionMeta}>
-                    <Text style={[styles.transactionTitle, isDark && styles.darkText]}>{item.description}</Text>
-                    <View style={styles.transactionFootRow}>
-                      <View
-                        style={[
-                          styles.badge,
-                          item.status === 'confirmed' || item.status === 'completed'
-                            ? styles.badgeSuccess
-                            : item.status === 'failed' || item.status === 'rejected'
-                              ? styles.badgeDanger
-                              : styles.badgeWarning,
-                        ]}
-                      >
-                        <Text style={styles.badgeText}>{item.status || 'pending'}</Text>
-                      </View>
-                      <Text style={[styles.transactionDate, isDark && styles.darkSubtext]}>{formatDate(item.created_at)}</Text>
-                    </View>
-                  </View>
-
-                  <Text style={[styles.transactionAmount, { color: isCredit ? '#10b981' : '#ef4444' }]}>
-                    {isCredit ? '+' : '-'}{amountDisplay}
-                  </Text>
+                <View style={styles.fieldWrapHalf}>
+                  <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>IFSC Code</Text>
+                  <TextInput
+                    value={bankDetails.ifsc_code}
+                    onChangeText={(value) => updateBankField('ifsc_code', value)}
+                    placeholder="IFSC Code"
+                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                    style={[styles.input, isDark && styles.darkInput]}
+                  />
                 </View>
-              );
-            })
+              </View>
+
+              <View style={styles.fieldWrap}>
+                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Account Number</Text>
+                <TextInput
+                  value={bankDetails.account_number}
+                  onChangeText={(value) => updateBankField('account_number', value)}
+                  placeholder="Account Number"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  style={[styles.input, isDark && styles.darkInput]}
+                  keyboardType="number-pad"
+                />
+              </View>
+
+              <View style={styles.fieldWrap}>
+                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>UPI ID (Optional)</Text>
+                <TextInput
+                  value={bankDetails.upi_id}
+                  onChangeText={(value) => updateBankField('upi_id', value)}
+                  placeholder="yourname@upi"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  style={[styles.input, isDark && styles.darkInput]}
+                />
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[styles.primaryButton, savingBank && styles.disabledButton]}
+                onPress={saveBankDetails}
+                disabled={savingBank}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {savingBank ? 'Saving...' : 'Save Bank Details'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.tabContent}>
+              {transactions.length === 0 ? (
+                <Text style={[styles.emptyText, isDark && styles.darkSubtext]}>No transactions yet.</Text>
+              ) : (
+                <>
+                  {transactions
+                    .slice(0, showAllTransactions ? transactions.length : 1)
+                    .map((item) => {
+                      const isCredit = item.type === 'credit';
+                      const amountDisplay = item.source && (item.source.includes('earning') || item.source === 'referral_commission')
+                        ? formatCurrency(item.amount)
+                        : `${item.amount} pts`;
+
+                      return (
+                        <View key={item.id} style={styles.transactionRow}>
+                          <View style={styles.transactionMeta}>
+                            <Text style={[styles.transactionTitle, isDark && styles.darkText]}>{item.description}</Text>
+                            <View style={styles.transactionFootRow}>
+                              <View
+                                style={[
+                                  styles.badge,
+                                  item.status === 'confirmed' || item.status === 'completed'
+                                    ? styles.badgeSuccess
+                                    : item.status === 'failed' || item.status === 'rejected'
+                                      ? styles.badgeDanger
+                                      : styles.badgeWarning,
+                                ]}
+                              >
+                                <Text style={styles.badgeText}>{item.status || 'pending'}</Text>
+                              </View>
+                              <Text style={[styles.transactionDate, isDark && styles.darkSubtext]}>{formatDate(item.created_at)}</Text>
+                            </View>
+                          </View>
+
+                          <Text style={[styles.transactionAmount, { color: isCredit ? '#10b981' : '#ef4444' }]}>
+                            {isCredit ? '+' : '-'}{amountDisplay}
+                          </Text>
+                        </View>
+                      );
+                    })}
+
+                  {transactions.length > 1 && (
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => setShowAllTransactions((prev) => !prev)}
+                      style={styles.showMoreButton}
+                    >
+                      <Text style={[styles.showMoreText, isDark && styles.darkSubtext]}>
+                        {showAllTransactions ? 'Show Less' : 'Show More'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </View>
           )}
         </View>
       </ScrollView>
@@ -608,17 +661,68 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontWeight: '600',
   },
-  sectionRow: {
-    flexDirection: 'column',
-    gap: 16,
-    marginBottom: 16,
-  },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     padding: 16,
+    marginBottom: 16,
+  },
+  segmentedTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 14,
+  },
+  tabButton: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  tabButtonInactive: {
+    backgroundColor: 'transparent',
+  },
+  darkTabButtonActive: {
+    backgroundColor: '#0f172a',
+  },
+  darkTabButtonInactive: {
+    backgroundColor: 'transparent',
+  },
+  tabButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  tabButtonTextActive: {
+    color: '#0f172a',
+  },
+  tabButtonTextInactive: {
+    color: '#64748b',
+  },
+  tabContent: {
+    overflow: 'hidden',
+  },
+  showMoreButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  showMoreText: {
+    color: '#0284c7',
+    fontSize: 12,
+    fontWeight: '800',
   },
   sectionTitle: {
     fontSize: 17,
