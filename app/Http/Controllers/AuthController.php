@@ -366,4 +366,9 @@ class AuthController extends Controller
             'user'    => $user->fresh(),
         ]);
     }
+
+    public function removeAvatar(Request $request)
+    {
+        return $this->deleteAvatar($request);
+    }
 }

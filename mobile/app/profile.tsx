@@ -37,6 +37,7 @@ export default function ProfileScreen() {
   const [isDark, setIsDark] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
+  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('home');
 
   const [profileForm, setProfileForm] = useState({
     name: '',
@@ -222,6 +223,8 @@ export default function ProfileScreen() {
   };
 
   const handleFooterTabPress = (tab: FooterTab) => {
+    setActiveFooterTab(tab);
+
     if (tab === 'home') {
       router.push('/dashboard');
     } else if (tab === 'garage') {
@@ -304,6 +307,12 @@ export default function ProfileScreen() {
       return;
     }
 
+    if (!token) {
+      Alert.alert('Session expired', 'Please log in again.');
+      router.replace('/login');
+      return;
+    }
+
     Alert.alert('Remove profile photo', 'Are you sure you want to delete your profile image?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -312,15 +321,23 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             setRemovingAvatar(true);
-            const response = await axios.delete(`${API_BASE}/api/auth/avatar`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'ngrok-skip-browser-warning': 'true',
-                'Bypass-Tunnel-Reminder': 'true',
-              },
-            });
 
-            const updatedUser = response.data?.user || { ...user, avatar: null };
+            const response = await axios.post(
+              `${API_BASE}/api/auth/avatar/remove`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Bypass-Tunnel-Reminder': 'true',
+                  'ngrok-skip-browser-warning': 'true',
+                },
+              }
+            );
+
+            const updatedUser = response.data?.user
+              ? { ...response.data.user, avatar: null, avatar_url: null }
+              : { ...user, avatar: null, avatar_url: null };
+
             setUser(updatedUser);
             await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
             Alert.alert('Success', response.data?.message || 'Profile photo removed.');
@@ -410,35 +427,35 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.sectionsWrap}>
-            <View style={styles.card}>
+            <View style={[styles.card, isDark && styles.darkCard]}>
               <View style={styles.cardHeader}>
                 <View style={[styles.cardIcon, { backgroundColor: '#e0f2fe' }]}>
                   <Ionicons name="person-outline" size={20} color="#0284c7" />
                 </View>
                 <View style={styles.cardTitleWrap}>
-                  <Text style={styles.cardTitle}>Personal Information</Text>
-                  <Text style={styles.cardSubtitle}>Update your name, email and phone number</Text>
+                  <Text style={[styles.cardTitle, isDark && styles.darkCardTitle]}>Personal Information</Text>
+                  <Text style={[styles.cardSubtitle, isDark && styles.darkCardSubtitle]}>Update your name, email and phone number</Text>
                 </View>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Full Name *</Text>
+                <Text style={[styles.label, isDark && styles.darkLabel]}>Full Name *</Text>
                 <TextInput
                   value={profileForm.name}
                   onChangeText={(text) => setProfileForm({ ...profileForm, name: text })}
-                  style={styles.input}
+                  style={[styles.input, isDark && styles.darkInput]}
                   placeholder="Full Name"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={isDark ? '#94a3b8' : '#94a3b8'}
                 />
               </View>
 
               <View style={styles.twoColumn}>
                 <View style={styles.formGroupFlex}>
-                  <Text style={styles.label}>Email Address *</Text>
+                  <Text style={[styles.label, isDark && styles.darkLabel]}>Email Address *</Text>
                   <TextInput
                     value={profileForm.email}
                     onChangeText={(text) => setProfileForm({ ...profileForm, email: text })}
-                    style={styles.input}
+                    style={[styles.input, isDark && styles.darkInput]}
                     placeholder="Email Address"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -447,11 +464,11 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={styles.formGroupFlex}>
-                  <Text style={styles.label}>Mobile Number</Text>
+                  <Text style={[styles.label, isDark && styles.darkLabel]}>Mobile Number</Text>
                   <TextInput
                     value={profileForm.phone}
                     onChangeText={(text) => setProfileForm({ ...profileForm, phone: text.replace(/[^0-9]/g, '') })}
-                    style={styles.input}
+                    style={[styles.input, isDark && styles.darkInput]}
                     placeholder="Mobile Number"
                     keyboardType="numeric"
                     maxLength={10}
@@ -461,17 +478,17 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Default Doorstep Service Address</Text>
+                <Text style={[styles.label, isDark && styles.darkLabel]}>Default Doorstep Service Address</Text>
                 <TextInput
                   value={profileForm.address}
                   onChangeText={(text) => setProfileForm({ ...profileForm, address: text })}
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, isDark && styles.darkInput]}
                   placeholder="Flat/House No., Building, Street, Landmark, Area, City, Pincode"
                   multiline
                   numberOfLines={4}
                   placeholderTextColor="#94a3b8"
                 />
-                <Text style={styles.helperText}>
+                <Text style={[styles.helperText, isDark && styles.darkHelperText]}>
                   This address will be automatically suggested when you book a car wash slot.
                 </Text>
               </View>
@@ -481,25 +498,25 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.card}>
+            <View style={[styles.card, isDark && styles.darkCard]}>
               <View style={styles.cardHeader}>
                 <View style={[styles.cardIcon, { backgroundColor: '#dcfce7' }]}>
                   <Ionicons name="lock-closed-outline" size={20} color="#16a34a" />
                 </View>
                 <View style={styles.cardTitleWrap}>
-                  <Text style={styles.cardTitle}>Security</Text>
-                  <Text style={styles.cardSubtitle}>Change your account password</Text>
+                  <Text style={[styles.cardTitle, isDark && styles.darkCardTitle]}>Security</Text>
+                  <Text style={[styles.cardSubtitle, isDark && styles.darkCardSubtitle]}>Change your account password</Text>
                 </View>
               </View>
 
               <View style={styles.twoColumn}>
                 <View style={styles.formGroupFlex}>
-                  <Text style={styles.label}>Current Password *</Text>
-                  <View style={styles.passwordField}>
+                  <Text style={[styles.label, isDark && styles.darkLabel]}>Current Password *</Text>
+                  <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
                     <TextInput
                       value={passwordForm.current_password}
                       onChangeText={(text) => setPasswordForm({ ...passwordForm, current_password: text })}
-                      style={styles.passwordInput}
+                      style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
                       secureTextEntry={!showCurrentPassword}
                       placeholder="Enter current password"
                       placeholderTextColor="#94a3b8"
@@ -517,12 +534,12 @@ export default function ProfileScreen() {
 
               <View style={styles.twoColumn}>
                 <View style={styles.formGroupFlex}>
-                  <Text style={styles.label}>New Password *</Text>
-                  <View style={styles.passwordField}>
+                  <Text style={[styles.label, isDark && styles.darkLabel]}>New Password *</Text>
+                  <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
                     <TextInput
                       value={passwordForm.password}
                       onChangeText={(text) => setPasswordForm({ ...passwordForm, password: text })}
-                      style={styles.passwordInput}
+                      style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
                       secureTextEntry={!showNewPassword}
                       placeholder="Min 6 characters"
                       placeholderTextColor="#94a3b8"
@@ -538,14 +555,14 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={styles.formGroupFlex}>
-                  <Text style={styles.label}>Confirm Password *</Text>
-                  <View style={styles.passwordField}>
+                  <Text style={[styles.label, isDark && styles.darkLabel]}>Confirm Password *</Text>
+                  <View style={[styles.passwordField, isDark && styles.darkPasswordField]}>
                     <TextInput
                       value={passwordForm.password_confirmation}
                       onChangeText={(text) =>
                         setPasswordForm({ ...passwordForm, password_confirmation: text })
                       }
-                      style={styles.passwordInput}
+                      style={[styles.passwordInput, isDark && styles.darkPasswordInput]}
                       secureTextEntry={!showConfirmPassword}
                       placeholder="Re-enter new password"
                       placeholderTextColor="#94a3b8"
@@ -574,7 +591,7 @@ export default function ProfileScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <AppFooter activeTab="home" isDark={isDark} onTabPress={handleFooterTabPress} />
+      <AppFooter activeTab={activeFooterTab} isDark={isDark} onTabPress={handleFooterTabPress} />
     </SafeAreaView>
   );
 }
@@ -718,6 +735,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
+  darkCard: {
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    shadowColor: '#000000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -739,10 +766,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0f172a',
   },
+  darkCardTitle: {
+    color: '#f8fafc',
+  },
   cardSubtitle: {
     fontSize: 12,
     color: '#64748b',
     marginTop: 2,
+  },
+  darkCardSubtitle: {
+    color: '#cbd5e1',
   },
   formGroup: {
     marginBottom: 14,
@@ -757,6 +790,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: '700',
   },
+  darkLabel: {
+    color: '#cbd5e1',
+  },
   input: {
     backgroundColor: '#f8fafc',
     borderWidth: 1,
@@ -767,6 +803,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#0f172a',
   },
+  darkInput: {
+    backgroundColor: '#0f172a',
+    borderColor: '#334155',
+    color: '#f8fafc',
+  },
   textArea: {
     minHeight: 92,
     textAlignVertical: 'top',
@@ -776,6 +817,9 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 8,
     lineHeight: 16,
+  },
+  darkHelperText: {
+    color: '#cbd5e1',
   },
   twoColumn: {
     flexDirection: 'row',
@@ -790,11 +834,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
   },
+  darkPasswordField: {
+    backgroundColor: '#0f172a',
+    borderColor: '#334155',
+  },
   passwordInput: {
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
     color: '#0f172a',
+  },
+  darkPasswordInput: {
+    color: '#f8fafc',
   },
   primaryButton: {
     backgroundColor: '#0ea5e9',
