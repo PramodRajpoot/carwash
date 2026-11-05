@@ -274,6 +274,13 @@ export default function DashboardScreen() {
       return;
     }
 
+    if (path === '/customer/referrals' || title === 'Refer & Earn' || title === 'Referrals') {
+      setMenuVisible(false);
+      setModalVisible(false);
+      router.push('/refer-and-earn');
+      return;
+    }
+
     setMenuVisible(false);
     setActiveFooterTab(tab);
     setModalTitle(title);
@@ -466,9 +473,7 @@ export default function DashboardScreen() {
           onOffersPress={() =>
             router.push('/offer')
           }
-          onReferPress={() =>
-            openActionView('Refer & Earn', '/customer/referrals')
-          }
+          onReferPress={() => router.push('/refer-and-earn')}
           onSupportPress={() =>
             openActionView('Help & Support', '/customer/support', 'support')
           }
@@ -725,7 +730,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               style={styles.menuItem}
-              onPress={() => openActionView('Refer & Earn', '/customer/referrals')}
+              onPress={() => router.push('/refer-and-earn')}
             >
               <View style={[styles.menuItemIcon, { backgroundColor: '#f5f3ff' }]}>
                 <Ionicons name="gift-outline" size={20} color="#7c3aed" />
