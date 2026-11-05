@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   RefreshControl,
   SafeAreaView,
@@ -16,6 +17,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE } from '../constants/api';
@@ -47,6 +49,7 @@ export default function SupportScreen() {
   const [user, setUser] = useState<any>({ name: 'User' });
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
 
@@ -121,7 +124,32 @@ export default function SupportScreen() {
   const clearForm = () => {
     setSubject('');
     setBody('');
+    setSelectedImage(null);
   };
+
+  const handlePickImage = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission required', 'Please allow access to your photos to upload a screenshot.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        setSelectedImage(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert('Upload failed', 'Unable to select an image right now.');
+    }
+  };
+
+  const removeSelectedImage = () => setSelectedImage(null);
 
   const handleSubmit = async () => {
     if (!subject.trim() || !body.trim()) {
@@ -138,18 +166,26 @@ export default function SupportScreen() {
         return;
       }
 
-      await axios.post(
-        `${API_BASE}/api/support/tickets`,
-        { subject: subject.trim(), body: body.trim() },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true',
-            'Bypass-Tunnel-Reminder': 'true',
-          },
-        }
-      );
+      const formData = new FormData();
+      formData.append('subject', subject.trim());
+      formData.append('body', body.trim());
+
+      if (selectedImage) {
+        formData.append('image', {
+          uri: selectedImage.uri,
+          name: selectedImage.fileName || `support-${Date.now()}.jpg`,
+          type: selectedImage.mimeType || 'image/jpeg',
+        } as any);
+      }
+
+      await axios.post(`${API_BASE}/api/support/tickets`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
+        },
+      });
 
       clearForm();
       await loadTickets();
@@ -285,6 +321,30 @@ export default function SupportScreen() {
             numberOfLines={5}
             style={[styles.textArea, isDark && styles.darkInput]}
           />
+
+          <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Screenshot / Image (Optional)</Text>
+          {selectedImage ? (
+            <View style={styles.attachmentPreviewWrap}>
+              <Image source={{ uri: selectedImage.uri }} style={styles.attachmentPreview} resizeMode="cover" />
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.removeAttachmentButton}
+                onPress={removeSelectedImage}
+              >
+                <Text style={styles.removeAttachmentText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[styles.attachmentButton, isDark && styles.darkAttachmentButton]}
+              onPress={handlePickImage}
+            >
+              <Text style={[styles.attachmentButtonText, isDark && styles.darkAttachmentButtonText]}>
+                Upload screenshot
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             activeOpacity={0.85}
@@ -429,6 +489,54 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
     borderColor: '#334155',
     color: '#f8fafc',
+  },
+  attachmentButton: {
+    borderWidth: 1,
+    borderColor: '#7dd3fc',
+    borderRadius: 12,
+    backgroundColor: '#f0f9ff',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  darkAttachmentButton: {
+    backgroundColor: '#0f172a',
+    borderColor: '#38bdf8',
+  },
+  attachmentButtonText: {
+    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  darkAttachmentButtonText: {
+    color: '#e2e8f0',
+  },
+  attachmentPreviewWrap: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  attachmentPreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbe1ea',
+    backgroundColor: '#e2e8f0',
+  },
+  removeAttachmentButton: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.92)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  removeAttachmentText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   primaryButton: {
     backgroundColor: '#0284c7',
