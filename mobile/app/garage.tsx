@@ -223,7 +223,6 @@ export default function GarageScreen() {
         subtitle=""
         unreadCount={0}
         isDark={isDark}
-        showLocation={false}
         actionButton={
           <TouchableOpacity
             style={styles.primaryActionBtn}

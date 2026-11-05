@@ -397,7 +397,6 @@ export default function BookingsScreen() {
         subtitle=""
         unreadCount={0}
         isDark={isDark}
-        showLocation={false}
         actionButton={
           <TouchableOpacity
             style={styles.bookHeaderBtnCompact}

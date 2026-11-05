@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { safeHapticLight } from '../utils/haptics';
 import { getAvatarUri } from '../utils/avatar';
@@ -27,7 +28,7 @@ export default function DashboardHeader({
   address,
   unreadCount = 0,
   isDark = false,
-  showLocation = true,
+  showLocation = false,
   actionButton,
   onLocationPress,
   onProfilePress,
@@ -38,10 +39,33 @@ export default function DashboardHeader({
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
 
   const safeAddress = typeof address === 'string' ? address.trim() : '';
+  const [savedAddress, setSavedAddress] = React.useState('');
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    AsyncStorage.getItem('header_location')
+      .then((storedAddress) => {
+        if (isMounted) {
+          setSavedAddress(typeof storedAddress === 'string' ? storedAddress.trim() : '');
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSavedAddress('');
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const resolvedAddress = safeAddress || savedAddress;
 
   // Show the full address when available; otherwise keep the default placeholder.
-  const locationText = safeAddress && safeAddress !== 'Select Location'
-    ? safeAddress
+  const locationText = resolvedAddress && resolvedAddress !== 'Select Location'
+    ? resolvedAddress
     : 'Select Location';
 
   const userInitial = user?.name

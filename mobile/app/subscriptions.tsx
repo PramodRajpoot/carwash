@@ -291,7 +291,6 @@ export default function SubscriptionsScreen() {
         subtitle={`${monthlyPlans.length} active wash plans`}
         unreadCount={0}
         isDark={isDark}
-        showLocation={false}
         onProfilePress={() => router.push('/dashboard')}
         onNotificationPress={() => router.push('/dashboard')}
         onToggleTheme={toggleTheme}

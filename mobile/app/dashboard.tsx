@@ -411,6 +411,18 @@ export default function DashboardScreen() {
     setMenuVisible(true);
   };
 
+  const headerAddress = resolvedDashboardAddress && resolvedDashboardAddress !== 'Select Location'
+    ? resolvedDashboardAddress
+    : liveHeaderAddress;
+
+  useEffect(() => {
+    if (headerAddress && headerAddress !== 'Select Location') {
+      AsyncStorage.setItem('header_location', headerAddress).catch(() => {});
+    } else {
+      AsyncStorage.removeItem('header_location').catch(() => {});
+    }
+  }, [headerAddress]);
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, isDark && styles.darkSafeArea]}>
@@ -420,10 +432,6 @@ export default function DashboardScreen() {
     );
   }
 
-  const headerAddress = resolvedDashboardAddress && resolvedDashboardAddress !== 'Select Location'
-    ? resolvedDashboardAddress
-    : liveHeaderAddress;
-
   return (
     <View style={[styles.safeArea, isDark && styles.darkSafeArea]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -432,6 +440,7 @@ export default function DashboardScreen() {
       <DashboardHeader
         user={user}
         address={headerAddress}
+        showLocation={true}
         unreadCount={dashData.unread_notifications || 0}
         isDark={isDark}
         onLocationPress={() =>
