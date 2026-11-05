@@ -240,34 +240,42 @@ export default function ReferAndEarnScreen() {
       >
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, isDark && styles.darkStatCard]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
-              <Ionicons name="people-outline" size={18} color="#06b6d4" />
+            <View style={styles.statHeader}>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
+                <Ionicons name="people-outline" size={18} color="#06b6d4" />
+              </View>
+              <Text style={[styles.statValue, isDark && styles.darkText]}>{data.total_referrals ?? 0}</Text>
             </View>
-            <Text style={[styles.statValue, isDark && styles.darkText]}>{data.total_referrals ?? 0}</Text>
             <Text style={[styles.statLabel, isDark && styles.darkSubtext]}>Total Referrals</Text>
           </View>
 
           <View style={[styles.statCard, isDark && styles.darkStatCard, styles.successBorder]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <Ionicons name="checkmark-done-outline" size={18} color="#10b981" />
+            <View style={styles.statHeader}>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                <Ionicons name="checkmark-done-outline" size={18} color="#10b981" />
+              </View>
+              <Text style={[styles.statValue, styles.successText]}>{data.confirmed_referrals ?? 0}</Text>
             </View>
-            <Text style={[styles.statValue, styles.successText]}>{data.confirmed_referrals ?? 0}</Text>
             <Text style={[styles.statLabel, isDark && styles.darkSubtext]}>Confirmed</Text>
           </View>
 
           <View style={[styles.statCard, isDark && styles.darkStatCard, styles.warningBorder]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}>
-              <Ionicons name="time-outline" size={18} color="#ef4444" />
+            <View style={styles.statHeader}>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}>
+                <Ionicons name="time-outline" size={18} color="#ef4444" />
+              </View>
+              <Text style={[styles.statValue, styles.warningText]}>{data.pending_referrals ?? 0}</Text>
             </View>
-            <Text style={[styles.statValue, styles.warningText]}>{data.pending_referrals ?? 0}</Text>
             <Text style={[styles.statLabel, isDark && styles.darkSubtext]}>Pending</Text>
           </View>
 
           <View style={[styles.statCard, isDark && styles.darkStatCard]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-              <Ionicons name="wallet-outline" size={18} color="#8b5cf6" />
+            <View style={styles.statHeader}>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+                <Ionicons name="wallet-outline" size={18} color="#8b5cf6" />
+              </View>
+              <Text style={[styles.statValue, isDark && styles.darkText]}>{data.e_points ?? 0}</Text>
             </View>
-            <Text style={[styles.statValue, isDark && styles.darkText]}>{data.e_points ?? 0}</Text>
             <Text style={[styles.statLabel, isDark && styles.darkSubtext]}>Earned E-Points</Text>
           </View>
         </View>
@@ -442,10 +450,10 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: 0,
-    height: 72,
+    minHeight: 74,
     borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -453,6 +461,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.01,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
+    justifyContent: 'flex-start',
   },
   darkStatCard: {
     backgroundColor: '#0f172a',
@@ -470,25 +479,36 @@ const styles = StyleSheet.create({
   warningText: {
     color: '#ef4444',
   },
+  statHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 2,
+  },
   statIcon: {
     width: 18,
     height: 18,
     borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 3,
   },
   statValue: {
+    flex: 1,
     fontSize: 13,
     fontWeight: '800',
     color: '#0f172a',
     lineHeight: 16,
+    textAlign: 'right',
+    marginTop: 1,
   },
   statLabel: {
-    marginTop: 1,
+    marginTop: 6,
     fontSize: 7.5,
     color: '#64748b',
     lineHeight: 9,
+    textAlign: 'left',
+    width: '100%',
   },
   card: {
     backgroundColor: '#fff',
