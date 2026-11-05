@@ -7,9 +7,13 @@ import { getAvatarUri } from '../utils/avatar';
 
 interface Props {
   user: any;
+  title?: string;
+  subtitle?: string;
   address?: string;
   unreadCount?: number;
   isDark?: boolean;
+  showLocation?: boolean;
+  actionButton?: React.ReactNode;
   onLocationPress?: () => void;
   onProfilePress?: () => void;
   onNotificationPress?: () => void;
@@ -18,9 +22,13 @@ interface Props {
 
 export default function DashboardHeader({
   user,
+  title = 'Dashboard',
+  subtitle,
   address,
   unreadCount = 0,
   isDark = false,
+  showLocation = true,
+  actionButton,
   onLocationPress,
   onProfilePress,
   onNotificationPress,
@@ -75,35 +83,51 @@ export default function DashboardHeader({
         isDark && styles.darkHeaderContainer,
       ]}
     >
-      <View style={styles.leftCol}>
-        <Text style={[styles.mainTitle, isDark && styles.darkMainTitle]}>
-          Dashboard
-        </Text>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={styles.locationRow}
-          onPress={handleLocation}
-        >
-          <Text
-            style={[styles.locationName, isDark && styles.darkLocationName]}
-            numberOfLines={1}
-          >
-            {locationText}
-          </Text>
-          <Ionicons
-            name="chevron-forward"
-            size={13}
-            color={isDark ? '#fb7185' : '#e11d48'}
-            style={styles.chevron}
+      <View style={styles.brandRow}>
+        <View style={styles.headerLogoContainer}>
+          <Image
+            source={require('../assets/images/icon.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
           />
-        </TouchableOpacity>
+        </View>
+
+        <View style={styles.brandTextWrap}>
+          <Text style={[styles.mainTitle, isDark && styles.darkMainTitle]}>{title}</Text>
+
+          {showLocation ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.locationRow}
+              onPress={handleLocation}
+            >
+              <Text
+                style={[styles.locationName, isDark && styles.darkLocationName]}
+                numberOfLines={1}
+              >
+                {locationText}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={13}
+                color={isDark ? '#fb7185' : '#e11d48'}
+                style={styles.chevron}
+              />
+            </TouchableOpacity>
+          ) : subtitle ? (
+            <Text style={[styles.subtitleText, isDark && styles.darkSubtitleText]}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       <View style={styles.rightActionsRow}>
-        {/* Notification Icon (Clean, no surrounding box) */}
+        {actionButton ? <View style={styles.actionWrap}>{actionButton}</View> : null}
+
         <TouchableOpacity
           activeOpacity={0.7}
-          style={styles.iconBtn}
+          style={[styles.iconBtn, isDark && styles.iconBtnDark]}
           onPress={handleNotification}
         >
           <Ionicons
@@ -120,10 +144,9 @@ export default function DashboardHeader({
           )}
         </TouchableOpacity>
 
-        {/* Change Mode Icon (Clean, no surrounding box) */}
         <TouchableOpacity
           activeOpacity={0.7}
-          style={styles.iconBtn}
+          style={[styles.iconBtn, isDark && styles.iconBtnDark]}
           onPress={handleToggle}
         >
           <Ionicons
@@ -133,7 +156,6 @@ export default function DashboardHeader({
           />
         </TouchableOpacity>
 
-        {/* User Profile: Avatar picture if present, else user initial */}
         <TouchableOpacity
           activeOpacity={0.8}
           style={styles.profileBtn}
@@ -162,18 +184,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 12,
     backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
   },
   darkHeaderContainer: {
     backgroundColor: '#090d16',
+    borderBottomColor: '#1e293b',
   },
-  leftCol: {
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
     marginRight: 10,
   },
+  headerLogoContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: '#e0f2fe',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    shadowColor: '#0ea5e9',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  headerLogo: {
+    width: 22,
+    height: 22,
+  },
+  brandTextWrap: {
+    flex: 1,
+  },
   mainTitle: {
-    fontSize: 21,
+    fontSize: 18,
     fontWeight: '900',
     color: '#0f172a',
     letterSpacing: -0.5,
@@ -189,12 +237,20 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   locationName: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#e11d48',
   },
   darkLocationName: {
     color: '#fb7185',
+  },
+  subtitleText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  darkSubtitleText: {
+    color: '#cbd5e1',
   },
   chevron: {
     top: 1,
@@ -202,16 +258,34 @@ const styles = StyleSheet.create({
   rightActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 0,
+    gap: 8,
+  },
+  actionWrap: {
+    marginRight: 2,
   },
   iconBtn: {
-    padding: 4,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#f8fafc',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  iconBtnDark: {
+    backgroundColor: '#111827',
+    borderColor: '#1f2937',
   },
   profileBtn: {
-    padding: 2,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -237,12 +311,12 @@ const styles = StyleSheet.create({
   avatarImg: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: 9,
   },
   initialsCircle: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: 9,
     backgroundColor: '#0284c7',
     alignItems: 'center',
     justifyContent: 'center',

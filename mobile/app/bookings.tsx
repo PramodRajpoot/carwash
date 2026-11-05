@@ -23,6 +23,7 @@ import { WebView } from 'react-native-webview';
 import { API_BASE } from '../constants/api';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import BookServiceModal from '../components/BookServiceModal';
+import DashboardHeader from '../components/DashboardHeader';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
 
 const WebViewComponent: any = WebView;
@@ -382,26 +383,14 @@ export default function BookingsScreen() {
     <View style={[styles.safeArea, isDark && styles.darkContainer]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      {/* Top Native Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: topPadding },
-          isDark && styles.darkHeader,
-        ]}
-      >
-        <View style={styles.headerLeft}>
-          <View>
-            <Text style={[styles.headerTitle, isDark && styles.darkText]}>
-              My Washes
-            </Text>
-            <Text style={[styles.headerSub, isDark && styles.darkSubtext]}>
-              {bookings.length} total services
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.headerRight}>
+      <DashboardHeader
+        user={user}
+        title="My Washes"
+        subtitle={`${bookings.length} total services`}
+        unreadCount={0}
+        isDark={isDark}
+        showLocation={false}
+        actionButton={
           <TouchableOpacity
             style={styles.bookHeaderBtnCompact}
             onPress={openBookingModal}
@@ -410,70 +399,63 @@ export default function BookingsScreen() {
             <Ionicons name="add" size={14} color="#ffffff" />
             <Text style={styles.bookHeaderBtnTextCompact}>Book Wash</Text>
           </TouchableOpacity>
+        }
+        onProfilePress={() => router.push('/dashboard')}
+        onNotificationPress={() => router.push('/dashboard')}
+        onToggleTheme={toggleTheme}
+      />
 
+      <View style={[styles.filterHeaderRow, isDark && styles.darkFilterHeaderRow]}>
+        <View style={[styles.filterTriggerWrap, isDark && styles.darkFilterTriggerWrap]}>
           <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={toggleTheme}
-            activeOpacity={0.7}
+            style={[styles.filterTrigger, isDark && styles.darkFilterTrigger]}
+            onPress={() => {
+              safeHapticLight();
+              setFilterMenuVisible((prev) => !prev);
+            }}
+            activeOpacity={0.8}
           >
             <Ionicons
-              name={isDark ? 'sunny' : 'moon-outline'}
-              size={20}
-              color={isDark ? '#fbbf24' : '#334155'}
+              name="funnel-outline"
+              size={16}
+              color={isDark ? '#e2e8f0' : '#334155'}
             />
           </TouchableOpacity>
-
-          <View style={styles.headerFilterWrap}>
-            <TouchableOpacity
-              style={[styles.filterTrigger, isDark && styles.darkFilterTrigger]}
-              onPress={() => {
-                safeHapticLight();
-                setFilterMenuVisible((prev) => !prev);
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name="funnel-outline"
-                size={16}
-                color={isDark ? '#e2e8f0' : '#334155'}
-              />
-            </TouchableOpacity>
-
-            {filterMenuVisible && (
-              <View style={[styles.filterMenu, isDark && styles.darkFilterMenu]}>
-                {filterOptions.map((option) => {
-                  const isSelected = activeFilter === option.key;
-
-                  return (
-                    <TouchableOpacity
-                      key={option.key}
-                      style={[
-                        styles.filterMenuItem,
-                        isSelected && (isDark ? styles.activeFilterMenuItemDark : styles.activeFilterMenuItemLight),
-                      ]}
-                      onPress={() => {
-                        safeHapticLight();
-                        setActiveFilter(option.key);
-                        setFilterMenuVisible(false);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.filterMenuItemText,
-                          isDark && styles.darkSubtext,
-                          isSelected && styles.activeFilterMenuItemText,
-                        ]}
-                      >
-                        {option.label} ({option.count})
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
         </View>
+
+        {filterMenuVisible && (
+          <View style={[styles.filterMenu, isDark && styles.darkFilterMenu]}>
+            {filterOptions.map((option) => {
+              const isSelected = activeFilter === option.key;
+
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.filterMenuItem,
+                    isSelected && (isDark ? styles.activeFilterMenuItemDark : styles.activeFilterMenuItemLight),
+                  ]}
+                  onPress={() => {
+                    safeHapticLight();
+                    setActiveFilter(option.key);
+                    setFilterMenuVisible(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.filterMenuItemText,
+                      isDark && styles.darkSubtext,
+                      isSelected && styles.activeFilterMenuItemText,
+                    ]}
+                  >
+                    {option.label} ({option.count})
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </View>
 
       {/* Main Scroll Content */}
@@ -1025,6 +1007,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  filterHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  darkFilterHeaderRow: {
+    backgroundColor: '#090d16',
+    borderBottomColor: '#1f2937',
+  },
+  filterTriggerWrap: {
+    position: 'relative',
+  },
+  darkFilterTriggerWrap: {
+    backgroundColor: 'transparent',
   },
   headerFilterWrap: {
     position: 'relative',

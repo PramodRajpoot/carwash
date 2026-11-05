@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppFooter, { FooterTab } from '../components/AppFooter';
+import DashboardHeader from '../components/DashboardHeader';
 import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
 
@@ -216,17 +217,14 @@ export default function GarageScreen() {
     <SafeAreaView style={[styles.safeArea, isDark && styles.darkSafeArea]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <View style={[styles.header, { paddingTop: topPadding }, isDark && styles.darkHeader]}>
-        <View style={styles.headerLeft}>
-          <View>
-            <Text style={[styles.headerTitle, isDark && styles.darkText]}>My Garage</Text>
-            <Text style={[styles.headerSub, isDark && styles.darkSubtext]}>
-              {filteredVehicles.length} registered vehicles
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.headerRight}>
+      <DashboardHeader
+        user={null}
+        title="My Garage"
+        subtitle={`${filteredVehicles.length} registered vehicles`}
+        unreadCount={0}
+        isDark={isDark}
+        showLocation={false}
+        actionButton={
           <TouchableOpacity
             style={styles.primaryActionBtn}
             activeOpacity={0.85}
@@ -238,57 +236,51 @@ export default function GarageScreen() {
             <Ionicons name="add" size={14} color="#ffffff" />
             <Text style={styles.primaryActionBtnText}>Add Vehicle</Text>
           </TouchableOpacity>
+        }
+        onProfilePress={() => router.push('/dashboard')}
+        onNotificationPress={() => router.push('/dashboard')}
+        onToggleTheme={toggleTheme}
+      />
 
+      <View style={[styles.filterRow, isDark && styles.darkFilterRow]}>
+        <View style={styles.headerFilterWrap}>
           <TouchableOpacity
-            style={styles.headerIconBtn}
-            activeOpacity={0.7}
+            style={styles.filterTrigger}
+            activeOpacity={0.8}
             onPress={() => {
               safeHapticLight();
-              toggleTheme();
+              setFilterMenuVisible((prev) => !prev);
             }}
           >
-            <Ionicons name={isDark ? 'sunny' : 'moon-outline'} size={20} color={isDark ? '#fbbf24' : '#334155'} />
+            <Ionicons name="funnel-outline" size={16} color={isDark ? '#e2e8f0' : '#334155'} />
           </TouchableOpacity>
 
-          <View style={styles.headerFilterWrap}>
-            <TouchableOpacity
-              style={styles.filterTrigger}
-              activeOpacity={0.8}
-              onPress={() => {
-                safeHapticLight();
-                setFilterMenuVisible((prev) => !prev);
-              }}
-            >
-              <Ionicons name="funnel-outline" size={16} color={isDark ? '#e2e8f0' : '#334155'} />
-            </TouchableOpacity>
-
-            {filterMenuVisible && (
-              <View style={[styles.filterMenu, isDark && styles.darkFilterMenu]}>
-                {filterOptions.map((option) => {
-                  const isSelected = activeVehicleFilter === option.key;
-                  return (
-                    <TouchableOpacity
-                      key={option.key}
-                      style={[
-                        styles.filterMenuItem,
-                        isSelected && (isDark ? styles.activeFilterMenuItemDark : styles.activeFilterMenuItemLight),
-                      ]}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        safeHapticLight();
-                        setActiveVehicleFilter(option.key);
-                        setFilterMenuVisible(false);
-                      }}
-                    >
-                      <Text style={[styles.filterMenuItemText, isSelected && styles.activeFilterMenuItemText]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
+          {filterMenuVisible && (
+            <View style={[styles.filterMenu, isDark && styles.darkFilterMenu]}>
+              {filterOptions.map((option) => {
+                const isSelected = activeVehicleFilter === option.key;
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[
+                      styles.filterMenuItem,
+                      isSelected && (isDark ? styles.activeFilterMenuItemDark : styles.activeFilterMenuItemLight),
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      safeHapticLight();
+                      setActiveVehicleFilter(option.key);
+                      setFilterMenuVisible(false);
+                    }}
+                  >
+                    <Text style={[styles.filterMenuItemText, isSelected && styles.activeFilterMenuItemText]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
       </View>
 
@@ -490,6 +482,19 @@ const styles = StyleSheet.create({
   },
   darkSafeArea: {
     backgroundColor: '#090d16',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  darkFilterRow: {
+    backgroundColor: '#090d16',
+    borderBottomColor: '#1f2937',
   },
   header: {
     flexDirection: 'row',
