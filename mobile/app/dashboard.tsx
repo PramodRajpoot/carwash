@@ -297,7 +297,7 @@ export default function DashboardScreen() {
 
   const openBookingModal = () => {
     safeHapticMedium();
-    setBookingSheetVisible(true);
+    router.push('/book');
   };
 
   const closeBookingModal = () => {
@@ -321,7 +321,7 @@ export default function DashboardScreen() {
         router.push('/garage');
         break;
       case 'book':
-        router.push('/bookings');
+        router.push('/book');
         break;
       case 'support':
         router.push('/support');

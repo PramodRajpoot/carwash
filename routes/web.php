@@ -18,6 +18,9 @@ Route::get('/clear-cache-now', function () {
 // Cashfree payment return — redirect back into SPA
 Route::get('/cashfree/return', [\App\Http\Controllers\CashfreeController::class, 'handleReturn']);
 
+// Cashfree in-app checkout wrapper for mobile WebView
+Route::get('/cashfree/checkout', [\App\Http\Controllers\CashfreeController::class, 'renderCheckout']);
+
 // Direct franchise documents stream / download fallback
 Route::get('/franchise_documents/{filename}', [\App\Http\Controllers\AdminController::class, 'serveFranchiseDocument']);
 

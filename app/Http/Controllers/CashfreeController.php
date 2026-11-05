@@ -302,4 +302,34 @@ class CashfreeController extends Controller
         // Redirect back into the SPA with the order_id as a query param
         return redirect('/customer/bookings?cashfree_order_id=' . urlencode($orderId));
     }
+
+    /**
+     * Render Cashfree JS SDK checkout wrapper for in-app mobile WebView.
+     * GET /cashfree/checkout?payment_session_id=...&env=...
+     */
+    public function renderCheckout(Request $request)
+    {
+        $paymentSessionId = $request->query('payment_session_id');
+        $environment = $request->query('env', 'sandbox');
+        $bookingId = $request->query('booking_id');
+
+        if (!$paymentSessionId && $bookingId) {
+            $booking = Booking::find($bookingId);
+            if ($booking && $booking->cashfree_payment_session_id) {
+                $paymentSessionId = $booking->cashfree_payment_session_id;
+                $credentials = $this->getCredentials();
+                $environment = $credentials['environment'] ?? 'sandbox';
+            }
+        }
+
+        if (!$paymentSessionId) {
+            return response('<div style="font-family:sans-serif;padding:30px;text-align:center;"><h2>Payment Session Expired</h2><p>Please return to the app and retry.</p></div>', 400);
+        }
+
+        return view('cashfree_checkout', [
+            'paymentSessionId' => $paymentSessionId,
+            'environment'      => $environment,
+            'bookingId'        => $bookingId,
+        ]);
+    }
 }

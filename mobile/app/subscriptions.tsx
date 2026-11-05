@@ -201,7 +201,7 @@ export default function SubscriptionsScreen() {
     }
 
     if (tab === 'book') {
-      router.push('/bookings');
+      router.push('/book');
       return;
     }
 

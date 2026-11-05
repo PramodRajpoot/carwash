@@ -184,7 +184,7 @@ export default function EPointsScreen() {
     }
 
     if (tab === 'book') {
-      router.push('/bookings');
+      router.push('/book');
       return;
     }
 

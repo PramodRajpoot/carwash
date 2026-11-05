@@ -25,6 +25,7 @@ import AppFooter, { FooterTab } from '../components/AppFooter';
 import BookServiceModal from '../components/BookServiceModal';
 import DashboardHeader from '../components/DashboardHeader';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
+import { showSweetAlert } from '../utils/sweetAlert';
 
 const WebViewComponent: any = WebView;
 
@@ -99,9 +100,110 @@ export default function BookingsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('Book a Wash');
   const [modalUrl, setModalUrl] = useState('');
+  const [modalHtml, setModalHtml] = useState<string | null>(null);
   const [webProgress, setWebProgress] = useState(0);
   const [canGoBack, setCanGoBack] = useState(false);
   const webviewRef = useRef<any>(null);
+
+  const buildCashfreeCheckoutHtml = (sessionId: string, environment: string = 'sandbox') => {
+    const mode = environment.toLowerCase() === 'production' ? 'production' : 'sandbox';
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cashfree Checkout</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(2, 132, 199, 0.2);
+      border-top: 4px solid #0284c7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    h2 { font-size: 1.25rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }
+    p { font-size: 0.9rem; color: #94a3b8; line-height: 1.45; }
+    .badge {
+      margin-top: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .error-box {
+      display: none;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      margin-top: 16px;
+      max-width: 320px;
+    }
+  </style>
+  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+</head>
+<body>
+  <div id="loader" class="spinner"></div>
+  <h2 id="title">Opening Secure Checkout</h2>
+  <p id="desc">Connecting with Cashfree Payment Gateway to complete your booking...</p>
+  <div class="badge">🔒 256-Bit SSL Encrypted</div>
+  <div id="error-msg" class="error-box"></div>
+
+  <script>
+    window.addEventListener('load', function() {
+      try {
+        var cashfree = Cashfree({ mode: "${mode}" });
+        cashfree.checkout({
+          paymentSessionId: "${sessionId}",
+          redirectTarget: "_self"
+        }).then(function(result) {
+          if (result && result.error) {
+            showErr(result.error.message || 'Payment initialization error');
+          }
+        }).catch(function(err) {
+          showErr(err && err.message ? err.message : 'Checkout error');
+        });
+      } catch (e) {
+        showErr(e && e.message ? e.message : 'Failed to load payment SDK');
+      }
+    });
+
+    function showErr(msg) {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('title').textContent = 'Payment Error';
+      document.getElementById('desc').textContent = 'Please return to the app and retry.';
+      var eb = document.getElementById('error-msg');
+      eb.style.display = 'block';
+      eb.textContent = msg;
+    }
+  </script>
+</body>
+</html>`;
+  };
 
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
 
@@ -188,24 +290,55 @@ export default function BookingsScreen() {
 
   useEffect(() => {
     if (params.book === 'true') {
-      setBookingSheetVisible(true);
+      router.push('/book');
     }
   }, [params.book]);
 
   const openBookingModal = () => {
     safeHapticMedium();
-    setBookingSheetVisible(true);
+    router.push('/book');
+  };
+
+  const handlePayBooking = async (b: BookingItem) => {
+    safeHapticMedium();
+    try {
+      const split = b.payment_status === 'partially_paid' ? 'half' : (b.payment_type || 'full');
+      const cfOrderRes = await axios.post(
+        `${API_BASE}/api/cashfree/create-order`,
+        {
+          booking_id: b.id,
+          payment_split: split,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (cfOrderRes.data?.payment_session_id) {
+        const sessionId = cfOrderRes.data.payment_session_id;
+        const env = cfOrderRes.data.environment || 'sandbox';
+        setModalTitle(`Pay for Wash #${b.id}`);
+        setModalUrl('');
+        setModalHtml(buildCashfreeCheckoutHtml(sessionId, env));
+        setModalVisible(true);
+      } else {
+        showSweetAlert('Payment Error', 'Could not create payment order. Please retry.', 'error');
+      }
+    } catch (err: any) {
+      showSweetAlert('Payment Error', err.response?.data?.message || 'Failed to start payment.', 'error');
+    }
   };
 
   const openActionUrl = (title: string, path: string) => {
     safeHapticLight();
     setModalTitle(title);
+    setModalHtml(null);
     setModalUrl(`${API_BASE}${path}`);
     setModalVisible(true);
   };
 
   const closeModal = () => {
     setModalVisible(false);
+    setModalHtml(null);
+    setModalUrl('');
     // Refresh bookings after booking or payment action
     fetchBookings();
   };
@@ -218,7 +351,7 @@ export default function BookingsScreen() {
     } else if (tab === 'support') {
       router.push('/support');
     } else if (tab === 'book') {
-      // Already on washes/book page; keep the current list open
+      router.push('/book');
       return;
     }
   };
@@ -665,12 +798,7 @@ export default function BookingsScreen() {
                           {b.payment_status !== 'paid' && b.status !== 'cancelled' ? (
                             <TouchableOpacity
                               style={styles.payBtn}
-                              onPress={() =>
-                                openActionUrl(
-                                  `Pay for Wash #${b.id}`,
-                                  `/customer/bookings?pay=${b.id}`
-                                )
-                              }
+                              onPress={() => handlePayBooking(b)}
                               activeOpacity={0.8}
                             >
                               <Text style={styles.payBtnText}>
@@ -793,7 +921,38 @@ export default function BookingsScreen() {
             </View>
           )}
 
-          {modalUrl ? (
+          {modalHtml ? (
+            <WebViewComponent
+              ref={webviewRef}
+              source={{ html: modalHtml, baseUrl: 'https://sdk.cashfree.com' }}
+              originWhitelist={['*']}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              mixedContentMode="always"
+              allowFileAccess={true}
+              onShouldStartLoadWithRequest={(request: any) => {
+                if (
+                  request.url.includes('/cashfree/return') ||
+                  request.url.includes('cashfree_order_id=') ||
+                  request.url.includes('status=success')
+                ) {
+                  closeModal();
+                  return false;
+                }
+                return true;
+              }}
+              onNavigationStateChange={(navState: any) => {
+                if (
+                  navState.url.includes('/cashfree/return') ||
+                  navState.url.includes('cashfree_order_id=') ||
+                  navState.url.includes('status=success')
+                ) {
+                  closeModal();
+                }
+              }}
+              style={{ flex: 1 }}
+            />
+          ) : modalUrl ? (
             <WebViewComponent
               ref={webviewRef}
               source={{
@@ -806,6 +965,13 @@ export default function BookingsScreen() {
               injectedJavaScriptBeforeContentLoaded={injectedJS}
               onNavigationStateChange={(navState: any) => {
                 setCanGoBack(navState.canGoBack);
+                if (
+                  navState.url.includes('/cashfree/return') ||
+                  navState.url.includes('cashfree_order_id=') ||
+                  navState.url.includes('status=success')
+                ) {
+                  closeModal();
+                }
               }}
               onLoadProgress={({ nativeEvent }: any) => {
                 setWebProgress(nativeEvent.progress);

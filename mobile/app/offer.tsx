@@ -119,7 +119,7 @@ export default function OfferScreen() {
     }
 
     if (tab === 'book') {
-      router.push('/bookings');
+      router.push('/book');
       return;
     }
 
@@ -225,15 +225,25 @@ export default function OfferScreen() {
                     {coupon.expires_at ? `Expires: ${coupon.expires_at}` : 'No expiry'}
                   </Text>
 
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={[styles.copyBtn, copiedCode === coupon.code && styles.copyBtnSuccess]}
-                    onPress={() => copyCoupon(coupon.code)}
-                  >
-                    <Text style={[styles.copyBtnText, copiedCode === coupon.code && styles.copyBtnTextSuccess]}>
-                      {copiedCode === coupon.code ? '✓ Copied' : 'Copy Code'}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={styles.couponBtnRow}>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      style={[styles.copyBtn, copiedCode === coupon.code && styles.copyBtnSuccess]}
+                      onPress={() => copyCoupon(coupon.code)}
+                    >
+                      <Text style={[styles.copyBtnText, copiedCode === coupon.code && styles.copyBtnTextSuccess]}>
+                        {copiedCode === coupon.code ? '✓ Copied' : 'Copy'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      style={styles.useCouponBtn}
+                      onPress={() => router.push(`/book?coupon=${coupon.code}`)}
+                    >
+                      <Text style={styles.useCouponBtnText}>Apply & Book</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </View>
@@ -349,15 +359,33 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginBottom: 12,
   },
-  copyBtn: {
+  couponBtnRow: {
+    flexDirection: 'row',
+    gap: 6,
     width: '100%',
+  },
+  copyBtn: {
+    flex: 1,
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 9,
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  useCouponBtn: {
+    flex: 1.3,
+    borderRadius: 10,
+    paddingVertical: 9,
+    backgroundColor: '#0284c7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  useCouponBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   copyBtnSuccess: {
     backgroundColor: '#22c55e',

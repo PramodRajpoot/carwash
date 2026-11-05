@@ -144,7 +144,7 @@ export default function ReferAndEarnScreen() {
     }
 
     if (tab === 'book') {
-      router.push('/bookings');
+      router.push('/book');
       return;
     }
 

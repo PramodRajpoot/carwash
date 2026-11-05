@@ -205,7 +205,7 @@ export default function GarageScreen() {
       return;
     }
     if (tab === 'book') {
-      router.push('/bookings');
+      router.push('/book');
       return;
     }
     if (tab === 'support') {
@@ -328,6 +328,17 @@ export default function GarageScreen() {
                   <Text style={[styles.metaValue, isDark && styles.darkText]}>
                     {vehicle.plate_number || 'Not provided'}
                   </Text>
+                </View>
+
+                <View style={styles.vehicleCardBottom}>
+                  <TouchableOpacity
+                    style={styles.cardBookWashBtn}
+                    onPress={() => router.push(`/book?vehicle_id=${vehicle.id}`)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="sparkles" size={13} color="#ffffff" style={{ marginRight: 6 }} />
+                    <Text style={styles.cardBookWashBtnText}>Book Wash</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             ))}
@@ -955,5 +966,26 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '800',
+  },
+  vehicleCardBottom: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  cardBookWashBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  cardBookWashBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
