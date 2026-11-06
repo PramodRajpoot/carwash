@@ -564,13 +564,14 @@ export default function BookServiceModal({
 
         if (res.data?.requires_payment && booking) {
           try {
-            setSuccessBookingId(booking.id);
+            const orderPayload: any = { booking_id: booking.id };
+            if (paymentType === 'full') {
+              orderPayload.payment_split = 'full';
+            }
+
             const cfOrderRes = await axios.post(
               `${API_BASE}/api/cashfree/create-order`,
-              {
-                booking_id: booking.id,
-                payment_split: paymentType,
-              },
+              orderPayload,
               { headers: { Authorization: `Bearer ${token}` } }
             );
 

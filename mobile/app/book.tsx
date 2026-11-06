@@ -19,15 +19,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { WebView } from 'react-native-webview';
-import * as Location from 'expo-location';
 
 import { API_BASE } from '../constants/api';
-import { safeHapticLight, safeHapticMedium, safeHapticSuccess, safeHapticWarning } from '../utils/haptics';
+import { safeHapticLight, safeHapticMedium, safeHapticSuccess } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 
-const WebViewComponent: any = WebView;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface Vehicle {
@@ -53,14 +50,7 @@ interface ServicePkg {
   is_addon: boolean;
   custom_badge?: string;
   max_bookings?: number;
-}
-
-interface SlotItem {
-  id?: number;
-  time_range: string;
-  max_bookings: number;
-  current_bookings: number;
-  is_full?: boolean;
+  addons?: ServicePkg[];
 }
 
 type PickerType = 'vehicle' | 'center' | null;
@@ -82,280 +72,89 @@ export default function BookScreen() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
   const [packages, setPackages] = useState<ServicePkg[]>([]);
-  const [userPoints, setUserPoints] = useState(0);
-  const [userEarningMoney, setUserEarningMoney] = useState(0);
   const [wishlistPackageIds, setWishlistPackageIds] = useState<number[]>([]);
 
-  // Form Fields
+  // Selection States: Vehicle & Service Hub
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [selectedCenterId, setSelectedCenterId] = useState<number | null>(null);
+
+  // Selection States: Service Package & Add-ons
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [selectedAddonIds, setSelectedAddonIds] = useState<number[]>([]);
+  const [isAddonExpanded, setIsAddonExpanded] = useState<boolean>(true);
 
-  // Address
-  const [savedAddress, setSavedAddress] = useState<string>('');
-  const [useSavedAddress, setUseSavedAddress] = useState<boolean>(true);
-  const [customAddress, setCustomAddress] = useState<string>('');
-  const [saveAsDefaultAddress, setSaveAsDefaultAddress] = useState<boolean>(true);
-  const [locationLoading, setLocationLoading] = useState<boolean>(false);
-  const [liveLocationSource, setLiveLocationSource] = useState<'saved' | 'live' | 'none'>('saved');
-
-  // Slots
-  const [availableSlots, setAvailableSlots] = useState<SlotItem[]>([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-
-  // Discounts & Vouchers
-  const [couponCode, setCouponCode] = useState('');
-  const [couponDiscount, setCouponDiscount] = useState(0);
-  const [couponFeedback, setCouponFeedback] = useState<{ success: boolean; msg: string } | null>(null);
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [useEPoints, setUseEPoints] = useState(false);
-  const [useEarningMoney, setUseEarningMoney] = useState(false);
-
-  // Payment Selection
-  const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full');
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
-
-  // Picker Sheet Modal State
+  // Modals & Pickers
   const [activePicker, setActivePicker] = useState<PickerType>(null);
-
-  // Quick Inline Add-Vehicle Modal State
   const [addVehicleModalVisible, setAddVehicleModalVisible] = useState(false);
   const [newVehicleModel, setNewVehicleModel] = useState('');
   const [newVehiclePlate, setNewVehiclePlate] = useState('');
   const [newVehicleType, setNewVehicleType] = useState('sedan');
   const [addingVehicle, setAddingVehicle] = useState(false);
 
-  // Cashfree Payment & Submission
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [cashfreeHtml, setCashfreeHtml] = useState<string | null>(null);
-  const [cashfreeOrderId, setCashfreeOrderId] = useState<string | null>(null);
-  const [verifiedBooking, setVerifiedBooking] = useState<any>(null);
-
-  const buildCashfreeCheckoutHtml = (sessionId: string, environment: string = 'sandbox') => {
-    const mode = environment.toLowerCase() === 'production' ? 'production' : 'sandbox';
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Cashfree Checkout</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0b1120;
-      color: #f8fafc;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      text-align: center;
-    }
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid rgba(2, 132, 199, 0.2);
-      border-top: 4px solid #0284c7;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 20px;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    h2 { font-size: 1.3rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }
-    p { font-size: 0.9rem; color: #94a3b8; line-height: 1.45; }
-    .badge {
-      margin-top: 24px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(16, 185, 129, 0.12);
-      color: #10b981;
-      padding: 8px 16px;
-      border-radius: 9999px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .error-box {
-      display: none;
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      margin-top: 16px;
-      max-width: 320px;
-    }
-  </style>
-  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-</head>
-<body>
-  <div id="loader" class="spinner"></div>
-  <h2 id="title">Opening Secure Gateway</h2>
-  <p id="desc">Connecting with Cashfree Payment Gateway to complete your booking...</p>
-  <div class="badge">🔒 256-Bit SSL Encrypted Payment</div>
-  <div id="error-msg" class="error-box"></div>
-
-  <script>
-    window.addEventListener('load', function() {
-      try {
-        var cashfree = Cashfree({ mode: "${mode}" });
-        cashfree.checkout({
-          paymentSessionId: "${sessionId}",
-          redirectTarget: "_self"
-        }).then(function(result) {
-          if (result && result.error) {
-            showErr(result.error.message || 'Payment initialization error');
-          }
-        }).catch(function(err) {
-          showErr(err && err.message ? err.message : 'Checkout error');
-        });
-      } catch (e) {
-        showErr(e && e.message ? e.message : 'Failed to load payment SDK');
-      }
-    });
-
-    function showErr(msg) {
-      document.getElementById('loader').style.display = 'none';
-      document.getElementById('title').textContent = 'Payment Error';
-      document.getElementById('desc').textContent = 'Please return to the app and retry.';
-      var eb = document.getElementById('error-msg');
-      eb.style.display = 'block';
-      eb.textContent = msg;
-    }
-  </script>
-</body>
-</html>`;
-  };
-
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16);
 
-  // 14 Upcoming Dates Generator
-  const dateOptions = useMemo(() => {
-    const list: Array<{ label: string; dateNum: string; monthName: string; dayName: string; value: string; isToday: boolean }> = [];
-    const now = new Date();
-    for (let i = 0; i < 14; i++) {
-      const d = new Date();
-      d.setDate(now.getDate() + i);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
-
-      let dayName = d.toLocaleDateString('en-IN', { weekday: 'short' });
-      const monthName = d.toLocaleDateString('en-IN', { month: 'short' });
-      if (i === 0) dayName = 'Today';
-      if (i === 1) dayName = 'Tmrw';
-
-      list.push({
-        label: `${day}/${month} (${dayName})`,
-        dateNum: day,
-        monthName,
-        dayName,
-        value: dateStr,
-        isToday: i === 0,
-      });
-    }
-    return list;
-  }, []);
-
   // Fetch initial data
-  const loadData = useCallback(async (authToken?: string) => {
-    const activeToken = authToken || token;
-    if (!activeToken) return;
+  const loadData = useCallback(
+    async (authToken?: string) => {
+      const activeToken = authToken || token;
+      if (!activeToken) return;
 
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      const [vhRes, ctRes, pkRes, dashRes, wishRes] = await Promise.allSettled([
-        axios.get(`${API_BASE}/api/customer/vehicles`, {
-          headers: { Authorization: `Bearer ${activeToken}` },
-        }),
-        axios.get(`${API_BASE}/api/centers`, {
-          headers: { Authorization: `Bearer ${activeToken}` },
-        }),
-        axios.get(`${API_BASE}/api/packages`, {
-          headers: { Authorization: `Bearer ${activeToken}` },
-        }),
-        axios.get(`${API_BASE}/api/customer/dashboard`, {
-          headers: { Authorization: `Bearer ${activeToken}` },
-        }),
-        axios.get(`${API_BASE}/api/customer/wishlist`, {
-          headers: { Authorization: `Bearer ${activeToken}` },
-        }),
-      ]);
+      setLoading(true);
+      try {
+        const [vhRes, ctRes, pkRes, wishRes] = await Promise.allSettled([
+          axios.get(`${API_BASE}/api/customer/vehicles`, {
+            headers: { Authorization: `Bearer ${activeToken}` },
+          }),
+          axios.get(`${API_BASE}/api/centers`, {
+            headers: { Authorization: `Bearer ${activeToken}` },
+          }),
+          axios.get(`${API_BASE}/api/packages`, {
+            headers: { Authorization: `Bearer ${activeToken}` },
+          }),
+          axios.get(`${API_BASE}/api/customer/wishlist`, {
+            headers: { Authorization: `Bearer ${activeToken}` },
+          }),
+        ]);
 
-      if (wishRes.status === 'fulfilled' && Array.isArray(wishRes.value.data)) {
-        const ids = wishRes.value.data
-          .map((item: any) => item.package_id || item.package?.id)
-          .filter(Boolean);
-        setWishlistPackageIds(ids);
-      }
-
-      if (vhRes.status === 'fulfilled') {
-        const vList: Vehicle[] = vhRes.value.data || [];
-        setVehicles(vList);
-        if (vList.length > 0) {
-          const paramVId = searchParams.vehicle_id ? Number(searchParams.vehicle_id) : null;
-          const matchV = paramVId ? vList.find((v) => v.id === paramVId) : null;
-          setSelectedVehicleId(matchV ? matchV.id : vList[0].id);
+        if (wishRes.status === 'fulfilled' && Array.isArray(wishRes.value.data)) {
+          const ids = wishRes.value.data
+            .map((item: any) => item.package_id || item.package?.id)
+            .filter(Boolean);
+          setWishlistPackageIds(ids);
         }
-      }
 
-      if (ctRes.status === 'fulfilled') {
-        const cList: Center[] = ctRes.value.data || [];
-        setCenters(cList);
-        if (cList.length > 0) {
-          const paramCId = searchParams.center_id ? Number(searchParams.center_id) : null;
-          const matchC = paramCId ? cList.find((c) => c.id === paramCId) : null;
-          setSelectedCenterId(matchC ? matchC.id : cList[0].id);
+        if (vhRes.status === 'fulfilled') {
+          const vList: Vehicle[] = vhRes.value.data || [];
+          setVehicles(vList);
+          if (vList.length > 0) {
+            const paramVId = searchParams.vehicle_id ? Number(searchParams.vehicle_id) : null;
+            const matchV = paramVId ? vList.find((v) => v.id === paramVId) : null;
+            setSelectedVehicleId(matchV ? matchV.id : vList[0].id);
+          }
         }
-      }
 
-      if (pkRes.status === 'fulfilled') {
-        setPackages(pkRes.value.data || []);
-      }
-
-      if (dashRes.status === 'fulfilled') {
-        const d = dashRes.value.data || {};
-        setUserPoints(d.e_points || 0);
-        setUserEarningMoney(parseFloat(d.earning_money || 0));
-
-        const savedDbAddress = typeof d.address === 'string' ? d.address.trim() : '';
-        const validSavedAddress = savedDbAddress && savedDbAddress !== 'Select Location';
-        if (validSavedAddress) {
-          setSavedAddress(savedDbAddress);
-          setCustomAddress(savedDbAddress);
-          setUseSavedAddress(true);
-          setLiveLocationSource('saved');
-        } else {
-          resolveLiveLocation();
+        if (ctRes.status === 'fulfilled') {
+          const cList: Center[] = ctRes.value.data || [];
+          setCenters(cList);
+          if (cList.length > 0) {
+            const paramCId = searchParams.center_id ? Number(searchParams.center_id) : null;
+            const matchC = paramCId ? cList.find((c) => c.id === paramCId) : null;
+            setSelectedCenterId(matchC ? matchC.id : cList[0].id);
+          }
         }
-      }
 
-      // Default Date to Today
-      if (dateOptions.length > 0 && !selectedDate) {
-        setSelectedDate(dateOptions[0].value);
+        if (pkRes.status === 'fulfilled') {
+          setPackages(pkRes.value.data || []);
+        }
+      } catch (err) {
+        console.error('Error loading book screen data:', err);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-
-      // Pre-fill coupon from query param if available
-      if (searchParams.coupon && typeof searchParams.coupon === 'string') {
-        setCouponCode(searchParams.coupon.toUpperCase());
-      }
-    } catch (err) {
-      console.error('Error loading book screen data:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [token, searchParams, dateOptions, selectedDate]);
+    },
+    [token, searchParams]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -397,45 +196,6 @@ export default function BookScreen() {
     const next = !isDark;
     setIsDark(next);
     await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
-  };
-
-  // Resolve Live GPS Location
-  const resolveLiveLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setSavedAddress('');
-        setCustomAddress('');
-        setLiveLocationSource('none');
-        return;
-      }
-
-      setLocationLoading(true);
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const [geo] = await Location.reverseGeocodeAsync({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      });
-
-      const formatted =
-        geo && (geo.name || geo.street || geo.district || geo.city || geo.region)
-          ? [geo.name, geo.street, geo.district, geo.city, geo.region].filter(Boolean).join(', ')
-          : `Lat ${currentLocation.coords.latitude.toFixed(4)}, Lon ${currentLocation.coords.longitude.toFixed(4)}`;
-
-      setSavedAddress(formatted);
-      setCustomAddress(formatted);
-      setLiveLocationSource('live');
-      setUseSavedAddress(true);
-      safeHapticSuccess();
-    } catch (e) {
-      console.warn('Live location error:', e);
-      setLiveLocationSource('none');
-    } finally {
-      setLocationLoading(false);
-    }
   };
 
   // Selected Objects
@@ -485,68 +245,48 @@ export default function BookScreen() {
     return packages.find((p) => p.id === selectedPackageId) || null;
   }, [packages, selectedPackageId]);
 
-  // Fetch Slots when center or date changes
-  useEffect(() => {
-    if (!token || !selectedCenterId || !selectedDate) return;
-
-    let isMounted = true;
-    const fetchSlots = async () => {
-      setSlotsLoading(true);
-      setSelectedSlot('');
-      try {
-        const res = await axios.get(`${API_BASE}/api/bookings/slots`, {
-          params: { franchisee_id: selectedCenterId, date: selectedDate },
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (isMounted) {
-          const list: SlotItem[] = res.data || [];
-          setAvailableSlots(list);
-          const firstOpen = list.find((s) => !s.is_full && s.current_bookings < s.max_bookings);
-          if (firstOpen) {
-            setSelectedSlot(firstOpen.time_range);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load slots:', err);
-      } finally {
-        if (isMounted) setSlotsLoading(false);
+  const getPackageAddons = useCallback(
+    (pkg: ServicePkg) => {
+      if (pkg.addons && pkg.addons.length > 0) {
+        return pkg.addons;
       }
-    };
+      return availableAddons;
+    },
+    [availableAddons]
+  );
 
-    fetchSlots();
-    return () => {
-      isMounted = false;
-    };
-  }, [token, selectedCenterId, selectedDate]);
+  const handleSelectPackage = (pkgId: number) => {
+    safeHapticLight();
+    if (selectedPackageId !== pkgId) {
+      setSelectedPackageId(pkgId);
+      setSelectedAddonIds([]); // Reset addons from previous package when switching
+      setIsAddonExpanded(true); // Open newly selected service's addon section
+    } else {
+      setIsAddonExpanded((prev) => !prev);
+    }
+  };
 
-  // Addon Subtotal
+  // Addon Toggle
+  const toggleAddon = (id: number) => {
+    safeHapticLight();
+    setSelectedAddonIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  // Subtotal Calculation for Service & Add-ons
   const addonTotal = useMemo(() => {
     return selectedAddonIds.reduce((sum, id) => {
-      const item = packages.find((p) => p.id === id);
+      let item = packages.find((p) => p.id === id);
+      if (!item && selectedPackage?.addons) {
+        item = selectedPackage.addons.find((a) => a.id === id);
+      }
       return sum + (item ? Number(item.price) : 0);
     }, 0);
-  }, [packages, selectedAddonIds]);
+  }, [packages, selectedPackage, selectedAddonIds]);
 
-  // Calculations
   const basePrice = selectedPackage ? Number(selectedPackage.price) : 0;
-  const rawSubtotal = basePrice + addonTotal;
-
-  // Max 12.5% E-Points Discount
-  const maxEPointsDiscount = Math.min(userPoints, Math.round(rawSubtotal * 0.125));
-  const appliedEPointsDiscount = useEPoints ? maxEPointsDiscount : 0;
-
-  const priceAfterDiscounts = Math.max(0, rawSubtotal - couponDiscount - appliedEPointsDiscount);
-  const appliedEarningMoney = useEarningMoney ? Math.min(userEarningMoney, priceAfterDiscounts) : 0;
-
-  const taxableSubtotal = Math.max(0, priceAfterDiscounts - appliedEarningMoney);
-  const calculatedGst = Math.round(taxableSubtotal * 0.18 * 100) / 100;
-  const calculatedTotal = taxableSubtotal + calculatedGst;
-  const totalSavings = couponDiscount + appliedEPointsDiscount + appliedEarningMoney;
-
-  // Amount payable right now
-  const immediatePayable = paymentType === 'partial' ? 99 : calculatedTotal;
-  const remainingDue = paymentType === 'partial' ? Math.max(0, calculatedTotal - 99) : 0;
+  const servicesSubtotal = basePrice + addonTotal;
 
   // Wishlist Toggle
   const toggleWishlist = async (pkg: ServicePkg) => {
@@ -578,67 +318,6 @@ export default function BookScreen() {
       );
       showSweetAlert('Error', err.response?.data?.message || 'Could not update wishlist.', 'error');
     }
-  };
-
-  // Addon Toggle
-  const toggleAddon = (id: number) => {
-    safeHapticLight();
-    setSelectedAddonIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
-
-  // Coupon Action
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim() || !selectedPackage) return;
-    safeHapticLight();
-    setCouponLoading(true);
-    setCouponFeedback(null);
-    try {
-      const res = await axios.post(
-        `${API_BASE}/api/bookings/apply-coupon`,
-        {
-          code: couponCode.trim().toUpperCase(),
-          package_id: selectedPackage.id,
-          total_price: rawSubtotal,
-          vehicle_id: selectedVehicleId,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data?.status === 'success') {
-        const amt = Number(res.data.discount_amount || 0);
-        setCouponDiscount(amt);
-        setCouponFeedback({
-          success: true,
-          msg: `Coupon applied: ₹${amt.toFixed(2)} savings!`,
-        });
-        safeHapticSuccess();
-      } else {
-        setCouponDiscount(0);
-        setCouponFeedback({
-          success: false,
-          msg: res.data?.message || 'Invalid coupon code',
-        });
-        safeHapticWarning();
-      }
-    } catch (e: any) {
-      setCouponDiscount(0);
-      setCouponFeedback({
-        success: false,
-        msg: e.response?.data?.message || 'Coupon cannot be applied',
-      });
-      safeHapticWarning();
-    } finally {
-      setCouponLoading(false);
-    }
-  };
-
-  const handleRemoveCoupon = () => {
-    safeHapticLight();
-    setCouponCode('');
-    setCouponDiscount(0);
-    setCouponFeedback(null);
   };
 
   // Quick Register New Vehicle
@@ -677,132 +356,24 @@ export default function BookScreen() {
     }
   };
 
-  // Submit Booking
-  const handleConfirmBooking = async () => {
-    if (!selectedVehicleId) {
-      showSweetAlert('Vehicle Required', 'Please select or add a vehicle.', 'warning');
-      return;
-    }
+  // Proceed to Step 2: Booking Summary & Advance Payment
+  const handleProceedToSummary = () => {
     if (!selectedPackageId) {
-      showSweetAlert('Package Required', 'Please select a wash package.', 'warning');
-      return;
-    }
-    if (!selectedCenterId) {
-      showSweetAlert('Center Required', 'Please select a service center.', 'warning');
-      return;
-    }
-    if (!selectedDate) {
-      showSweetAlert('Date Required', 'Please choose a wash date.', 'warning');
-      return;
-    }
-    if (!selectedSlot) {
-      showSweetAlert('Time Slot Required', 'Please choose an available time slot.', 'warning');
-      return;
-    }
-
-    const finalAddress = useSavedAddress ? savedAddress : customAddress;
-    if (!finalAddress.trim()) {
-      showSweetAlert('Address Required', 'Please enter doorstep service address.', 'warning');
+      showSweetAlert('Package Required', 'Please choose a wash package to proceed.', 'warning');
       return;
     }
 
     safeHapticMedium();
-    setSubmitting(true);
-    setErrorMsg('');
-
-    try {
-      const payload = {
-        vehicle_id: selectedVehicleId,
-        franchisee_id: selectedCenterId,
+    router.push({
+      pathname: '/booking-summary',
+      params: {
+        vehicle_id: selectedVehicleId || '',
+        center_id: selectedCenterId || '',
         package_id: selectedPackageId,
-        booking_date: selectedDate,
-        slot_time: selectedSlot,
-        address: finalAddress.trim(),
-        save_as_default_address: !useSavedAddress && saveAsDefaultAddress,
-        payment_method: paymentMethod,
-        payment_type: paymentType,
-        addon_ids: selectedAddonIds,
-        coupon_code: couponDiscount > 0 ? couponCode.trim().toUpperCase() : null,
-        use_epoints: useEPoints,
-        use_earning_money: useEarningMoney,
-      };
-
-      const res = await axios.post(`${API_BASE}/api/bookings`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.data?.status === 'success' || res.status === 201) {
-        const booking = res.data?.booking;
-
-        // If online payment is needed
-        if (res.data?.requires_payment && booking && paymentMethod === 'online' && calculatedTotal > 0) {
-          try {
-            const cfOrderRes = await axios.post(
-              `${API_BASE}/api/cashfree/create-order`,
-              {
-                booking_id: booking.id,
-                payment_split: paymentType,
-              },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (cfOrderRes.data?.payment_session_id) {
-              const sessionId = cfOrderRes.data.payment_session_id;
-              const env = cfOrderRes.data.environment || 'sandbox';
-              setCashfreeOrderId(cfOrderRes.data.cashfree_order_id);
-              setCashfreeHtml(buildCashfreeCheckoutHtml(sessionId, env));
-              setSubmitting(false);
-              return;
-            }
-          } catch (cfErr: any) {
-            console.error('Failed to create Cashfree order:', cfErr);
-            showSweetAlert(
-              'Payment Setup Failed',
-              cfErr.response?.data?.message || 'Could not initiate online payment. You can pay later from My Washes.',
-              'error'
-            );
-          }
-        }
-
-        // Direct confirmation (COD or fully paid by points/discounts)
-        safeHapticSuccess();
-        setVerifiedBooking(booking);
-      }
-    } catch (err: any) {
-      console.error('Booking submission error:', err);
-      const msg = err.response?.data?.message || 'Failed to place booking. Please try again.';
-      setErrorMsg(msg);
-      showSweetAlert('Booking Failed', msg, 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Verify Cashfree Payment completion from WebView redirection
-  const handleVerifyCashfreePayment = async (orderId: string) => {
-    try {
-      const res = await axios.get(`${API_BASE}/api/cashfree/verify/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.data?.status === 'success' || res.data?.payment_status === 'paid' || res.data?.payment_status === 'partially_paid') {
-        safeHapticSuccess();
-        setCashfreeHtml(null);
-        setVerifiedBooking(res.data.booking || { id: res.data.booking_id });
-      } else {
-        setCashfreeHtml(null);
-        showSweetAlert(
-          'Payment Pending',
-          'Payment is being processed. You can verify or retry anytime from My Washes.',
-          'info'
-        );
-        router.replace('/bookings');
-      }
-    } catch (err) {
-      console.error('Verification error:', err);
-      setCashfreeHtml(null);
-      router.replace('/bookings');
-    }
+        addon_ids: selectedAddonIds.join(','),
+        coupon: typeof searchParams.coupon === 'string' ? searchParams.coupon : '',
+      },
+    });
   };
 
   const handleFooterTabPress = (tab: FooterTab) => {
@@ -813,7 +384,6 @@ export default function BookScreen() {
       router.push('/garage');
     } else if (tab === 'book') {
       router.push('/bookings');
-      return;
     } else if (tab === 'support') {
       router.push('/support');
     } else if (tab === 'notifications') {
@@ -836,11 +406,6 @@ export default function BookScreen() {
     }
   };
 
-  const scrollToSummary = () => {
-    safeHapticLight();
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  };
-
   return (
     <SafeAreaView style={[styles.root, isDark && styles.darkRoot]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -856,9 +421,9 @@ export default function BookScreen() {
             <Ionicons name="arrow-back" size={20} color={isDark ? '#f8fafc' : '#0f172a'} />
           </TouchableOpacity>
           <View>
-            <Text style={[styles.headerTitle, isDark && styles.darkText]}>Checkout</Text>
+            <Text style={[styles.headerTitle, isDark && styles.darkText]}>Select Services</Text>
             <Text style={[styles.headerSub, isDark && styles.darkSubtext]}>
-              Doorstep Wash • Instant Booking
+              Step 1 of 2 • Wash & Add-on Packages
             </Text>
           </View>
         </View>
@@ -882,102 +447,28 @@ export default function BookScreen() {
         </View>
       </View>
 
-      {/* Main Content State */}
+      {/* Main Content */}
       {loading ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color="#0284c7" />
           <Text style={[styles.centerLoadingText, isDark && styles.darkSubtext]}>
-            Preparing available packages & slots...
+            Preparing available wash services & addons...
           </Text>
         </View>
-      ) : verifiedBooking ? (
-        // Celebratory Confirmed Booking Card
-        <View style={styles.confirmedContainer}>
-          <View style={[styles.confirmedCard, isDark && styles.darkCard]}>
-            <View style={styles.successIconBubble}>
-              <Ionicons name="checkmark-circle" size={68} color="#10b981" />
-            </View>
-            <Text style={[styles.confirmedTitle, isDark && styles.darkText]}>
-              Booking Confirmed!
-            </Text>
-            <Text style={[styles.confirmedSubtitle, isDark && styles.darkSubtext]}>
-              Booking #{verifiedBooking.id || 'CONFIRMED'} has been scheduled. Our team will reach your doorstep on time.
-            </Text>
-
-            <View style={[styles.confirmedDetailsBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Vehicle</Text>
-                <Text style={[styles.detailValue, isDark && styles.darkText]}>
-                  {selectedVehicle ? `${selectedVehicle.make_model} (${selectedVehicle.plate_number || 'No Plate'})` : 'Your Vehicle'}
-                </Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Package</Text>
-                <Text style={[styles.detailValue, isDark && styles.darkText]}>
-                  {selectedPackage?.name || 'Car Wash Service'}
-                </Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Date & Slot</Text>
-                <Text style={[styles.detailValue, isDark && styles.darkText]}>
-                  {selectedDate} • {selectedSlot}
-                </Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Payment</Text>
-                <Text style={[styles.detailValue, { color: '#10b981', fontWeight: '800' }]}>
-                  {paymentMethod === 'cod'
-                    ? 'Cash on Delivery (Pay after service)'
-                    : paymentType === 'partial'
-                    ? '₹99 Advance Paid'
-                    : `₹${calculatedTotal.toFixed(2)} Paid`}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.confirmedActions}>
-              <TouchableOpacity
-                style={styles.primaryConfirmedBtn}
-                onPress={() => router.replace('/bookings')}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="calendar" size={18} color="#ffffff" style={{ marginRight: 8 }} />
-                <Text style={styles.primaryConfirmedBtnText}>View In My Washes</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.secondaryConfirmedBtn, isDark && styles.darkSecondaryBtn]}
-                onPress={() => router.replace('/dashboard')}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.secondaryConfirmedBtnText, isDark && styles.darkText]}>
-                  Back to Dashboard
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
       ) : (
-        // Main Booking Checkout Form
         <ScrollView
           ref={scrollViewRef}
           style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 170 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 150 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#0284c7']} />}
         >
-          {errorMsg ? (
-            <View style={styles.errorAlert}>
-              <Ionicons name="alert-circle" size={18} color="#ef4444" />
-              <Text style={styles.errorAlertText}>{errorMsg}</Text>
-            </View>
-          ) : null}
-
-          {/* CARD 1: Selected Vehicle & Service Hub Banner */}
+          {/* VEHICLE CONTEXT BAR */}
           <View style={[styles.modernCard, isDark && styles.darkCard]}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.badgeLabelRow}>
                 <Ionicons name="car-sport" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>VEHICLE & HUB</Text>
+                <Text style={styles.badgeLabelText}>BOOKING FOR VEHICLE</Text>
               </View>
               <TouchableOpacity
                 style={styles.switchLinkBtn}
@@ -987,7 +478,7 @@ export default function BookScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.switchLinkText}>Switch Vehicle</Text>
+                <Text style={styles.switchLinkText}>Switch</Text>
                 <Ionicons name="chevron-forward" size={14} color="#0284c7" />
               </TouchableOpacity>
             </View>
@@ -996,7 +487,7 @@ export default function BookScreen() {
               <View style={styles.emptyVehicleWrap}>
                 <Text style={styles.emptyVehicleIcon}>🚗</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.emptyVehicleTitle, isDark && styles.darkText]}>No vehicle in garage</Text>
+                  <Text style={[styles.emptyVehicleTitle, isDark && styles.darkText]}>No vehicle registered</Text>
                   <Text style={[styles.emptyVehicleSub, isDark && styles.darkSubtext]}>Add your vehicle to continue</Text>
                 </View>
                 <TouchableOpacity
@@ -1010,7 +501,7 @@ export default function BookScreen() {
             ) : (
               <View style={[styles.vehicleHeroBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
                 <View style={styles.vehicleEmojiCircle}>
-                  <Text style={{ fontSize: 28 }}>{getVehicleEmoji(selectedVehicle?.vehicle_type)}</Text>
+                  <Text style={{ fontSize: 26 }}>{getVehicleEmoji(selectedVehicle?.vehicle_type)}</Text>
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -1025,7 +516,6 @@ export default function BookScreen() {
                     </View>
                   </View>
 
-                  {/* Indian License Plate Badge */}
                   {selectedVehicle?.plate_number ? (
                     <View style={styles.plateContainer}>
                       <View style={styles.plateIndStripe}>
@@ -1060,16 +550,16 @@ export default function BookScreen() {
                   {selectedCenter?.city || selectedCenter?.address || 'Doorstep Service Station'}
                 </Text>
               </View>
-              <Text style={styles.hubChangeText}>Change</Text>
+              <Text style={styles.hubChangeText}>Change Hub</Text>
             </TouchableOpacity>
           </View>
 
-          {/* CARD 2: Wash Packages Selection (Direct Interactive Cards) */}
+          {/* WASH PACKAGES & ADD-ON SERVICES ONLY */}
           <View style={[styles.modernCard, isDark && styles.darkCard]}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.badgeLabelRow}>
                 <Ionicons name="sparkles" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>SELECT WASH PACKAGE</Text>
+                <Text style={styles.badgeLabelText}>WASH PACKAGES ({availableBasePackages.length})</Text>
               </View>
               <TouchableOpacity
                 style={styles.switchLinkBtn}
@@ -1088,821 +578,218 @@ export default function BookScreen() {
                 const isSelected = pkg.id === selectedPackageId;
                 const isPopular = pkg.custom_badge || (idx === 0 && availableBasePackages.length > 1);
                 const isFav = wishlistPackageIds.includes(pkg.id);
+                const pkgAddons = getPackageAddons(pkg);
+                const hasAddons = pkgAddons.length > 0;
+                const showAddons = isSelected && isAddonExpanded && hasAddons;
 
                 return (
-                  <TouchableOpacity
+                  <View
                     key={pkg.id}
                     style={[
-                      styles.packageCard,
+                      styles.unifiedPackageCard,
                       isDark ? styles.darkInnerBox : styles.lightInnerBox,
-                      isSelected && styles.packageCardSelected,
+                      isSelected && styles.unifiedPackageCardSelected,
                     ]}
-                    onPress={() => {
-                      safeHapticLight();
-                      setSelectedPackageId(pkg.id);
-                    }}
-                    activeOpacity={0.8}
                   >
-                    {isPopular ? (
-                      <View style={styles.popularBadge}>
-                        <Text style={styles.popularBadgeText}>{pkg.custom_badge || 'RECOMMENDED'}</Text>
-                      </View>
-                    ) : null}
-
-                    <View style={styles.packageCardTop}>
-                      <View style={styles.packageCardRadio}>
-                        <Ionicons
-                          name={isSelected ? 'radio-button-on' : 'radio-button-off'}
-                          size={20}
-                          color={isSelected ? '#0284c7' : '#94a3b8'}
-                        />
-                      </View>
-
-                      <View style={{ flex: 1, paddingRight: 8 }}>
-                        <Text style={[styles.packageCardTitle, isDark && styles.darkText]}>
-                          {pkg.name}
-                        </Text>
-                        <Text style={[styles.packageCardDesc, isDark && styles.darkSubtext]} numberOfLines={2}>
-                          {pkg.description || 'Full exterior foam wash, tire dressing & interior vacuuming'}
-                        </Text>
-                      </View>
-
-                      <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                        <View style={styles.packageCardPriceWrap}>
-                          <Text style={styles.packagePriceSymbol}>₹</Text>
-                          <Text style={styles.packagePriceNum}>{pkg.price}</Text>
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => toggleWishlist(pkg)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          style={{ padding: 2 }}
-                        >
-                          <Ionicons
-                            name={isFav ? 'heart' : 'heart-outline'}
-                            size={18}
-                            color={isFav ? '#e11d48' : isDark ? '#94a3b8' : '#64748b'}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    <View style={styles.packageFooterMeta}>
-                      <View style={styles.metaDurationPill}>
-                        <Ionicons name="time-outline" size={12} color="#0284c7" />
-                        <Text style={styles.metaDurationText}>45 - 60 mins</Text>
-                      </View>
-                      <View style={styles.metaDoorstepPill}>
-                        <Ionicons name="checkmark-done" size={12} color="#10b981" />
-                        <Text style={styles.metaDoorstepText}>Doorstep Equipment</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* CARD 3: Add-on Services (Interactive Carousel/Grid) */}
-          {availableAddons.length > 0 && (
-            <View style={[styles.modernCard, isDark && styles.darkCard]}>
-              <View style={styles.cardHeaderRow}>
-                <View style={styles.badgeLabelRow}>
-                  <Ionicons name="add-circle" size={16} color="#06b6d4" />
-                  <Text style={styles.badgeLabelText}>OPTIONAL ADD-ONS</Text>
-                </View>
-                {selectedAddonIds.length > 0 && (
-                  <View style={styles.addedCountBadge}>
-                    <Text style={styles.addedCountText}>+{selectedAddonIds.length} Added</Text>
-                  </View>
-                )}
-              </View>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.addonScrollContent}
-              >
-                {availableAddons.map((addon) => {
-                  const isChecked = selectedAddonIds.includes(addon.id);
-                  return (
                     <TouchableOpacity
-                      key={addon.id}
-                      style={[
-                        styles.addonMiniCard,
-                        isDark ? styles.darkInnerBox : styles.lightInnerBox,
-                        isChecked && styles.addonMiniCardActive,
-                      ]}
-                      onPress={() => toggleAddon(addon.id)}
+                      style={styles.packageCardMainClickable}
+                      onPress={() => handleSelectPackage(pkg.id)}
                       activeOpacity={0.8}
                     >
-                      <View style={styles.addonCardTop}>
-                        <View style={[styles.addonCheckIcon, isChecked && styles.addonCheckIconActive]}>
+                      {isPopular ? (
+                        <View style={styles.popularBadge}>
+                          <Text style={styles.popularBadgeText}>{pkg.custom_badge || 'RECOMMENDED'}</Text>
+                        </View>
+                      ) : null}
+
+                      <View style={styles.packageCardTop}>
+                        <View style={styles.packageCardRadio}>
                           <Ionicons
-                            name={isChecked ? 'checkmark' : 'add'}
-                            size={14}
-                            color={isChecked ? '#ffffff' : '#64748b'}
+                            name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                            size={20}
+                            color={isSelected ? '#0284c7' : '#94a3b8'}
                           />
                         </View>
-                        <Text style={styles.addonPriceBadge}>+₹{addon.price}</Text>
-                      </View>
 
-                      <Text style={[styles.addonTitleText, isDark && styles.darkText]} numberOfLines={2}>
-                        {addon.name}
-                      </Text>
-
-                      <Text style={[styles.addonDescText, isDark && styles.darkSubtext]} numberOfLines={1}>
-                        {addon.description || 'Pro detailing extra'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* CARD 4: Date & Time Schedule */}
-          <View style={[styles.modernCard, isDark && styles.darkCard]}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.badgeLabelRow}>
-                <Ionicons name="calendar" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>WASH SCHEDULE</Text>
-              </View>
-              <Text style={[styles.headerCountTag, isDark && styles.darkSubtext]}>
-                {selectedDate}
-              </Text>
-            </View>
-
-            {/* Horizontal Date Pills */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.datePillsStrip}
-            >
-              {dateOptions.map((item) => {
-                const isSelected = item.value === selectedDate;
-                return (
-                  <TouchableOpacity
-                    key={item.value}
-                    style={[
-                      styles.datePillBox,
-                      isDark ? styles.darkInnerBox : styles.lightInnerBox,
-                      isSelected && styles.datePillBoxSelected,
-                    ]}
-                    onPress={() => {
-                      safeHapticLight();
-                      setSelectedDate(item.value);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.datePillDayText, isSelected && styles.datePillTextActive]}>
-                      {item.dayName.toUpperCase()}
-                    </Text>
-                    <Text style={[styles.datePillNumText, isDark && styles.darkText, isSelected && styles.datePillTextActive]}>
-                      {item.dateNum}
-                    </Text>
-                    <Text style={[styles.datePillMonthText, isSelected && styles.datePillTextActive]}>
-                      {item.monthName}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {/* Time Slot Grid */}
-            <View style={{ marginTop: 16 }}>
-              <View style={styles.slotHeaderRow}>
-                <Text style={[styles.subSectionTitle, isDark && styles.darkText]}>Select Time Slot</Text>
-                {slotsLoading && <ActivityIndicator size="small" color="#0284c7" />}
-              </View>
-
-              {slotsLoading ? (
-                <View style={styles.slotLoaderBox}>
-                  <Text style={[styles.slotLoaderText, isDark && styles.darkSubtext]}>
-                    Fetching live technician slots...
-                  </Text>
-                </View>
-              ) : availableSlots.length === 0 ? (
-                <View style={[styles.noSlotsBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
-                  <Ionicons name="calendar-outline" size={24} color="#94a3b8" />
-                  <Text style={[styles.noSlotsText, isDark && styles.darkSubtext]}>
-                    No slots open for this date. Please pick another date above.
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.slotsGridWrap}>
-                  {availableSlots.map((slot) => {
-                    const isFull = slot.current_bookings >= slot.max_bookings || slot.is_full;
-                    const isSelected = selectedSlot === slot.time_range;
-                    return (
-                      <TouchableOpacity
-                        key={slot.time_range}
-                        style={[
-                          styles.slotChip,
-                          isDark ? styles.darkInnerBox : styles.lightInnerBox,
-                          isSelected && styles.slotChipSelected,
-                          isFull && styles.slotChipFull,
-                        ]}
-                        onPress={() => {
-                          if (!isFull) {
-                            safeHapticLight();
-                            setSelectedSlot(slot.time_range);
-                          }
-                        }}
-                        disabled={isFull}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.slotChipTime,
-                            isDark && styles.darkText,
-                            isSelected && styles.slotChipTextActive,
-                            isFull && styles.slotChipTextFull,
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {slot.time_range}
-                        </Text>
-                        <View style={[styles.slotChipStatusBadge, isFull ? styles.badgeFull : isSelected ? styles.badgeActive : styles.badgeAvailable]}>
-                          <Text style={[styles.slotChipStatusText, isFull ? styles.textFull : isSelected ? styles.textActive : styles.textAvailable]}>
-                            {isFull ? 'FULL' : 'OPEN'}
+                        <View style={{ flex: 1, paddingRight: 8 }}>
+                          <Text style={[styles.packageCardTitle, isDark && styles.darkText]}>
+                            {pkg.name}
+                          </Text>
+                          <Text style={[styles.packageCardDesc, isDark && styles.darkSubtext]} numberOfLines={2}>
+                            {pkg.description || 'Full exterior foam wash, tire dressing & interior vacuuming'}
                           </Text>
                         </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
+
+                        <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                          <View style={styles.packageCardPriceWrap}>
+                            <Text style={styles.packagePriceSymbol}>₹</Text>
+                            <Text style={styles.packagePriceNum}>{pkg.price}</Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => toggleWishlist(pkg)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            style={{ padding: 2 }}
+                          >
+                            <Ionicons
+                              name={isFav ? 'heart' : 'heart-outline'}
+                              size={18}
+                              color={isFav ? '#e11d48' : isDark ? '#94a3b8' : '#64748b'}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      <View style={styles.packageFooterMeta}>
+                        <View style={styles.metaDurationPill}>
+                          <Ionicons name="time-outline" size={12} color="#0284c7" />
+                          <Text style={styles.metaDurationText}>45 - 60 mins</Text>
+                        </View>
+                        <View style={styles.metaDoorstepPill}>
+                          <Ionicons name="checkmark-done" size={12} color="#10b981" />
+                          <Text style={styles.metaDoorstepText}>Doorstep Equipment</Text>
+                        </View>
+                        {isSelected && hasAddons && (
+                          <TouchableOpacity
+                            onPress={() => setIsAddonExpanded((prev) => !prev)}
+                            style={styles.inlineAddonTogglePill}
+                            activeOpacity={0.7}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          >
+                            <Ionicons
+                              name={showAddons ? 'chevron-up' : 'chevron-down'}
+                              size={12}
+                              color="#0284c7"
+                            />
+                            <Text style={styles.inlineAddonToggleText}>
+                              {selectedAddonIds.length > 0
+                                ? `${selectedAddonIds.length} Added`
+                                : 'Add-ons'}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Expandable Addon Checklist */}
+                    {showAddons && (
+                      <View style={styles.unifiedAddonDropdown}>
+                        <View style={[styles.unifiedAddonDivider, isDark && styles.darkBorderTop]} />
+
+                        <View style={styles.inlineAddonHeaderRow}>
+                          <View style={styles.badgeLabelRow}>
+                            <Ionicons name="add-circle" size={15} color="#06b6d4" />
+                            <Text style={styles.inlineAddonHeaderTitle}>
+                              AVAILABLE ADD-ONS ({pkgAddons.length})
+                            </Text>
+                          </View>
+                          {selectedAddonIds.length > 0 && (
+                            <View style={styles.addedCountBadge}>
+                              <Text style={styles.addedCountText}>+{selectedAddonIds.length} Added</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <ScrollView
+                          nestedScrollEnabled={true}
+                          showsVerticalScrollIndicator={true}
+                          persistentScrollbar={true}
+                          style={styles.addonVerticalScrollView}
+                          contentContainerStyle={styles.inlineAddonList}
+                        >
+                          {pkgAddons.map((addon) => {
+                            const isChecked = selectedAddonIds.includes(addon.id);
+                            return (
+                              <TouchableOpacity
+                                key={addon.id}
+                                style={[
+                                  styles.addonOptionRow,
+                                  isDark ? styles.darkAddonOptionRow : styles.lightAddonOptionRow,
+                                  isChecked && styles.addonOptionRowActive,
+                                ]}
+                                onPress={() => toggleAddon(addon.id)}
+                                activeOpacity={0.7}
+                              >
+                                <View style={styles.addonOptionLeft}>
+                                  <View style={[styles.addonOptionCheckbox, isChecked && styles.addonOptionCheckboxActive]}>
+                                    <Ionicons
+                                      name={isChecked ? 'checkmark' : 'add'}
+                                      size={14}
+                                      color={isChecked ? '#ffffff' : '#0284c7'}
+                                    />
+                                  </View>
+                                  <View style={{ flex: 1, paddingRight: 6 }}>
+                                    <Text
+                                      style={[
+                                        styles.addonOptionTitle,
+                                        isDark && styles.darkText,
+                                        isChecked && styles.addonOptionTitleActive,
+                                      ]}
+                                      numberOfLines={1}
+                                    >
+                                      {addon.name}
+                                    </Text>
+                                    {addon.description ? (
+                                      <Text style={[styles.addonOptionDesc, isDark && styles.darkSubtext]} numberOfLines={1}>
+                                        {addon.description}
+                                      </Text>
+                                    ) : null}
+                                  </View>
+                                </View>
+
+                                <View style={[styles.addonOptionPricePill, isChecked && styles.addonOptionPricePillActive]}>
+                                  <Text style={[styles.addonOptionPriceText, isChecked && styles.addonOptionPriceTextActive]}>
+                                    +₹{addon.price}
+                                  </Text>
+                                </View>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
             </View>
-          </View>
-
-          {/* CARD 5: Doorstep Address */}
-          <View style={[styles.modernCard, isDark && styles.darkCard]}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.badgeLabelRow}>
-                <Ionicons name="navigate-circle" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>SERVICE ADDRESS</Text>
-              </View>
-              {locationLoading && <ActivityIndicator size="small" color="#0284c7" />}
-            </View>
-
-            {/* Address Option Toggle Pills */}
-            <View style={styles.addressPillRow}>
-              <TouchableOpacity
-                style={[
-                  styles.addressModePill,
-                  useSavedAddress && styles.addressModePillActive,
-                ]}
-                onPress={() => setUseSavedAddress(true)}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={liveLocationSource === 'live' ? 'locate' : 'home'}
-                  size={14}
-                  color={useSavedAddress ? '#ffffff' : '#64748b'}
-                />
-                <Text style={[styles.addressModeText, useSavedAddress && styles.addressModeTextActive]}>
-                  {liveLocationSource === 'live' ? 'Current GPS' : 'Saved Address'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.addressModePill,
-                  !useSavedAddress && styles.addressModePillActive,
-                ]}
-                onPress={() => setUseSavedAddress(false)}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="create-outline"
-                  size={14}
-                  color={!useSavedAddress ? '#ffffff' : '#64748b'}
-                />
-                <Text style={[styles.addressModeText, !useSavedAddress && styles.addressModeTextActive]}>
-                  Enter New Address
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Address Display / Form */}
-            {useSavedAddress ? (
-              <View style={[styles.addressPreviewBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
-                <View style={styles.addressPinCircle}>
-                  <Ionicons name="location" size={18} color="#0284c7" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.addressPreviewTitle, isDark && styles.darkText]}>
-                    Doorstep Delivery Point
-                  </Text>
-                  <Text style={[styles.addressPreviewText, isDark && styles.darkSubtext]}>
-                    {savedAddress || 'Fetching your location...'}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.gpsLocateBtn}
-                  onPress={resolveLiveLocation}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="locate" size={16} color="#0284c7" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={{ marginTop: 8 }}>
-                <TextInput
-                  style={[styles.addressInputBox, isDark && styles.darkInputBox]}
-                  placeholder="House/Flat number, Building name, Landmark, City..."
-                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                  value={customAddress}
-                  onChangeText={setCustomAddress}
-                  multiline
-                  numberOfLines={3}
-                />
-                <TouchableOpacity
-                  style={styles.saveDefaultRow}
-                  onPress={() => setSaveAsDefaultAddress(!saveAsDefaultAddress)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name={saveAsDefaultAddress ? 'checkbox' : 'square-outline'}
-                    size={18}
-                    color="#0284c7"
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={[styles.saveDefaultLabel, isDark && styles.darkSubtext]}>
-                    Save as default address for future bookings
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-
-          {/* CARD 6: Offers & Benefits */}
-          <View style={[styles.modernCard, isDark && styles.darkCard]}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.badgeLabelRow}>
-                <Ionicons name="gift" size={16} color="#f59e0b" />
-                <Text style={styles.badgeLabelText}>OFFERS & BENEFITS</Text>
-              </View>
-              {totalSavings > 0 && (
-                <View style={styles.totalSavingsTag}>
-                  <Text style={styles.totalSavingsTagText}>Saving ₹{totalSavings.toFixed(2)}</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Modern Integrated Coupon Input */}
-            <View style={[styles.integratedCouponBar, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
-              <Ionicons name="pricetag-outline" size={16} color="#64748b" style={{ marginRight: 8 }} />
-              <TextInput
-                style={[styles.integratedCouponInput, isDark && styles.darkText]}
-                placeholder="Enter promo code (e.g. WELCOME10)"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                value={couponCode}
-                onChangeText={setCouponCode}
-                autoCapitalize="characters"
-                editable={couponDiscount === 0}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.integratedCouponBtn,
-                  couponDiscount > 0 ? styles.couponBtnRed : styles.couponBtnBlue,
-                  couponLoading && { opacity: 0.6 },
-                ]}
-                onPress={couponDiscount > 0 ? handleRemoveCoupon : handleApplyCoupon}
-                disabled={couponLoading}
-                activeOpacity={0.8}
-              >
-                {couponLoading ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={styles.integratedCouponBtnText}>
-                    {couponDiscount > 0 ? 'REMOVE' : 'APPLY'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {couponFeedback && (
-              <View style={[styles.feedbackBanner, couponFeedback.success ? styles.feedbackBannerSuccess : styles.feedbackBannerError]}>
-                <Ionicons
-                  name={couponFeedback.success ? 'checkmark-circle' : 'alert-circle'}
-                  size={15}
-                  color={couponFeedback.success ? '#10b981' : '#ef4444'}
-                />
-                <Text style={[styles.feedbackText, { color: couponFeedback.success ? '#10b981' : '#ef4444' }]}>
-                  {couponFeedback.msg}
-                </Text>
-              </View>
-            )}
-
-            {/* E-Points Toggle */}
-            {userPoints > 0 && (
-              <TouchableOpacity
-                style={[
-                  styles.benefitToggleRow,
-                  isDark ? styles.darkInnerBox : styles.lightInnerBox,
-                  useEPoints && styles.benefitToggleRowActive,
-                ]}
-                onPress={() => {
-                  safeHapticLight();
-                  setUseEPoints(!useEPoints);
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.benefitIconCircleAmber}>
-                  <Text style={{ fontSize: 16 }}>💎</Text>
-                </View>
-                <View style={{ flex: 1, marginHorizontal: 10 }}>
-                  <Text style={[styles.benefitTitle, isDark && styles.darkText]}>
-                    Redeem E-Points ({userPoints} pts)
-                  </Text>
-                  <Text style={[styles.benefitSub, isDark && styles.darkSubtext]}>
-                    Save up to 12.5% on this wash (-₹{maxEPointsDiscount})
-                  </Text>
-                </View>
-                <Ionicons
-                  name={useEPoints ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={useEPoints ? '#0284c7' : '#94a3b8'}
-                />
-              </TouchableOpacity>
-            )}
-
-            {/* Earning Money Wallet Toggle */}
-            {userEarningMoney > 0 && (
-              <TouchableOpacity
-                style={[
-                  styles.benefitToggleRow,
-                  isDark ? styles.darkInnerBox : styles.lightInnerBox,
-                  useEarningMoney && styles.benefitToggleRowActive,
-                  { marginTop: 8 },
-                ]}
-                onPress={() => {
-                  safeHapticLight();
-                  setUseEarningMoney(!useEarningMoney);
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.benefitIconCircleEmerald}>
-                  <Text style={{ fontSize: 16 }}>💵</Text>
-                </View>
-                <View style={{ flex: 1, marginHorizontal: 10 }}>
-                  <Text style={[styles.benefitTitle, isDark && styles.darkText]}>
-                    Earning Balance (₹{userEarningMoney.toFixed(2)})
-                  </Text>
-                  <Text style={[styles.benefitSub, isDark && styles.darkSubtext]}>
-                    Use referral wallet cash directly on this booking
-                  </Text>
-                </View>
-                <Ionicons
-                  name={useEarningMoney ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={useEarningMoney ? '#10b981' : '#94a3b8'}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* CARD 7: Payment Plan & Method */}
-          <View style={[styles.modernCard, isDark && styles.darkCard]}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.badgeLabelRow}>
-                <Ionicons name="card" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>PAYMENT OPTIONS</Text>
-              </View>
-            </View>
-
-            {/* Split Options: Pay Advance vs Pay Full */}
-            <View style={styles.paymentPlansRow}>
-              <TouchableOpacity
-                style={[
-                  styles.paymentPlanBox,
-                  isDark ? styles.darkInnerBox : styles.lightInnerBox,
-                  paymentType === 'partial' && styles.paymentPlanBoxSelected,
-                ]}
-                onPress={() => {
-                  safeHapticLight();
-                  setPaymentType('partial');
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.planHeader}>
-                  <Text style={[styles.planTitle, isDark && styles.darkText]}>Pay Advance</Text>
-                  <Ionicons
-                    name={paymentType === 'partial' ? 'radio-button-on' : 'radio-button-off'}
-                    size={16}
-                    color="#0284c7"
-                  />
-                </View>
-                <Text style={styles.planPriceAmount}>₹99.00</Text>
-                <Text style={[styles.planNoteText, isDark && styles.darkSubtext]}>
-                  Remaining ₹{Math.max(0, calculatedTotal - 99).toFixed(2)} after wash
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.paymentPlanBox,
-                  isDark ? styles.darkInnerBox : styles.lightInnerBox,
-                  paymentType === 'full' && styles.paymentPlanBoxSelected,
-                ]}
-                onPress={() => {
-                  safeHapticLight();
-                  setPaymentType('full');
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.planHeader}>
-                  <Text style={[styles.planTitle, isDark && styles.darkText]}>Pay Full</Text>
-                  <Ionicons
-                    name={paymentType === 'full' ? 'radio-button-on' : 'radio-button-off'}
-                    size={16}
-                    color="#0284c7"
-                  />
-                </View>
-                <Text style={styles.planPriceAmountGreen}>₹{calculatedTotal.toFixed(2)}</Text>
-                <Text style={[styles.planNoteText, isDark && styles.darkSubtext]}>
-                  100% upfront • Hassle-free
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Online vs COD Segmented Control */}
-            <View style={[styles.methodSegmentWrap, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
-              <TouchableOpacity
-                style={[
-                  styles.methodSegmentBtn,
-                  paymentMethod === 'online' && styles.methodSegmentBtnActive,
-                ]}
-                onPress={() => {
-                  safeHapticLight();
-                  setPaymentMethod('online');
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="shield-checkmark"
-                  size={15}
-                  color={paymentMethod === 'online' ? '#ffffff' : isDark ? '#94a3b8' : '#64748b'}
-                />
-                <Text
-                  style={[
-                    styles.methodSegmentText,
-                    paymentMethod === 'online' && styles.methodSegmentTextActive,
-                    isDark && paymentMethod !== 'online' && styles.darkSubtext,
-                  ]}
-                >
-                  Online (UPI / Cards)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.methodSegmentBtn,
-                  paymentMethod === 'cod' && styles.methodSegmentBtnActive,
-                ]}
-                onPress={() => {
-                  safeHapticLight();
-                  setPaymentMethod('cod');
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="cash-outline"
-                  size={15}
-                  color={paymentMethod === 'cod' ? '#ffffff' : isDark ? '#94a3b8' : '#64748b'}
-                />
-                <Text
-                  style={[
-                    styles.methodSegmentText,
-                    paymentMethod === 'cod' && styles.methodSegmentTextActive,
-                    isDark && paymentMethod !== 'cod' && styles.darkSubtext,
-                  ]}
-                >
-                  Cash on Delivery
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* CARD 8: Receipt Style Bill Details */}
-          <View style={[styles.receiptCard, isDark && styles.darkCard]}>
-            <View style={styles.receiptHeader}>
-              <Ionicons name="receipt-outline" size={17} color="#0284c7" />
-              <Text style={[styles.receiptTitle, isDark && styles.darkText]}>Payment Breakdown</Text>
-            </View>
-
-            <View style={styles.receiptRow}>
-              <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>Base Wash Package</Text>
-              <Text style={[styles.receiptVal, isDark && styles.darkText]}>₹{basePrice.toFixed(2)}</Text>
-            </View>
-
-            {addonTotal > 0 && (
-              <View style={styles.receiptRow}>
-                <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>
-                  Add-on Services ({selectedAddonIds.length})
-                </Text>
-                <Text style={[styles.receiptVal, { color: '#0284c7' }]}>+₹{addonTotal.toFixed(2)}</Text>
-              </View>
-            )}
-
-            {couponDiscount > 0 && (
-              <View style={styles.receiptRow}>
-                <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>
-                  Coupon ({couponCode})
-                </Text>
-                <Text style={[styles.receiptVal, { color: '#10b981', fontWeight: '700' }]}>
-                  -₹{couponDiscount.toFixed(2)}
-                </Text>
-              </View>
-            )}
-
-            {appliedEPointsDiscount > 0 && (
-              <View style={styles.receiptRow}>
-                <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>E-Points Redeemed</Text>
-                <Text style={[styles.receiptVal, { color: '#f59e0b', fontWeight: '700' }]}>
-                  -₹{appliedEPointsDiscount.toFixed(2)}
-                </Text>
-              </View>
-            )}
-
-            {appliedEarningMoney > 0 && (
-              <View style={styles.receiptRow}>
-                <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>Wallet Cash Used</Text>
-                <Text style={[styles.receiptVal, { color: '#10b981', fontWeight: '700' }]}>
-                  -₹{appliedEarningMoney.toFixed(2)}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.receiptRow}>
-              <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>GST (18%)</Text>
-              <Text style={[styles.receiptVal, isDark && styles.darkText]}>+₹{calculatedGst.toFixed(2)}</Text>
-            </View>
-
-            <View style={[styles.receiptDivider, isDark && styles.darkDivider]} />
-
-            <View style={styles.receiptTotalRow}>
-              <View>
-                <Text style={[styles.receiptTotalLabel, isDark && styles.darkText]}>Grand Total</Text>
-                {paymentType === 'partial' && (
-                  <Text style={[styles.receiptAdvanceNotice, isDark && styles.darkSubtext]}>
-                    (Pay ₹99 now, ₹{remainingDue.toFixed(2)} later)
-                  </Text>
-                )}
-              </View>
-              <Text style={styles.receiptTotalAmount}>₹{calculatedTotal.toFixed(2)}</Text>
-            </View>
-
-            {totalSavings > 0 && (
-              <View style={styles.receiptSavingsRibbon}>
-                <Text style={styles.receiptSavingsRibbonText}>
-                  🎉 You are saving ₹{totalSavings.toFixed(2)} on this order!
-                </Text>
-              </View>
-            )}
           </View>
         </ScrollView>
       )}
 
-      {/* Floating Bottom Sticky Bar */}
-      {!loading && !verifiedBooking && !cashfreeHtml && (
+      {/* Floating Bottom Navigation Bar */}
+      {!loading && (
         <View
           style={[
             styles.floatingBar,
             isDark && styles.darkFloatingBar,
-            { paddingBottom: Math.max(insets.bottom, 12) + 6 },
+            { bottom: Math.max(insets.bottom, Platform.OS === 'android' ? 14 : 20) + 54 },
           ]}
         >
-          <TouchableOpacity onPress={scrollToSummary} activeOpacity={0.8}>
+          <View>
             <Text style={[styles.floatingPayableLabel, isDark && styles.darkSubtext]}>
-              {paymentType === 'partial' ? 'ADVANCE PAYABLE' : 'TOTAL PAYABLE'}
+              {selectedAddonIds.length > 0 ? `1 WASH + ${selectedAddonIds.length} ADD-ONS` : 'SELECTED SERVICE'}
             </Text>
             <View style={styles.floatingPriceRow}>
               <Text style={[styles.floatingPayableAmount, isDark && styles.darkText]}>
-                ₹{immediatePayable.toFixed(2)}
+                ₹{servicesSubtotal.toFixed(2)}
               </Text>
-              <Ionicons name="information-circle-outline" size={14} color="#0284c7" style={{ marginLeft: 4 }} />
             </View>
-          </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
-            style={[styles.floatingSubmitBtn, submitting && { opacity: 0.7 }]}
-            onPress={handleConfirmBooking}
-            disabled={submitting}
+            style={styles.floatingSubmitBtn}
+            onPress={handleProceedToSummary}
             activeOpacity={0.85}
           >
-            {submitting ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <>
-                <Text style={styles.floatingSubmitBtnText}>
-                  {paymentMethod === 'cod'
-                    ? 'Confirm Wash'
-                    : paymentType === 'partial'
-                    ? 'Pay ₹99 & Book'
-                    : `Pay ₹${calculatedTotal.toFixed(0)} & Book`}
-                </Text>
-                <Ionicons name="arrow-forward" size={16} color="#ffffff" style={{ marginLeft: 6 }} />
-              </>
-            )}
+            <Text style={styles.floatingSubmitBtnText}>Proceed to Schedule</Text>
+            <Ionicons name="arrow-forward" size={16} color="#ffffff" style={{ marginLeft: 6 }} />
           </TouchableOpacity>
         </View>
       )}
 
-      {/* App Fixed Footer Navigation Bar */}
-      {!cashfreeHtml && (
-        <AppFooter activeTab="none" isDark={isDark} onTabPress={handleFooterTabPress} />
-      )}
+      {/* Fixed App Footer */}
+      <AppFooter activeTab="none" isDark={isDark} onTabPress={handleFooterTabPress} />
 
-      {/* Dedicated Fullscreen Cashfree Payment Gateway Modal */}
-      <Modal
-        visible={!!cashfreeHtml}
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={() => {
-          setCashfreeHtml(null);
-          showSweetAlert('Payment Cancelled', 'You can complete payment anytime from My Washes.', 'info');
-          router.replace('/bookings');
-        }}
-      >
-        <SafeAreaView style={styles.cashfreeFullscreen}>
-          <StatusBar style="light" />
-          <View style={[styles.webViewBar, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 36 : 14) }]}>
-            <View style={styles.webViewBarLeft}>
-              <View style={styles.lockIconCircle}>
-                <Ionicons name="lock-closed" size={14} color="#10b981" />
-              </View>
-              <View>
-                <Text style={styles.webViewBarTitle}>Cashfree Secure Checkout</Text>
-                <Text style={styles.webViewBarSubtitle}>256-bit Encrypted Transaction</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.webViewCloseBtn}
-              onPress={() => {
-                setCashfreeHtml(null);
-                showSweetAlert('Payment Cancelled', 'You can complete payment anytime from My Washes.', 'info');
-                router.replace('/bookings');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="close" size={20} color="#f8fafc" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.cashfreeWebContainer}>
-            <WebViewComponent
-              source={{ html: cashfreeHtml, baseUrl: 'https://sdk.cashfree.com' }}
-              originWhitelist={['*']}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              mixedContentMode="always"
-              allowFileAccess={true}
-              onShouldStartLoadWithRequest={(request: any) => {
-                if (
-                  request.url.includes('/cashfree/return') ||
-                  request.url.includes('cashfree_order_id=') ||
-                  request.url.includes('status=success')
-                ) {
-                  const match = request.url.match(/order_id=([^&]+)/);
-                  const orderId = match ? decodeURIComponent(match[1]) : cashfreeOrderId;
-                  if (orderId) {
-                    handleVerifyCashfreePayment(orderId);
-                  } else {
-                    setCashfreeHtml(null);
-                    router.replace('/bookings');
-                  }
-                  return false;
-                }
-                return true;
-              }}
-              onNavigationStateChange={(nav: any) => {
-                if (
-                  nav.url.includes('/cashfree/return') ||
-                  nav.url.includes('cashfree_order_id=') ||
-                  nav.url.includes('status=success')
-                ) {
-                  const match = nav.url.match(/order_id=([^&]+)/);
-                  const orderId = match ? decodeURIComponent(match[1]) : cashfreeOrderId;
-                  if (orderId) {
-                    handleVerifyCashfreePayment(orderId);
-                  } else {
-                    setCashfreeHtml(null);
-                    router.replace('/bookings');
-                  }
-                }
-              }}
-              style={{ flex: 1 }}
-            />
-          </View>
-
-          {/* Dedicated bottom safe area buffer so Cashfree's "Proceed to Pay" button is completely unobstructed above system navbar */}
-          <View style={{ height: Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 12), backgroundColor: '#ffffff' }} />
-        </SafeAreaView>
-      </Modal>
-
-      {/* Sheet Modal for Pickers (Vehicle & Center) */}
+      {/* Picker Sheet Modal (Vehicle & Center) */}
       <Modal visible={activePicker !== null} transparent animationType="slide" onRequestClose={() => setActivePicker(null)}>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setActivePicker(null)} />
@@ -2243,11 +1130,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0284c7',
   },
-  headerCountTag: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-  },
   emptyVehicleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2285,9 +1167,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   vehicleEmojiCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#e0f2fe',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2388,16 +1270,18 @@ const styles = StyleSheet.create({
   packageListContainer: {
     gap: 10,
   },
-  packageCard: {
+  unifiedPackageCard: {
     borderRadius: 16,
-    padding: 14,
     position: 'relative',
     overflow: 'hidden',
   },
-  packageCardSelected: {
+  unifiedPackageCardSelected: {
     borderColor: '#0284c7',
     borderWidth: 2,
     backgroundColor: 'rgba(2, 132, 199, 0.04)',
+  },
+  packageCardMainClickable: {
+    padding: 14,
   },
   popularBadge: {
     position: 'absolute',
@@ -2485,54 +1369,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#10b981',
   },
-  addonScrollContent: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingVertical: 4,
-  },
-  addonMiniCard: {
-    width: 140,
-    padding: 12,
-    borderRadius: 14,
-  },
-  addonMiniCardActive: {
-    borderColor: '#06b6d4',
-    borderWidth: 1.5,
-    backgroundColor: 'rgba(6, 182, 212, 0.06)',
-  },
-  addonCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  addonCheckIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addonCheckIconActive: {
-    backgroundColor: '#06b6d4',
-  },
-  addonPriceBadge: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#06b6d4',
-  },
-  addonTitleText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0f172a',
-    height: 32,
-  },
-  addonDescText: {
-    fontSize: 10,
-    color: '#64748b',
-    marginTop: 2,
-  },
   addedCountBadge: {
     backgroundColor: 'rgba(6, 182, 212, 0.1)',
     paddingHorizontal: 8,
@@ -2544,471 +1380,141 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#06b6d4',
   },
-  datePillsStrip: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 2,
-  },
-  datePillBox: {
-    width: 64,
-    height: 72,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  datePillBoxSelected: {
-    backgroundColor: '#0284c7',
-    borderColor: '#0284c7',
-  },
-  datePillDayText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748b',
-    marginBottom: 2,
-  },
-  datePillNumText: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#0f172a',
-  },
-  datePillMonthText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#94a3b8',
-    marginTop: 1,
-  },
-  datePillTextActive: {
-    color: '#ffffff',
-  },
-  slotHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  subSectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  slotLoaderBox: {
-    paddingVertical: 18,
-    alignItems: 'center',
-  },
-  slotLoaderText: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  noSlotsBox: {
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    gap: 6,
-  },
-  noSlotsText: {
-    fontSize: 12,
-    color: '#64748b',
-    textAlign: 'center',
-  },
-  slotsGridWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  slotChip: {
-    width: '48.5%',
-    padding: 10,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  slotChipSelected: {
-    backgroundColor: '#0284c7',
-    borderColor: '#0284c7',
-  },
-  slotChipFull: {
-    opacity: 0.45,
-  },
-  slotChipTime: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0f172a',
-    flex: 1,
-  },
-  slotChipTextActive: {
-    color: '#ffffff',
-  },
-  slotChipTextFull: {
-    textDecorationLine: 'line-through',
-  },
-  slotChipStatusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 4,
-  },
-  badgeAvailable: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-  },
-  badgeFull: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-  },
-  badgeActive: {
-    backgroundColor: '#ffffff',
-  },
-  slotChipStatusText: {
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  textAvailable: {
-    color: '#10b981',
-  },
-  textFull: {
-    color: '#ef4444',
-  },
-  textActive: {
-    color: '#0284c7',
-  },
-  addressPillRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  addressModePill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(148, 163, 184, 0.12)',
-  },
-  addressModePillActive: {
-    backgroundColor: '#0284c7',
-  },
-  addressModeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748b',
-  },
-  addressModeTextActive: {
-    color: '#ffffff',
-  },
-  addressPreviewBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    gap: 10,
-  },
-  addressPinCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(2, 132, 199, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addressPreviewTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 2,
-  },
-  addressPreviewText: {
-    fontSize: 12,
-    color: '#64748b',
-    lineHeight: 16,
-  },
-  gpsLocateBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(2, 132, 199, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addressInputBox: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 13,
-    color: '#0f172a',
-    textAlignVertical: 'top',
-    minHeight: 74,
-  },
-  darkInputBox: {
-    backgroundColor: '#0b1120',
-    borderColor: '#1e293b',
-    color: '#f8fafc',
-  },
-  saveDefaultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  saveDefaultLabel: {
-    fontSize: 11,
-    color: '#64748b',
-  },
-  integratedCouponBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  integratedCouponInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  integratedCouponBtn: {
+  unifiedAddonDropdown: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
+    paddingBottom: 14,
   },
-  couponBtnBlue: {
-    backgroundColor: '#0284c7',
+  unifiedAddonDivider: {
+    height: 1,
+    backgroundColor: 'rgba(2, 132, 199, 0.15)',
+    marginBottom: 10,
   },
-  couponBtnRed: {
-    backgroundColor: '#ef4444',
+  addonVerticalScrollView: {
+    maxHeight: 102, // Shows 2 addon services by default, rest on scroll
   },
-  integratedCouponBtnText: {
-    color: '#ffffff',
+  inlineAddonHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  inlineAddonHeaderTitle: {
     fontSize: 11,
     fontWeight: '800',
+    color: '#0284c7',
     letterSpacing: 0.5,
   },
-  feedbackBanner: {
+  inlineAddonTogglePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    padding: 8,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  feedbackBannerSuccess: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-  },
-  feedbackBannerError: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
-  feedbackText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  benefitToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  benefitToggleRowActive: {
-    borderColor: '#0284c7',
-  },
-  benefitIconCircleAmber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  benefitIconCircleEmerald: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  benefitTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  benefitSub: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  totalSavingsTag: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    gap: 4,
+    marginLeft: 'auto',
+    backgroundColor: 'rgba(2, 132, 199, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  totalSavingsTagText: {
-    color: '#10b981',
-    fontSize: 11,
-    fontWeight: '800',
+  inlineAddonToggleText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0284c7',
   },
-  paymentPlansRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
+  inlineAddonList: {
+    gap: 5,
+    marginTop: 2,
+    paddingRight: 2,
   },
-  paymentPlanBox: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 14,
-  },
-  paymentPlanBoxSelected: {
-    borderColor: '#0284c7',
-    borderWidth: 2,
-    backgroundColor: 'rgba(2, 132, 199, 0.04)',
-  },
-  planHeader: {
+  addonOptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  planTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  planPriceAmount: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0284c7',
-    marginTop: 4,
-  },
-  planPriceAmountGreen: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#10b981',
-    marginTop: 4,
-  },
-  planNoteText: {
-    fontSize: 10,
-    color: '#64748b',
-    marginTop: 3,
-  },
-  methodSegmentWrap: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
-  },
-  methodSegmentBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 9,
-    borderRadius: 9,
-  },
-  methodSegmentBtnActive: {
-    backgroundColor: '#0284c7',
-  },
-  methodSegmentText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748b',
-  },
-  methodSegmentTextActive: {
-    color: '#ffffff',
-  },
-  receiptCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 18,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 10,
     borderWidth: 1,
+  },
+  lightAddonOptionRow: {
+    backgroundColor: '#ffffff',
     borderColor: '#e2e8f0',
   },
-  receiptHeader: {
+  darkAddonOptionRow: {
+    backgroundColor: '#111827',
+    borderColor: '#1f2937',
+  },
+  addonOptionRowActive: {
+    borderColor: '#0284c7',
+    backgroundColor: 'rgba(2, 132, 199, 0.06)',
+  },
+  addonOptionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 14,
+    flex: 1,
+    gap: 8,
   },
-  receiptTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  receiptRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  addonOptionCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#94a3b8',
+    backgroundColor: 'transparent',
     alignItems: 'center',
-    paddingVertical: 5,
+    justifyContent: 'center',
   },
-  receiptLabel: {
-    fontSize: 12,
-    color: '#64748b',
+  addonOptionCheckboxActive: {
+    backgroundColor: '#0284c7',
+    borderColor: '#0284c7',
   },
-  receiptVal: {
-    fontSize: 12,
+  addonOptionTitle: {
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#0f172a',
   },
-  receiptDivider: {
-    height: 1,
-    backgroundColor: '#e2e8f0',
-    marginVertical: 10,
-  },
-  darkDivider: {
-    backgroundColor: '#1e293b',
-  },
-  receiptTotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  receiptTotalLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  receiptAdvanceNotice: {
-    fontSize: 10,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  receiptTotalAmount: {
-    fontSize: 20,
-    fontWeight: '900',
+  addonOptionTitleActive: {
     color: '#0284c7',
   },
-  receiptSavingsRibbon: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 10,
-    paddingVertical: 8,
-    alignItems: 'center',
-    marginTop: 12,
+  addonOptionDesc: {
+    fontSize: 10.5,
+    color: '#64748b',
+    marginTop: 1,
   },
-  receiptSavingsRibbonText: {
-    fontSize: 11,
+  addonOptionPricePill: {
+    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  addonOptionPricePillActive: {
+    backgroundColor: '#0284c7',
+  },
+  addonOptionPriceText: {
+    fontSize: 12,
     fontWeight: '800',
-    color: '#10b981',
+    color: '#0284c7',
+  },
+  addonOptionPriceTextActive: {
+    color: '#ffffff',
   },
   floatingBar: {
     position: 'absolute',
-    bottom: 60,
     left: 0,
     right: 0,
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingTop: 12,
-    paddingHorizontal: 18,
+    paddingTop: 9,
+    paddingBottom: 9,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 10,
+    zIndex: 100,
   },
   darkFloatingBar: {
     backgroundColor: '#0f172a',
@@ -3032,174 +1538,26 @@ const styles = StyleSheet.create({
   },
   floatingSubmitBtn: {
     backgroundColor: '#0284c7',
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-    borderRadius: 14,
     shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowRadius: 6,
     elevation: 4,
   },
   floatingSubmitBtnText: {
-    color: '#ffffff',
     fontSize: 14,
     fontWeight: '800',
-  },
-  errorAlert: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 12,
-    padding: 10,
-    gap: 8,
-  },
-  errorAlertText: {
-    fontSize: 12,
-    color: '#ef4444',
-    flex: 1,
-  },
-  confirmedContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  confirmedCard: {
-    width: '100%',
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 22,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  successIconBubble: {
-    marginBottom: 12,
-  },
-  confirmedTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0f172a',
-    marginBottom: 6,
-  },
-  confirmedSubtitle: {
-    fontSize: 13,
-    color: '#64748b',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-  confirmedDetailsBox: {
-    width: '100%',
-    borderRadius: 14,
-    padding: 16,
-    gap: 10,
-    marginBottom: 20,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  detailValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  confirmedActions: {
-    width: '100%',
-    gap: 10,
-  },
-  primaryConfirmedBtn: {
-    backgroundColor: '#0284c7',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  primaryConfirmedBtnText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  secondaryConfirmedBtn: {
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  darkSecondaryBtn: {
-    backgroundColor: '#1e293b',
-  },
-  secondaryConfirmedBtnText: {
-    color: '#0f172a',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  cashfreeFullscreen: {
-    flex: 1,
-    backgroundColor: '#0b1120',
-  },
-  cashfreeWebContainer: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  webViewWrap: {
-    flex: 1,
-  },
-  webViewBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#0b1120',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  webViewBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  lockIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  webViewBarTitle: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  webViewBarSubtitle: {
-    color: '#94a3b8',
-    fontSize: 10,
-  },
-  webViewCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    letterSpacing: 0.2,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
@@ -3209,12 +1567,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '75%',
     padding: 20,
-    paddingBottom: 40,
+    maxHeight: '75%',
   },
   darkModalSheet: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#111827',
   },
   modalSheetHeader: {
     flexDirection: 'row',
@@ -3223,7 +1580,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalSheetTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -3233,26 +1590,26 @@ const styles = StyleSheet.create({
   sheetItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 14,
     borderRadius: 14,
     marginBottom: 8,
+    borderWidth: 1,
   },
   lightSheetItem: {
     backgroundColor: '#f8fafc',
     borderColor: '#e2e8f0',
-    borderWidth: 1,
   },
   darkSheetItem: {
-    backgroundColor: '#1e293b',
-    borderColor: '#334155',
-    borderWidth: 1,
+    backgroundColor: '#0b1120',
+    borderColor: '#1e293b',
   },
   sheetItemSelected: {
     borderColor: '#0284c7',
+    backgroundColor: 'rgba(2, 132, 199, 0.05)',
   },
   sheetItemTitle: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#0f172a',
   },
   sheetItemSub: {
@@ -3264,9 +1621,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#0284c7',
+    marginTop: 8,
     gap: 6,
-    paddingVertical: 12,
-    marginTop: 6,
   },
   sheetAddBtnText: {
     fontSize: 13,
@@ -3275,26 +1636,27 @@ const styles = StyleSheet.create({
   },
   modalOverlayCenter: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
   addVehicleBox: {
-    width: '100%',
     backgroundColor: '#ffffff',
-    borderRadius: 22,
-    padding: 22,
+    borderRadius: 24,
+    padding: 20,
+    width: '100%',
+    maxWidth: 420,
   },
   addVehicleTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: '#0f172a',
   },
   inputLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#475569',
     marginBottom: 6,
   },
   typeSelectorRow: {
@@ -3304,44 +1666,45 @@ const styles = StyleSheet.create({
   typePillOption: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 12,
-    gap: 3,
+    gap: 4,
   },
   typePillSelected: {
-    backgroundColor: 'rgba(2, 132, 199, 0.12)',
+    backgroundColor: '#0284c7',
     borderColor: '#0284c7',
-    borderWidth: 1.5,
   },
   typePillText: {
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 10,
+    fontWeight: '700',
     color: '#64748b',
   },
   typePillTextActive: {
-    color: '#0284c7',
+    color: '#ffffff',
   },
   modalInput: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
+    padding: 12,
     fontSize: 13,
     color: '#0f172a',
   },
+  darkInputBox: {
+    backgroundColor: '#0b1120',
+    borderColor: '#1e293b',
+    color: '#f8fafc',
+  },
   saveVehicleBtn: {
     backgroundColor: '#0284c7',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 13,
     borderRadius: 14,
+    alignItems: 'center',
     marginTop: 18,
   },
   saveVehicleBtnText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
 });
