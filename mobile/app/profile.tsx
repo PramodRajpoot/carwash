@@ -204,31 +204,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogout = async () => {
-    safeHapticLight();
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            if (token) {
-              await axios.post(
-                `${API_BASE}/api/auth/logout`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-            }
-          } catch {}
-          await AsyncStorage.removeItem('userToken');
-          await AsyncStorage.removeItem('userData');
-          router.replace('/login');
-        },
-      },
-    ]);
-  };
-
   const handleFooterTabPress = (tab: FooterTab) => {
     setActiveFooterTab(tab);
 
@@ -324,7 +299,6 @@ export default function ProfileScreen() {
         showLocation={false}
         isDark={isDark}
         onToggleTheme={toggleTheme}
-        onProfilePress={() => router.push('/profile')}
         onNotificationPress={() => router.push('/notifications')}
       />
 
@@ -336,7 +310,12 @@ export default function ProfileScreen() {
           <View style={styles.heroCard}>
             <View style={styles.heroGlow} />
             <View style={styles.profileHeader}>
-              <View style={styles.avatarWrap}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.avatarWrap}
+                onPress={handleAvatarPick}
+                disabled={uploadingAvatar}
+              >
                 {avatarUri && !imageError ? (
                   <Image
                     source={{ uri: avatarUri }}
@@ -349,18 +328,14 @@ export default function ProfileScreen() {
                   </View>
                 )}
 
-                <TouchableOpacity
-                  style={styles.avatarEditButton}
-                  onPress={handleAvatarPick}
-                  disabled={uploadingAvatar}
-                >
+                <View style={styles.avatarEditButton}>
                   {uploadingAvatar ? (
                     <ActivityIndicator size="small" color="#ffffff" />
                   ) : (
                     <Ionicons name="camera" size={16} color="#ffffff" />
                   )}
-                </TouchableOpacity>
-              </View>
+                </View>
+              </TouchableOpacity>
 
               <View style={styles.profileInfo}>
                 <Text style={styles.nameText}>{userName}</Text>
@@ -554,11 +529,6 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
-
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.85}>
-            <Ionicons name="log-out-outline" size={20} color="#ffffff" />
-            <Text style={styles.logoutText}>Sign Out</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -872,26 +842,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '800',
-  },
-  logoutButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 18,
-    paddingVertical: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    shadowColor: '#ef4444',
-    shadowOpacity: 0.20,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-  },
-  logoutText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-    marginLeft: 8,
   },
   editAvatarButton: {
     flexDirection: 'row',

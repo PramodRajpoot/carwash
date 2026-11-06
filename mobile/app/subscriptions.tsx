@@ -108,6 +108,7 @@ export default function SubscriptionsScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -154,6 +155,12 @@ export default function SubscriptionsScreen() {
   const syncTheme = useCallback(async () => {
     const storedTheme = await AsyncStorage.getItem('app_theme');
     setIsDark(storedTheme === 'dark');
+    const storedUser = await AsyncStorage.getItem('userData');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {}
+    }
   }, []);
 
   useEffect(() => {
@@ -286,12 +293,11 @@ export default function SubscriptionsScreen() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       <DashboardHeader
-        user={null}
+        user={user}
         title="Subscriptions"
         subtitle={`${monthlyPlans.length} active wash plans`}
         unreadCount={0}
         isDark={isDark}
-        onProfilePress={() => router.push('/dashboard')}
         onNotificationPress={() => router.push('/notifications')}
         onToggleTheme={toggleTheme}
       />

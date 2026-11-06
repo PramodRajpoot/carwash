@@ -58,9 +58,6 @@ export default function DashboardScreen() {
   const [dashData, setDashData] = useState<any>({});
   const [isDark, setIsDark] = useState(false);
 
-  // Menu Modal State (Profile & Web Sidebar CTAs)
-  const [menuVisible, setMenuVisible] = useState(false);
-
   // In-App Modal Sheet State for Web/Payment actions
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
@@ -299,63 +296,43 @@ export default function DashboardScreen() {
   // Open In-App Action Sheet (for Booking, Vehicles, Packages, etc.)
   const openActionView = (title: string, path: string, tab: FooterTab = 'home') => {
     if (title === 'My Garage' && path === '/customer/vehicles') {
-      setMenuVisible(false);
       router.push('/garage');
       return;
     }
 
     if (path === '/customer/profile' || title === 'My Profile') {
-      setMenuVisible(false);
       router.push('/profile');
       return;
     }
 
     if (path === '/customer/wallet' || title === 'E-Points Wallet' || title === 'Earning Money Wallet') {
-      setMenuVisible(false);
       setModalVisible(false);
       router.push('/e-points');
       return;
     }
 
     if (path === '/customer/support' || title === 'Help & Support') {
-      setMenuVisible(false);
       setModalVisible(false);
       router.push('/support');
       return;
     }
 
     if (path === '/customer/referrals' || title === 'Refer & Earn' || title === 'Referrals') {
-      setMenuVisible(false);
       setModalVisible(false);
       router.push('/refer-and-earn');
       return;
     }
 
     if (path === '/customer/notifications' || title === 'Notifications') {
-      setMenuVisible(false);
       setModalVisible(false);
       router.push('/notifications');
       return;
     }
 
-    setMenuVisible(false);
     setActiveFooterTab(tab);
     setModalTitle(title);
     setModalUrl(`${API_BASE}${path}`);
     setModalVisible(true);
-  };
-
-  const openWebsite = async () => {
-    setMenuVisible(false);
-    try {
-      const websiteUrl = API_BASE;
-      const supported = await Linking.canOpenURL(websiteUrl);
-      if (supported) {
-        await Linking.openURL(websiteUrl);
-      }
-    } catch (error) {
-      console.warn('Unable to open website:', error);
-    }
   };
 
   const closeActionView = () => {
@@ -476,11 +453,6 @@ export default function DashboardScreen() {
     await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
   };
 
-  const handleProfilePress = () => {
-    safeHapticLight();
-    setMenuVisible(true);
-  };
-
   const headerAddress = resolvedDashboardAddress && resolvedDashboardAddress !== 'Select Location'
     ? resolvedDashboardAddress
     : liveHeaderAddress;
@@ -520,7 +492,6 @@ export default function DashboardScreen() {
           openActionView('Notifications', '/customer/notifications', 'notifications')
         }
         onToggleTheme={toggleTheme}
-        onProfilePress={handleProfilePress}
       />
 
       {/* Scrollable Dashboard Body */}
@@ -671,110 +642,6 @@ export default function DashboardScreen() {
             />
           ) : null}
         </SafeAreaView>
-      </Modal>
-
-      {/* Customer Account Dropdown (anchored under profile avatar) */}
-      <Modal
-        visible={menuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          style={styles.menuBackdrop}
-          onPress={() => setMenuVisible(false)}
-        >
-          <View style={styles.dropdownCard}>
-            <View style={styles.dropdownHeader}>
-              <View style={styles.menuHeaderUser}>
-                <View style={styles.menuAvatar}>
-                  {getAvatarUri(user) ? (
-                    <Image source={{ uri: getAvatarUri(user)! }} style={styles.menuAvatarImg} />
-                  ) : (
-                    <Text style={styles.menuAvatarInitial}>
-                      {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.menuUserInfo}>
-                  <Text style={styles.menuUserName} numberOfLines={1}>
-                    {user?.name || 'Customer Account'}
-                  </Text>
-                  <Text style={styles.menuUserEmail} numberOfLines={1}>
-                    {user?.email || ''}
-                  </Text>
-                  <View style={styles.menuBadge}>
-                    <Text style={styles.menuBadgeText}>VERIFIED CUSTOMER</Text>
-                  </View>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.menuCloseBtn}
-                onPress={() => setMenuVisible(false)}
-              >
-                <Ionicons name="close" size={20} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.dropdownBody}>
-              <Text style={styles.menuGroupTitle}>ACCOUNT</Text>
-
-              <TouchableOpacity
-                activeOpacity={0.75}
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setMenuVisible(false);
-                  router.push('/profile');
-                }}
-              >
-                <View style={[styles.menuItemIcon, { backgroundColor: '#eef2ff' }]}> 
-                  <Ionicons name="person-circle-outline" size={20} color="#4f46e5" />
-                </View>
-                <View style={styles.menuItemTextCol}>
-                  <Text style={styles.menuItemTitle}>Profile</Text>
-                  <Text style={styles.menuItemSub}>Personal details & security</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.75}
-                style={styles.dropdownItem}
-                onPress={openWebsite}
-              >
-                <View style={[styles.menuItemIcon, { backgroundColor: '#f8fafc' }]}> 
-                  <Ionicons name="globe-outline" size={20} color="#475569" />
-                </View>
-                <View style={styles.menuItemTextCol}>
-                  <Text style={styles.menuItemTitle}>Website</Text>
-                  <Text style={styles.menuItemSub}>Visit CleanAt official portal</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.75}
-                style={[styles.dropdownItem, styles.menuItemLogout]}
-                onPress={() => {
-                  setMenuVisible(false);
-                  handleLogout();
-                }}
-              >
-                <View style={[styles.menuItemIcon, { backgroundColor: '#fee2e2' }]}> 
-                  <Ionicons name="log-out-outline" size={20} color="#dc2626" />
-                </View>
-                <View style={styles.menuItemTextCol}>
-                  <Text style={[styles.menuItemTitle, { color: '#dc2626' }]}>Logout</Text>
-                  <Text style={styles.menuItemSub}>Sign out of your device</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#fca5a5" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
       </Modal>
     </View>
   );

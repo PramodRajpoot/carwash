@@ -420,7 +420,6 @@ export default function NotificationsScreen() {
         isDark={isDark}
         showLocation={false}
         onToggleTheme={handleToggleTheme}
-        onProfilePress={() => router.push('/profile')}
       />
 
       {/* Screen Navigation & Action Bar */}

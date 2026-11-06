@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppFooter, { FooterTab } from '../components/AppFooter';
@@ -45,6 +45,7 @@ export default function GarageScreen() {
   const insets = useSafeAreaInsets();
 
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRegisterModalVisible, setRegisterModalVisible] = useState(false);
@@ -109,6 +110,7 @@ export default function GarageScreen() {
       try {
         const storedToken = await AsyncStorage.getItem('userToken');
         const storedTheme = await AsyncStorage.getItem('app_theme');
+        const storedUser = await AsyncStorage.getItem('userData');
 
         if (!storedToken) {
           router.replace('/login');
@@ -118,6 +120,11 @@ export default function GarageScreen() {
         if (isMounted) {
           setToken(storedToken);
           setIsDark(storedTheme === 'dark');
+          if (storedUser) {
+            try {
+              setUser(JSON.parse(storedUser));
+            } catch {}
+          }
         }
 
         await fetchVehicles(storedToken);
@@ -135,6 +142,27 @@ export default function GarageScreen() {
       isMounted = false;
     };
   }, [router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      AsyncStorage.getItem('userData').then((stored) => {
+        if (isMounted && stored) {
+          try {
+            setUser(JSON.parse(stored));
+          } catch {}
+        }
+      });
+      AsyncStorage.getItem('app_theme').then((theme) => {
+        if (isMounted && theme) {
+          setIsDark(theme === 'dark');
+        }
+      });
+      return () => {
+        isMounted = false;
+      };
+    }, [])
+  );
 
   const handleRegisterVehicle = async () => {
     if (!makeModel.trim()) {
@@ -218,7 +246,7 @@ export default function GarageScreen() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       <DashboardHeader
-        user={null}
+        user={user}
         title=""
         subtitle=""
         unreadCount={0}
@@ -236,7 +264,6 @@ export default function GarageScreen() {
             <Text style={styles.primaryActionBtnText}>Add Vehicle</Text>
           </TouchableOpacity>
         }
-        onProfilePress={() => router.push('/dashboard')}
         onNotificationPress={() => router.push('/notifications')}
         onToggleTheme={toggleTheme}
       />

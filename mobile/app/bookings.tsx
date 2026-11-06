@@ -541,7 +541,6 @@ export default function BookingsScreen() {
             <Text style={styles.bookHeaderBtnTextCompact}>Book Wash</Text>
           </TouchableOpacity>
         }
-        onProfilePress={() => router.push('/dashboard')}
         onNotificationPress={() => router.push('/notifications')}
         onToggleTheme={toggleTheme}
       />
