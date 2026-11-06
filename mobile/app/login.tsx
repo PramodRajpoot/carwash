@@ -62,9 +62,22 @@ export default function LoginScreen() {
   const [serverError, setServerError] = useState('');
 
   const emailInputRef = useRef<any>(null);
+  const passwordInputRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
 
-  // Sync theme
+  // Auto-focus lifecycle guard: only run once on initial mount and never steal focus back
+  const hasAutoFocusedRef = useRef(false);
+  const autoFocusTimerRef = useRef<any>(null);
+
+  const cancelAutoFocus = useCallback(() => {
+    hasAutoFocusedRef.current = true;
+    if (autoFocusTimerRef.current) {
+      clearTimeout(autoFocusTimerRef.current);
+      autoFocusTimerRef.current = null;
+    }
+  }, []);
+
+  // Sync theme & initial one-shot auto-focus
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
@@ -79,15 +92,21 @@ export default function LoginScreen() {
         }
       });
 
-      const focusTimer = setTimeout(() => {
-        if (activeTab === 'email') {
-          emailInputRef.current?.focus();
-        }
-      }, 300);
+      if (!hasAutoFocusedRef.current && activeTab === 'email') {
+        autoFocusTimerRef.current = setTimeout(() => {
+          if (isMounted && !hasAutoFocusedRef.current && activeTab === 'email') {
+            hasAutoFocusedRef.current = true;
+            emailInputRef.current?.focus();
+          }
+        }, 150);
+      }
 
       return () => {
         isMounted = false;
-        clearTimeout(focusTimer);
+        if (autoFocusTimerRef.current) {
+          clearTimeout(autoFocusTimerRef.current);
+          autoFocusTimerRef.current = null;
+        }
         if (timerRef.current) clearInterval(timerRef.current);
       };
     }, [router, activeTab])
@@ -123,8 +142,12 @@ export default function LoginScreen() {
     safeHapticLight();
     setActiveTab(tab);
     clearErrors();
+    cancelAutoFocus();
     if (tab === 'email') {
-      setTimeout(() => emailInputRef.current?.focus(), 150);
+      hasAutoFocusedRef.current = false;
+      autoFocusTimerRef.current = setTimeout(() => {
+        emailInputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -334,6 +357,7 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={[styles.scrollContainer, { paddingTop: topPadding }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Top Back Navigation Bar */}
         <View style={styles.topBar}>
@@ -472,6 +496,16 @@ export default function LoginScreen() {
                       autoCapitalize="none"
                       keyboardType="email-address"
                       autoFocus={true}
+                      caretHidden={false}
+                      cursorColor={isDark ? '#38bdf8' : '#0284c7'}
+                      selectionColor={isDark ? '#38bdf8' : '#0284c7'}
+                      showSoftInputOnFocus={true}
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => passwordInputRef.current?.focus()}
+                      onFocus={() => {
+                        hasAutoFocusedRef.current = true;
+                      }}
                       value={email}
                       onChangeText={(val) => {
                         setEmail(val);
@@ -492,12 +526,18 @@ export default function LoginScreen() {
                   >
                     <Ionicons name="lock-closed-outline" size={19} color="#94a3b8" style={styles.inputIcon} />
                     <TextInput
+                      ref={passwordInputRef}
                       style={[styles.input, isDark && styles.darkInput]}
                       placeholder="Password"
                       placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                       secureTextEntry={!showPassword}
+                      cursorColor={isDark ? '#38bdf8' : '#0284c7'}
+                      selectionColor={isDark ? '#38bdf8' : '#0284c7'}
+                      returnKeyType="done"
+                      onFocus={cancelAutoFocus}
                       value={password}
                       onChangeText={(val) => {
+                        cancelAutoFocus();
                         setPassword(val);
                         if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
                       }}

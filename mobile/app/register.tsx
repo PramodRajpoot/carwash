@@ -44,9 +44,16 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [referralCode, setReferralCode] = useState(
-    typeof searchParams?.ref === 'string' ? searchParams.ref.toUpperCase() : ''
-  );
+  const queryRef = typeof searchParams?.ref === 'string' ? searchParams.ref : '';
+  const [prevQueryRef, setPrevQueryRef] = useState(queryRef);
+  const [referralCode, setReferralCode] = useState(queryRef.toUpperCase());
+
+  if (prevQueryRef !== queryRef) {
+    setPrevQueryRef(queryRef);
+    if (queryRef) {
+      setReferralCode(queryRef.toUpperCase());
+    }
+  }
 
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -57,9 +64,27 @@ export default function RegisterScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState('');
 
+  // Input references for smooth keyboard navigation
   const nameInputRef = useRef<any>(null);
+  const emailInputRef = useRef<any>(null);
+  const phoneInputRef = useRef<any>(null);
+  const passwordInputRef = useRef<any>(null);
+  const passwordConfirmInputRef = useRef<any>(null);
+  const referralInputRef = useRef<any>(null);
 
-  // Sync theme & auto-focus
+  // Auto-focus lifecycle guard: only run once on initial mount and never steal focus back
+  const hasAutoFocusedRef = useRef(false);
+  const autoFocusTimerRef = useRef<any>(null);
+
+  const cancelAutoFocus = useCallback(() => {
+    hasAutoFocusedRef.current = true;
+    if (autoFocusTimerRef.current) {
+      clearTimeout(autoFocusTimerRef.current);
+      autoFocusTimerRef.current = null;
+    }
+  }, []);
+
+  // Sync theme & initial one-shot auto-focus (stable dependency array [])
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
@@ -67,19 +92,24 @@ export default function RegisterScreen() {
         if (isMounted) setIsDark(theme === 'dark');
       });
 
-      if (searchParams?.ref && typeof searchParams.ref === 'string') {
-        setReferralCode(searchParams.ref.toUpperCase());
+      // Only attempt auto-focus once when first entering screen
+      if (!hasAutoFocusedRef.current) {
+        autoFocusTimerRef.current = setTimeout(() => {
+          if (isMounted && !hasAutoFocusedRef.current) {
+            hasAutoFocusedRef.current = true;
+            nameInputRef.current?.focus();
+          }
+        }, 150);
       }
-
-      const timer = setTimeout(() => {
-        nameInputRef.current?.focus();
-      }, 200);
 
       return () => {
         isMounted = false;
-        clearTimeout(timer);
+        if (autoFocusTimerRef.current) {
+          clearTimeout(autoFocusTimerRef.current);
+          autoFocusTimerRef.current = null;
+        }
       };
-    }, [searchParams])
+    }, [])
   );
 
   const clearFieldError = (field: string) => {
@@ -280,6 +310,15 @@ export default function RegisterScreen() {
                   placeholder="e.g. John Doe"
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   value={name}
+                  autoFocus={true}
+                  cursorColor={isDark ? '#38bdf8' : '#0284c7'}
+                  selectionColor={isDark ? '#38bdf8' : '#0284c7'}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => emailInputRef.current?.focus()}
+                  onFocus={() => {
+                    hasAutoFocusedRef.current = true;
+                  }}
                   onChangeText={(val) => {
                     setName(val);
                     clearFieldError('name');
@@ -303,13 +342,21 @@ export default function RegisterScreen() {
               >
                 <Ionicons name="mail-outline" size={19} color="#94a3b8" style={styles.inputIcon} />
                 <TextInput
+                  ref={emailInputRef}
                   style={[styles.input, isDark && styles.darkInput]}
                   placeholder="name@example.com"
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   autoCapitalize="none"
                   keyboardType="email-address"
                   value={email}
+                  cursorColor={isDark ? '#38bdf8' : '#0284c7'}
+                  selectionColor={isDark ? '#38bdf8' : '#0284c7'}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => phoneInputRef.current?.focus()}
+                  onFocus={cancelAutoFocus}
                   onChangeText={(val) => {
+                    cancelAutoFocus();
                     setEmail(val);
                     clearFieldError('email');
                   }}
@@ -332,13 +379,23 @@ export default function RegisterScreen() {
               >
                 <Ionicons name="call-outline" size={19} color="#94a3b8" style={styles.inputIcon} />
                 <TextInput
+                  ref={phoneInputRef}
                   style={[styles.input, isDark && styles.darkInput]}
                   placeholder="10-digit mobile number"
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   keyboardType="phone-pad"
                   maxLength={10}
                   value={phone}
-                  onChangeText={filterPhone}
+                  cursorColor={isDark ? '#38bdf8' : '#0284c7'}
+                  selectionColor={isDark ? '#38bdf8' : '#0284c7'}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  onFocus={cancelAutoFocus}
+                  onChangeText={(val) => {
+                    cancelAutoFocus();
+                    filterPhone(val);
+                  }}
                 />
               </View>
               {errors.phone ? <Text style={styles.fieldError}>{errors.phone}</Text> : null}
@@ -358,12 +415,20 @@ export default function RegisterScreen() {
               >
                 <Ionicons name="lock-closed-outline" size={19} color="#94a3b8" style={styles.inputIcon} />
                 <TextInput
+                  ref={passwordInputRef}
                   style={[styles.input, isDark && styles.darkInput]}
                   placeholder="At least 6 characters"
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   secureTextEntry={!showPassword}
                   value={password}
+                  cursorColor={isDark ? '#38bdf8' : '#0284c7'}
+                  selectionColor={isDark ? '#38bdf8' : '#0284c7'}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => passwordConfirmInputRef.current?.focus()}
+                  onFocus={cancelAutoFocus}
                   onChangeText={(val) => {
+                    cancelAutoFocus();
                     setPassword(val);
                     clearFieldError('password');
                   }}
@@ -402,12 +467,19 @@ export default function RegisterScreen() {
                   style={styles.inputIcon}
                 />
                 <TextInput
+                  ref={passwordConfirmInputRef}
                   style={[styles.input, isDark && styles.darkInput]}
                   placeholder="Re-enter your password"
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   secureTextEntry={!showPasswordConfirm}
                   value={passwordConfirm}
+                  cursorColor={isDark ? '#38bdf8' : '#0284c7'}
+                  selectionColor={isDark ? '#38bdf8' : '#0284c7'}
+                  returnKeyType="done"
+                  onSubmitEditing={handleRegister}
+                  onFocus={cancelAutoFocus}
                   onChangeText={(val) => {
+                    cancelAutoFocus();
                     setPasswordConfirm(val);
                     clearFieldError('passwordConfirm');
                   }}
@@ -442,12 +514,21 @@ export default function RegisterScreen() {
               >
                 <Ionicons name="gift-outline" size={19} color="#0d9488" style={styles.inputIcon} />
                 <TextInput
+                  ref={referralInputRef}
                   style={[styles.input, isDark && styles.darkInput, { textTransform: 'uppercase' }]}
                   placeholder="Referral Code — get 10% off!"
                   placeholderTextColor={isDark ? '#2dd4bf' : '#0f766e'}
                   autoCapitalize="characters"
                   value={referralCode}
-                  onChangeText={(val) => setReferralCode(val.toUpperCase())}
+                  cursorColor={isDark ? '#2dd4bf' : '#0f766e'}
+                  selectionColor={isDark ? '#2dd4bf' : '#0f766e'}
+                  returnKeyType="done"
+                  onSubmitEditing={handleRegister}
+                  onFocus={cancelAutoFocus}
+                  onChangeText={(val) => {
+                    cancelAutoFocus();
+                    setReferralCode(val.toUpperCase());
+                  }}
                 />
               </View>
               {referralCode.trim() ? (
