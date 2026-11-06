@@ -182,7 +182,7 @@ export default function ReferAndEarnScreen() {
       if (type === 'facebook') {
         await Linking.openURL(
           `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-            'https://carwash.local'
+            API_BASE
           )}&quote=${shareMessage}`
         );
       }
