@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   TextInput,
   KeyboardAvoidingView,
@@ -21,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../constants/api';
 import { getAvatarUri } from '../utils/avatar';
 import { safeHapticLight } from '../utils/haptics';
+import { showSweetAlert } from '../utils/sweetAlert';
 import DashboardHeader from '../components/DashboardHeader';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 
@@ -95,7 +95,7 @@ export default function ProfileScreen() {
         await AsyncStorage.setItem('userData', JSON.stringify(meUser));
       } catch (error) {
         console.error('Profile fetch error:', error);
-        Alert.alert('Unable to load profile', 'Please try again later.');
+        showSweetAlert('Unable to load profile', 'Please try again later.', 'error');
       } finally {
         setLoading(false);
       }
@@ -127,7 +127,7 @@ export default function ProfileScreen() {
   const updateProfile = async () => {
     safeHapticLight();
     if (!profileForm.name.trim() || !profileForm.email.trim()) {
-      Alert.alert('Required fields missing', 'Full Name and Email are required.');
+      showSweetAlert('Required fields missing', 'Full Name and Email are required.', 'warning');
       return;
     }
 
@@ -149,12 +149,12 @@ export default function ProfileScreen() {
       const updatedUser = response.data?.user || { ...user, ...profileForm };
       setUser(updatedUser);
       await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-      Alert.alert('Profile updated', response.data?.message || 'Your profile was updated successfully.');
+      showSweetAlert('Profile updated', response.data?.message || 'Your profile was updated successfully.', 'success');
     } catch (error: any) {
       const message = error.response?.data?.errors
         ? Object.values(error.response.data.errors).flat().join(' ')
         : error.response?.data?.message || 'Unable to update profile.';
-      Alert.alert('Update failed', message);
+      showSweetAlert('Update failed', message, 'error');
     } finally {
       setSavingProfile(false);
     }
@@ -163,17 +163,17 @@ export default function ProfileScreen() {
   const updatePassword = async () => {
     safeHapticLight();
     if (!passwordForm.current_password || !passwordForm.password || !passwordForm.password_confirmation) {
-      Alert.alert('All fields required', 'Please fill the current, new and confirm password fields.');
+      showSweetAlert('All fields required', 'Please fill the current, new and confirm password fields.', 'warning');
       return;
     }
 
     if (passwordForm.password.length < 6) {
-      Alert.alert('Password too short', 'New password must be at least 6 characters.');
+      showSweetAlert('Password too short', 'New password must be at least 6 characters.', 'warning');
       return;
     }
 
     if (passwordForm.password !== passwordForm.password_confirmation) {
-      Alert.alert('Passwords do not match', 'New password and confirm password should be same.');
+      showSweetAlert('Passwords do not match', 'New password and confirm password should be same.', 'warning');
       return;
     }
 
@@ -193,12 +193,12 @@ export default function ProfileScreen() {
       );
 
       setPasswordForm({ current_password: '', password: '', password_confirmation: '' });
-      Alert.alert('Password updated', response.data?.message || 'Your password was changed successfully.');
+      showSweetAlert('Password updated', response.data?.message || 'Your password was changed successfully.', 'success');
     } catch (error: any) {
       const message = error.response?.data?.errors
         ? Object.values(error.response.data.errors).flat().join(' ')
         : error.response?.data?.message || 'Unable to update password.';
-      Alert.alert('Password update failed', message);
+      showSweetAlert('Password update failed', message, 'error');
     } finally {
       setUpdatingPassword(false);
     }
@@ -230,7 +230,7 @@ export default function ProfileScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission required', 'Please allow access to photos to upload your profile image.');
+        showSweetAlert('Permission required', 'Please allow access to photos to upload your profile image.', 'warning');
         return;
       }
 
@@ -246,7 +246,7 @@ export default function ProfileScreen() {
 
       const asset = result.assets[0];
       if (!token) {
-        Alert.alert('Session expired', 'Please log in again.');
+        showSweetAlert('Session expired', 'Please log in again.', 'warning');
         router.replace('/login');
         return;
       }
@@ -271,12 +271,12 @@ export default function ProfileScreen() {
       const updatedUser = response.data?.user || { ...user, avatar: response.data?.avatar };
       setUser(updatedUser);
       await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-      Alert.alert('Success', response.data?.message || 'Profile image updated successfully.');
+      showSweetAlert('Success', response.data?.message || 'Profile photo updated successfully.', 'success');
     } catch (error: any) {
       const message = error.response?.data?.errors
         ? Object.values(error.response.data.errors).flat().join(' ')
         : error.response?.data?.message || 'Unable to upload profile image.';
-      Alert.alert('Upload failed', message);
+      showSweetAlert('Upload failed', message, 'error');
     } finally {
       setUploadingAvatar(false);
     }
