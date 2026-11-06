@@ -16,7 +16,6 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE } from '../constants/api';
@@ -227,16 +226,6 @@ export default function RegisterScreen() {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Google Sign In
-  const handleGoogleSignIn = async () => {
-    safeHapticLight();
-    try {
-      await WebBrowser.openBrowserAsync(`${API_BASE}/api/auth/google`);
-    } catch {
-      showSweetAlert('Notice', 'Unable to open Google sign-in browser right now.', 'warning');
     }
   };
 
@@ -555,30 +544,6 @@ export default function RegisterScreen() {
                   <Ionicons name="arrow-forward" size={17} color="#fff" style={{ marginLeft: 6 }} />
                 </View>
               )}
-            </TouchableOpacity>
-
-            {/* Divider OR */}
-            <View style={styles.dividerContainer}>
-              <View style={[styles.divider, isDark && styles.darkDivider]} />
-              <Text style={[styles.dividerText, isDark && styles.darkSubtext]}>OR</Text>
-              <View style={[styles.divider, isDark && styles.darkDivider]} />
-            </View>
-
-            {/* Google Signup */}
-            <TouchableOpacity
-              style={[styles.googleButton, isDark && styles.darkGoogleButton]}
-              activeOpacity={0.85}
-              onPress={handleGoogleSignIn}
-            >
-              <Image
-                source={{
-                  uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
-                }}
-                style={styles.googleIcon}
-              />
-              <Text style={[styles.googleButtonText, isDark && styles.darkGoogleButtonText]}>
-                Continue with Google
-              </Text>
             </TouchableOpacity>
           </View>
 
