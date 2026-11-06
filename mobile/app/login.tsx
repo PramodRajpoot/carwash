@@ -79,11 +79,18 @@ export default function LoginScreen() {
         }
       });
 
+      const focusTimer = setTimeout(() => {
+        if (activeTab === 'email') {
+          emailInputRef.current?.focus();
+        }
+      }, 300);
+
       return () => {
         isMounted = false;
+        clearTimeout(focusTimer);
         if (timerRef.current) clearInterval(timerRef.current);
       };
-    }, [router])
+    }, [router, activeTab])
   );
 
   const formatTime = (seconds: number) => {
@@ -447,7 +454,9 @@ export default function LoginScreen() {
             {activeTab === 'email' && (
               <>
                 <View>
-                  <View
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => emailInputRef.current?.focus()}
                     style={[
                       styles.inputWrapper,
                       isDark && styles.darkInputWrapper,
@@ -462,13 +471,14 @@ export default function LoginScreen() {
                       placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                       autoCapitalize="none"
                       keyboardType="email-address"
+                      autoFocus={true}
                       value={email}
                       onChangeText={(val) => {
                         setEmail(val);
                         if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
                       }}
                     />
-                  </View>
+                  </TouchableOpacity>
                   {errors.email ? <Text style={styles.fieldError}>{errors.email}</Text> : null}
                 </View>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,11 +36,13 @@ export default function DashboardHeader({
   onNotificationPress,
   onToggleTheme,
 }: Props) {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
 
   const safeAddress = typeof address === 'string' ? address.trim() : '';
   const [savedAddress, setSavedAddress] = React.useState('');
+  const [token, setToken] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -56,10 +59,21 @@ export default function DashboardHeader({
         }
       });
 
+    AsyncStorage.getItem('userToken')
+      .then((storedToken) => {
+        if (isMounted) {
+          setToken(storedToken);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user]);
+
+  const isLoggedIn = Boolean(token || (user && (user.id || (user.email && user.name !== 'User'))));
+  const displayTitle = title === 'Dashboard' && !isLoggedIn ? 'CleanAtDoorstep' : title;
 
   const resolvedAddress = safeAddress || savedAddress;
 
@@ -74,14 +88,22 @@ export default function DashboardHeader({
 
   const avatarUri = getAvatarUri(user);
   const [imageError, setImageError] = React.useState(false);
+  const [prevAvatarUri, setPrevAvatarUri] = React.useState(avatarUri);
 
-  React.useEffect(() => {
+  if (prevAvatarUri !== avatarUri) {
+    setPrevAvatarUri(avatarUri);
     setImageError(false);
-  }, [avatarUri]);
+  }
 
   const handleProfile = () => {
     safeHapticLight();
-    onProfilePress?.();
+    if (onProfilePress) {
+      onProfilePress();
+    } else if (!isLoggedIn) {
+      router.push('/login');
+    } else {
+      router.push('/profile');
+    }
   };
 
   const handleLocation = () => {
@@ -117,7 +139,7 @@ export default function DashboardHeader({
         </View>
 
         <View style={styles.brandTextWrap}>
-          <Text style={[styles.mainTitle, isDark && styles.darkMainTitle]}>{title}</Text>
+          <Text style={[styles.mainTitle, isDark && styles.darkMainTitle]}>{displayTitle}</Text>
 
           {showLocation ? (
             <TouchableOpacity
@@ -180,23 +202,41 @@ export default function DashboardHeader({
           />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.profileBtn}
-          onPress={handleProfile}
-        >
-          {avatarUri && !imageError ? (
-            <Image
-              source={{ uri: avatarUri }}
-              style={styles.avatarImg}
-              onError={() => setImageError(true)}
+        {!isLoggedIn ? (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[styles.headerLoginBtn, isDark && styles.headerLoginBtnDark]}
+            onPress={handleProfile}
+          >
+            <Ionicons
+              name="person-circle-outline"
+              size={14}
+              color={isDark ? '#38bdf8' : '#0284c7'}
+              style={{ marginRight: 4 }}
             />
-          ) : (
-            <View style={styles.initialsCircle}>
-              <Text style={styles.initialsText}>{userInitial}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+            <Text style={[styles.headerLoginBtnText, isDark && styles.headerLoginBtnTextDark]}>
+              Sign In
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.profileBtn}
+            onPress={handleProfile}
+          >
+            {avatarUri && !imageError ? (
+              <Image
+                source={{ uri: avatarUri }}
+                style={styles.avatarImg}
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <View style={styles.initialsCircle}>
+                <Text style={styles.initialsText}>{userInitial}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -350,5 +390,28 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '800',
+  },
+  headerLoginBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(2, 132, 199, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  headerLoginBtnDark: {
+    backgroundColor: 'rgba(14, 165, 233, 0.12)',
+    borderColor: 'rgba(56, 189, 248, 0.24)',
+  },
+  headerLoginBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0284c7',
+  },
+  headerLoginBtnTextDark: {
+    color: '#7dd3fc',
   },
 });

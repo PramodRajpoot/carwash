@@ -479,7 +479,7 @@ export default function ServicesScreen() {
               style={{ marginRight: 4 }}
             />
             <Text style={[styles.loginBtnHeaderText, isDark ? styles.loginBtnHeaderTextDark : styles.loginBtnHeaderTextLight]}>
-              Dashboard
+              {isLoggedIn ? 'Dashboard' : 'Sign In'}
             </Text>
           </TouchableOpacity>
 
