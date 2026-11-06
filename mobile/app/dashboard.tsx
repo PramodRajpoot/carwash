@@ -246,17 +246,9 @@ export default function DashboardScreen() {
       return;
     }
 
-    if (path === '/customer/offers' || title === 'Offers & Deals') {
+    if (path === '/customer/profile' || title === 'My Profile') {
       setMenuVisible(false);
-      setModalVisible(false);
-      router.push('/offer');
-      return;
-    }
-
-    if (path === '/customer/subscriptions' || title === 'Subscriptions' || title === 'Wash Packages') {
-      setMenuVisible(false);
-      setModalVisible(false);
-      router.push('/subscriptions');
+      router.push('/profile');
       return;
     }
 
@@ -286,6 +278,19 @@ export default function DashboardScreen() {
     setModalTitle(title);
     setModalUrl(`${API_BASE}${path}`);
     setModalVisible(true);
+  };
+
+  const openWebsite = async () => {
+    setMenuVisible(false);
+    try {
+      const websiteUrl = 'http://187.126.119.129';
+      const supported = await Linking.canOpenURL(websiteUrl);
+      if (supported) {
+        await Linking.openURL(websiteUrl);
+      }
+    } catch (error) {
+      console.warn('Unable to open website:', error);
+    }
   };
 
   const closeActionView = () => {
@@ -606,260 +611,108 @@ export default function DashboardScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* Customer Full Navigation Menu Sheet (All Web Sidebar CTAs) */}
+      {/* Customer Account Dropdown (anchored under profile avatar) */}
       <Modal
         visible={menuVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
+        transparent
+        animationType="fade"
         onRequestClose={() => setMenuVisible(false)}
       >
-        <SafeAreaView style={styles.menuContainer}>
-          <StatusBar style="light" />
-          <View style={styles.menuHeader}>
-            <View style={styles.menuHeaderUser}>
-              <View style={styles.menuAvatar}>
-                {getAvatarUri(user) ? (
-                  <Image source={{ uri: getAvatarUri(user)! }} style={styles.menuAvatarImg} />
-                ) : (
-                  <Text style={styles.menuAvatarInitial}>
-                    {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.menuBackdrop}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={styles.dropdownCard}>
+            <View style={styles.dropdownHeader}>
+              <View style={styles.menuHeaderUser}>
+                <View style={styles.menuAvatar}>
+                  {getAvatarUri(user) ? (
+                    <Image source={{ uri: getAvatarUri(user)! }} style={styles.menuAvatarImg} />
+                  ) : (
+                    <Text style={styles.menuAvatarInitial}>
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.menuUserInfo}>
+                  <Text style={styles.menuUserName} numberOfLines={1}>
+                    {user?.name || 'Customer Account'}
                   </Text>
-                )}
-              </View>
-              <View style={styles.menuUserInfo}>
-                <Text style={styles.menuUserName} numberOfLines={1}>
-                  {user?.name || 'Customer Account'}
-                </Text>
-                <Text style={styles.menuUserEmail} numberOfLines={1}>
-                  {user?.email || ''}
-                </Text>
-                <View style={styles.menuBadge}>
-                  <Text style={styles.menuBadgeText}>VERIFIED CUSTOMER</Text>
+                  <Text style={styles.menuUserEmail} numberOfLines={1}>
+                    {user?.email || ''}
+                  </Text>
+                  <View style={styles.menuBadge}>
+                    <Text style={styles.menuBadgeText}>VERIFIED CUSTOMER</Text>
+                  </View>
                 </View>
               </View>
+
+              <TouchableOpacity
+                style={styles.menuCloseBtn}
+                onPress={() => setMenuVisible(false)}
+              >
+                <Ionicons name="close" size={20} color="#ffffff" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.menuCloseBtn}
-              onPress={() => setMenuVisible(false)}
-            >
-              <Ionicons name="close" size={22} color="#ffffff" />
-            </TouchableOpacity>
+
+            <View style={styles.dropdownBody}>
+              <Text style={styles.menuGroupTitle}>ACCOUNT</Text>
+
+              <TouchableOpacity
+                activeOpacity={0.75}
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  router.push('/profile');
+                }}
+              >
+                <View style={[styles.menuItemIcon, { backgroundColor: '#eef2ff' }]}> 
+                  <Ionicons name="person-circle-outline" size={20} color="#4f46e5" />
+                </View>
+                <View style={styles.menuItemTextCol}>
+                  <Text style={styles.menuItemTitle}>Profile</Text>
+                  <Text style={styles.menuItemSub}>Personal details & security</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.75}
+                style={styles.dropdownItem}
+                onPress={openWebsite}
+              >
+                <View style={[styles.menuItemIcon, { backgroundColor: '#f8fafc' }]}> 
+                  <Ionicons name="globe-outline" size={20} color="#475569" />
+                </View>
+                <View style={styles.menuItemTextCol}>
+                  <Text style={styles.menuItemTitle}>Website</Text>
+                  <Text style={styles.menuItemSub}>Visit CleanAt official portal</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.75}
+                style={[styles.dropdownItem, styles.menuItemLogout]}
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleLogout();
+                }}
+              >
+                <View style={[styles.menuItemIcon, { backgroundColor: '#fee2e2' }]}> 
+                  <Ionicons name="log-out-outline" size={20} color="#dc2626" />
+                </View>
+                <View style={styles.menuItemTextCol}>
+                  <Text style={[styles.menuItemTitle, { color: '#dc2626' }]}>Logout</Text>
+                  <Text style={styles.menuItemSub}>Sign out of your device</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#fca5a5" />
+              </TouchableOpacity>
+            </View>
           </View>
-
-          <ScrollView
-            style={styles.menuScrollView}
-            contentContainerStyle={styles.menuScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.menuGroupTitle}>MAIN PORTAL ACTIONS</Text>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-              }}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#f0f9ff' }]}>
-                <Ionicons name="grid-outline" size={20} color="#0284c7" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Dashboard</Text>
-                <Text style={styles.menuItemSub}>Overview & live status</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                router.push('/bookings');
-              }}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#eff6ff' }]}>
-                <Ionicons name="calendar-outline" size={20} color="#2563eb" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Bookings</Text>
-                <Text style={styles.menuItemSub}>Past & upcoming wash appointments</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => openActionView('My Garage', '/customer/vehicles', 'garage')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#ecfdf5' }]}>
-                <Ionicons name="car-sport-outline" size={20} color="#059669" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>My Garage</Text>
-                <Text style={styles.menuItemSub}>Add & manage saved cars</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => router.push('/subscriptions')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#fffbeb' }]}>
-                <Ionicons name="cube-outline" size={20} color="#d97706" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Subscriptions</Text>
-                <Text style={styles.menuItemSub}>Monthly recurring wash plans</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => openActionView('E-Points Wallet', '/customer/wallet')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#f0fdf4' }]}>
-                <Ionicons name="wallet-outline" size={20} color="#16a34a" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>E-Points Wallet</Text>
-                <Text style={styles.menuItemSub}>Recharge & redeem points</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => router.push('/refer-and-earn')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#f5f3ff' }]}>
-                <Ionicons name="gift-outline" size={20} color="#7c3aed" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Referrals</Text>
-                <Text style={styles.menuItemSub}>Invite friends & get 10% cash bonus</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => router.push('/offer')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#fff1f2' }]}>
-                <Ionicons name="ticket-outline" size={20} color="#e11d48" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Offers & Coupons</Text>
-                <Text style={styles.menuItemSub}>Seasonal deals & discounts</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => router.push('/wishlist')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#fff1f2' }]}>
-                <Ionicons name="heart-outline" size={20} color="#e11d48" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Wishlist</Text>
-                <Text style={styles.menuItemSub}>Saved services & plans</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <Text style={[styles.menuGroupTitle, { marginTop: 20 }]}>SUPPORT & ACCOUNT</Text>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => openActionView('Help & Support', '/customer/support', 'support')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#f0f9ff' }]}>
-                <Ionicons name="headset-outline" size={20} color="#0284c7" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Support</Text>
-                <Text style={styles.menuItemSub}>Raise tickets & live assistance</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => openActionView('Notifications', '/customer/notifications', 'notifications')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#fef3c7' }]}>
-                <Ionicons name="notifications-outline" size={20} color="#d97706" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Notifications</Text>
-                <Text style={styles.menuItemSub}>Booking alerts & updates</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => openActionView('My Profile', '/customer/profile')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#f1f5f9' }]}>
-                <Ionicons name="person-circle-outline" size={20} color="#475569" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Profile Settings</Text>
-                <Text style={styles.menuItemSub}>Personal details & password</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.menuItem}
-              onPress={() => openActionView('CleanAt Doorstep', '/')}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#f8fafc' }]}>
-                <Ionicons name="globe-outline" size={20} color="#64748b" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Website</Text>
-                <Text style={styles.menuItemSub}>Visit CleanAt official portal</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[styles.menuItem, styles.menuItemLogout]}
-              onPress={() => {
-                setMenuVisible(false);
-                handleLogout();
-              }}
-            >
-              <View style={[styles.menuItemIcon, { backgroundColor: '#fee2e2' }]}>
-                <Ionicons name="log-out-outline" size={20} color="#dc2626" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={[styles.menuItemTitle, { color: '#dc2626' }]}>Logout</Text>
-                <Text style={styles.menuItemSub}>Sign out of your device</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#fca5a5" />
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -947,42 +800,58 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // Menu Sheet Styles
-  menuContainer: {
+  menuBackdrop: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    paddingTop: 74,
+    paddingRight: 16,
   },
-  menuHeader: {
+  dropdownCard: {
+    width: 330,
+    maxWidth: '92%',
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 12,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  dropdownHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#0f172a',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   menuHeaderUser: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 12,
+    gap: 10,
   },
   menuAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: '#0284c7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuAvatarImg: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
   },
   menuAvatarInitial: {
     color: '#ffffff',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
   },
   menuUserInfo: {
@@ -990,13 +859,13 @@ const styles = StyleSheet.create({
   },
   menuUserName: {
     color: '#ffffff',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   menuUserEmail: {
     color: '#94a3b8',
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 1,
   },
   menuBadge: {
@@ -1014,21 +883,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   menuCloseBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#1e293b',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(148, 163, 184, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuScrollView: {
-    flex: 1,
+  dropdownBody: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     backgroundColor: '#ffffff',
-  },
-  menuScrollContent: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 40,
   },
   menuGroupTitle: {
     fontSize: 11,
@@ -1038,25 +903,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 6,
   },
-  menuItem: {
+  dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 4,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    marginBottom: 6,
     backgroundColor: '#ffffff',
-  },
-  menuItemLogout: {
-    marginTop: 12,
-    backgroundColor: '#fff1f2',
-    borderWidth: 1,
-    borderColor: '#fecdd3',
   },
   menuItemIcon: {
     width: 38,
     height: 38,
-    borderRadius: 10,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -1073,5 +932,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748b',
     marginTop: 1,
+  },
+  menuItemLogout: {
+    marginTop: 8,
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
   },
 });

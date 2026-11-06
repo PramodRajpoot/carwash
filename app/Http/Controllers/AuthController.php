@@ -340,4 +340,44 @@ class AuthController extends Controller
             'user'    => $user->fresh(),
         ]);
     }
+
+    public function deleteAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->avatar) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'No profile photo found.',
+                'user'    => $user->fresh(),
+            ]);
+        }
+
+        $oldPath = public_path($user->avatar);
+        if (file_exists($oldPath)) {
+            unlink($oldPath);
+        }
+
+        $user->update(['avatar' => null]);
+
+        $freshUser = $user->fresh();
+        $freshUser->avatar = null;
+        $freshUser->avatar_url = null;
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Profile photo removed successfully.',
+            'user'    => $freshUser,
+        ]);
+    }
+
+    public function removeAvatar(Request $request)
+    {
+        return $this->deleteAvatar($request);
+    }
+
+    public function deleteAvatarByRoute(Request $request)
+    {
+        return $this->deleteAvatar($request);
+    }
 }

@@ -1,0 +1,7 @@
+/storage/
+/vendor/
+/bootstrap/cache/
+/.env
+/mobile/node_modules/
+/mobile/.expo/
+.git/

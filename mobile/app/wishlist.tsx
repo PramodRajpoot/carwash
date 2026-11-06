@@ -204,7 +204,7 @@ export default function WishlistScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.primaryBtn}
-              onPress={() => router.push('/dashboard')}
+              onPress={() => router.push('/')}
             >
               <Text style={styles.primaryBtnText}>Browse Services</Text>
             </TouchableOpacity>
