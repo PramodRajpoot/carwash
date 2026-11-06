@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   Modal,
   Image,
+  Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -74,10 +75,51 @@ export default function DashboardScreen() {
 
   const resolvedDashboardAddress = typeof dashData.address === 'string' ? dashData.address.trim() : '';
 
-  const resolveLiveHeaderAddress = useCallback(async () => {
+  const resolveLiveHeaderAddress = useCallback(async (isManualRequest = false) => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
+      const permission = await Location.getForegroundPermissionsAsync();
+      let hasPermission = permission.status === 'granted';
+
+      if (!hasPermission) {
+        if (!isManualRequest) {
+          const alreadyPrompted = await AsyncStorage.getItem('location_prompt_seen');
+          if (alreadyPrompted) return;
+        }
+
+        const userAccepted = await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            'Enable Location',
+            'Please allow location access to discover nearby wash centers and provide doorstep car care service.',
+            [
+              {
+                text: 'Not Now',
+                style: 'cancel',
+                onPress: () => {
+                  AsyncStorage.setItem('location_prompt_seen', 'true').catch(() => {});
+                  resolve(false);
+                },
+              },
+              {
+                text: 'Allow',
+                onPress: () => {
+                  AsyncStorage.setItem('location_prompt_seen', 'true').catch(() => {});
+                  resolve(true);
+                },
+              },
+            ]
+          );
+        });
+
+        if (!userAccepted) {
+          setLiveHeaderAddress('');
+          return;
+        }
+
+        const requested = await Location.requestForegroundPermissionsAsync();
+        hasPermission = requested.status === 'granted';
+      }
+
+      if (!hasPermission) {
         setLiveHeaderAddress('');
         return;
       }
@@ -113,8 +155,17 @@ export default function DashboardScreen() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     if (token && (!resolvedDashboardAddress || resolvedDashboardAddress === 'Select Location')) {
-      resolveLiveHeaderAddress();
+      const timer = setTimeout(() => {
+        if (isMounted) {
+          resolveLiveHeaderAddress();
+        }
+      }, 500);
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
     }
   }, [token, resolvedDashboardAddress, resolveLiveHeaderAddress]);
 
@@ -534,11 +585,8 @@ export default function DashboardScreen() {
 
       <BookServiceModal
         visible={bookingSheetVisible}
-        onClose={() => setBookingSheetVisible(false)}
-        onSuccess={() => {
-          setBookingSheetVisible(false);
-          fetchDashboardData();
-        }}
+        onClose={closeBookingModal}
+        onSuccess={closeBookingModal}
         isDark={isDark}
         token={token}
         user={user}
