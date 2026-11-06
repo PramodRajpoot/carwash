@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 // ── Your Laravel server URL ──
-const API_BASE = 'http://187.126.119.129';
+const API_BASE = 'http://carwash.local';
 
 const { width } = Dimensions.get('window');
 

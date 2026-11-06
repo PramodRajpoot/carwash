@@ -292,7 +292,7 @@ export default function SubscriptionsScreen() {
         unreadCount={0}
         isDark={isDark}
         onProfilePress={() => router.push('/dashboard')}
-        onNotificationPress={() => router.push('/dashboard')}
+        onNotificationPress={() => router.push('/notifications')}
         onToggleTheme={toggleTheme}
       />
 

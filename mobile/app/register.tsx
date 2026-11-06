@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,217 +11,458 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { API_BASE } from '../constants/api';
 import { showSweetAlert } from '../utils/sweetAlert';
+import {
+  safeHapticLight,
+  safeHapticSuccess,
+  safeHapticWarning,
+} from '../utils/haptics';
 
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  
+  const searchParams = useLocalSearchParams<{ ref?: string }>();
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16);
+
+  const [isDark, setIsDark] = useState(false);
+
+  // Form Fields matching web RegisterView.vue
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [referralCode, setReferralCode] = useState(
+    typeof searchParams?.ref === 'string' ? searchParams.ref.toUpperCase() : ''
+  );
+
+  // Password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-  const [referralCode, setReferralCode] = useState('');
-  
+
+  // Status & Validation
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [serverError, setServerError] = useState('');
 
   const nameInputRef = useRef<any>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      nameInputRef.current?.focus();
-    }, 400);
-    return () => clearTimeout(timer);
-  }, []);
+  // Sync theme & auto-focus
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      AsyncStorage.getItem('app_theme').then((theme) => {
+        if (isMounted) setIsDark(theme === 'dark');
+      });
 
-  const handleRegister = async () => {
-    if (!name || !email || !phone || !password || !passwordConfirm) {
-      showSweetAlert('Error', 'Please fill in all required fields.', 'error');
-      return;
+      if (searchParams?.ref && typeof searchParams.ref === 'string') {
+        setReferralCode(searchParams.ref.toUpperCase());
+      }
+
+      const timer = setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 200);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
+    }, [searchParams])
+  );
+
+  const clearFieldError = (field: string) => {
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+    if (serverError) setServerError('');
+  };
+
+  const filterPhone = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    setPhone(cleaned);
+    clearFieldError('phone');
+  };
+
+  // Field validations matching web RegisterView.vue
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!name.trim()) {
+      newErrors.name = 'Full name is required.';
+    } else if (name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters.';
     }
 
-    if (password !== passwordConfirm) {
-      showSweetAlert('Error', 'Passwords do not match.', 'error');
+    if (!email.trim()) {
+      newErrors.email = 'Email address is required.';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        newErrors.email = 'Please enter a valid email address.';
+      }
+    }
+
+    if (!phone.trim()) {
+      newErrors.phone = 'Mobile number is required.';
+    } else if (phone.trim().length !== 10) {
+      newErrors.phone = 'Please enter a valid 10-digit mobile number.';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required.';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters.';
+    }
+
+    if (!passwordConfirm) {
+      newErrors.passwordConfirm = 'Please confirm your password.';
+    } else if (password !== passwordConfirm) {
+      newErrors.passwordConfirm = 'Passwords do not match.';
+    }
+
+    return newErrors;
+  };
+
+  const handleRegister = async () => {
+    safeHapticLight();
+    setServerError('');
+
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      safeHapticWarning();
       return;
     }
 
     setLoading(true);
     try {
       const response = await axios.post(`${API_BASE}/api/auth/register`, {
-        name,
-        email,
-        phone,
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
         password,
         password_confirmation: passwordConfirm,
         role: 'customer',
-        referred_by_code: referralCode,
+        referred_by_code: referralCode.trim() ? referralCode.trim().toUpperCase() : null,
       });
 
       if (response.data.status === 'success') {
         const token = response.data.access_token;
+        const user = response.data.user;
+
         await AsyncStorage.setItem('userToken', token);
-        await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-        
-        const welcomeMessage = referralCode.trim() 
-          ? 'Registration successful! You and your referrer both earned 50 E-Points!'
+        await AsyncStorage.setItem('userData', JSON.stringify(user));
+
+        safeHapticSuccess();
+
+        const welcomeMessage = referralCode.trim()
+          ? 'Registration successful! You and your referrer both earned 50 E-Points bonus!'
           : 'Registration successful! You earned 50 E-Points as a welcome bonus!';
 
-        showSweetAlert('Welcome! 🎉', welcomeMessage, 'success', () => router.replace('/dashboard'));
+        showSweetAlert('Welcome! 🎉', welcomeMessage, 'success', () => {
+          router.replace('/dashboard');
+        });
       } else {
-        showSweetAlert('Registration Failed', response.data.message || 'Could not register', 'error');
+        safeHapticWarning();
+        setServerError(response.data.message || 'Could not complete registration.');
       }
     } catch (error: any) {
-      console.error(error);
-      let msg = 'Network error, please try again.';
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        msg = Object.values(errors).flat().join('\n');
-      } else if (error.response?.data?.message) {
-        msg = error.response.data.message;
+      safeHapticWarning();
+      if (error.response?.status === 422 && error.response.data.errors) {
+        const fieldErrors: Record<string, string> = {};
+        for (const key of Object.keys(error.response.data.errors)) {
+          // map password_confirmation to passwordConfirm if needed
+          const mappedKey = key === 'password_confirmation' ? 'passwordConfirm' : key;
+          fieldErrors[mappedKey] = error.response.data.errors[key][0];
+        }
+        setErrors(fieldErrors);
+      } else {
+        setServerError(error.response?.data?.message || 'Network error, please try again.');
       }
-      showSweetAlert('Registration Failed', msg, 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  // Google Sign In
+  const handleGoogleSignIn = async () => {
+    safeHapticLight();
+    try {
+      await WebBrowser.openBrowserAsync(`${API_BASE}/api/auth/google`);
+    } catch {
+      showSweetAlert('Notice', 'Unable to open Google sign-in browser right now.', 'warning');
+    }
+  };
+
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
+    <KeyboardAvoidingView
+      style={[styles.container, isDark && styles.darkContainer]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar style="dark" />
-      
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Back navigation button */}
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={22} color="#0f172a" />
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
-        <View style={styles.card}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContainer, { paddingTop: topPadding }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Back Navigation Bar */}
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            style={[styles.backButton, isDark && styles.darkBackButton]}
+            onPress={() => router.back()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={20} color={isDark ? '#f8fafc' : '#0f172a'} />
+            <Text style={[styles.backText, isDark && styles.darkBackText]}>Back</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.card, isDark && styles.darkCard]}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.logoBadge}>
-              <Image 
-                source={require('../assets/images/icon.png')} 
+            <View style={[styles.logoBadge, isDark && styles.darkLogoBadge]}>
+              <Image
+                source={require('../assets/images/icon.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.brandTitle}>Create Account</Text>
-            <Text style={styles.subtitle}>Join CleanAtDoorstep for hassle-free doorstep car care</Text>
+            <Text style={[styles.brandTitle, isDark && styles.darkBrandTitle]}>
+              Create Account
+            </Text>
+            <Text style={[styles.subtitle, isDark && styles.darkSubtitle]}>
+              Join CleanAtDoorstep for premium doorstep car care
+            </Text>
           </View>
 
-          {/* Form */}
+          {/* Global / Server Error Banner */}
+          {serverError ? (
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle" size={16} color="#ef4444" style={{ marginRight: 6 }} />
+              <Text style={styles.errorBannerText}>{serverError}</Text>
+            </View>
+          ) : null}
+
+          {/* Form Fields matching web RegisterView */}
           <View style={styles.formContainer}>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-              <TextInput
-                ref={nameInputRef}
-                style={styles.input}
-                placeholder="Full Name *"
-                placeholderTextColor="#94a3b8"
-                autoFocus={true}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email Address *"
-                placeholderTextColor="#94a3b8"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <Ionicons name="call-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Mobile Number (10 digits) *"
-                placeholderTextColor="#94a3b8"
-                keyboardType="phone-pad"
-                maxLength={10}
-                value={phone}
-                onChangeText={setPhone}
-              />
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password *"
-                placeholderTextColor="#94a3b8"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-                <Ionicons 
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
-                  size={20} 
-                  color="#64748b" 
+            {/* Full Name */}
+            <View>
+              <Text style={[styles.inputLabel, isDark && styles.darkInputLabel]}>
+                Full Name <Text style={styles.reqStar}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  isDark && styles.darkInputWrapper,
+                  errors.name ? styles.inputWrapperError : null,
+                ]}
+              >
+                <Ionicons name="person-outline" size={19} color="#94a3b8" style={styles.inputIcon} />
+                <TextInput
+                  ref={nameInputRef}
+                  style={[styles.input, isDark && styles.darkInput]}
+                  placeholder="e.g. John Doe"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  value={name}
+                  onChangeText={(val) => {
+                    setName(val);
+                    clearFieldError('name');
+                  }}
                 />
-              </TouchableOpacity>
+              </View>
+              {errors.name ? <Text style={styles.fieldError}>{errors.name}</Text> : null}
             </View>
 
-            <View style={styles.inputWrapper}>
-              <Ionicons name="shield-checkmark-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm Password *"
-                placeholderTextColor="#94a3b8"
-                secureTextEntry={!showPasswordConfirm}
-                value={passwordConfirm}
-                onChangeText={setPasswordConfirm}
-              />
-              <TouchableOpacity onPress={() => setShowPasswordConfirm(!showPasswordConfirm)} style={styles.eyeButton}>
-                <Ionicons 
-                  name={showPasswordConfirm ? 'eye-off-outline' : 'eye-outline'} 
-                  size={20} 
-                  color="#64748b" 
+            {/* Email Address */}
+            <View>
+              <Text style={[styles.inputLabel, isDark && styles.darkInputLabel]}>
+                Email Address <Text style={styles.reqStar}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  isDark && styles.darkInputWrapper,
+                  errors.email ? styles.inputWrapperError : null,
+                ]}
+              >
+                <Ionicons name="mail-outline" size={19} color="#94a3b8" style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, isDark && styles.darkInput]}
+                  placeholder="name@example.com"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    clearFieldError('email');
+                  }}
                 />
-              </TouchableOpacity>
+              </View>
+              {errors.email ? <Text style={styles.fieldError}>{errors.email}</Text> : null}
             </View>
 
-            <View style={[styles.inputWrapper, { backgroundColor: '#f0fdfa', borderColor: '#99f6e4' }]}>
-              <Ionicons name="gift-outline" size={20} color="#0d9488" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Referral Code (Optional - earn 50 pts)"
-                placeholderTextColor="#0f766e"
-                autoCapitalize="characters"
-                value={referralCode}
-                onChangeText={setReferralCode}
-              />
+            {/* Mobile Number */}
+            <View>
+              <Text style={[styles.inputLabel, isDark && styles.darkInputLabel]}>
+                Mobile Number <Text style={styles.reqStar}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  isDark && styles.darkInputWrapper,
+                  errors.phone ? styles.inputWrapperError : null,
+                ]}
+              >
+                <Ionicons name="call-outline" size={19} color="#94a3b8" style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, isDark && styles.darkInput]}
+                  placeholder="10-digit mobile number"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={phone}
+                  onChangeText={filterPhone}
+                />
+              </View>
+              {errors.phone ? <Text style={styles.fieldError}>{errors.phone}</Text> : null}
             </View>
 
-            <TouchableOpacity 
+            {/* Password */}
+            <View>
+              <Text style={[styles.inputLabel, isDark && styles.darkInputLabel]}>
+                Password <Text style={styles.reqStar}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  isDark && styles.darkInputWrapper,
+                  errors.password ? styles.inputWrapperError : null,
+                ]}
+              >
+                <Ionicons name="lock-closed-outline" size={19} color="#94a3b8" style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, isDark && styles.darkInput]}
+                  placeholder="At least 6 characters"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={(val) => {
+                    setPassword(val);
+                    clearFieldError('password');
+                  }}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={19}
+                    color={isDark ? '#94a3b8' : '#64748b'}
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.password ? <Text style={styles.fieldError}>{errors.password}</Text> : null}
+            </View>
+
+            {/* Confirm Password */}
+            <View>
+              <Text style={[styles.inputLabel, isDark && styles.darkInputLabel]}>
+                Confirm Password <Text style={styles.reqStar}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  isDark && styles.darkInputWrapper,
+                  errors.passwordConfirm ? styles.inputWrapperError : null,
+                ]}
+              >
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={19}
+                  color="#94a3b8"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, isDark && styles.darkInput]}
+                  placeholder="Re-enter your password"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  secureTextEntry={!showPasswordConfirm}
+                  value={passwordConfirm}
+                  onChangeText={(val) => {
+                    setPasswordConfirm(val);
+                    clearFieldError('passwordConfirm');
+                  }}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                  style={styles.eyeButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons
+                    name={showPasswordConfirm ? 'eye-off-outline' : 'eye-outline'}
+                    size={19}
+                    color={isDark ? '#94a3b8' : '#64748b'}
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.passwordConfirm ? (
+                <Text style={styles.fieldError}>{errors.passwordConfirm}</Text>
+              ) : null}
+            </View>
+
+            {/* Referral Code Box */}
+            <View>
+              <Text style={[styles.inputLabel, isDark && styles.darkInputLabel]}>
+                Referral Code <Text style={styles.optLabel}>(optional)</Text>
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  isDark ? styles.darkReferralWrapper : styles.referralWrapper,
+                ]}
+              >
+                <Ionicons name="gift-outline" size={19} color="#0d9488" style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, isDark && styles.darkInput, { textTransform: 'uppercase' }]}
+                  placeholder="Referral Code — get 10% off!"
+                  placeholderTextColor={isDark ? '#2dd4bf' : '#0f766e'}
+                  autoCapitalize="characters"
+                  value={referralCode}
+                  onChangeText={(val) => setReferralCode(val.toUpperCase())}
+                />
+              </View>
+              {referralCode.trim() ? (
+                <View style={styles.bonusBanner}>
+                  <Text style={styles.bonusBannerText}>
+                    🎉 10% discount on first booking + 50 E-Points bonus!
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.registerButton} 
+              style={styles.primaryButton}
               onPress={handleRegister}
               disabled={loading}
             >
@@ -229,16 +470,42 @@ export default function RegisterScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <View style={styles.buttonContent}>
-                  <Text style={styles.registerButtonText}>Create Account</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 6 }} />
+                  <Text style={styles.primaryButtonText}>Create Account</Text>
+                  <Ionicons name="arrow-forward" size={17} color="#fff" style={{ marginLeft: 6 }} />
                 </View>
               )}
+            </TouchableOpacity>
+
+            {/* Divider OR */}
+            <View style={styles.dividerContainer}>
+              <View style={[styles.divider, isDark && styles.darkDivider]} />
+              <Text style={[styles.dividerText, isDark && styles.darkSubtext]}>OR</Text>
+              <View style={[styles.divider, isDark && styles.darkDivider]} />
+            </View>
+
+            {/* Google Signup */}
+            <TouchableOpacity
+              style={[styles.googleButton, isDark && styles.darkGoogleButton]}
+              activeOpacity={0.85}
+              onPress={handleGoogleSignIn}
+            >
+              <Image
+                source={{
+                  uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
+                }}
+                style={styles.googleIcon}
+              />
+              <Text style={[styles.googleButtonText, isDark && styles.darkGoogleButtonText]}>
+                Continue with Google
+              </Text>
             </TouchableOpacity>
           </View>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={[styles.footerText, isDark && styles.darkSubtext]}>
+              Already have an account?{' '}
+            </Text>
             <TouchableOpacity onPress={() => router.push('/login')}>
               <Text style={styles.loginLink}>Sign In</Text>
             </TouchableOpacity>
@@ -252,71 +519,94 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a', // Deep navy matching login
+    backgroundColor: '#f8fafc',
+  },
+  darkContainer: {
+    backgroundColor: '#0a0f1d',
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
-    paddingVertical: 36,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: '#e2e8f0',
+  },
+  darkBackButton: {
+    backgroundColor: '#1e293b',
   },
   backText: {
-    color: '#e2e8f0',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    marginLeft: 6,
+    color: '#0f172a',
+    marginLeft: 4,
   },
+  darkBackText: {
+    color: '#f8fafc',
+  },
+
+  // Main Card
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
   },
+  darkCard: {
+    backgroundColor: '#111827',
+    borderColor: '#1f2937',
+    shadowColor: '#000000',
+  },
+
+  // Header & Brand
   header: {
     alignItems: 'center',
-    marginBottom: 22,
+    marginBottom: 18,
   },
   logoBadge: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#f0fdfa',
-    justifyContent: 'center',
+    backgroundColor: '#f0fdf4',
     alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: '#99f6e4',
-    shadowColor: '#0d9488',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+    justifyContent: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  darkLogoBadge: {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderColor: 'rgba(34, 197, 94, 0.25)',
   },
   logoImage: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
   },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     color: '#0f172a',
     letterSpacing: -0.5,
+  },
+  darkBrandTitle: {
+    color: '#f8fafc',
   },
   subtitle: {
     fontSize: 13,
@@ -324,72 +614,197 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
+  darkSubtitle: {
+    color: '#94a3b8',
+  },
+
+  // Form Fields
   formContainer: {
-    marginBottom: 10,
+    gap: 12,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 5,
+  },
+  darkInputLabel: {
+    color: '#cbd5e1',
+  },
+  reqStar: {
+    color: '#ef4444',
+  },
+  optLabel: {
+    color: '#94a3b8',
+    fontWeight: '400',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 14,
     paddingHorizontal: 14,
-    marginBottom: 12,
+    height: 48,
+  },
+  darkInputWrapper: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+  },
+  inputWrapperError: {
+    borderColor: '#ef4444',
+  },
+  referralWrapper: {
+    backgroundColor: '#f0fdfa',
+    borderColor: '#99f6e4',
+  },
+  darkReferralWrapper: {
+    backgroundColor: 'rgba(13, 148, 136, 0.15)',
+    borderColor: 'rgba(45, 212, 191, 0.4)',
+  },
+  bonusBanner: {
+    marginTop: 4,
+    paddingHorizontal: 4,
+  },
+  bonusBannerText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#059669',
   },
   inputIcon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    paddingVertical: 13,
-    fontSize: 15,
+    fontSize: 14,
     color: '#0f172a',
+  },
+  darkInput: {
+    color: '#f8fafc',
   },
   eyeButton: {
     padding: 6,
   },
-  registerButton: {
-    backgroundColor: '#0d9488',
+  fieldError: {
+    fontSize: 11,
+    color: '#ef4444',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+
+  // Error Banner
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  errorBannerText: {
+    fontSize: 12,
+    color: '#b91c1c',
+    flex: 1,
+  },
+
+  // Primary Button
+  primaryButton: {
+    backgroundColor: '#0284c7',
     borderRadius: 14,
-    paddingVertical: 14,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0d9488',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 6,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  registerButtonText: {
-    color: '#ffffff',
+  primaryButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    color: '#ffffff',
   },
+
+  // Divider
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  darkDivider: {
+    backgroundColor: '#334155',
+  },
+  dividerText: {
+    paddingHorizontal: 12,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94a3b8',
+  },
+  darkSubtext: {
+    color: '#94a3b8',
+  },
+
+  // Google Button
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    height: 48,
+  },
+  darkGoogleButton: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+  },
+  googleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  darkGoogleButtonText: {
+    color: '#f8fafc',
+  },
+
+  // Footer
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 14,
+    marginTop: 18,
     paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
   },
   footerText: {
-    color: '#64748b',
     fontSize: 13,
+    color: '#64748b',
   },
   loginLink: {
-    color: '#0d9488',
     fontSize: 13,
     fontWeight: '700',
+    color: '#0284c7',
   },
 });

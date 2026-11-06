@@ -237,7 +237,7 @@ export default function GarageScreen() {
           </TouchableOpacity>
         }
         onProfilePress={() => router.push('/dashboard')}
-        onNotificationPress={() => router.push('/dashboard')}
+        onNotificationPress={() => router.push('/notifications')}
         onToggleTheme={toggleTheme}
       />
 

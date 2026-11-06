@@ -542,7 +542,7 @@ export default function BookingsScreen() {
           </TouchableOpacity>
         }
         onProfilePress={() => router.push('/dashboard')}
-        onNotificationPress={() => router.push('/dashboard')}
+        onNotificationPress={() => router.push('/notifications')}
         onToggleTheme={toggleTheme}
       />
 

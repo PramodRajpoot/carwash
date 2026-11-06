@@ -318,7 +318,7 @@ export default function ProfileScreen() {
         isDark={isDark}
         onToggleTheme={toggleTheme}
         onProfilePress={() => router.push('/profile')}
-        onNotificationPress={() => router.push('/support')}
+        onNotificationPress={() => router.push('/notifications')}
       />
 
       <KeyboardAvoidingView

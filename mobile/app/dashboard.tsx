@@ -273,6 +273,13 @@ export default function DashboardScreen() {
       return;
     }
 
+    if (path === '/customer/notifications' || title === 'Notifications') {
+      setMenuVisible(false);
+      setModalVisible(false);
+      router.push('/notifications');
+      return;
+    }
+
     setMenuVisible(false);
     setActiveFooterTab(tab);
     setModalTitle(title);
@@ -283,7 +290,7 @@ export default function DashboardScreen() {
   const openWebsite = async () => {
     setMenuVisible(false);
     try {
-      const websiteUrl = 'http://187.126.119.129';
+      const websiteUrl = API_BASE;
       const supported = await Linking.canOpenURL(websiteUrl);
       if (supported) {
         await Linking.openURL(websiteUrl);
