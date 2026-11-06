@@ -57,6 +57,9 @@ class User extends Authenticatable
         if (str_starts_with($this->avatar, 'http://') || str_starts_with($this->avatar, 'https://')) {
             return $this->avatar;
         }
+        if (request()) {
+            return request()->root() . '/' . ltrim($this->avatar, '/');
+        }
         return url($this->avatar);
     }
 

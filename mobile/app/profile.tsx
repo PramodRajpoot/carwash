@@ -115,6 +115,13 @@ export default function ProfileScreen() {
   const userName = user?.name || 'Customer';
   const userEmail = user?.email || 'customer@example.com';
   const avatarUri = getAvatarUri(user);
+  const [imageError, setImageError] = useState(false);
+  const [prevAvatarUri, setPrevAvatarUri] = useState(avatarUri);
+
+  if (prevAvatarUri !== avatarUri) {
+    setPrevAvatarUri(avatarUri);
+    setImageError(false);
+  }
   const initials = userName.charAt(0).toUpperCase() || 'U';
 
   const updateProfile = async () => {
@@ -330,8 +337,12 @@ export default function ProfileScreen() {
             <View style={styles.heroGlow} />
             <View style={styles.profileHeader}>
               <View style={styles.avatarWrap}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                {avatarUri && !imageError ? (
+                  <Image
+                    source={{ uri: avatarUri }}
+                    style={styles.avatar}
+                    onError={() => setImageError(true)}
+                  />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
                     <Text style={styles.avatarText}>{initials}</Text>
@@ -543,6 +554,11 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
+
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.85}>
+            <Ionicons name="log-out-outline" size={20} color="#ffffff" />
+            <Text style={styles.logoutText}>Sign Out</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 

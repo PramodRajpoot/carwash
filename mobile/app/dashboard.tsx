@@ -253,6 +253,13 @@ export default function DashboardScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      AsyncStorage.getItem('userData').then((stored) => {
+        if (stored) {
+          try {
+            setUser(JSON.parse(stored));
+          } catch {}
+        }
+      });
       if (token) {
         fetchDashboardData(token);
       }
