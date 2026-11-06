@@ -22,7 +22,7 @@
           <li><router-link to="/become-partner" @click="menuOpen = false">Become Partner</router-link></li>
           <li><router-link to="/blog" @click="menuOpen = false">Blog</router-link></li>
           <li><router-link to="/contact" @click="menuOpen = false">Contact</router-link></li>
-          <li v-if="!isLoggedIn"><router-link to="/login" class="btn btn-outline btn-sm" @click="menuOpen = false">Login</router-link></li>
+          <li v-if="!isLoggedIn"><router-link to="/login" class="btn btn-outline btn-sm" @click="menuOpen = false">SignIn</router-link></li>
           <li v-else><router-link :to="dashboardPath" class="btn btn-outline btn-sm" @click="menuOpen = false">Dashboard</router-link></li>
         </ul>
       </div>
@@ -95,7 +95,7 @@ export default {
         admin: '/admin',
         super_admin: '/super-admin'
       };
-      return map[u.role] || '/customer';
+      return map[u.role] || '/login';
     }
   },
   methods: {
