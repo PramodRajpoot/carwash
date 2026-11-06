@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 // ── Your Laravel server URL ──
-const API_BASE = 'https://801a-14-195-210-35.ngrok-free.app';
+const API_BASE = 'http://187.126.119.129';
 
 const { width } = Dimensions.get('window');
 
@@ -57,7 +57,7 @@ export default function App() {
       });
       const data = await res.json();
       setPackages(data);
-    } catch (e) {
+    } catch {
       console.log('API unreachable, using sample data');
       setPackages(SAMPLE_PACKAGES);
       setError('Showing sample data — server not reachable.');
@@ -68,7 +68,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchPackages();
+    let isMounted = true;
+    const timer = setTimeout(() => {
+      if (isMounted) fetchPackages();
+    }, 0);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   const onRefresh = () => {
