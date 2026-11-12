@@ -122,7 +122,7 @@
                     💳 Switch to Online
                   </button>
                 </template>
-                <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
+                <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b)" title="Cancel / Delete Wash">🗑️ Delete</button>
                 <button class="btn btn-sm btn-ghost" style="border: 1px solid var(--border-color); font-size: 0.75rem; padding: 0.2rem 0.55rem; color: var(--text-primary);" @click="downloadInvoice(b.id)" title="View & Print Tax Invoice">
                   📄 Invoice
                 </button>
@@ -531,62 +531,6 @@
       </div>
     </div>
 
-    <!-- Reschedule / Postpone Wash Booking Modal -->
-    <div v-if="postponeBooking" class="modal-overlay" @click.self="postponeBooking = null">
-      <div class="modal-content">
-        <h3>Reschedule Wash Booking #{{ postponeBooking.id }}</h3>
-        <p class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1rem;">
-          Vehicle: <strong>{{ postponeBooking.vehicle?.make_model }}</strong> | Current Date: <strong>{{ postponeBooking.booking_date }}</strong> ({{ postponeBooking.slot_time }})
-        </p>
-
-        <form @submit.prevent="submitPostpone">
-          <div class="form-group">
-            <label>Wash Date</label>
-            <input v-model="pf.booking_date" type="date" class="form-input" :min="minDate" required @change="onPostponeDateChange" @input="onPostponeDateChange" />
-            <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-              You can choose today or any future date. Completed washes cannot be modified.
-            </small>
-          </div>
-
-          <div class="form-group">
-            <label>Time Slot</label>
-            <select v-model="pf.slot_time" class="form-select" required :disabled="postponeSlotsLoading || !pf.booking_date || postponeAllSlotsFull">
-              <option value="" v-if="postponeSlotsLoading">Loading available slots...</option>
-              <option value="" v-else-if="!pf.booking_date">Select date first</option>
-              <option value="" v-else-if="postponeSlots.length === 0">No slots available for this date</option>
-              <option value="" v-else-if="postponeAllSlotsFull">All slots are full for this date</option>
-              <option v-else value="">Choose Slot</option>
-              <option v-for="s in postponeSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings || s.is_full">
-                {{ s.time_range }} {{ (s.current_bookings >= s.max_bookings || s.is_full) ? '— (Slot Full)' : '' }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Alert message when any slot is booked/full on reschedule date -->
-          <div v-if="postponeBookedSlots.length > 0 && !postponeSlotsLoading" style="margin-top: 0.5rem; margin-bottom: 0.75rem; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.85rem;">
-            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
-              <span style="font-size: 1.1rem; line-height: 1.2;">⚠️</span>
-              <div style="flex: 1;">
-                <div v-for="s in postponeBookedSlots" :key="s.time_range" style="font-weight: 600; line-height: 1.45;">
-                  <span style="font-weight: 700;">Slot Full:</span> {{ s.time_range }}
-                </div>
-                <div v-if="postponeAllSlotsFull" style="margin-top: 0.25rem; font-size: 0.78rem; font-weight: 500; color: #dc2626;">
-                  All slots are fully booked on this date. Please choose another date.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex gap-2" style="margin-top: 1.25rem;">
-            <button type="submit" class="btn btn-primary" :disabled="submittingPostpone || !pf.booking_date || !pf.slot_time">
-              {{ submittingPostpone ? 'Rescheduling...' : 'Confirm Reschedule' }}
-            </button>
-            <button type="button" class="btn btn-ghost" @click="postponeBooking = null">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
   </div>
 </template>
 <script>
@@ -603,15 +547,11 @@ export default {
       packages: [],
       availableSlots: [],
       slotsLoading: false,
-      postponeSlots: [],
       userStatus: 'active',
-      postponeSlotsLoading: false,
-      submittingPostpone: false,
       showBookingModal: false,
       bookingMsg: '',
       bookingError: false,
       bookingLoading: false,
-      postponeBooking: null,
       payingBookingId: null,
       appliedCouponDiscount: 0,
       appliedCouponCode: '',
@@ -635,7 +575,6 @@ export default {
         use_earning_money: false,
         payment_type: 'full'
       },
-      pf: { booking_date: '', slot_time: '' },
       currentPage: 1,
       itemsPerPage: 10,
       userPoints: 0,
@@ -737,13 +676,6 @@ export default {
     allSlotsFull() {
       return this.availableSlots.length > 0 && this.bookedSlots.length === this.availableSlots.length;
     },
-    postponeBookedSlots() {
-      if (!this.postponeSlots || !this.postponeSlots.length) return [];
-      return this.postponeSlots.filter(s => (s.current_bookings >= s.max_bookings) || s.is_full);
-    },
-    postponeAllSlotsFull() {
-      return this.postponeSlots.length > 0 && this.postponeBookedSlots.length === this.postponeSlots.length;
-    },
     isCenterRemembered() {
       const saved = localStorage.getItem('selected_franchisee_id');
       return !!saved && String(this.bf.franchisee_id) === String(saved);
@@ -761,11 +693,6 @@ export default {
           localStorage.setItem('selected_franchisee_id', newVal);
         }
         this.onCenterChange();
-      }
-    },
-    'pf.booking_date'(newVal, oldVal) {
-      if (oldVal && newVal !== oldVal) {
-        this.onPostponeDateChange();
       }
     },
     'bf.package_id'(newVal) {
@@ -894,8 +821,38 @@ export default {
       }
     },
     statusBadge(s) { return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan'; },
-    canCancel(b) { return ['pending', 'assigned'].includes(b.status); },
-    canPostpone(b) { return ['pending', 'assigned', 'postponed'].includes(b.status); },
+    isOnly99Paid(b) {
+      const paid = parseFloat(b.paid_amount || 0);
+      const advance = parseFloat(b.advance_amount || 0);
+      const total = parseFloat(b.total_price || 0);
+      return (
+        (b.payment_status === 'partially_paid' ||
+          (b.payment_type === 'partial' && paid > 0) ||
+          advance === 99 ||
+          paid === 99) &&
+        (b.payment_status !== 'paid' || paid < total) &&
+        (paid === 99 || (paid > 0 && paid <= 100) || advance === 99)
+      );
+    },
+    isPaymentIncomplete(b) {
+      const paid = parseFloat(b.paid_amount || 0);
+      return (
+        b.payment_status !== 'paid' &&
+        (['unpaid', 'pending_payment', 'failed'].includes(b.payment_status) || paid === 0)
+      );
+    },
+    // Delete icon will only show on two cases:
+    // 1. Payment is not completed
+    // 2. User paid only 99 rupees
+    canCancel(b) {
+      if (b.status === 'completed' || b.status === 'cancelled') {
+        return false;
+      }
+      if (b.payment_status === 'paid') {
+        return false;
+      }
+      return this.isPaymentIncomplete(b) || this.isOnly99Paid(b);
+    },
     needsPayment(b) {
       return ['pending_payment', 'unpaid', 'failed'].includes(b.payment_status) && 
              b.payment_method === 'online' && 
@@ -1141,38 +1098,7 @@ export default {
         }
       }
     },
-    onPostponeDateChange() {
-      this.pf.slot_time = '';
-      this.postponeSlots = [];
-      this.fetchPostponeSlots(false);
-    },
-    async fetchPostponeSlots(keepSlot = false) {
-      if (!keepSlot) {
-        this.pf.slot_time = '';
-      }
-      if (!this.postponeBooking || !this.pf.booking_date) {
-        this.postponeSlots = [];
-        return;
-      }
-      this.postponeSlotsLoading = true;
-      try {
-        const { data } = await axios.get('/api/bookings/slots', {
-          params: { franchisee_id: this.postponeBooking.franchisee_id, date: this.pf.booking_date }
-        });
-        this.postponeSlots = Array.isArray(data) ? data : [];
-        if (this.pf.slot_time) {
-          const match = this.postponeSlots.find(s => s.time_range === this.pf.slot_time);
-          if (match && (match.current_bookings >= match.max_bookings || match.is_full)) {
-            this.pf.slot_time = '';
-          }
-        }
-      } catch (e) {
-        console.error('fetchPostponeSlots error:', e);
-        this.postponeSlots = [];
-      } finally {
-        this.postponeSlotsLoading = false;
-      }
-    },
+
 
     /**
      * Create booking and initiate Cashfree checkout if online payment.
@@ -1430,64 +1356,67 @@ export default {
       }
     },
 
-    async cancel(id) {
-      const result = await Swal.fire({
-        title: 'Cancel Booking?',
-        text: 'Are you sure you want to cancel this booking? The slot booking amount or any payment you have made will not be refunded.',
+    async cancel(bookingOrId) {
+      const b = typeof bookingOrId === 'object' ? bookingOrId : this.bookings.find(item => item.id === bookingOrId);
+      const id = b ? b.id : bookingOrId;
+      const isPaid99 = b ? this.isOnly99Paid(b) : false;
+
+      let confirmConfig = {
+        title: 'Delete Wash Booking?',
+        text: 'Are you sure you want to delete this booking? The slot booking amount or any payment you have made will not be refunded.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Yes',
-        cancelButtonText: 'No'
-      });
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel'
+      };
 
+      if (isPaid99) {
+        confirmConfig = {
+          title: 'Delete Wash Booking?',
+          html: `
+            <div style="text-align: left; font-size: 0.9rem; line-height: 1.5;">
+              <p style="margin-bottom: 0.75rem; color: #f8fafc;">This amount (₹99.00) will not be deleted after deleting it.</p>
+              <div style="background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.35); border-radius: 8px; padding: 12px; margin-bottom: 0.75rem;">
+                <div style="color: #38bdf8; font-weight: 700; margin-bottom: 4px;">📞 Customer Care Contact:</div>
+                <div style="font-size: 0.92rem; color: #e2e8f0;">
+                  For rescheduling this wash or retaining your ₹99 advance, please contact customer care:
+                  <br>
+                  <a href="tel:9910226873" style="color: #38bdf8; font-weight: 800; font-size: 1.15rem; display: inline-block; margin-top: 6px; text-decoration: underline;">
+                    📞 9910226873
+                  </a>
+                </div>
+              </div>
+              <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.5rem;">Are you sure you still want to delete this wash booking?</p>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#ef4444',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Yes, Delete Wash',
+          cancelButtonText: 'Keep Booking'
+        };
+      }
+
+      const result = await Swal.fire(confirmConfig);
       if (!result.isConfirmed) return;
 
       try {
         await axios.post(`/api/bookings/${id}/cancel`);
-        Swal.fire('Cancelled!', 'Your booking has been cancelled.', 'success');
-        this.loadData();
-      } catch (e) {
-        Swal.fire('Error', e.response?.data?.message || 'Failed to cancel booking', 'error');
-      }
-    },
-    openPostpone(b) {
-      if (b.status === 'completed') {
-        Swal.fire('Wash Completed', 'This wash has already been completed and cannot be edited.', 'info');
-        return;
-      }
-      this.postponeBooking = b;
-      this.pf.booking_date = (b.booking_date && b.booking_date >= this.minDate) ? b.booking_date : this.minDate;
-      this.pf.slot_time = b.slot_time || '';
-      this.postponeSlots = [];
-      if (this.pf.booking_date) {
-        this.fetchPostponeSlots(true);
-      }
-    },
-    async submitPostpone() {
-      if (!this.postponeBooking) return;
-      if (this.postponeBooking.status === 'completed') {
-        Swal.fire('Wash Completed', 'Completed wash bookings cannot be edited.', 'error');
-        return;
-      }
-      if (this.pf.slot_time) {
-        const selectedSlot = this.postponeSlots.find(s => s.time_range === this.pf.slot_time);
-        if (selectedSlot && (selectedSlot.current_bookings >= selectedSlot.max_bookings || selectedSlot.is_full)) {
-          Swal.fire('Slot Full', `Slot Full: ${this.pf.slot_time}. Please choose another available slot.`, 'warning');
-          return;
+        if (isPaid99) {
+          Swal.fire({
+            title: 'Wash Deleted',
+            html: `Wash booking deleted. To reschedule this wash or retain your ₹99 advance, please contact customer care at <a href="tel:9910226873" style="color:#0284c7;font-weight:700;text-decoration:underline;">9910226873</a>.`,
+            icon: 'success'
+          });
+        } else {
+          Swal.fire('Wash Deleted!', 'Your booking has been deleted.', 'success');
         }
-      }
-      this.submittingPostpone = true;
-      try {
-        const { data } = await axios.post(`/api/bookings/${this.postponeBooking.id}/postpone`, this.pf);
-        Swal.fire('Rescheduled!', data.message || 'Booking rescheduled successfully.', 'success');
-        this.postponeBooking = null;
         this.loadData();
       } catch (e) {
-        Swal.fire('Error', e.response?.data?.message || 'Failed to reschedule booking', 'error');
-      } finally {
-        this.submittingPostpone = false;
+        Swal.fire('Error', e.response?.data?.message || 'Failed to delete booking', 'error');
       }
     },
     async downloadInvoice(id) {

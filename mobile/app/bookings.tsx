@@ -494,7 +494,7 @@ export default function BookingsScreen() {
       showSweetAlert(
         'Wash Deleted',
         isOnly99Paid(b)
-          ? 'Wash booking deleted. To reschedule this wash or retain your ₹99 advance, please contact customer care.'
+          ? 'Wash booking deleted. To reschedule this wash or retain your ₹99 advance, please contact customer care at 9910226873.'
           : 'Wash booking deleted successfully.',
         'success'
       );
@@ -1113,31 +1113,27 @@ export default function BookingsScreen() {
 
             <Text style={[styles.deleteModalSubtitle, isDark && styles.darkSubtext]}>
               {deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
-                ? 'This amount (₹99.00) will not be deleted after deleting it. For rescheduling this wash or retaining your ₹99 advance, please contact customer care.'
+                ? 'This amount (₹99.00) will not be deleted after deleting it. For rescheduling this wash or retaining your ₹99 advance, please contact customer care at 9910226873.'
                 : `Are you sure you want to delete wash booking #BOK-${deleteTargetBooking?.id}?`}
             </Text>
 
-            {deleteTargetBooking && isOnly99Paid(deleteTargetBooking) && (
-              <View style={[styles.amountRetainedBadge, isDark && styles.darkAmountRetainedBadge]}>
-                <Ionicons name="information-circle" size={16} color="#0284c7" />
-                <Text style={[styles.amountRetainedText, isDark && styles.darkText]}>
-                  For rescheduling or retaining ₹99, please contact customer care
-                </Text>
-              </View>
-            )}
+
 
             <View style={styles.deleteModalActionCol}>
               {deleteTargetBooking && isOnly99Paid(deleteTargetBooking) && (
                 <TouchableOpacity
                   style={[styles.rescheduleActionBtn, { backgroundColor: '#0284c7' }]}
                   onPress={() => {
-                    setDeleteTargetBooking(null);
-                    router.push('/support');
+                    safeHapticLight();
+                    Linking.openURL('tel:9910226873').catch(() => {
+                      setDeleteTargetBooking(null);
+                      router.push('/support');
+                    });
                   }}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="headset-outline" size={16} color="#ffffff" />
-                  <Text style={styles.rescheduleActionBtnText}>Contact Customer Care</Text>
+                  <Ionicons name="call-outline" size={16} color="#ffffff" />
+                  <Text style={styles.rescheduleActionBtnText}>Call Customer Care (9910226873)</Text>
                 </TouchableOpacity>
               )}
 
