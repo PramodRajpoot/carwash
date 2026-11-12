@@ -59,7 +59,6 @@ export default function HomeScreen() {
   const [bannersLoading, setBannersLoading] = useState(true);
   const [packages, setPackages] = useState<any[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(true);
-  const [selectedVehicle, setSelectedVehicle] = useState<'all' | 'hatchback' | 'sedan' | 'suv'>('all');
 
   // Hero Carousel State
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -90,16 +89,7 @@ export default function HomeScreen() {
     };
   }, [packages]);
 
-  // Filtered packages from database (car wash one-time services)
-  const filteredPackages = useMemo(() => {
-    let list = packages.filter((p) => !p.is_subscription);
-    if (selectedVehicle !== 'all') {
-      list = list.filter(
-        (p) => p.vehicle_type === selectedVehicle || p.vehicle_type === 'all'
-      );
-    }
-    return list;
-  }, [packages, selectedVehicle]);
+
 
   // GPS Address resolution for non-logged-in guest users
   const resolveCurrentGPSAddress = useCallback(async () => {
@@ -678,15 +668,11 @@ export default function HomeScreen() {
           <View style={styles.vehicleCardsRow}>
             {/* Card 1: Hatchback */}
             <TouchableOpacity
-              style={[
-                styles.vehicleCard,
-                isDark && styles.darkVehicleCard,
-                selectedVehicle === 'hatchback' && styles.vehicleCardActive,
-              ]}
+              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
               activeOpacity={0.85}
               onPress={() => {
                 safeHapticLight();
-                setSelectedVehicle((prev) => (prev === 'hatchback' ? 'all' : 'hatchback'));
+                router.push({ pathname: '/book', params: { vehicle: 'hatchback' } });
               }}
             >
               <View style={styles.vehicleImageWrap}>
@@ -700,22 +686,18 @@ export default function HomeScreen() {
                 Hatchback
               </Text>
               <Text style={styles.vehicleCardSub}>Car Wash</Text>
-              <View style={[styles.pricePill, selectedVehicle === 'hatchback' && styles.pricePillActive]}>
+              <View style={styles.pricePill}>
                 <Text style={styles.pricePillText}>₹{minPrices.hatchback} Onwards</Text>
               </View>
             </TouchableOpacity>
 
             {/* Card 2: Sedan */}
             <TouchableOpacity
-              style={[
-                styles.vehicleCard,
-                isDark && styles.darkVehicleCard,
-                selectedVehicle === 'sedan' && styles.vehicleCardActive,
-              ]}
+              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
               activeOpacity={0.85}
               onPress={() => {
                 safeHapticLight();
-                setSelectedVehicle((prev) => (prev === 'sedan' ? 'all' : 'sedan'));
+                router.push({ pathname: '/book', params: { vehicle: 'sedan' } });
               }}
             >
               <View style={styles.vehicleImageWrap}>
@@ -729,22 +711,18 @@ export default function HomeScreen() {
                 Sedan
               </Text>
               <Text style={styles.vehicleCardSub}>Car Wash</Text>
-              <View style={[styles.pricePill, selectedVehicle === 'sedan' && styles.pricePillActive]}>
+              <View style={styles.pricePill}>
                 <Text style={styles.pricePillText}>₹{minPrices.sedan} Onwards</Text>
               </View>
             </TouchableOpacity>
 
             {/* Card 3: SUV */}
             <TouchableOpacity
-              style={[
-                styles.vehicleCard,
-                isDark && styles.darkVehicleCard,
-                selectedVehicle === 'suv' && styles.vehicleCardActive,
-              ]}
+              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
               activeOpacity={0.85}
               onPress={() => {
                 safeHapticLight();
-                setSelectedVehicle((prev) => (prev === 'suv' ? 'all' : 'suv'));
+                router.push({ pathname: '/book', params: { vehicle: 'suv' } });
               }}
             >
               <View style={styles.vehicleImageWrap}>
@@ -758,107 +736,10 @@ export default function HomeScreen() {
                 SUV
               </Text>
               <Text style={styles.vehicleCardSub}>Car Wash</Text>
-              <View style={[styles.pricePill, selectedVehicle === 'suv' && styles.pricePillActive]}>
+              <View style={styles.pricePill}>
                 <Text style={styles.pricePillText}>₹{minPrices.suv} Onwards</Text>
               </View>
             </TouchableOpacity>
-          </View>
-
-          {/* Dynamic Services from Database */}
-          <View style={styles.dbServicesContainer}>
-            {packagesLoading ? (
-              <View style={styles.servicesLoadingWrap}>
-                <ActivityIndicator size="small" color="#0284c7" />
-                <Text style={[styles.servicesLoadingText, isDark && styles.darkMutedText]}>
-                  Loading services from database...
-                </Text>
-              </View>
-            ) : filteredPackages.length === 0 ? (
-              <View style={styles.emptyServicesWrap}>
-                <Text style={[styles.emptyServicesText, isDark && styles.darkMutedText]}>
-                  No active services found for this vehicle.
-                </Text>
-              </View>
-            ) : (
-              filteredPackages.slice(0, 6).map((pkg) => {
-                const descBullets = (pkg.description || '')
-                  .split(/[\r\n]+/)
-                  .map((s: string) => s.trim().replace(/^[-•*]\s*/, ''))
-                  .filter(Boolean)
-                  .slice(0, 3);
-
-                return (
-                  <View
-                    key={pkg.id}
-                    style={[styles.serviceItemCard, isDark && styles.darkServiceItemCard]}
-                  >
-                    <View style={styles.serviceItemTopRow}>
-                      <View style={{ flex: 1, marginRight: 10 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                          <View style={styles.vehicleBadgePill}>
-                            <Ionicons name="car-outline" size={11} color="#0284c7" />
-                            <Text style={styles.vehicleBadgePillText}>
-                              {pkg.vehicle_type ? pkg.vehicle_type.toUpperCase() : 'ALL CARS'}
-                            </Text>
-                          </View>
-                          {pkg.custom_badge ? (
-                            <View style={styles.customBadgePill}>
-                              <Text style={styles.customBadgePillText}>{pkg.custom_badge}</Text>
-                            </View>
-                          ) : null}
-                        </View>
-                        <Text style={[styles.serviceItemTitle, isDark && styles.darkServiceItemTitle]}>
-                          {pkg.name}
-                        </Text>
-                      </View>
-
-                      <View style={styles.serviceItemPriceWrap}>
-                        <Text style={styles.serviceItemPriceCurrency}>₹</Text>
-                        <Text style={styles.serviceItemPriceValue}>
-                          {Math.round(Number(pkg.price) || 0)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {descBullets.length > 0 && (
-                      <View style={styles.serviceFeaturesWrap}>
-                        {descBullets.map((feat: string, fIdx: number) => (
-                          <View key={fIdx} style={styles.featureItemRow}>
-                            <Ionicons name="checkmark-circle" size={13} color="#10b981" />
-                            <Text
-                              style={[styles.featureItemText, isDark && styles.darkFeatureItemText]}
-                              numberOfLines={1}
-                            >
-                              {feat}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-
-                    <View style={styles.serviceItemFooter}>
-                      <TouchableOpacity
-                        style={styles.bookNowBtn}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          safeHapticMedium();
-                          router.push({
-                            pathname: '/book',
-                            params: {
-                              package_id: String(pkg.id),
-                              vehicle: pkg.vehicle_type || 'hatchback',
-                            },
-                          });
-                        }}
-                      >
-                        <Text style={styles.bookNowBtnText}>Book Now</Text>
-                        <Ionicons name="arrow-forward" size={13} color="#ffffff" style={{ marginLeft: 4 }} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })
-            )}
           </View>
         </View>
 

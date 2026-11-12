@@ -129,7 +129,11 @@ export default function BookScreen() {
           setVehicles(vList);
           if (vList.length > 0) {
             const paramVId = searchParams.vehicle_id ? Number(searchParams.vehicle_id) : null;
-            const matchV = paramVId ? vList.find((v) => v.id === paramVId) : null;
+            const paramVType = typeof searchParams.vehicle === 'string' ? searchParams.vehicle.toLowerCase() : null;
+            let matchV = paramVId ? vList.find((v) => v.id === paramVId) : null;
+            if (!matchV && paramVType) {
+              matchV = vList.find((v) => v.vehicle_type?.toLowerCase() === paramVType) || null;
+            }
             setSelectedVehicleId(matchV ? matchV.id : vList[0].id);
           }
         }
