@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -24,7 +24,7 @@ import { API_BASE } from '../constants/api';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import BookServiceModal from '../components/BookServiceModal';
 import DashboardHeader from '../components/DashboardHeader';
-import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
+import { safeHapticLight, safeHapticMedium, safeHapticSuccess } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
 import { useAppTheme } from '../utils/themeManager';
 
@@ -96,6 +96,14 @@ export default function BookingsScreen() {
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [visibleCount, setVisibleCount] = useState(6);
   const [expandedBookingIds, setExpandedBookingIds] = useState<Record<number, boolean>>({});
+
+  // Delete / Cancel confirmation state
+  const [deleteTargetBooking, setDeleteTargetBooking] = useState<BookingItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Cashfree payment states
+  const [payingBookingId, setPayingBookingId] = useState<number | null>(null);
+  const [cashfreeOrderId, setCashfreeOrderId] = useState<string | null>(null);
 
   // Booking / Action Modal Sheet state
   const [modalVisible, setModalVisible] = useState(false);
@@ -297,23 +305,54 @@ export default function BookingsScreen() {
     router.push('/book');
   };
 
+  // Helper to determine payment action button text
+  const getPayButtonText = (b: BookingItem) => {
+    const is99Paid =
+      isOnly99Paid(b) ||
+      b.payment_status === 'partially_paid' ||
+      parseFloat(String(b.paid_amount || 0)) >= 99;
+    if (is99Paid) {
+      return 'Pay Remaining';
+    }
+    if (b.payment_type === 'partial') {
+      return 'Pay Advance';
+    }
+    return 'Pay Now';
+  };
+
   const handlePayBooking = async (b: BookingItem) => {
     safeHapticMedium();
+    const activeToken = token || (await AsyncStorage.getItem('userToken'));
+    if (!activeToken) {
+      showSweetAlert('Auth Required', 'Please log in again to complete your payment.', 'error');
+      router.replace('/login');
+      return;
+    }
+
+    setPayingBookingId(b.id);
     try {
-      const split = b.payment_status === 'partially_paid' ? 'half' : (b.payment_type || 'full');
+      const is99Paid =
+        isOnly99Paid(b) ||
+        b.payment_status === 'partially_paid' ||
+        parseFloat(String(b.paid_amount || 0)) >= 99;
+
+      // Always request full outstanding amount (advance or remaining balance)
+      const split = 'full';
       const cfOrderRes = await axios.post(
         `${API_BASE}/api/cashfree/create-order`,
         {
           booking_id: b.id,
           payment_split: split,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${activeToken}` } }
       );
 
       if (cfOrderRes.data?.payment_session_id) {
         const sessionId = cfOrderRes.data.payment_session_id;
         const env = cfOrderRes.data.environment || 'sandbox';
-        setModalTitle(`Pay for Wash #${b.id}`);
+        const cfOrderId = cfOrderRes.data.cashfree_order_id;
+        setCashfreeOrderId(cfOrderId);
+        setModalTitle(is99Paid ? `Pay Remaining • Wash #${b.id}` : `Pay for Wash #${b.id}`);
         setModalUrl('');
         setModalHtml(buildCashfreeCheckoutHtml(sessionId, env));
         setModalVisible(true);
@@ -321,7 +360,44 @@ export default function BookingsScreen() {
         showSweetAlert('Payment Error', 'Could not create payment order. Please retry.', 'error');
       }
     } catch (err: any) {
+      console.error('handlePayBooking error:', err);
       showSweetAlert('Payment Error', err.response?.data?.message || 'Failed to start payment.', 'error');
+    } finally {
+      setPayingBookingId(null);
+    }
+  };
+
+  const handleVerifyCashfreePayment = async (orderId: string) => {
+    try {
+      const activeToken = token || (await AsyncStorage.getItem('userToken'));
+      const res = await axios.get(`${API_BASE}/api/cashfree/verify/${orderId}`, {
+        headers: { Authorization: `Bearer ${activeToken}` },
+      });
+
+      closeModal();
+      if (
+        res.data?.status === 'success' ||
+        res.data?.payment_status === 'paid' ||
+        res.data?.payment_status === 'partially_paid'
+      ) {
+        safeHapticSuccess();
+        showSweetAlert(
+          'Payment Successful',
+          'Your payment has been completed and verified successfully!',
+          'success'
+        );
+      } else {
+        showSweetAlert(
+          'Payment Pending',
+          'Payment is being processed and will update shortly.',
+          'info'
+        );
+      }
+      fetchBookings();
+    } catch (err) {
+      console.error('Verification error:', err);
+      closeModal();
+      fetchBookings();
     }
   };
 
@@ -356,6 +432,77 @@ export default function BookingsScreen() {
       router.push('/garage');
     } else if (tab === 'support') {
       router.push('/support');
+    }
+  };
+
+  // Check if user paid only 99 rupees (partial advance payment)
+  const isOnly99Paid = useCallback((b: BookingItem) => {
+    const paid = parseFloat(String(b.paid_amount || 0));
+    const advance = parseFloat(String(b.advance_amount || 0));
+    const total = parseFloat(String(b.total_price || 0));
+    return (
+      (b.payment_status === 'partially_paid' ||
+        (b.payment_type === 'partial' && paid > 0) ||
+        advance === 99 ||
+        paid === 99) &&
+      (b.payment_status !== 'paid' || paid < total) &&
+      (paid === 99 || (paid > 0 && paid <= 100) || advance === 99)
+    );
+  }, []);
+
+  // Check if payment is not completed (unpaid / pending / failed / 0 paid)
+  const isPaymentIncomplete = useCallback((b: BookingItem) => {
+    const paid = parseFloat(String(b.paid_amount || 0));
+    return (
+      b.payment_status !== 'paid' &&
+      (['unpaid', 'pending_payment', 'failed'].includes(b.payment_status) || paid === 0)
+    );
+  }, []);
+
+  // Delete icon will only show on two cases:
+  // 1. Payment is not completed
+  // 2. User paid only 99 rupees
+  const canDeleteBooking = useCallback(
+    (b: BookingItem) => {
+      if (b.status === 'completed' || b.status === 'cancelled') {
+        return false;
+      }
+      if (b.payment_status === 'paid') {
+        return false;
+      }
+      return isPaymentIncomplete(b) || isOnly99Paid(b);
+    },
+    [isPaymentIncomplete, isOnly99Paid]
+  );
+
+  // Delete wash handler
+  const handleDeleteBooking = (b: BookingItem) => {
+    safeHapticMedium();
+    setDeleteTargetBooking(b);
+  };
+
+  const confirmDeleteBooking = async (b: BookingItem) => {
+    safeHapticMedium();
+    setIsDeleting(true);
+    try {
+      await axios.post(
+        `${API_BASE}/api/bookings/${b.id}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setDeleteTargetBooking(null);
+      showSweetAlert(
+        'Wash Deleted',
+        isOnly99Paid(b)
+          ? 'Wash booking deleted. To reschedule this wash or retain your ₹99 advance, please contact customer care.'
+          : 'Wash booking deleted successfully.',
+        'success'
+      );
+      await fetchBookings();
+    } catch (err: any) {
+      showSweetAlert('Error', err.response?.data?.message || 'Failed to delete booking', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -491,10 +638,10 @@ export default function BookingsScreen() {
         </View>
       );
     }
-    if (b.payment_status === 'partially_paid') {
+    if (b.payment_status === 'partially_paid' || isOnly99Paid(b)) {
       return (
         <View style={[styles.payBadge, styles.payBadgePartial]}>
-          <Text style={styles.payBadgePartialText}>Partially Paid</Text>
+          <Text style={styles.payBadgePartialText}>₹99 Advance Paid</Text>
         </View>
       );
     }
@@ -675,20 +822,33 @@ export default function BookingsScreen() {
                         </Text>
                       </View>
 
-                      <TouchableOpacity
-                        style={[styles.toggleBtn, isDark && styles.darkToggleBtn]}
-                        onPress={() => toggleBookingExpansion(b.id)}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons
-                          name="chevron-down-outline"
-                          size={18}
-                          color={isDark ? '#cbd5e1' : '#334155'}
-                        />
-                        <Text style={[styles.toggleText, isDark && styles.darkSubtext]}>
-                          View more
-                        </Text>
-                      </TouchableOpacity>
+                      <View style={styles.summaryActionsWrap}>
+                        {canDeleteBooking(b) && (
+                          <TouchableOpacity
+                            style={[styles.deleteBtnCompact, isDark && styles.darkDeleteBtn]}
+                            onPress={() => handleDeleteBooking(b)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="trash-outline" size={15} color="#ef4444" />
+                          </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                          style={[styles.toggleBtn, isDark && styles.darkToggleBtn]}
+                          onPress={() => toggleBookingExpansion(b.id)}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons
+                            name="chevron-down-outline"
+                            size={18}
+                            color={isDark ? '#cbd5e1' : '#334155'}
+                          />
+                          <Text style={[styles.toggleText, isDark && styles.darkSubtext]}>
+                            View more
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   ) : (
                     <>
@@ -698,7 +858,19 @@ export default function BookingsScreen() {
                             #BOK-{b.id}
                           </Text>
                         </View>
-                        {renderStatusBadge(b.status)}
+                        <View style={styles.cardHeaderRightRow}>
+                          {renderStatusBadge(b.status)}
+                          {canDeleteBooking(b) && (
+                            <TouchableOpacity
+                              style={[styles.deleteBtn, isDark && styles.darkDeleteBtn]}
+                              onPress={() => handleDeleteBooking(b)}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       </View>
 
                       <View style={styles.vehicleRow}>
@@ -800,13 +972,21 @@ export default function BookingsScreen() {
 
                           {b.payment_status !== 'paid' && b.status !== 'cancelled' ? (
                             <TouchableOpacity
-                              style={styles.payBtn}
+                              style={[
+                                styles.payBtn,
+                                payingBookingId === b.id && styles.payBtnDisabled,
+                              ]}
                               onPress={() => handlePayBooking(b)}
+                              disabled={payingBookingId === b.id}
                               activeOpacity={0.8}
                             >
-                              <Text style={styles.payBtnText}>
-                                {b.payment_type === 'partial' ? 'Pay Advance' : 'Pay Now'}
-                              </Text>
+                              {payingBookingId === b.id ? (
+                                <ActivityIndicator size="small" color="#ffffff" />
+                              ) : (
+                                <Text style={styles.payBtnText}>
+                                  {getPayButtonText(b)}
+                                </Text>
+                              )}
                             </TouchableOpacity>
                           ) : b.status === 'completed' ? (
                             <TouchableOpacity
@@ -884,6 +1064,125 @@ export default function BookingsScreen() {
         user={user}
       />
 
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={!!deleteTargetBooking}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!isDeleting) setDeleteTargetBooking(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.deleteModalCard, isDark && styles.darkDeleteModalCard]}>
+            <View
+              style={[
+                styles.deleteIconCircle,
+                deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
+                  ? styles.deleteIconCircleAmber
+                  : styles.deleteIconCircleRed,
+              ]}
+            >
+              <Ionicons
+                name={
+                  deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
+                    ? 'information-circle-outline'
+                    : 'trash-outline'
+                }
+                size={28}
+                color={
+                  deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
+                    ? '#f59e0b'
+                    : '#ef4444'
+                }
+              />
+            </View>
+
+            <Text style={[styles.deleteModalTitle, isDark && styles.darkText]}>
+              Delete Wash Booking?
+            </Text>
+
+            <Text style={[styles.deleteModalSubtitle, isDark && styles.darkSubtext]}>
+              {deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
+                ? 'This amount (₹99.00) will not be deleted after deleting it. For rescheduling this wash or retaining your ₹99 advance, please contact customer care.'
+                : `Are you sure you want to delete wash booking #BOK-${deleteTargetBooking?.id}?`}
+            </Text>
+
+            {deleteTargetBooking && isOnly99Paid(deleteTargetBooking) && (
+              <View style={[styles.amountRetainedBadge, isDark && styles.darkAmountRetainedBadge]}>
+                <Ionicons name="information-circle" size={16} color="#0284c7" />
+                <Text style={[styles.amountRetainedText, isDark && styles.darkText]}>
+                  For rescheduling or retaining ₹99, please contact customer care
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.deleteModalActionCol}>
+              {deleteTargetBooking && isOnly99Paid(deleteTargetBooking) && (
+                <TouchableOpacity
+                  style={[styles.rescheduleActionBtn, { backgroundColor: '#0284c7' }]}
+                  onPress={() => {
+                    setDeleteTargetBooking(null);
+                    router.push('/support');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="headset-outline" size={16} color="#ffffff" />
+                  <Text style={styles.rescheduleActionBtnText}>Contact Customer Care</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.confirmDeleteBtn,
+                  deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
+                    ? styles.confirmDeleteBtnOutline
+                    : styles.confirmDeleteBtnSolid,
+                ]}
+                onPress={() => deleteTargetBooking && confirmDeleteBooking(deleteTargetBooking)}
+                disabled={isDeleting}
+                activeOpacity={0.8}
+              >
+                {isDeleting ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={
+                      deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
+                        ? '#ef4444'
+                        : '#ffffff'
+                    }
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.confirmDeleteBtnText,
+                      deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
+                        ? styles.confirmDeleteBtnTextOutline
+                        : styles.confirmDeleteBtnTextSolid,
+                    ]}
+                  >
+                    {deleteTargetBooking && isOnly99Paid(deleteTargetBooking)
+                      ? 'Delete Wash'
+                      : 'Yes, Delete'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelDismissBtn}
+                onPress={() => setDeleteTargetBooking(null)}
+                disabled={isDeleting}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.cancelDismissBtnText, isDark && styles.darkSubtext]}>
+                  Cancel / Keep Wash
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Booking / Action Flow Modal Sheet */}
       <Modal
         visible={modalVisible}
@@ -939,7 +1238,13 @@ export default function BookingsScreen() {
                   request.url.includes('cashfree_order_id=') ||
                   request.url.includes('status=success')
                 ) {
-                  closeModal();
+                  const match = request.url.match(/order_id=([^&]+)/);
+                  const orderId = match ? decodeURIComponent(match[1]) : cashfreeOrderId;
+                  if (orderId) {
+                    handleVerifyCashfreePayment(orderId);
+                  } else {
+                    closeModal();
+                  }
                   return false;
                 }
                 return true;
@@ -950,7 +1255,13 @@ export default function BookingsScreen() {
                   navState.url.includes('cashfree_order_id=') ||
                   navState.url.includes('status=success')
                 ) {
-                  closeModal();
+                  const match = navState.url.match(/order_id=([^&]+)/);
+                  const orderId = match ? decodeURIComponent(match[1]) : cashfreeOrderId;
+                  if (orderId) {
+                    handleVerifyCashfreePayment(orderId);
+                  } else {
+                    closeModal();
+                  }
                 }
               }}
               style={{ flex: 1 }}
@@ -1709,6 +2020,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
+  payBtnDisabled: {
+    opacity: 0.65,
+  },
   invoiceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1810,6 +2124,392 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cardHeaderRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  summaryActionsWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnCompact: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  darkDeleteBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+  },
+  rescheduleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  darkRescheduleBtn: {
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  rescheduleBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#d97706',
+  },
+  darkAmberText: {
+    color: '#fbbf24',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  deleteModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    paddingHorizontal: 22,
+    paddingTop: 24,
+    paddingBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  darkDeleteModalCard: {
+    backgroundColor: '#111c33',
+    borderColor: '#1e293b',
+    borderWidth: 1,
+  },
+  deleteIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  deleteIconCircleRed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  deleteIconCircleAmber: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  deleteModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  deleteModalSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 14,
+  },
+  amountRetainedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 16,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  darkAmountRetainedBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+  },
+  amountRetainedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  deleteModalActionCol: {
+    width: '100%',
+    gap: 9,
+  },
+  rescheduleActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#0284c7',
+    paddingVertical: 12,
+    borderRadius: 12,
+    width: '100%',
+  },
+  rescheduleActionBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  confirmDeleteBtn: {
+    paddingVertical: 11,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  confirmDeleteBtnSolid: {
+    backgroundColor: '#ef4444',
+  },
+  confirmDeleteBtnOutline: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  confirmDeleteBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  confirmDeleteBtnTextSolid: {
+    color: '#ffffff',
+  },
+  confirmDeleteBtnTextOutline: {
+    color: '#ef4444',
+  },
+  cancelDismissBtn: {
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelDismissBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  rescheduleModalCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 18,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    elevation: 8,
+    maxHeight: '85%',
+  },
+  rescheduleHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  rescheduleTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  rescheduleSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  modalCloseIconBtn: {
+    padding: 6,
+  },
+  paidNoteBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(2, 132, 199, 0.25)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  darkPaidNoteBox: {
+    backgroundColor: 'rgba(2, 132, 199, 0.16)',
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  paidNoteText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#0369a1',
+    flex: 1,
+    lineHeight: 16,
+  },
+  rescheduleSectionLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  datePillsStrip: {
+    gap: 8,
+    paddingBottom: 12,
+  },
+  datePillBox: {
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 54,
+    borderWidth: 1.5,
+  },
+  lightDatePillBox: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+  },
+  darkDatePillBox: {
+    backgroundColor: '#0b1324',
+    borderColor: '#1e293b',
+  },
+  datePillBoxSelected: {
+    backgroundColor: '#0284c7',
+    borderColor: '#0284c7',
+  },
+  datePillDayText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  datePillNumText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginVertical: 2,
+  },
+  datePillMonthText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  datePillTextActive: {
+    color: '#ffffff',
+  },
+  slotHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  loadingSlotsWrap: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingSlotsText: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  slotsGridWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  slotChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '47%',
+    flexGrow: 1,
+  },
+  lightSlotChip: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+  },
+  darkSlotChip: {
+    backgroundColor: '#0b1324',
+    borderColor: '#1e293b',
+  },
+  slotChipSelected: {
+    backgroundColor: 'rgba(2, 132, 199, 0.12)',
+    borderColor: '#0284c7',
+  },
+  slotChipFull: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#cbd5e1',
+    opacity: 0.5,
+  },
+  slotChipTime: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  slotChipTextActive: {
+    color: '#0284c7',
+  },
+  slotChipTextFull: {
+    color: '#94a3b8',
+    textDecorationLine: 'line-through',
+  },
+  slotChipStatus: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  slotOpenText: {
+    color: '#10b981',
+  },
+  slotFullText: {
+    color: '#ef4444',
+  },
+  slotSelectedText: {
+    color: '#0284c7',
+    fontWeight: '700',
+  },
+  rescheduleModalActions: {
+    width: '100%',
+    marginTop: 8,
+  },
+  submitRescheduleBtn: {
+    backgroundColor: '#0284c7',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitRescheduleBtnDisabled: {
+    backgroundColor: '#94a3b8',
+    opacity: 0.6,
+  },
+  submitRescheduleBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   darkText: {
     color: '#f8fafc',

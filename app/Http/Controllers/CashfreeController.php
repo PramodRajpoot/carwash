@@ -44,7 +44,7 @@ class CashfreeController extends Controller
     {
         $request->validate([
             'booking_id'    => 'required|integer|exists:bookings,id',
-            'payment_split' => 'nullable|string|in:full,half',
+            'payment_split' => 'nullable|string|in:full,half,remaining,partial,advance',
         ]);
 
         $user = $request->user();
@@ -73,7 +73,9 @@ class CashfreeController extends Controller
         }
 
         // Calculate amount to pay for this transaction
-        if ($booking->payment_status === 'partially_paid') {
+        $isPartiallyPaid = ($booking->payment_status === 'partially_paid') || ((float) $booking->paid_amount > 0);
+
+        if ($isPartiallyPaid) {
             // Paying remaining balance: full or half
             $remainingDue = max(0, (float) $booking->total_price - (float) $booking->paid_amount);
             if ($request->input('payment_split') === 'half' && $remainingDue > 1) {
@@ -81,7 +83,7 @@ class CashfreeController extends Controller
             } else {
                 $orderAmount = round($remainingDue, 2);
             }
-        } elseif ($booking->payment_type === 'partial') {
+        } elseif ($booking->payment_type === 'partial' && (float) $booking->paid_amount <= 0) {
             // Paying initial slot booking advance (₹99)
             $orderAmount = (float) ($booking->advance_amount > 0 ? $booking->advance_amount : 99.00);
         } else {
@@ -134,7 +136,7 @@ class CashfreeController extends Controller
                 // Save Cashfree details on the booking
                 $booking->cashfree_order_id = $orderId;
                 $booking->cashfree_payment_session_id = $data['payment_session_id'];
-                if ($booking->payment_status !== 'partially_paid') {
+                if ($booking->payment_status !== 'partially_paid' && (float) $booking->paid_amount <= 0) {
                     $booking->payment_status = 'pending_payment';
                 }
                 $booking->save();

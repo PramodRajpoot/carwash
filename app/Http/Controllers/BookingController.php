@@ -561,10 +561,13 @@ class BookingController extends Controller
         }
 
         if ($booking->status === 'cancelled') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Cancelled bookings cannot be rescheduled.'
-            ], 422);
+            $isPaid99 = ((float) $booking->paid_amount >= 99) || ($booking->payment_status === 'partially_paid');
+            if (!$isPaid99) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Cancelled bookings cannot be rescheduled unless advance payment was completed.'
+                ], 422);
+            }
         }
 
         $request->validate([
@@ -597,14 +600,16 @@ class BookingController extends Controller
             ], 400);
         }
 
-        // Decrement OLD slot
-        $oldSlot = Slot::where('franchisee_id', $booking->franchisee_id)
-            ->where('date', $booking->booking_date)
-            ->where('time_range', $booking->slot_time)
-            ->first();
+        // Decrement OLD slot only if booking was not cancelled
+        if ($booking->status !== 'cancelled') {
+            $oldSlot = Slot::where('franchisee_id', $booking->franchisee_id)
+                ->where('date', $booking->booking_date)
+                ->where('time_range', $booking->slot_time)
+                ->first();
 
-        if ($oldSlot && $oldSlot->current_bookings > 0) {
-            $oldSlot->decrement('current_bookings');
+            if ($oldSlot && $oldSlot->current_bookings > 0) {
+                $oldSlot->decrement('current_bookings');
+            }
         }
 
         // Increment NEW slot
