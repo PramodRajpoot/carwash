@@ -52,7 +52,9 @@
           "locationAlwaysAndWhenInUsePermission": "Allow CleanAtDoorstep to access your location to find nearby wash centers and provide doorstep service.",
           "locationWhenInUsePermission": "Allow CleanAtDoorstep to access your location to find nearby wash centers and provide doorstep service."
         }
-      ]
+      ],
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
