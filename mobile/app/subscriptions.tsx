@@ -115,7 +115,7 @@ export default function SubscriptionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
-  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('book');
+  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab | 'none'>('none');
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<number, boolean>>({});
 
   const syncUser = useCallback(async () => {
@@ -189,25 +189,6 @@ export default function SubscriptionsScreen() {
 
   const handleFooterTabPress = (tab: FooterTab) => {
     setActiveFooterTab(tab);
-
-    if (tab === 'home') {
-      router.replace('/dashboard');
-      return;
-    }
-
-    if (tab === 'garage') {
-      router.push('/garage');
-      return;
-    }
-
-    if (tab === 'book') {
-      router.push('/bookings');
-      return;
-    }
-
-    if (tab === 'support') {
-      router.push('/support');
-    }
   };
 
   const formatPrice = (value: number | string | undefined) => {

@@ -43,14 +43,28 @@ export default function AppFooter({
 
   const [clickedTab, setClickedTab] = useState<FooterTab | null>(null);
 
-  // Automatically determine tab from route pathname
-  const routeTab = useMemo<FooterTab>(() => {
-    if (!pathname || pathname === '/' || pathname === '/index') return 'home';
+  // Map any tab alias or sub-screen to one of the 5 canonical footer tabs or 'none'
+  const normalizeTab = (tab?: FooterTab | 'none'): FooterTab | 'none' => {
+    if (!tab || tab === 'none') return 'none';
+    if (tab === 'home') return 'home';
+    if (tab === 'bookings' || tab === 'book') return 'bookings';
+    if (tab === 'refer') return 'refer';
+    if (tab === 'wallet') return 'wallet';
     if (
-      pathname.startsWith('/bookings') ||
-      pathname.startsWith('/book') ||
-      pathname.startsWith('/booking-summary')
+      tab === 'profile' ||
+      tab === 'garage' ||
+      tab === 'support' ||
+      tab === 'notifications'
     ) {
+      return 'profile';
+    }
+    return 'none';
+  };
+
+  // Automatically determine tab from route pathname
+  const routeTab = useMemo<FooterTab | 'none'>(() => {
+    if (!pathname || pathname === '/' || pathname === '/index') return 'home';
+    if (pathname.startsWith('/bookings')) {
       return 'bookings';
     }
     if (pathname.startsWith('/refer-and-earn')) return 'refer';
@@ -64,7 +78,8 @@ export default function AppFooter({
     ) {
       return 'profile';
     }
-    return 'home';
+    // Specific non-tab screens (e.g. /subscriptions, /book, /booking-summary, /offer, /wishlist)
+    return 'none';
   }, [pathname]);
 
   // Reset temporary clicked tab when pathname changes
@@ -72,12 +87,14 @@ export default function AppFooter({
     setClickedTab(null);
   }, [pathname]);
 
-  // Current active tab: clicked tab takes precedence immediately, then route-derived tab, then explicit prop
-  const currentTab = useMemo<FooterTab | 'none'>(() => {
-    if (clickedTab) return clickedTab;
-    if (activeTab === 'none') return 'none';
-    if (routeTab) return routeTab;
-    return activeTab || 'home';
+  // Current active tab:
+  // 1. User clicked a tab -> takes precedence immediately
+  // 2. Explicit prop activeTab passed -> takes precedence over automatic routeTab
+  // 3. Otherwise derived from route pathname
+  const currentCanonicalTab = useMemo<FooterTab | 'none'>(() => {
+    if (clickedTab) return normalizeTab(clickedTab);
+    if (activeTab !== undefined) return normalizeTab(activeTab);
+    return normalizeTab(routeTab);
   }, [clickedTab, activeTab, routeTab]);
 
   const handlePress = (tab: FooterTab) => {
@@ -114,16 +131,7 @@ export default function AppFooter({
   };
 
   const isTabActive = (tab: FooterTab) => {
-    if (currentTab === 'none') return false;
-    if (currentTab === tab) return true;
-    if (tab === 'bookings' && (currentTab === 'book' || activeTab === 'book')) return true;
-    if (
-      tab === 'profile' &&
-      (currentTab === 'garage' || currentTab === 'support' || activeTab === 'garage' || activeTab === 'support')
-    ) {
-      return true;
-    }
-    return false;
+    return currentCanonicalTab !== 'none' && currentCanonicalTab === tab;
   };
 
   return (
