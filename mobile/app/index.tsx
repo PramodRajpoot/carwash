@@ -29,9 +29,10 @@ import AppFooter, { FooterTab } from '../components/AppFooter';
 import { useAppTheme } from '../utils/themeManager';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BANNER_WIDTH = Math.min(SCREEN_WIDTH - 24, 460);
+const BANNER_WIDTH = Math.min(SCREEN_WIDTH - 20, 460);
 const HERO_BANNER_HEIGHT = Math.round(BANNER_WIDTH / 2.2);
-const PROMO_BANNER_HEIGHT = Math.round(BANNER_WIDTH / 5.7);
+const PROMO_BANNER_WIDTH = Math.min(SCREEN_WIDTH - 8, 520);
+const PROMO_BANNER_HEIGHT = Math.round(PROMO_BANNER_WIDTH * (96 / 455));
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -743,7 +744,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── 4. MONTHLY SUBSCRIPTION PLANS BANNER (Dynamic / DB Driven) ── */}
+        {/* ── 4. MONTHLY SUBSCRIPTION PLANS BANNER ── */}
         <TouchableOpacity
           style={styles.promoBannerCard}
           activeOpacity={0.9}
@@ -752,19 +753,11 @@ export default function HomeScreen() {
             router.push('/subscriptions');
           }}
         >
-          {banners.length > 1 && getBannerUri(banners[1]?.image_path) ? (
-            <Image
-              source={{ uri: getBannerUri(banners[1]?.image_path)! }}
-              style={styles.promoBannerImg}
-              resizeMode="cover"
-            />
-          ) : (
-            <Image
-              source={require('../assets/images/home/subscription_banner.png')}
-              style={styles.promoBannerImg}
-              resizeMode="cover"
-            />
-          )}
+          <Image
+            source={require('../assets/images/home/subscription_banner.png')}
+            style={styles.promoBannerImg}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
 
         {/* ── 5. WHY CHOOSE CLEANATDOORSTEP SECTION ── */}
@@ -816,7 +809,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── 6. REFER & EARN BANNER (Dynamic / DB Driven) ── */}
+        {/* ── 6. REFER & EARN BANNER ── */}
         <TouchableOpacity
           style={styles.promoBannerCard}
           activeOpacity={0.9}
@@ -825,19 +818,11 @@ export default function HomeScreen() {
             router.push('/refer-and-earn');
           }}
         >
-          {banners.length > 2 && getBannerUri(banners[2]?.image_path) ? (
-            <Image
-              source={{ uri: getBannerUri(banners[2]?.image_path)! }}
-              style={styles.promoBannerImg}
-              resizeMode="cover"
-            />
-          ) : (
-            <Image
-              source={require('../assets/images/home/refer_banner.png')}
-              style={styles.promoBannerImg}
-              resizeMode="cover"
-            />
-          )}
+          <Image
+            source={require('../assets/images/home/refer_banner.png')}
+            style={styles.promoBannerImg}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -1704,11 +1689,12 @@ const styles = StyleSheet.create({
 
   /* ── Promo Banners ── */
   promoBannerCard: {
-    width: BANNER_WIDTH,
+    width: PROMO_BANNER_WIDTH,
     height: PROMO_BANNER_HEIGHT,
     alignSelf: 'center',
-    borderRadius: 18,
+    borderRadius: 14,
     overflow: 'hidden',
+    backgroundColor: 'transparent',
     marginBottom: 18,
     shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 3 },
