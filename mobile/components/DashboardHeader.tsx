@@ -180,7 +180,6 @@ export default function DashboardHeader({
   const handleToggle = async () => {
     safeHapticLight();
     await toggleAppTheme();
-    onToggleTheme?.();
   };
 
   return (
