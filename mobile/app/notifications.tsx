@@ -22,6 +22,7 @@ import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
 import { safeHapticLight, safeHapticMedium, safeHapticSuccess } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { useAppTheme } from '../utils/themeManager';
 
 export interface NotificationItem {
   id: number;
@@ -52,7 +53,7 @@ export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
 
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useAppTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
@@ -60,12 +61,6 @@ export default function NotificationsScreen() {
   const [user, setUser] = useState<any>({ name: 'User' });
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-
-  const handleToggleTheme = useCallback(async () => {
-    const nextTheme = !isDark ? 'dark' : 'light';
-    setIsDark(nextTheme === 'dark');
-    await AsyncStorage.setItem('app_theme', nextTheme);
-  }, [isDark]);
 
   // Fetch notifications from backend API
   const loadNotifications = useCallback(async (isRefresh = false) => {
@@ -118,11 +113,6 @@ export default function NotificationsScreen() {
 
       const init = async () => {
         try {
-          const storedTheme = await AsyncStorage.getItem('app_theme');
-          if (isMounted) {
-            setIsDark(storedTheme === 'dark');
-          }
-
           const userData = await AsyncStorage.getItem('userData');
           if (isMounted && userData) {
             try {
@@ -419,7 +409,7 @@ export default function NotificationsScreen() {
         unreadCount={unreadCount}
         isDark={isDark}
         showLocation={false}
-        onToggleTheme={handleToggleTheme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Screen Navigation & Action Bar */}

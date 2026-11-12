@@ -26,6 +26,7 @@ import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium, safeHapticSuccess, safeHapticWarning } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
+import { useAppTheme } from '../utils/themeManager';
 
 const WebViewComponent: any = WebView;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -73,7 +74,7 @@ export default function BookingSummaryScreen() {
   // Authentication & User State
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useAppTheme();
 
   // Core Data Loaded
   const [loading, setLoading] = useState(true);
@@ -342,13 +343,11 @@ export default function BookingSummaryScreen() {
       try {
         const storedToken = await AsyncStorage.getItem('userToken');
         const storedUser = await AsyncStorage.getItem('userData');
-        const storedTheme = await AsyncStorage.getItem('app_theme');
 
         if (storedToken && storedUser) {
           if (isMounted) {
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
-            setIsDark(storedTheme === 'dark');
           }
           await loadData(storedToken);
         } else {
@@ -369,13 +368,6 @@ export default function BookingSummaryScreen() {
     safeHapticLight();
     setRefreshing(true);
     await loadData();
-  };
-
-  const toggleTheme = async () => {
-    safeHapticLight();
-    const next = !isDark;
-    setIsDark(next);
-    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
   };
 
   // Resolve Live GPS Location

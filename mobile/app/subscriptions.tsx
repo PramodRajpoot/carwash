@@ -21,6 +21,7 @@ import { API_BASE } from '../constants/api';
 import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
+import { useAppTheme } from '../utils/themeManager';
 
 interface Plan {
   id: number;
@@ -107,15 +108,24 @@ export default function SubscriptionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
+  const { isDark, toggleTheme } = useAppTheme();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('book');
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<number, boolean>>({});
+
+  const syncUser = useCallback(async () => {
+    const storedUser = await AsyncStorage.getItem('userData');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {}
+    }
+  }, []);
 
   const loadPlans = useCallback(async () => {
     try {
@@ -152,32 +162,15 @@ export default function SubscriptionsScreen() {
     }
   }, []);
 
-  const syncTheme = useCallback(async () => {
-    const storedTheme = await AsyncStorage.getItem('app_theme');
-    setIsDark(storedTheme === 'dark');
-    const storedUser = await AsyncStorage.getItem('userData');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {}
-    }
-  }, []);
-
   useEffect(() => {
-    syncTheme();
+    syncUser();
     loadPlans();
-  }, [loadPlans, syncTheme]);
-
-  const toggleTheme = useCallback(async () => {
-    const next = !isDark;
-    setIsDark(next);
-    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
-  }, [isDark]);
+  }, [loadPlans, syncUser]);
 
   useFocusEffect(
     useCallback(() => {
-      syncTheme();
-    }, [syncTheme])
+      syncUser();
+    }, [syncUser])
   );
 
   const monthlyPlans = useMemo(() => {

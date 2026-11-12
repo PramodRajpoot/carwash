@@ -26,6 +26,7 @@ import BookServiceModal from '../components/BookServiceModal';
 import DashboardHeader from '../components/DashboardHeader';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { useAppTheme } from '../utils/themeManager';
 
 const WebViewComponent: any = WebView;
 
@@ -90,7 +91,7 @@ export default function BookingsScreen() {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useAppTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [visibleCount, setVisibleCount] = useState(6);
@@ -238,13 +239,11 @@ export default function BookingsScreen() {
       try {
         const storedToken = await AsyncStorage.getItem('userToken');
         const storedUser = await AsyncStorage.getItem('userData');
-        const storedTheme = await AsyncStorage.getItem('app_theme');
 
         if (storedToken && storedUser) {
           if (isMounted) {
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
-            setIsDark(storedTheme === 'dark');
           }
           await fetchBookings(storedToken);
         } else {
@@ -280,11 +279,9 @@ export default function BookingsScreen() {
     setRefreshing(false);
   };
 
-  const toggleTheme = async () => {
+  const handleToggleTheme = async () => {
     safeHapticLight();
-    const next = !isDark;
-    setIsDark(next);
-    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
+    await toggleTheme();
   };
 
   const [bookingSheetVisible, setBookingSheetVisible] = useState(false);
@@ -346,14 +343,19 @@ export default function BookingsScreen() {
 
   const handleFooterTabPress = (tab: FooterTab) => {
     if (tab === 'home') {
-      router.replace('/dashboard');
+      router.push('/');
+    } else if (tab === 'bookings' || tab === 'book') {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    } else if (tab === 'refer') {
+      router.push('/refer-and-earn');
+    } else if (tab === 'wallet') {
+      router.push('/e-points');
+    } else if (tab === 'profile') {
+      router.push('/profile');
     } else if (tab === 'garage') {
       router.push('/garage');
     } else if (tab === 'support') {
       router.push('/support');
-    } else if (tab === 'book') {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      return;
     }
   };
 
@@ -542,7 +544,7 @@ export default function BookingsScreen() {
           </TouchableOpacity>
         }
         onNotificationPress={() => router.push('/notifications')}
-        onToggleTheme={toggleTheme}
+        onToggleTheme={handleToggleTheme}
       />
 
       <View style={[styles.sectionHeaderRow, isDark && styles.darkSectionHeaderRow]}>
@@ -865,7 +867,7 @@ export default function BookingsScreen() {
 
       {/* Floating Footer Navigation */}
       <AppFooter
-        activeTab="book"
+        activeTab="bookings"
         isDark={isDark}
         onTabPress={handleFooterTabPress}
       />

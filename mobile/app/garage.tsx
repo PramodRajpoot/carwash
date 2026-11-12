@@ -23,6 +23,7 @@ import DashboardHeader from '../components/DashboardHeader';
 import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { useAppTheme } from '../utils/themeManager';
 
 interface Vehicle {
   id: number;
@@ -43,6 +44,7 @@ const vehicleTypeOptions = [
 export default function GarageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark, toggleTheme } = useAppTheme();
 
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -54,7 +56,6 @@ export default function GarageScreen() {
   const [makeModel, setMakeModel] = useState('');
   const [plateNumber, setPlateNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [activeVehicleFilter, setActiveVehicleFilter] = useState('all');
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
 
@@ -68,12 +69,6 @@ export default function GarageScreen() {
     { key: 'luxury', label: 'Luxury' },
     { key: 'commercial', label: 'Commercial' },
   ];
-
-  const toggleTheme = async () => {
-    const nextMode = !isDark;
-    setIsDark(nextMode);
-    await AsyncStorage.setItem('app_theme', nextMode ? 'dark' : 'light');
-  };
 
   const filteredVehicles =
     activeVehicleFilter === 'all'
@@ -109,7 +104,6 @@ export default function GarageScreen() {
     const initialize = async () => {
       try {
         const storedToken = await AsyncStorage.getItem('userToken');
-        const storedTheme = await AsyncStorage.getItem('app_theme');
         const storedUser = await AsyncStorage.getItem('userData');
 
         if (!storedToken) {
@@ -119,7 +113,6 @@ export default function GarageScreen() {
 
         if (isMounted) {
           setToken(storedToken);
-          setIsDark(storedTheme === 'dark');
           if (storedUser) {
             try {
               setUser(JSON.parse(storedUser));
@@ -151,11 +144,6 @@ export default function GarageScreen() {
           try {
             setUser(JSON.parse(stored));
           } catch {}
-        }
-      });
-      AsyncStorage.getItem('app_theme').then((theme) => {
-        if (isMounted && theme) {
-          setIsDark(theme === 'dark');
         }
       });
       return () => {

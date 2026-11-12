@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,117 +7,262 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
+import { safeHapticLight } from '../utils/haptics';
+import { useAppTheme } from '../utils/themeManager';
 
-export type FooterTab = 'home' | 'garage' | 'book' | 'support' | 'notifications';
+export type FooterTab =
+  | 'home'
+  | 'bookings'
+  | 'refer'
+  | 'wallet'
+  | 'profile'
+  | 'garage'
+  | 'book'
+  | 'support'
+  | 'notifications';
 
 interface Props {
   activeTab?: FooterTab | 'none';
   isDark?: boolean;
-  onTabPress: (tab: FooterTab) => void;
+  onTabPress?: (tab: FooterTab) => void;
 }
 
 export default function AppFooter({
-  activeTab = 'home',
-  isDark = false,
+  activeTab,
+  isDark: propIsDark,
   onTabPress,
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const bottomPosition = Math.max(insets.bottom, Platform.OS === 'android' ? 14 : 20) + 6;
+  const { isDark: globalDark } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : globalDark;
+  const bottomPosition = Math.max(insets.bottom, Platform.OS === 'android' ? 10 : 16) + 4;
+
+  const [clickedTab, setClickedTab] = useState<FooterTab | null>(null);
+
+  // Automatically determine tab from route pathname
+  const routeTab = useMemo<FooterTab>(() => {
+    if (!pathname || pathname === '/' || pathname === '/index') return 'home';
+    if (
+      pathname.startsWith('/bookings') ||
+      pathname.startsWith('/book') ||
+      pathname.startsWith('/booking-summary')
+    ) {
+      return 'bookings';
+    }
+    if (pathname.startsWith('/refer-and-earn')) return 'refer';
+    if (pathname.startsWith('/e-points')) return 'wallet';
+    if (
+      pathname.startsWith('/profile') ||
+      pathname.startsWith('/garage') ||
+      pathname.startsWith('/support') ||
+      pathname.startsWith('/dashboard') ||
+      pathname.startsWith('/login')
+    ) {
+      return 'profile';
+    }
+    return 'home';
+  }, [pathname]);
+
+  // Reset temporary clicked tab when pathname changes
+  useEffect(() => {
+    setClickedTab(null);
+  }, [pathname]);
+
+  // Current active tab: clicked tab takes precedence immediately, then route-derived tab, then explicit prop
+  const currentTab = useMemo<FooterTab | 'none'>(() => {
+    if (clickedTab) return clickedTab;
+    if (activeTab === 'none') return 'none';
+    if (routeTab) return routeTab;
+    return activeTab || 'home';
+  }, [clickedTab, activeTab, routeTab]);
 
   const handlePress = (tab: FooterTab) => {
-    if (tab === 'book') {
-      safeHapticMedium();
-    } else {
-      safeHapticLight();
+    safeHapticLight();
+    setClickedTab(tab);
+
+    // Call screen-provided handler if any
+    if (onTabPress) {
+      onTabPress(tab);
     }
-    onTabPress(tab);
+
+    // Guaranteed automatic navigation if route doesn't match
+    if (tab === 'home') {
+      if (pathname !== '/' && pathname !== '/index') {
+        router.push('/');
+      }
+    } else if (tab === 'bookings' || tab === 'book') {
+      if (pathname !== '/bookings') {
+        router.push('/bookings');
+      }
+    } else if (tab === 'refer') {
+      if (pathname !== '/refer-and-earn') {
+        router.push('/refer-and-earn');
+      }
+    } else if (tab === 'wallet') {
+      if (pathname !== '/e-points') {
+        router.push('/e-points');
+      }
+    } else if (tab === 'profile') {
+      if (pathname !== '/profile') {
+        router.push('/profile');
+      }
+    }
   };
 
-  const getIconColor = (tab: FooterTab) => {
-    if (activeTab === tab) return '#e11d48';
-    return isDark ? '#94a3b8' : '#64748b';
-  };
-
-  const getCapsuleStyle = (tab: FooterTab) => {
-    if (activeTab !== tab) return null;
-    return isDark ? styles.darkActiveTabCapsule : styles.activeTabCapsule;
-  };
-
-  const getLabelStyle = (tab: FooterTab) => {
-    const isActive = activeTab === tab;
-    return [
-      styles.tabLabel,
-      isDark && styles.darkTabLabel,
-      isActive && (isDark ? styles.darkTabLabelActive : styles.tabLabelActive),
-    ];
+  const isTabActive = (tab: FooterTab) => {
+    if (currentTab === 'none') return false;
+    if (currentTab === tab) return true;
+    if (tab === 'bookings' && (currentTab === 'book' || activeTab === 'book')) return true;
+    if (
+      tab === 'profile' &&
+      (currentTab === 'garage' || currentTab === 'support' || activeTab === 'garage' || activeTab === 'support')
+    ) {
+      return true;
+    }
+    return false;
   };
 
   return (
     <View style={[styles.floatingWrapper, { bottom: bottomPosition }]} pointerEvents="box-none">
-      <View style={[styles.pillContainer, isDark && styles.darkPillContainer]}>
-        {/* Home */}
+      <View
+        style={[styles.pillContainer, isDark && styles.darkPillContainer]}
+        pointerEvents="auto"
+      >
+        {/* 1. Home */}
         <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.tabItem, getCapsuleStyle('home')]}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          style={[
+            styles.tabItem,
+            isTabActive('home') && (isDark ? styles.darkActiveTabCapsule : styles.activeTabCapsule),
+          ]}
           onPress={() => handlePress('home')}
         >
           <Ionicons
-            name={activeTab === 'home' ? 'home' : 'home-outline'}
-            size={18}
-            color={getIconColor('home')}
+            name={isTabActive('home') ? 'home' : 'home-outline'}
+            size={20}
+            color={isTabActive('home') ? '#0f172a' : isDark ? '#94a3b8' : '#64748b'}
           />
-          <Text style={getLabelStyle('home')}>
+          <Text
+            style={[
+              styles.tabLabel,
+              isDark && styles.darkTabLabel,
+              isTabActive('home') && (isDark ? styles.darkTabLabelActive : styles.tabLabelActive),
+            ]}
+          >
             Home
           </Text>
         </TouchableOpacity>
 
-        {/* My Garage */}
+        {/* 2. Bookings */}
         <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.tabItem, getCapsuleStyle('garage')]}
-          onPress={() => handlePress('garage')}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          style={[
+            styles.tabItem,
+            isTabActive('bookings') && (isDark ? styles.darkActiveTabCapsule : styles.activeTabCapsule),
+          ]}
+          onPress={() => handlePress('bookings')}
         >
           <Ionicons
-            name={activeTab === 'garage' ? 'car-sport' : 'car-sport-outline'}
-            size={18}
-            color={getIconColor('garage')}
+            name={isTabActive('bookings') ? 'calendar' : 'calendar-outline'}
+            size={20}
+            color={isTabActive('bookings') ? '#0f172a' : isDark ? '#94a3b8' : '#64748b'}
           />
-          <Text style={getLabelStyle('garage')} numberOfLines={1}>
-            My Garage
+          <Text
+            style={[
+              styles.tabLabel,
+              isDark && styles.darkTabLabel,
+              isTabActive('bookings') && (isDark ? styles.darkTabLabelActive : styles.tabLabelActive),
+            ]}
+            numberOfLines={1}
+          >
+            Bookings
           </Text>
         </TouchableOpacity>
 
-        {/* Book Wash */}
+        {/* 3. Refer & Earn */}
         <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.tabItem, getCapsuleStyle('book')]}
-          onPress={() => handlePress('book')}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          style={[
+            styles.tabItem,
+            isTabActive('refer') && (isDark ? styles.darkActiveTabCapsule : styles.activeTabCapsule),
+          ]}
+          onPress={() => handlePress('refer')}
         >
           <Ionicons
-            name={activeTab === 'book' ? 'sparkles' : 'sparkles-outline'}
-            size={18}
-            color={getIconColor('book')}
+            name={isTabActive('refer') ? 'gift' : 'gift-outline'}
+            size={20}
+            color={isTabActive('refer') ? '#0f172a' : isDark ? '#94a3b8' : '#64748b'}
           />
-          <Text style={getLabelStyle('book')} numberOfLines={1}>
-            Wash List
+          <Text
+            style={[
+              styles.tabLabel,
+              isDark && styles.darkTabLabel,
+              isTabActive('refer') && (isDark ? styles.darkTabLabelActive : styles.tabLabelActive),
+            ]}
+            numberOfLines={1}
+          >
+            Refer & Earn
           </Text>
         </TouchableOpacity>
 
-        {/* Support */}
+        {/* 4. Wallet */}
         <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.tabItem, getCapsuleStyle('support')]}
-          onPress={() => handlePress('support')}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          style={[
+            styles.tabItem,
+            isTabActive('wallet') && (isDark ? styles.darkActiveTabCapsule : styles.activeTabCapsule),
+          ]}
+          onPress={() => handlePress('wallet')}
         >
           <Ionicons
-            name={activeTab === 'support' ? 'headset' : 'headset-outline'}
-            size={18}
-            color={getIconColor('support')}
+            name={isTabActive('wallet') ? 'wallet' : 'wallet-outline'}
+            size={20}
+            color={isTabActive('wallet') ? '#0f172a' : isDark ? '#94a3b8' : '#64748b'}
           />
-          <Text style={getLabelStyle('support')} numberOfLines={1}>
-            Support
+          <Text
+            style={[
+              styles.tabLabel,
+              isDark && styles.darkTabLabel,
+              isTabActive('wallet') && (isDark ? styles.darkTabLabelActive : styles.tabLabelActive),
+            ]}
+            numberOfLines={1}
+          >
+            Wallet
+          </Text>
+        </TouchableOpacity>
+
+        {/* 5. Profile */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          style={[
+            styles.tabItem,
+            isTabActive('profile') && (isDark ? styles.darkActiveTabCapsule : styles.activeTabCapsule),
+          ]}
+          onPress={() => handlePress('profile')}
+        >
+          <Ionicons
+            name={isTabActive('profile') ? 'person' : 'person-outline'}
+            size={20}
+            color={isTabActive('profile') ? '#0f172a' : isDark ? '#94a3b8' : '#64748b'}
+          />
+          <Text
+            style={[
+              styles.tabLabel,
+              isDark && styles.darkTabLabel,
+              isTabActive('profile') && (isDark ? styles.darkTabLabelActive : styles.tabLabelActive),
+            ]}
+            numberOfLines={1}
+          >
+            Profile
           </Text>
         </TouchableOpacity>
       </View>
@@ -128,21 +273,22 @@ export default function AppFooter({
 const styles = StyleSheet.create({
   floatingWrapper: {
     position: 'absolute',
-    left: 14,
-    right: 14,
+    left: 10,
+    right: 10,
     alignItems: 'center',
-    zIndex: 99,
+    zIndex: 9999,
+    elevation: 9999,
   },
   pillContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#ffffff',
-    borderRadius: 36,
+    borderRadius: 24,
     paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 480,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#0f172a',
@@ -161,30 +307,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderRadius: 26,
+    paddingHorizontal: 2,
+    borderRadius: 16,
   },
   activeTabCapsule: {
-    backgroundColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    backgroundColor: '#fde047', // Vibrant yellow pill matching screenshot
+    shadowColor: '#eab308',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   darkActiveTabCapsule: {
-    backgroundColor: '#1f2937',
+    backgroundColor: '#eab308',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
     shadowRadius: 4,
-    elevation: 2,
-  },
-  iconWrap: {
-    position: 'relative',
+    elevation: 3,
   },
   tabLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '600',
     color: '#64748b',
     marginTop: 2,
@@ -198,26 +341,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   darkTabLabelActive: {
-    color: '#ffffff',
-    fontWeight: '800',
-  },
-  badgeDot: {
-    position: 'absolute',
-    top: -3,
-    right: -7,
-    backgroundColor: '#e11d48',
-    borderRadius: 8,
-    minWidth: 14,
-    height: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-    borderWidth: 1.5,
-    borderColor: '#ffffff',
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 8,
-    fontWeight: '800',
+    color: '#000000',
+    fontWeight: '900',
   },
 });

@@ -18,6 +18,7 @@ import { API_BASE } from '../constants/api';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { useAppTheme } from '../utils/themeManager';
 
 interface Coupon {
   id: number;
@@ -39,22 +40,11 @@ export default function OfferScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, 16) + 6;
 
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useAppTheme();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>({ name: 'User' });
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-
-  const syncTheme = useCallback(async () => {
-    const storedTheme = await AsyncStorage.getItem('app_theme');
-    setIsDark(storedTheme === 'dark');
-  }, []);
-
-  const handleToggleTheme = useCallback(async () => {
-    const nextTheme = !isDark ? 'dark' : 'light';
-    setIsDark(nextTheme === 'dark');
-    await AsyncStorage.setItem('app_theme', nextTheme);
-  }, [isDark]);
 
   const syncUser = useCallback(async () => {
     const userData = await AsyncStorage.getItem('userData');
@@ -94,17 +84,15 @@ export default function OfferScreen() {
   }, []);
 
   useEffect(() => {
-    syncTheme();
     syncUser();
     loadOffers();
-  }, [loadOffers, syncTheme, syncUser]);
+  }, [loadOffers, syncUser]);
 
   useFocusEffect(
     useCallback(() => {
-      syncTheme();
       syncUser();
       loadOffers();
-    }, [loadOffers, syncTheme, syncUser])
+    }, [loadOffers, syncUser])
   );
 
   const handleFooterTabPress = (tab: FooterTab) => {
@@ -177,7 +165,7 @@ export default function OfferScreen() {
     return (
       <SafeAreaView style={[styles.page, isDark && styles.darkPage]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <DashboardHeader user={user} title="Offers & Coupons" subtitle="Best deals" isDark={isDark} onToggleTheme={handleToggleTheme} />
+        <DashboardHeader user={user} title="Offers & Coupons" subtitle="Best deals" isDark={isDark} onToggleTheme={toggleTheme} />
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={isDark ? '#f8fafc' : '#0284c7'} />
           <Text style={[styles.loaderText, isDark && styles.darkSubtext]}>Loading offers...</Text>
@@ -196,7 +184,7 @@ export default function OfferScreen() {
         title="Offers & Coupons"
         subtitle="Best deals"
         isDark={isDark}
-        onToggleTheme={handleToggleTheme}
+        onToggleTheme={toggleTheme}
       />
 
       <ScrollView

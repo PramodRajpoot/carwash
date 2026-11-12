@@ -9,6 +9,7 @@ import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticWarning } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
 import { getAvatarUri } from '../utils/avatar';
+import { useAppTheme, toggleAppTheme } from '../utils/themeManager';
 
 interface Props {
   user: any;
@@ -31,7 +32,7 @@ export default function DashboardHeader({
   subtitle,
   address,
   unreadCount = 0,
-  isDark = false,
+  isDark: propIsDark,
   showLocation = false,
   actionButton,
   onLocationPress,
@@ -42,6 +43,8 @@ export default function DashboardHeader({
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { isDark: globalDark } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : globalDark;
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
 
   const safeAddress = typeof address === 'string' ? address.trim() : '';
@@ -174,8 +177,9 @@ export default function DashboardHeader({
     onNotificationPress?.();
   };
 
-  const handleToggle = () => {
+  const handleToggle = async () => {
     safeHapticLight();
+    await toggleAppTheme();
     onToggleTheme?.();
   };
 

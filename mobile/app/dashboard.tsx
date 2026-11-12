@@ -33,6 +33,7 @@ import CouponsCarousel from '../components/CouponsCarousel';
 import CountingStatsSection from '../components/CountingStatsSection';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import BookServiceModal from '../components/BookServiceModal';
+import { useAppTheme } from '../utils/themeManager';
 
 const WebViewComponent: any = WebView;
 
@@ -51,12 +52,12 @@ const ALLOWED_HOSTS = [
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { isDark, toggleTheme } = useAppTheme();
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashData, setDashData] = useState<any>({});
-  const [isDark, setIsDark] = useState(false);
 
   // In-App Modal Sheet State for Web/Payment actions
   const [modalVisible, setModalVisible] = useState(false);
@@ -224,10 +225,6 @@ export default function DashboardScreen() {
           if (isMounted) {
             setToken(storedToken);
             setUser(parsedUser);
-            const storedTheme = await AsyncStorage.getItem('app_theme');
-            if (storedTheme) {
-              setIsDark(storedTheme === 'dark');
-            }
           }
           await fetchDashboardData(storedToken);
         } else {
@@ -358,17 +355,27 @@ export default function DashboardScreen() {
       if (modalVisible) {
         closeActionView();
       } else {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        router.push('/');
       }
       return;
     }
 
     switch (tab) {
-      case 'garage':
-        router.push('/garage');
-        break;
+      case 'bookings':
       case 'book':
         router.push('/bookings');
+        break;
+      case 'refer':
+        router.push('/refer-and-earn');
+        break;
+      case 'wallet':
+        router.push('/e-points');
+        break;
+      case 'profile':
+        router.push('/profile');
+        break;
+      case 'garage':
+        router.push('/garage');
         break;
       case 'support':
         router.push('/support');
@@ -446,11 +453,9 @@ export default function DashboardScreen() {
     true;
   `;
 
-  const toggleTheme = async () => {
+  const handleToggleTheme = async () => {
     safeHapticLight();
-    const next = !isDark;
-    setIsDark(next);
-    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
+    await toggleTheme();
   };
 
   const headerAddress = resolvedDashboardAddress && resolvedDashboardAddress !== 'Select Location'
@@ -491,7 +496,7 @@ export default function DashboardScreen() {
         onNotificationPress={() =>
           openActionView('Notifications', '/customer/notifications', 'notifications')
         }
-        onToggleTheme={toggleTheme}
+        onToggleTheme={handleToggleTheme}
       />
 
       {/* Scrollable Dashboard Body */}

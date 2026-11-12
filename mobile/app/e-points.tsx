@@ -21,6 +21,7 @@ import { API_BASE } from '../constants/api';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { useAppTheme } from '../utils/themeManager';
 
 interface WalletBalance {
   earning_money?: number | string;
@@ -51,12 +52,12 @@ export default function EPointsScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
 
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingBank, setSavingBank] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
-  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('home');
+  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('wallet');
   const [walletTab, setWalletTab] = useState<'bank' | 'history'>('bank');
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [user, setUser] = useState<any>({ name: 'User' });
@@ -70,11 +71,6 @@ export default function EPointsScreen() {
     ifsc_code: '',
     upi_id: '',
   });
-
-  const syncTheme = useCallback(async () => {
-    const storedTheme = await AsyncStorage.getItem('app_theme');
-    setIsDark(storedTheme === 'dark');
-  }, []);
 
   const syncUser = useCallback(async () => {
     const userData = await AsyncStorage.getItem('userData');
@@ -130,17 +126,15 @@ export default function EPointsScreen() {
   }, []);
 
   useEffect(() => {
-    syncTheme();
     syncUser();
     loadWalletData();
-  }, [loadWalletData, syncTheme, syncUser]);
+  }, [loadWalletData, syncUser]);
 
   useFocusEffect(
     useCallback(() => {
-      syncTheme();
       syncUser();
       loadWalletData();
-    }, [loadWalletData, syncTheme, syncUser])
+    }, [loadWalletData, syncUser])
   );
 
   const formatCurrency = (value: number | string | undefined) => {
@@ -174,17 +168,26 @@ export default function EPointsScreen() {
     setActiveFooterTab(tab);
 
     if (tab === 'home') {
-      router.replace('/dashboard');
+      router.push('/');
       return;
     }
 
-    if (tab === 'garage') {
-      router.push('/garage');
-      return;
-    }
-
-    if (tab === 'book') {
+    if (tab === 'bookings' || tab === 'book') {
       router.push('/bookings');
+      return;
+    }
+
+    if (tab === 'refer') {
+      router.push('/refer-and-earn');
+      return;
+    }
+
+    if (tab === 'wallet') {
+      return;
+    }
+
+    if (tab === 'profile' || tab === 'garage') {
+      router.push('/profile');
       return;
     }
 
@@ -328,12 +331,13 @@ export default function EPointsScreen() {
           title="E-Points Wallet"
           subtitle="Rewards & payouts"
           isDark={isDark}
+          onToggleTheme={toggleTheme}
         />
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={isDark ? '#f8fafc' : '#0284c7'} />
           <Text style={[styles.loaderText, isDark && styles.darkSubtext]}>Loading wallet...</Text>
         </View>
-        <AppFooter activeTab="home" isDark={isDark} onTabPress={handleFooterTabPress} />
+        <AppFooter activeTab="wallet" isDark={isDark} onTabPress={handleFooterTabPress} />
       </SafeAreaView>
     );
   }
@@ -347,6 +351,7 @@ export default function EPointsScreen() {
         title="E-Points Wallet"
         subtitle="Rewards & payouts"
         isDark={isDark}
+        onToggleTheme={toggleTheme}
       />
 
       <ScrollView
@@ -375,8 +380,10 @@ export default function EPointsScreen() {
           </Text>
 
           {!hasBankDetails && (
-            <View style={styles.warningBox}>
-              <Text style={styles.warningText}>Please save your bank details first before requesting a withdrawal.</Text>
+            <View style={[styles.warningBox, isDark && styles.darkWarningBox]}>
+              <Text style={[styles.warningText, isDark && styles.darkWarningText]}>
+                Please save your bank details first before requesting a withdrawal.
+              </Text>
             </View>
           )}
 
@@ -402,7 +409,7 @@ export default function EPointsScreen() {
           {earningMoney >= minWithdrawal ? (
             <View style={styles.withdrawRow}>
               <View style={styles.amountInputWrap}>
-                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Amount to Withdraw (₹)</Text>
+                <Text style={[styles.fieldLabel, isDark && styles.darkFieldLabel]}>Amount to Withdraw (₹)</Text>
                 <TextInput
                   value={redeemAmount}
                   onChangeText={setRedeemAmount}
@@ -430,7 +437,7 @@ export default function EPointsScreen() {
         </View>
 
         <View style={[styles.card, isDark && styles.darkCard]}>
-          <View style={styles.segmentedTabs}>
+          <View style={[styles.segmentedTabs, isDark && styles.darkSegmentedTabs]}>
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={() => setWalletTab('bank')}
@@ -440,10 +447,14 @@ export default function EPointsScreen() {
                 isDark && (walletTab === 'bank' ? styles.darkTabButtonActive : styles.darkTabButtonInactive),
               ]}
             >
-              <Text style={[
-                styles.tabButtonText,
-                walletTab === 'bank' ? styles.tabButtonTextActive : styles.tabButtonTextInactive,
-              ]}>
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  walletTab === 'bank'
+                    ? (isDark ? styles.darkTabButtonTextActive : styles.tabButtonTextActive)
+                    : (isDark ? styles.darkTabButtonTextInactive : styles.tabButtonTextInactive),
+                ]}
+              >
                 Bank Details
               </Text>
             </TouchableOpacity>
@@ -457,10 +468,14 @@ export default function EPointsScreen() {
                 isDark && (walletTab === 'history' ? styles.darkTabButtonActive : styles.darkTabButtonInactive),
               ]}
             >
-              <Text style={[
-                styles.tabButtonText,
-                walletTab === 'history' ? styles.tabButtonTextActive : styles.tabButtonTextInactive,
-              ]}>
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  walletTab === 'history'
+                    ? (isDark ? styles.darkTabButtonTextActive : styles.tabButtonTextActive)
+                    : (isDark ? styles.darkTabButtonTextInactive : styles.tabButtonTextInactive),
+                ]}
+              >
                 Transaction History
               </Text>
             </TouchableOpacity>
@@ -473,7 +488,7 @@ export default function EPointsScreen() {
               </Text>
 
               <View style={styles.fieldWrap}>
-                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Account Holder Name</Text>
+                <Text style={[styles.fieldLabel, isDark && styles.darkFieldLabel]}>Account Holder Name</Text>
                 <TextInput
                   value={bankDetails.account_holder_name}
                   onChangeText={(value) => updateBankField('account_holder_name', value)}
@@ -485,7 +500,7 @@ export default function EPointsScreen() {
 
               <View style={styles.inlineGrid}>
                 <View style={styles.fieldWrapHalf}>
-                  <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Bank Name</Text>
+                  <Text style={[styles.fieldLabel, isDark && styles.darkFieldLabel]}>Bank Name</Text>
                   <TextInput
                     value={bankDetails.bank_name}
                     onChangeText={(value) => updateBankField('bank_name', value)}
@@ -496,7 +511,7 @@ export default function EPointsScreen() {
                 </View>
 
                 <View style={styles.fieldWrapHalf}>
-                  <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>IFSC Code</Text>
+                  <Text style={[styles.fieldLabel, isDark && styles.darkFieldLabel]}>IFSC Code</Text>
                   <TextInput
                     value={bankDetails.ifsc_code}
                     onChangeText={(value) => updateBankField('ifsc_code', value)}
@@ -508,7 +523,7 @@ export default function EPointsScreen() {
               </View>
 
               <View style={styles.fieldWrap}>
-                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>Account Number</Text>
+                <Text style={[styles.fieldLabel, isDark && styles.darkFieldLabel]}>Account Number</Text>
                 <TextInput
                   value={bankDetails.account_number}
                   onChangeText={(value) => updateBankField('account_number', value)}
@@ -520,7 +535,7 @@ export default function EPointsScreen() {
               </View>
 
               <View style={styles.fieldWrap}>
-                <Text style={[styles.fieldLabel, isDark && styles.darkSubtext]}>UPI ID (Optional)</Text>
+                <Text style={[styles.fieldLabel, isDark && styles.darkFieldLabel]}>UPI ID (Optional)</Text>
                 <TextInput
                   value={bankDetails.upi_id}
                   onChangeText={(value) => updateBankField('upi_id', value)}
@@ -555,28 +570,53 @@ export default function EPointsScreen() {
                         ? formatCurrency(item.amount)
                         : `${item.amount} pts`;
 
+                      const isConfirmed = item.status === 'confirmed' || item.status === 'completed';
+                      const isFailed = item.status === 'failed' || item.status === 'rejected';
+
                       return (
-                        <View key={item.id} style={styles.transactionRow}>
+                        <View key={item.id} style={[styles.transactionRow, isDark && styles.darkTransactionRow]}>
                           <View style={styles.transactionMeta}>
                             <Text style={[styles.transactionTitle, isDark && styles.darkText]}>{item.description}</Text>
                             <View style={styles.transactionFootRow}>
                               <View
                                 style={[
                                   styles.badge,
-                                  item.status === 'confirmed' || item.status === 'completed'
-                                    ? styles.badgeSuccess
-                                    : item.status === 'failed' || item.status === 'rejected'
-                                      ? styles.badgeDanger
-                                      : styles.badgeWarning,
+                                  isConfirmed
+                                    ? (isDark ? styles.darkBadgeSuccess : styles.badgeSuccess)
+                                    : isFailed
+                                      ? (isDark ? styles.darkBadgeDanger : styles.badgeDanger)
+                                      : (isDark ? styles.darkBadgeWarning : styles.badgeWarning),
                                 ]}
                               >
-                                <Text style={styles.badgeText}>{item.status || 'pending'}</Text>
+                                <Text
+                                  style={[
+                                    styles.badgeText,
+                                    isDark
+                                      ? (isConfirmed
+                                          ? styles.darkBadgeTextSuccess
+                                          : isFailed
+                                            ? styles.darkBadgeTextDanger
+                                            : styles.darkBadgeTextWarning)
+                                      : null,
+                                  ]}
+                                >
+                                  {item.status || 'pending'}
+                                </Text>
                               </View>
                               <Text style={[styles.transactionDate, isDark && styles.darkSubtext]}>{formatDate(item.created_at)}</Text>
                             </View>
                           </View>
 
-                          <Text style={[styles.transactionAmount, { color: isCredit ? '#10b981' : '#ef4444' }]}>
+                          <Text
+                            style={[
+                              styles.transactionAmount,
+                              {
+                                color: isCredit
+                                  ? (isDark ? '#34d399' : '#10b981')
+                                  : (isDark ? '#f87171' : '#ef4444'),
+                              },
+                            ]}
+                          >
                             {isCredit ? '+' : '-'}{amountDisplay}
                           </Text>
                         </View>
@@ -589,7 +629,7 @@ export default function EPointsScreen() {
                       onPress={() => setShowAllTransactions((prev) => !prev)}
                       style={styles.showMoreButton}
                     >
-                      <Text style={[styles.showMoreText, isDark && styles.darkSubtext]}>
+                      <Text style={[styles.showMoreText, isDark && styles.darkShowMoreText]}>
                         {showAllTransactions ? 'Show Less' : 'Show More'}
                       </Text>
                     </TouchableOpacity>
@@ -676,6 +716,11 @@ const styles = StyleSheet.create({
     padding: 4,
     marginBottom: 14,
   },
+  darkSegmentedTabs: {
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
   tabButton: {
     flex: 1,
     borderRadius: 10,
@@ -695,7 +740,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   darkTabButtonActive: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0284c7',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 2,
   },
   darkTabButtonInactive: {
     backgroundColor: 'transparent',
@@ -709,6 +758,14 @@ const styles = StyleSheet.create({
   },
   tabButtonTextInactive: {
     color: '#64748b',
+  },
+  darkTabButtonTextActive: {
+    color: '#ffffff',
+    fontWeight: '900',
+  },
+  darkTabButtonTextInactive: {
+    color: '#cbd5e1',
+    fontWeight: '700',
   },
   tabContent: {
     overflow: 'hidden',
@@ -919,10 +976,51 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontWeight: '700',
   },
+  darkWarningBox: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  darkWarningText: {
+    color: '#fde68a',
+  },
+  darkBadgeSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.22)',
+  },
+  darkBadgeDanger: {
+    backgroundColor: 'rgba(239, 68, 68, 0.22)',
+  },
+  darkBadgeWarning: {
+    backgroundColor: 'rgba(245, 158, 11, 0.22)',
+  },
+  darkBadgeTextSuccess: {
+    color: '#6ee7b7',
+    fontWeight: '700',
+  },
+  darkBadgeTextDanger: {
+    color: '#fca5a5',
+    fontWeight: '700',
+  },
+  darkBadgeTextWarning: {
+    color: '#fcd34d',
+    fontWeight: '700',
+  },
   darkText: {
     color: '#f8fafc',
   },
   darkSubtext: {
     color: '#cbd5e1',
+  },
+  darkFieldLabel: {
+    color: '#f1f5f9',
+    fontWeight: '700',
+  },
+  darkTransactionRow: {
+    borderBottomColor: '#334155',
+  },
+  darkBadgeText: {
+    color: '#ffffff',
+  },
+  darkShowMoreText: {
+    color: '#38bdf8',
   },
 });
