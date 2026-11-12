@@ -634,14 +634,23 @@ export default function BookingsScreen() {
     if (b.payment_status === 'paid') {
       return (
         <View style={[styles.payBadge, styles.payBadgePaid]}>
-          <Text style={styles.payBadgePaidText}>Paid</Text>
+          <Text style={styles.payBadgePaidText}>Paid • Slot Booked</Text>
         </View>
       );
     }
     if (b.payment_status === 'partially_paid' || isOnly99Paid(b)) {
       return (
         <View style={[styles.payBadge, styles.payBadgePartial]}>
-          <Text style={styles.payBadgePartialText}>₹99 Advance Paid</Text>
+          <Text style={styles.payBadgePartialText}>₹99 Paid • Slot Booked</Text>
+        </View>
+      );
+    }
+    if (b.payment_status === 'failed') {
+      return (
+        <View style={[styles.payBadge, { backgroundColor: '#fee2e2' }]}>
+          <Text style={[styles.payBadgeUnpaidText, { color: '#dc2626' }]}>
+            Payment Failed • Slot Not Booked
+          </Text>
         </View>
       );
     }
@@ -654,7 +663,7 @@ export default function BookingsScreen() {
     }
     return (
       <View style={[styles.payBadge, styles.payBadgeUnpaid]}>
-        <Text style={styles.payBadgeUnpaidText}>Pending Payment</Text>
+        <Text style={styles.payBadgeUnpaidText}>Pending Payment • Slot Not Booked</Text>
       </View>
     );
   };

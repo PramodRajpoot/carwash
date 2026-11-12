@@ -74,9 +74,9 @@
               </div>
             </td>
             <td>
-              <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid</span>
-              <template v-else-if="b.payment_status === 'partially_paid'">
-                <span class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 0).toFixed(0) }} Paid (Partial)</span>
+              <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid (Slot Booked)</span>
+              <template v-else-if="b.payment_status === 'partially_paid' || parseFloat(b.paid_amount || 0) >= 99">
+                <span class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 0).toFixed(0) }} Paid (Slot Booked)</span>
                 <div style="margin-top: 3px;">
                   <span v-if="b.payment_method === 'cod'" class="badge badge-amber" style="font-size:0.65rem;" title="Remaining amount to be paid via Cash on Delivery">
                     💵 Rest via COD
@@ -86,9 +86,9 @@
                   </span>
                 </div>
               </template>
-              <span v-else-if="b.payment_status === 'pending_payment'" class="badge badge-amber" style="font-size:0.7rem;">⏳ Pending</span>
-              <span v-else-if="b.payment_status === 'failed'" class="badge badge-rose" style="font-size:0.7rem;">✗ Failed</span>
-              <span v-else class="badge badge-cyan" style="font-size:0.7rem;">{{ b.payment_method === 'cod' ? 'COD' : 'Unpaid' }}</span>
+              <span v-else-if="b.payment_status === 'pending_payment'" class="badge badge-amber" style="font-size:0.7rem;" title="Pay full or ₹99 advance to confirm your slot">⏳ Pending Payment (Slot Not Booked)</span>
+              <span v-else-if="b.payment_status === 'failed'" class="badge badge-rose" style="font-size:0.7rem;">✗ Failed (Slot Not Booked)</span>
+              <span v-else class="badge badge-cyan" style="font-size:0.7rem;">{{ b.payment_method === 'cod' ? 'COD (Slot Not Booked)' : 'Unpaid (Slot Not Booked)' }}</span>
             </td>
             <td><span class="badge" :class="statusBadge(b.status)">{{ b.status }}</span></td>
             <td>

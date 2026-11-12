@@ -62,6 +62,55 @@ class BookingController extends Controller
         return response()->json($offers);
     }
 
+    /**
+     * Synchronize a slot's current_bookings count based strictly on actual bookings
+     * where full payment or at least ₹99 has been paid.
+     * Failed or unpaid/pending payments do NOT book the slot.
+     */
+    public static function syncSlotBookings($franchiseeId, $bookingDate, $slotTime)
+    {
+        if (!$franchiseeId || !$bookingDate || !$slotTime) {
+            return;
+        }
+
+        $activeWashersCount = \App\Models\Washer::where('franchisee_id', $franchiseeId)
+            ->where('status', 'active')
+            ->count();
+        $washerCapacity = $activeWashersCount > 0 ? $activeWashersCount : 1;
+
+        $actual = Booking::where('franchisee_id', $franchiseeId)
+            ->where('booking_date', $bookingDate)
+            ->where('slot_time', $slotTime)
+            ->slotBooked()
+            ->count();
+
+        $slot = Slot::where('franchisee_id', $franchiseeId)
+            ->where('date', $bookingDate)
+            ->where('time_range', $slotTime)
+            ->first();
+
+        $effectiveMax = $washerCapacity;
+        if ($slot && $slot->max_bookings && $slot->max_bookings <= $washerCapacity) {
+            $effectiveMax = $slot->max_bookings;
+        }
+
+        if ($slot) {
+            $slot->current_bookings = $actual;
+            $slot->max_bookings = $effectiveMax;
+            $slot->save();
+        } else {
+            Slot::create([
+                'franchisee_id' => $franchiseeId,
+                'date' => $bookingDate,
+                'time_range' => $slotTime,
+                'max_bookings' => $effectiveMax,
+                'current_bookings' => $actual,
+                'is_active' => true,
+                'status' => 'active'
+            ]);
+        }
+    }
+
     public function checkSlotAvailability(Request $request)
     {
         $request->validate([
@@ -107,7 +156,7 @@ class BookingController extends Controller
             $actual = Booking::where('franchisee_id', $request->franchisee_id)
                 ->where('booking_date', $request->date)
                 ->where('slot_time', $slot->time_range)
-                ->whereNotIn('status', ['cancelled'])
+                ->slotBooked()
                 ->count();
             if ($slot->current_bookings !== $actual) {
                 $slot->current_bookings = $actual;
@@ -179,7 +228,7 @@ class BookingController extends Controller
         $actualCurrentBookings = Booking::where('franchisee_id', $franchisee->id)
             ->where('booking_date', $request->booking_date)
             ->where('slot_time', $request->slot_time)
-            ->whereNotIn('status', ['cancelled'])
+            ->slotBooked()
             ->count();
 
         if ($actualCurrentBookings >= $effectiveMax) {
@@ -312,21 +361,6 @@ class BookingController extends Controller
             }
         }
 
-        // Increment or create Slot bookings count
-        if ($slot) {
-            $slot->current_bookings = $actualCurrentBookings + 1;
-            $slot->max_bookings = $effectiveMax;
-            $slot->save();
-        } else {
-            Slot::create([
-                'franchisee_id' => $franchisee->id,
-                'date' => $request->booking_date,
-                'time_range' => $request->slot_time,
-                'max_bookings' => $effectiveMax,
-                'current_bookings' => $actualCurrentBookings + 1
-            ]);
-        }
-
         // Calculate 18% GST on taxable subtotal (unless subscription booking)
         $taxableSubtotal = max(0, (float)$price);
         $gstAmount = ($request->payment_method === 'subscription') ? 0.00 : (float) round($taxableSubtotal * 0.18);
@@ -381,6 +415,10 @@ class BookingController extends Controller
             'epoints_used' => $epointsUsed,
             'earning_money_used' => $earningMoneyUsed,
         ]);
+
+        // Sync slot bookings count: slot is ONLY booked if user paid full payment (e.g. subscription or zero-price).
+        // If payment is pending/failed/unpaid, the slot is NOT booked until payment completes.
+        self::syncSlotBookings($franchisee->id, $request->booking_date, $request->slot_time);
 
         if ($epointsUsed > 0) {
             \App\Models\WalletTransaction::create([
@@ -528,15 +566,8 @@ class BookingController extends Controller
             }
         }
 
-        // Decrement slot count
-        $slot = Slot::where('franchisee_id', $booking->franchisee_id)
-            ->where('date', $booking->booking_date)
-            ->where('time_range', $booking->slot_time)
-            ->first();
-
-        if ($slot && $slot->current_bookings > 0) {
-            $slot->decrement('current_bookings');
-        }
+        // Synchronize slot count: only bookings with full payment or at least ₹99 occupy slots
+        self::syncSlotBookings($booking->franchisee_id, $booking->booking_date, $booking->slot_time);
 
         return response()->json([
             'status' => 'success',
@@ -590,7 +621,7 @@ class BookingController extends Controller
         $actualNewCount = Booking::where('franchisee_id', $booking->franchisee_id)
             ->where('booking_date', $request->booking_date)
             ->where('slot_time', $request->slot_time)
-            ->whereNotIn('status', ['cancelled'])
+            ->slotBooked()
             ->count();
 
         if ($actualNewCount >= $effectiveNewMax) {
@@ -600,38 +631,18 @@ class BookingController extends Controller
             ], 400);
         }
 
-        // Decrement OLD slot only if booking was not cancelled
-        if ($booking->status !== 'cancelled') {
-            $oldSlot = Slot::where('franchisee_id', $booking->franchisee_id)
-                ->where('date', $booking->booking_date)
-                ->where('time_range', $booking->slot_time)
-                ->first();
-
-            if ($oldSlot && $oldSlot->current_bookings > 0) {
-                $oldSlot->decrement('current_bookings');
-            }
-        }
-
-        // Increment NEW slot
-        if ($newSlot) {
-            $newSlot->current_bookings = $actualNewCount + 1;
-            $newSlot->max_bookings = $effectiveNewMax;
-            $newSlot->save();
-        } else {
-            Slot::create([
-                'franchisee_id' => $booking->franchisee_id,
-                'date' => $request->booking_date,
-                'time_range' => $request->slot_time,
-                'max_bookings' => $effectiveNewMax,
-                'current_bookings' => $actualNewCount + 1
-            ]);
-        }
+        $oldDate = $booking->booking_date;
+        $oldSlotTime = $booking->slot_time;
 
         // Update booking details
         $booking->booking_date = $request->booking_date;
         $booking->slot_time = $request->slot_time;
         $booking->status = 'postponed';
         $booking->save();
+
+        // Synchronize both old and new slots based on actual paid bookings
+        self::syncSlotBookings($booking->franchisee_id, $oldDate, $oldSlotTime);
+        self::syncSlotBookings($booking->franchisee_id, $request->booking_date, $request->slot_time);
 
         return response()->json([
             'status' => 'success',

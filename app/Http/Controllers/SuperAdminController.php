@@ -419,15 +419,12 @@ class SuperAdminController extends Controller
             }
         }
 
-        // Free up slot count
-        $slot = \App\Models\Slot::where('franchisee_id', $booking->franchisee_id)
-            ->where('date', $booking->booking_date)
-            ->where('time_range', $booking->slot_time)
-            ->first();
-
-        if ($slot && $slot->current_bookings > 0) {
-            $slot->decrement('current_bookings');
-        }
+        // Synchronize slot count: only bookings with full payment or at least ₹99 occupy slots
+        \App\Http\Controllers\BookingController::syncSlotBookings(
+            $booking->franchisee_id,
+            $booking->booking_date,
+            $booking->slot_time
+        );
 
         return response()->json(['status' => 'success', 'message' => 'Booking cancelled successfully.', 'booking' => $booking]);
     }

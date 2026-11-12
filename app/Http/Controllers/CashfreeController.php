@@ -98,6 +98,32 @@ class CashfreeController extends Controller
             return response()->json(['status' => 'error', 'message' => 'No outstanding balance on this booking.'], 400);
         }
 
+        // Before taking initial payment for an unpaid booking, check if slot is still available
+        if (!$isPartiallyPaid) {
+            $activeWashersCount = \App\Models\Washer::where('franchisee_id', $booking->franchisee_id)
+                ->where('status', 'active')
+                ->count();
+            $washerCapacity = $activeWashersCount > 0 ? $activeWashersCount : 1;
+            $slot = \App\Models\Slot::where('franchisee_id', $booking->franchisee_id)
+                ->where('date', $booking->booking_date)
+                ->where('time_range', $booking->slot_time)
+                ->first();
+            $effectiveMax = $slot ? min($slot->max_bookings, $washerCapacity) : $washerCapacity;
+            $paidCount = Booking::where('franchisee_id', $booking->franchisee_id)
+                ->where('booking_date', $booking->booking_date)
+                ->where('slot_time', $booking->slot_time)
+                ->where('id', '!=', $booking->id)
+                ->slotBooked()
+                ->count();
+
+            if ($paidCount >= $effectiveMax) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This slot is now fully booked by other confirmed payments. Please select another slot.'
+                ], 400);
+            }
+        }
+
         // Generate a unique order ID
         $orderId = 'CW_' . $booking->id . '_' . time();
 
@@ -252,6 +278,13 @@ class CashfreeController extends Controller
 
                 $booking->save();
 
+                // Synchronize slot bookings count: user has paid full payment or at least ₹99, so slot is booked!
+                \App\Http\Controllers\BookingController::syncSlotBookings(
+                    $booking->franchisee_id,
+                    $booking->booking_date,
+                    $booking->slot_time
+                );
+
                 return response()->json([
                     'status'         => 'success',
                     'payment_status' => $booking->payment_status,
@@ -264,10 +297,16 @@ class CashfreeController extends Controller
             }
 
             // If not PAID, update booking status accordingly
-            if (in_array($orderStatus, ['EXPIRED', 'TERMINATED', 'VOID'])) {
-                if ($booking->payment_status !== 'partially_paid') {
+            if (in_array($orderStatus, ['EXPIRED', 'TERMINATED', 'VOID', 'FAILED'])) {
+                if ($booking->payment_status !== 'partially_paid' && (float)$booking->paid_amount < 99) {
                     $booking->payment_status = 'failed';
                     $booking->save();
+
+                    \App\Http\Controllers\BookingController::syncSlotBookings(
+                        $booking->franchisee_id,
+                        $booking->booking_date,
+                        $booking->slot_time
+                    );
                 }
             }
 
