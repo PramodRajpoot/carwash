@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,6 +12,7 @@ import {
   Modal,
   Alert,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -45,7 +46,7 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Location State
-  const [currentLocation, setCurrentLocation] = useState('Ramesh Nagar, Delhi');
+  const [currentLocation, setCurrentLocation] = useState('Detecting location...');
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [manualLocationInput, setManualLocationInput] = useState('');
   const [detectingGps, setDetectingGps] = useState(false);
@@ -53,16 +54,133 @@ export default function HomeScreen() {
   // Side Drawer Menu State
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Database Banners & Services State
+  const [banners, setBanners] = useState<any[]>([]);
+  const [bannersLoading, setBannersLoading] = useState(true);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(true);
+  const [selectedVehicle, setSelectedVehicle] = useState<'all' | 'hatchback' | 'sedan' | 'suv'>('all');
+
   // Hero Carousel State
   const [currentSlide, setCurrentSlide] = useState(0);
   const carouselTimer = useRef<any>(null);
 
-  // Load Auth, User & Theme
+  // Helper to format full banner image URLs
+  const getBannerUri = (path?: string) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const clean = path.startsWith('/') ? path : `/${path}`;
+    return `${API_BASE}${clean}`;
+  };
+
+  // Dynamic starting prices calculated directly from database packages
+  const minPrices = useMemo(() => {
+    const calcMin = (vType: string, defaultVal: number) => {
+      const vPkgs = packages.filter(
+        (p) => !p.is_subscription && (p.vehicle_type === vType || p.vehicle_type === 'all')
+      );
+      if (vPkgs.length === 0) return defaultVal;
+      const prices = vPkgs.map((p) => Number(p.price) || defaultVal);
+      return Math.round(Math.min(...prices));
+    };
+    return {
+      hatchback: calcMin('hatchback', 299),
+      sedan: calcMin('sedan', 399),
+      suv: calcMin('suv', 499),
+    };
+  }, [packages]);
+
+  // Filtered packages from database (car wash one-time services)
+  const filteredPackages = useMemo(() => {
+    let list = packages.filter((p) => !p.is_subscription);
+    if (selectedVehicle !== 'all') {
+      list = list.filter(
+        (p) => p.vehicle_type === selectedVehicle || p.vehicle_type === 'all'
+      );
+    }
+    return list;
+  }, [packages, selectedVehicle]);
+
+  // GPS Address resolution for non-logged-in guest users
+  const resolveCurrentGPSAddress = useCallback(async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      let perm = status;
+      if (perm !== 'granted') {
+        const req = await Location.requestForegroundPermissionsAsync();
+        perm = req.status;
+      }
+      if (perm === 'granted') {
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const [geo] = await Location.reverseGeocodeAsync({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        if (geo) {
+          const parts = [geo.name, geo.district || geo.subregion, geo.city].filter(Boolean);
+          const resolved = parts.length > 0 ? parts.join(', ') : `${geo.city || 'Delhi'}, India`;
+          setCurrentLocation(resolved);
+          await AsyncStorage.setItem('header_location', resolved);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('GPS detection error:', err);
+    }
+
+    const cached = await AsyncStorage.getItem('header_location');
+    if (cached && cached.trim() && cached !== 'Select Location') {
+      setCurrentLocation(cached.trim());
+    } else {
+      setCurrentLocation('Delhi, India');
+    }
+  }, []);
+
+  // Fetch Banners and Packages from Database
+  const fetchHomeData = useCallback(async () => {
+    // 1. Database Banners
+    try {
+      const res = await axios.get(`${API_BASE}/api/banners`, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
+        },
+      });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setBanners(res.data);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch banners:', e);
+    } finally {
+      setBannersLoading(false);
+    }
+
+    // 2. Database Services
+    try {
+      const res = await axios.get(`${API_BASE}/api/packages?is_addon=false`, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
+        },
+      });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setPackages(res.data);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch packages:', e);
+    } finally {
+      setPackagesLoading(false);
+    }
+  }, []);
+
+  // Load Auth, User Address & Theme
+  // Rule: Use ONLY saved address in database for login user else get current address at index page
   const syncState = useCallback(async () => {
     try {
       const storedToken = await AsyncStorage.getItem('userToken');
       const storedUser = await AsyncStorage.getItem('userData');
-      const storedLocation = await AsyncStorage.getItem('header_location');
 
       setIsLoggedIn(!!storedToken);
       setToken(storedToken);
@@ -75,57 +193,84 @@ export default function HomeScreen() {
         setUser(null);
       }
 
-      if (storedLocation && storedLocation.trim() && storedLocation !== 'Select Location') {
-        setCurrentLocation(storedLocation.trim());
-      }
-
-      // Fetch unread count if logged in
       if (storedToken) {
-        axios
-          .get(`${API_BASE}/api/customer/dashboard?limit=1`, {
+        // Logged-in user: use ONLY saved address from database
+        try {
+          const res = await axios.get(`${API_BASE}/api/customer/dashboard?limit=1`, {
             headers: {
               Authorization: `Bearer ${storedToken}`,
               'Bypass-Tunnel-Reminder': 'true',
               'ngrok-skip-browser-warning': 'true',
             },
-          })
-          .then((res) => {
-            if (res.data?.unread_notifications !== undefined) {
-              setUnreadCount(res.data.unread_notifications);
-            }
-          })
-          .catch(() => {});
+          });
+          if (res.data?.user) {
+            setUser(res.data.user);
+            await AsyncStorage.setItem('userData', JSON.stringify(res.data.user));
+          }
+          if (res.data?.unread_notifications !== undefined) {
+            setUnreadCount(res.data.unread_notifications);
+          }
+          const dbAddress = res.data?.address || res.data?.user?.address;
+          if (
+            dbAddress &&
+            typeof dbAddress === 'string' &&
+            dbAddress.trim() &&
+            dbAddress.trim() !== 'Pending Setup'
+          ) {
+            const cleanAddr = dbAddress.trim();
+            setCurrentLocation(cleanAddr);
+            await AsyncStorage.setItem('header_location', cleanAddr);
+          } else {
+            setCurrentLocation('No saved address - Tap to add');
+          }
+        } catch {
+          if (storedUser) {
+            try {
+              const u = JSON.parse(storedUser);
+              if (u?.address && u.address.trim() && u.address.trim() !== 'Pending Setup') {
+                setCurrentLocation(u.address.trim());
+              }
+            } catch {}
+          }
+        }
+      } else {
+        // Non-logged-in user: auto-detect current address via GPS
+        resolveCurrentGPSAddress();
       }
     } catch (e) {
       console.warn('Sync state error:', e);
     }
-  }, []);
+  }, [resolveCurrentGPSAddress]);
 
   useFocusEffect(
     useCallback(() => {
       syncState();
-    }, [syncState])
+      fetchHomeData();
+    }, [syncState, fetchHomeData])
   );
 
   useEffect(() => {
     syncState();
-  }, [syncState]);
+    fetchHomeData();
+  }, [syncState, fetchHomeData]);
 
   // Auto-scroll Hero Carousel
   useEffect(() => {
+    const count = banners.length > 0 ? banners.length : 3;
+    if (count <= 1) return;
     carouselTimer.current = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 3);
+      setCurrentSlide((prev) => (prev + 1) % count);
     }, 4500);
 
     return () => {
       if (carouselTimer.current) clearInterval(carouselTimer.current);
     };
-  }, []);
+  }, [banners.length]);
 
   const onRefresh = async () => {
     safeHapticLight();
     setRefreshing(true);
-    await syncState();
+    await Promise.all([syncState(), fetchHomeData()]);
     setRefreshing(false);
   };
 
@@ -163,6 +308,23 @@ export default function HomeScreen() {
         const resolved = parts.length > 0 ? parts.join(', ') : `${geo.city || 'Delhi'}, India`;
         setCurrentLocation(resolved);
         await AsyncStorage.setItem('header_location', resolved);
+
+        // If logged in, update database address
+        if (token) {
+          axios
+            .put(
+              `${API_BASE}/api/auth/profile`,
+              { address: resolved },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Bypass-Tunnel-Reminder': 'true',
+                  'ngrok-skip-browser-warning': 'true',
+                },
+              }
+            )
+            .catch(() => {});
+        }
         setLocationModalVisible(false);
       }
     } catch (err) {
@@ -173,14 +335,31 @@ export default function HomeScreen() {
     }
   };
 
-  const handleSaveManualLocation = async () => {
-    if (!manualLocationInput.trim()) return;
+  const handleSaveManualLocation = async (customLoc?: string) => {
+    const locToSave = (customLoc !== undefined ? customLoc : manualLocationInput).trim();
+    if (!locToSave) return;
     safeHapticLight();
-    const loc = manualLocationInput.trim();
-    setCurrentLocation(loc);
-    await AsyncStorage.setItem('header_location', loc);
+    setCurrentLocation(locToSave);
+    await AsyncStorage.setItem('header_location', locToSave);
     setManualLocationInput('');
     setLocationModalVisible(false);
+
+    // If logged in, update saved address in database
+    if (token) {
+      axios
+        .put(
+          `${API_BASE}/api/auth/profile`,
+          { address: locToSave },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Bypass-Tunnel-Reminder': 'true',
+              'ngrok-skip-browser-warning': 'true',
+            },
+          }
+        )
+        .catch(() => {});
+    }
   };
 
   const handleLogout = () => {
@@ -254,12 +433,17 @@ export default function HomeScreen() {
             <Ionicons name="menu" size={26} color="#ffffff" />
           </TouchableOpacity>
 
-          <View style={styles.logoWrap}>
-            <Image
-              source={require('../assets/images/home/header_logo.png')}
-              style={styles.headerLogoImg}
-              resizeMode="contain"
-            />
+          <View style={styles.brandRow}>
+            <View style={styles.headerLogoContainer}>
+              <Image
+                source={require('../assets/images/icon.png')}
+                style={styles.headerLogo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.brandTitleText} numberOfLines={1}>
+              CleanAtDoorstep
+            </Text>
           </View>
 
           <View style={styles.headerRightActions}>
@@ -347,7 +531,7 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* ── 1. HERO BANNER CAROUSEL ── */}
+        {/* ── 1. HERO BANNER CAROUSEL (Database Driven) ── */}
         <View style={styles.heroSection}>
           <TouchableOpacity
             style={styles.heroBannerCard}
@@ -357,22 +541,32 @@ export default function HomeScreen() {
               router.push('/book');
             }}
           >
-            <Image
-              source={require('../assets/images/home/hero_banner.png')}
-              style={styles.heroBannerImage}
-              resizeMode="cover"
-            />
+            {banners.length > 0 && getBannerUri(banners[currentSlide % banners.length]?.image_path) ? (
+              <Image
+                source={{ uri: getBannerUri(banners[currentSlide % banners.length]?.image_path)! }}
+                style={styles.heroBannerImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Image
+                source={require('../assets/images/home/hero_banner.png')}
+                style={styles.heroBannerImage}
+                resizeMode="cover"
+              />
+            )}
           </TouchableOpacity>
 
           {/* Carousel Indicator Dots */}
           <View style={styles.carouselDotsRow}>
-            {[0, 1, 2].map((idx) => (
+            {(banners.length > 0 ? banners : [0, 1, 2]).map((_, idx) => (
               <TouchableOpacity
                 key={idx}
                 onPress={() => setCurrentSlide(idx)}
                 style={[
                   styles.dot,
-                  currentSlide === idx ? styles.dotActive : styles.dotInactive,
+                  (currentSlide % (banners.length || 3)) === idx
+                    ? styles.dotActive
+                    : styles.dotInactive,
                 ]}
               />
             ))}
@@ -456,12 +650,17 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── 3. OUR CAR WASH SERVICES SECTION ── */}
+        {/* ── 3. OUR CAR WASH SERVICES SECTION (Database Driven) ── */}
         <View style={styles.servicesSection}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionHeading, isDark && styles.darkSectionHeading]}>
-              Our Car Wash Services
-            </Text>
+            <View>
+              <Text style={[styles.sectionHeading, isDark && styles.darkSectionHeading]}>
+                Our Car Wash Services
+              </Text>
+              <Text style={[styles.sectionSubHeading, isDark && styles.darkSectionSubHeading]}>
+                Doorstep washes for every vehicle type
+              </Text>
+            </View>
             <TouchableOpacity
               onPress={() => {
                 safeHapticLight();
@@ -475,15 +674,19 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 3 Vehicle Cards Row */}
+          {/* 3 Vehicle Cards Row with Dynamic Starting Prices */}
           <View style={styles.vehicleCardsRow}>
             {/* Card 1: Hatchback */}
             <TouchableOpacity
-              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
+              style={[
+                styles.vehicleCard,
+                isDark && styles.darkVehicleCard,
+                selectedVehicle === 'hatchback' && styles.vehicleCardActive,
+              ]}
               activeOpacity={0.85}
               onPress={() => {
                 safeHapticLight();
-                router.push({ pathname: '/book', params: { vehicle: 'hatchback' } });
+                setSelectedVehicle((prev) => (prev === 'hatchback' ? 'all' : 'hatchback'));
               }}
             >
               <View style={styles.vehicleImageWrap}>
@@ -497,18 +700,22 @@ export default function HomeScreen() {
                 Hatchback
               </Text>
               <Text style={styles.vehicleCardSub}>Car Wash</Text>
-              <View style={styles.pricePill}>
-                <Text style={styles.pricePillText}>₹299 Onwards</Text>
+              <View style={[styles.pricePill, selectedVehicle === 'hatchback' && styles.pricePillActive]}>
+                <Text style={styles.pricePillText}>₹{minPrices.hatchback} Onwards</Text>
               </View>
             </TouchableOpacity>
 
             {/* Card 2: Sedan */}
             <TouchableOpacity
-              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
+              style={[
+                styles.vehicleCard,
+                isDark && styles.darkVehicleCard,
+                selectedVehicle === 'sedan' && styles.vehicleCardActive,
+              ]}
               activeOpacity={0.85}
               onPress={() => {
                 safeHapticLight();
-                router.push({ pathname: '/book', params: { vehicle: 'sedan' } });
+                setSelectedVehicle((prev) => (prev === 'sedan' ? 'all' : 'sedan'));
               }}
             >
               <View style={styles.vehicleImageWrap}>
@@ -522,18 +729,22 @@ export default function HomeScreen() {
                 Sedan
               </Text>
               <Text style={styles.vehicleCardSub}>Car Wash</Text>
-              <View style={styles.pricePill}>
-                <Text style={styles.pricePillText}>₹399 Onwards</Text>
+              <View style={[styles.pricePill, selectedVehicle === 'sedan' && styles.pricePillActive]}>
+                <Text style={styles.pricePillText}>₹{minPrices.sedan} Onwards</Text>
               </View>
             </TouchableOpacity>
 
             {/* Card 3: SUV */}
             <TouchableOpacity
-              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
+              style={[
+                styles.vehicleCard,
+                isDark && styles.darkVehicleCard,
+                selectedVehicle === 'suv' && styles.vehicleCardActive,
+              ]}
               activeOpacity={0.85}
               onPress={() => {
                 safeHapticLight();
-                router.push({ pathname: '/book', params: { vehicle: 'suv' } });
+                setSelectedVehicle((prev) => (prev === 'suv' ? 'all' : 'suv'));
               }}
             >
               <View style={styles.vehicleImageWrap}>
@@ -547,14 +758,111 @@ export default function HomeScreen() {
                 SUV
               </Text>
               <Text style={styles.vehicleCardSub}>Car Wash</Text>
-              <View style={styles.pricePill}>
-                <Text style={styles.pricePillText}>₹499 Onwards</Text>
+              <View style={[styles.pricePill, selectedVehicle === 'suv' && styles.pricePillActive]}>
+                <Text style={styles.pricePillText}>₹{minPrices.suv} Onwards</Text>
               </View>
             </TouchableOpacity>
           </View>
+
+          {/* Dynamic Services from Database */}
+          <View style={styles.dbServicesContainer}>
+            {packagesLoading ? (
+              <View style={styles.servicesLoadingWrap}>
+                <ActivityIndicator size="small" color="#0284c7" />
+                <Text style={[styles.servicesLoadingText, isDark && styles.darkMutedText]}>
+                  Loading services from database...
+                </Text>
+              </View>
+            ) : filteredPackages.length === 0 ? (
+              <View style={styles.emptyServicesWrap}>
+                <Text style={[styles.emptyServicesText, isDark && styles.darkMutedText]}>
+                  No active services found for this vehicle.
+                </Text>
+              </View>
+            ) : (
+              filteredPackages.slice(0, 6).map((pkg) => {
+                const descBullets = (pkg.description || '')
+                  .split(/[\r\n]+/)
+                  .map((s: string) => s.trim().replace(/^[-•*]\s*/, ''))
+                  .filter(Boolean)
+                  .slice(0, 3);
+
+                return (
+                  <View
+                    key={pkg.id}
+                    style={[styles.serviceItemCard, isDark && styles.darkServiceItemCard]}
+                  >
+                    <View style={styles.serviceItemTopRow}>
+                      <View style={{ flex: 1, marginRight: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <View style={styles.vehicleBadgePill}>
+                            <Ionicons name="car-outline" size={11} color="#0284c7" />
+                            <Text style={styles.vehicleBadgePillText}>
+                              {pkg.vehicle_type ? pkg.vehicle_type.toUpperCase() : 'ALL CARS'}
+                            </Text>
+                          </View>
+                          {pkg.custom_badge ? (
+                            <View style={styles.customBadgePill}>
+                              <Text style={styles.customBadgePillText}>{pkg.custom_badge}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text style={[styles.serviceItemTitle, isDark && styles.darkServiceItemTitle]}>
+                          {pkg.name}
+                        </Text>
+                      </View>
+
+                      <View style={styles.serviceItemPriceWrap}>
+                        <Text style={styles.serviceItemPriceCurrency}>₹</Text>
+                        <Text style={styles.serviceItemPriceValue}>
+                          {Math.round(Number(pkg.price) || 0)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {descBullets.length > 0 && (
+                      <View style={styles.serviceFeaturesWrap}>
+                        {descBullets.map((feat: string, fIdx: number) => (
+                          <View key={fIdx} style={styles.featureItemRow}>
+                            <Ionicons name="checkmark-circle" size={13} color="#10b981" />
+                            <Text
+                              style={[styles.featureItemText, isDark && styles.darkFeatureItemText]}
+                              numberOfLines={1}
+                            >
+                              {feat}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    <View style={styles.serviceItemFooter}>
+                      <TouchableOpacity
+                        style={styles.bookNowBtn}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          safeHapticMedium();
+                          router.push({
+                            pathname: '/book',
+                            params: {
+                              package_id: String(pkg.id),
+                              vehicle: pkg.vehicle_type || 'hatchback',
+                            },
+                          });
+                        }}
+                      >
+                        <Text style={styles.bookNowBtnText}>Book Now</Text>
+                        <Ionicons name="arrow-forward" size={13} color="#ffffff" style={{ marginLeft: 4 }} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
         </View>
 
-        {/* ── 4. MONTHLY SUBSCRIPTION PLANS BANNER ── */}
+        {/* ── 4. MONTHLY SUBSCRIPTION PLANS BANNER (Dynamic / DB Driven) ── */}
         <TouchableOpacity
           style={styles.promoBannerCard}
           activeOpacity={0.9}
@@ -563,11 +871,19 @@ export default function HomeScreen() {
             router.push('/subscriptions');
           }}
         >
-          <Image
-            source={require('../assets/images/home/subscription_banner.png')}
-            style={styles.promoBannerImg}
-            resizeMode="cover"
-          />
+          {banners.length > 1 && getBannerUri(banners[1]?.image_path) ? (
+            <Image
+              source={{ uri: getBannerUri(banners[1]?.image_path)! }}
+              style={styles.promoBannerImg}
+              resizeMode="cover"
+            />
+          ) : (
+            <Image
+              source={require('../assets/images/home/subscription_banner.png')}
+              style={styles.promoBannerImg}
+              resizeMode="cover"
+            />
+          )}
         </TouchableOpacity>
 
         {/* ── 5. WHY CHOOSE CLEANATDOORSTEP SECTION ── */}
@@ -619,7 +935,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── 6. REFER & EARN BANNER ── */}
+        {/* ── 6. REFER & EARN BANNER (Dynamic / DB Driven) ── */}
         <TouchableOpacity
           style={styles.promoBannerCard}
           activeOpacity={0.9}
@@ -628,11 +944,19 @@ export default function HomeScreen() {
             router.push('/refer-and-earn');
           }}
         >
-          <Image
-            source={require('../assets/images/home/refer_banner.png')}
-            style={styles.promoBannerImg}
-            resizeMode="cover"
-          />
+          {banners.length > 2 && getBannerUri(banners[2]?.image_path) ? (
+            <Image
+              source={{ uri: getBannerUri(banners[2]?.image_path)! }}
+              style={styles.promoBannerImg}
+              resizeMode="cover"
+            />
+          ) : (
+            <Image
+              source={require('../assets/images/home/refer_banner.png')}
+              style={styles.promoBannerImg}
+              resizeMode="cover"
+            />
+          )}
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -666,6 +990,15 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
+            {isLoggedIn ? (
+              <View style={styles.savedDbAddressBadge}>
+                <Ionicons name="shield-checkmark" size={14} color="#059669" />
+                <Text style={styles.savedDbAddressBadgeText}>
+                  Logged In: Header uses your saved address from database
+                </Text>
+              </View>
+            ) : null}
+
             <TouchableOpacity
               style={styles.detectGpsBtn}
               onPress={handleDetectGPS}
@@ -677,7 +1010,11 @@ export default function HomeScreen() {
                 <Text style={styles.detectGpsTitle}>
                   {detectingGps ? 'Detecting your GPS location...' : 'Use Current GPS Location'}
                 </Text>
-                <Text style={styles.detectGpsSub}>Tap to automatically reverse geocode address</Text>
+                <Text style={styles.detectGpsSub}>
+                  {isLoggedIn
+                    ? 'Detect coordinates and update your database saved address'
+                    : 'Tap to automatically reverse geocode address'}
+                </Text>
               </View>
             </TouchableOpacity>
 
@@ -695,7 +1032,7 @@ export default function HomeScreen() {
               />
               <TouchableOpacity
                 style={styles.locationSaveBtn}
-                onPress={handleSaveManualLocation}
+                onPress={() => handleSaveManualLocation()}
               >
                 <Text style={styles.locationSaveBtnText}>Set</Text>
               </TouchableOpacity>
@@ -708,12 +1045,7 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     key={loc}
                     style={styles.suggestionPill}
-                    onPress={async () => {
-                      safeHapticLight();
-                      setCurrentLocation(loc);
-                      await AsyncStorage.setItem('header_location', loc);
-                      setLocationModalVisible(false);
-                    }}
+                    onPress={() => handleSaveManualLocation(loc)}
                   >
                     <Text style={styles.suggestionPillText}>{loc}</Text>
                   </TouchableOpacity>
@@ -991,15 +1323,35 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
   },
-  logoWrap: {
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+    marginHorizontal: 6,
+  },
+  headerLogoContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#e0f2fe',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 8,
+    marginRight: 6,
+    shadowColor: '#0ea5e9',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
-  headerLogoImg: {
-    height: 38,
-    width: 210,
+  headerLogo: {
+    width: 20,
+    height: 20,
+  },
+  brandTitleText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -0.3,
   },
   headerRightActions: {
     flexDirection: 'row',
@@ -1227,6 +1579,18 @@ const styles = StyleSheet.create({
   darkSectionHeading: {
     color: '#f8fafc',
   },
+  sectionSubHeading: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 2,
+  },
+  darkSectionSubHeading: {
+    color: '#94a3b8',
+  },
+  darkMutedText: {
+    color: '#94a3b8',
+  },
   viewAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1261,6 +1625,11 @@ const styles = StyleSheet.create({
   darkVehicleCard: {
     backgroundColor: '#111827',
     borderColor: '#1e293b',
+  },
+  vehicleCardActive: {
+    borderColor: '#0284c7',
+    borderWidth: 2,
+    backgroundColor: 'rgba(2, 132, 199, 0.04)',
   },
   vehicleImageWrap: {
     width: '100%',
@@ -1297,10 +1666,159 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  pricePillActive: {
+    backgroundColor: '#0284c7',
+  },
   pricePillText: {
     fontSize: 11,
     fontWeight: '900',
     color: '#000000',
+  },
+
+  /* ── Dynamic Database Services Cards ── */
+  dbServicesContainer: {
+    marginTop: 14,
+    gap: 10,
+  },
+  servicesLoadingWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 18,
+  },
+  servicesLoadingText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  emptyServicesWrap: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyServicesText: {
+    fontSize: 12.5,
+    color: '#64748b',
+    fontStyle: 'italic',
+  },
+  serviceItemCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  darkServiceItemCard: {
+    backgroundColor: '#111827',
+    borderColor: '#1e293b',
+  },
+  serviceItemTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  vehicleBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+  },
+  vehicleBadgePillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#0284c7',
+  },
+  customBadgePill: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+  },
+  customBadgePillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#b45309',
+  },
+  serviceItemTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  darkServiceItemTitle: {
+    color: '#f8fafc',
+  },
+  serviceItemPriceWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  serviceItemPriceCurrency: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0284c7',
+    marginTop: 1,
+    marginRight: 1,
+  },
+  serviceItemPriceValue: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0284c7',
+  },
+  serviceFeaturesWrap: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    gap: 4,
+  },
+  featureItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  featureItemText: {
+    fontSize: 11.5,
+    color: '#475569',
+    fontWeight: '500',
+    flex: 1,
+  },
+  darkFeatureItemText: {
+    color: '#94a3b8',
+  },
+  serviceItemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  bookNowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  bookNowBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   /* ── Promo Banners ── */
@@ -1401,6 +1919,24 @@ const styles = StyleSheet.create({
   },
   darkLocationModalTitle: {
     color: '#f8fafc',
+  },
+  savedDbAddressBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(5, 150, 105, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    marginBottom: 14,
+  },
+  savedDbAddressBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#059669',
+    flex: 1,
   },
   detectGpsBtn: {
     flexDirection: 'row',
