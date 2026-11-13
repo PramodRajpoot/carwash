@@ -312,8 +312,10 @@ export default function BookingSummaryScreen() {
           const d = dashRes.value.data || {};
           setUserPoints(d.e_points || 0);
           setUserEarningMoney(parseFloat(d.earning_money || 0));
-          setIsFirstWash(!!d.is_first_wash);
-          setHasCompletedFirstWash(!!d.has_completed_first_wash);
+          const isFirst = !!d.is_first_wash;
+          setIsFirstWash(isFirst);
+          const allowPoints = d.can_use_points !== undefined ? !!d.can_use_points : !isFirst;
+          setHasCompletedFirstWash(allowPoints);
 
           const savedDbAddress = typeof d.address === 'string' ? d.address.trim() : '';
           const validSavedAddress = savedDbAddress && savedDbAddress !== 'Select Location';
@@ -488,20 +490,22 @@ export default function BookingSummaryScreen() {
   const basePrice = selectedPackage ? Number(selectedPackage.price) : 0;
   const rawSubtotal = basePrice + addonTotal;
 
-  // First Wash Flat 10% Discount
-  const firstWashDiscount = isFirstWash ? Math.round(rawSubtotal * 0.10) : 0;
+  // First Wash Flat 10% Discount: applies ONLY to the very first wash
+  const qualifiesForFirstWash = isFirstWash;
+  const firstWashDiscount = qualifiesForFirstWash ? Math.round(rawSubtotal * 0.10 * 100) / 100 : 0;
 
-  // Max 12.5% E-Points Discount (Only available after 1st wash is completed)
-  const maxEPointsDiscount = hasCompletedFirstWash
+  // Max 12.5% E-Points Discount (Available on rest washes)
+  const canUsePoints = !qualifiesForFirstWash;
+  const maxEPointsDiscount = canUsePoints
     ? Math.min(userPoints, Math.round(rawSubtotal * 0.125))
     : 0;
-  const appliedEPointsDiscount = (hasCompletedFirstWash && useEPoints) ? maxEPointsDiscount : 0;
+  const appliedEPointsDiscount = (canUsePoints && useEPoints) ? maxEPointsDiscount : 0;
 
   // Effective coupon or first wash discount
-  const effectiveDiscount = isFirstWash ? firstWashDiscount : couponDiscount;
+  const effectiveDiscount = qualifiesForFirstWash ? firstWashDiscount : couponDiscount;
 
   const priceAfterDiscounts = Math.max(0, rawSubtotal - effectiveDiscount - appliedEPointsDiscount);
-  const appliedEarningMoney = (hasCompletedFirstWash && useEarningMoney)
+  const appliedEarningMoney = (canUsePoints && useEarningMoney)
     ? Math.min(userEarningMoney, priceAfterDiscounts)
     : 0;
 
@@ -517,7 +521,7 @@ export default function BookingSummaryScreen() {
 
   // Coupon Action
   const handleApplyCoupon = async () => {
-    if (isFirstWash) {
+    if (qualifiesForFirstWash) {
       setCouponFeedback({
         success: true,
         msg: 'First wash 10% discount is already applied!',
@@ -621,8 +625,8 @@ export default function BookingSummaryScreen() {
         payment_type: paymentType, // 'partial' = ₹99 advance, 'full' = 100% upfront
         addon_ids: selectedAddonIds,
         coupon_code: couponDiscount > 0 ? couponCode.trim().toUpperCase() : null,
-        use_epoints: hasCompletedFirstWash ? useEPoints : false,
-        use_earning_money: hasCompletedFirstWash ? useEarningMoney : false,
+        use_epoints: canUsePoints ? useEPoints : false,
+        use_earning_money: canUsePoints ? useEarningMoney : false,
       };
 
       const res = await axios.post(`${API_BASE}/api/bookings`, payload, {
@@ -1289,7 +1293,7 @@ export default function BookingSummaryScreen() {
             </View>
 
             {/* First Wash Badge / Promo Code Input */}
-            {isFirstWash ? (
+            {qualifiesForFirstWash ? (
               <View style={[styles.firstWashCard, isDark && styles.darkInnerBox]}>
                 <View style={styles.firstWashIconWrap}>
                   <Text style={{ fontSize: 18 }}>🎉</Text>
@@ -1336,7 +1340,7 @@ export default function BookingSummaryScreen() {
               </View>
             )}
 
-            {couponFeedback && !isFirstWash && (
+            {couponFeedback && !qualifiesForFirstWash && (
               <View
                 style={[
                   styles.feedbackBanner,
@@ -1354,11 +1358,11 @@ export default function BookingSummaryScreen() {
               </View>
             )}
 
-            {!hasCompletedFirstWash ? (
+            {!canUsePoints ? (
               <View style={[styles.lockedBenefitsBox, isDark && styles.darkInnerBox]}>
                 <Ionicons name="lock-closed" size={16} color="#f59e0b" style={{ marginRight: 8 }} />
                 <Text style={[styles.lockedBenefitsText, isDark && styles.darkSubtext]}>
-                  E-Points & Earning Money unlock after completing your 1st wash.
+                  E-Points & Earning Money unlock on your next washes.
                 </Text>
               </View>
             ) : (
@@ -1558,7 +1562,7 @@ export default function BookingSummaryScreen() {
               </View>
             )}
 
-            {isFirstWash ? (
+            {firstWashDiscount > 0 ? (
               <View style={styles.receiptRow}>
                 <Text style={[styles.receiptLabel, isDark && styles.darkSubtext]}>
                   First Wash Discount (10%)

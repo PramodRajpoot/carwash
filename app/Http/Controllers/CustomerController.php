@@ -30,7 +30,16 @@ class CustomerController extends Controller
             ->count();
 
         $limit = $request->query('limit');
+        // Wash list shows ONLY those washes which have paid ₹99 advance or full amount
         $upcomingServicesQuery = Booking::where('customer_id', $user->id)
+            ->where(function ($q) {
+                $q->where('payment_status', 'paid')
+                  ->orWhere('paid_amount', '>=', 99)
+                  ->orWhere(function ($sub) {
+                      $sub->where('payment_status', 'partially_paid')
+                          ->where('paid_amount', '>=', 99);
+                  });
+            })
             ->whereIn('status', ['pending', 'assigned', 'ongoing', 'completed', 'cancelled', 'postponed'])
             ->with(['vehicle', 'franchisee', 'package'])
             ->orderBy('booking_date', 'desc')
@@ -41,7 +50,12 @@ class CustomerController extends Controller
         }
 
         $upcomingServices = $upcomingServicesQuery->get();
-        $totalBookings = Booking::where('customer_id', $user->id)->count();
+        $totalBookings = Booking::where('customer_id', $user->id)
+            ->where(function ($q) {
+                $q->where('payment_status', 'paid')
+                  ->orWhere('paid_amount', '>=', 99);
+            })
+            ->count();
 
         $wishlistCount = Wishlist::where('customer_id', $user->id)->count();
 
@@ -91,6 +105,10 @@ class CustomerController extends Controller
                 ->count();
             $total = Booking::where('customer_id', $user->id)
                 ->where('booking_date', 'like', "{$ym}%")
+                ->where(function ($q) {
+                    $q->where('payment_status', 'paid')
+                      ->orWhere('paid_amount', '>=', 99);
+                })
                 ->count();
             $monthlyWashes[] = [
                 'month'     => $label,
@@ -102,11 +120,18 @@ class CustomerController extends Controller
         $completedWashesCount = Booking::where('customer_id', $user->id)
             ->where('status', 'completed')
             ->count();
-        $hasCompletedFirstWash = ($completedWashesCount > 0);
-        $priorActiveBookings = Booking::where('customer_id', $user->id)
-            ->where('status', '!=', 'cancelled')
-            ->count();
-        $isFirstWash = ($completedWashesCount === 0 && $priorActiveBookings === 0);
+        // A wash only counts as a prior wash if it actually booked a slot (paid ₹99 or full amount)
+        $priorWashExists = Booking::where('customer_id', $user->id)
+            ->slotBooked()
+            ->exists();
+        $tookFirstWashDiscount = Booking::where('customer_id', $user->id)
+            ->where('coupon_code', 'FIRSTWASH10')
+            ->slotBooked()
+            ->exists();
+
+        // Only the first wash gets 10% discount. Once a wash is booked with paid 99 or full amount, rest washes can use points & earning money.
+        $isFirstWash = (!$priorWashExists && !$tookFirstWashDiscount);
+        $canUsePoints = !$isFirstWash;
 
         return response()->json([
             'user'                  => $user,
@@ -125,7 +150,9 @@ class CustomerController extends Controller
             'unread_notifications'  => $unreadNotifications,
             'first_booking_discount' => $user->first_booking_discount,
             'is_first_wash'         => $isFirstWash,
-            'has_completed_first_wash' => $hasCompletedFirstWash,
+            'has_taken_first_wash'  => !$isFirstWash,
+            'can_use_points'        => $canUsePoints,
+            'has_completed_first_wash' => $canUsePoints,
             'completed_washes_count' => $completedWashesCount,
             'earning_money'         => $user->earning_money,
             'address'               => $savedAddress,

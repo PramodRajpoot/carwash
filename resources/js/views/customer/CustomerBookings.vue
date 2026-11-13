@@ -237,7 +237,7 @@
                 <span>Add-ons ({{ bf.addon_ids.length }} items)</span>
                 <span>+ ₹{{ addonTotal.toFixed(2) }}</span>
               </div>
-              <div v-if="isFirstWash && firstWashDiscount > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald); font-weight: 600;">
+              <div v-if="firstWashDiscount > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald); font-weight: 600;">
                 <span>🎉 First Wash Discount (10%)</span>
                 <span>- ₹{{ firstWashDiscount.toFixed(2) }}</span>
               </div>
@@ -405,7 +405,7 @@
           </div>
           
           <!-- First Wash Discount Badge -->
-          <div v-if="isFirstWash" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
+          <div v-if="qualifiesForFirstWash" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
             <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--accent-emerald); border-radius: var(--radius-md); padding: 0.85rem; display: flex; align-items: center; gap: 0.75rem;">
               <span style="font-size: 1.5rem;">🎉</span>
               <div>
@@ -454,16 +454,16 @@
             </div>
           </div>
           
-          <!-- Locked Benefits Notice if first wash is not completed -->
-          <div v-if="bf.package_id && !hasCompletedFirstWash" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
+          <!-- Locked Benefits Notice on first wash -->
+          <div v-if="bf.package_id && isFirstWash" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
             <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; color: #d97706; font-weight: 600;">
               <span>🔒</span>
-              <span>E-Points and Earning Money unlock after completing your 1st wash.</span>
+              <span>E-Points and Earning Money unlock on your next washes.</span>
             </div>
           </div>
 
           <!-- E-Points Checkbox Option -->
-          <div v-if="bf.package_id && hasCompletedFirstWash && userPoints > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+          <div v-if="bf.package_id && !isFirstWash && userPoints > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
             <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; color: var(--text-primary);">
               <input type="checkbox" v-model="bf.use_epoints" style="width: 16px; height: 16px; accent-color: var(--accent-emerald);" />
               <span>Use E-Points</span>
@@ -475,7 +475,7 @@
           </div>
 
           <!-- Earning Money Checkbox Option -->
-          <div v-if="bf.package_id && hasCompletedFirstWash && userEarningMoney > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 1rem;">
+          <div v-if="bf.package_id && !isFirstWash && userEarningMoney > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 1rem;">
             <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; color: var(--text-primary);">
               <input type="checkbox" v-model="bf.use_earning_money" style="width: 16px; height: 16px; accent-color: var(--accent-cyan);" />
               <span>Use Earning Money</span>
@@ -651,22 +651,25 @@ export default {
     addonTotal() {
       return this.selectedAddons.reduce((sum, a) => sum + parseFloat(a.price || 0), 0);
     },
+    qualifiesForFirstWash() {
+      return this.isFirstWash;
+    },
     firstWashDiscount() {
-      if (!this.isFirstWash || !this.selectedBasePlan) return 0;
+      if (!this.qualifiesForFirstWash || !this.selectedBasePlan) return 0;
       const base = parseFloat(this.selectedBasePlan.price || 0);
       const total = base + this.addonTotal;
-      return Math.round(total * 0.10);
+      return Math.round(total * 0.10 * 100) / 100;
     },
     effectiveCouponDiscount() {
-      if (this.isFirstWash) return this.firstWashDiscount;
+      if (this.qualifiesForFirstWash) return this.firstWashDiscount;
       return this.appliedCouponDiscount;
     },
     appliedEPoints() {
-      if (!this.hasCompletedFirstWash || !this.bf.use_epoints || !this.bf.package_id) return 0;
+      if (this.isFirstWash || !this.bf.use_epoints || !this.bf.package_id) return 0;
       return this.pointsToBeDeducted;
     },
     pointsToBeDeducted() {
-      if (!this.hasCompletedFirstWash || !this.bf.package_id) return 0;
+      if (this.isFirstWash || !this.bf.package_id) return 0;
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       const total = base + this.addonTotal;
       const totalAfterCoupon = Math.max(0, total - this.effectiveCouponDiscount);
@@ -674,7 +677,7 @@ export default {
       return Math.min(maxAllowed, this.userPoints);
     },
     appliedEarningMoney() {
-      if (!this.hasCompletedFirstWash || !this.bf.use_earning_money || !this.bf.package_id) return 0;
+      if (this.isFirstWash || !this.bf.use_earning_money || !this.bf.package_id) return 0;
       let total = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       total += this.addonTotal;
       total -= this.effectiveCouponDiscount;
@@ -777,7 +780,7 @@ export default {
   },
   methods: {
     async applyCoupon(silent = false) {
-      if (this.isFirstWash) {
+      if (this.qualifiesForFirstWash) {
         if (!silent) {
           this.couponFeedback = 'First wash 10% discount is already applied!';
           this.couponSuccess = true;
@@ -1076,11 +1079,15 @@ export default {
         if (dashRes.status === 'fulfilled') {
           dash = dashRes.value.data || {};
           this.userStatus = dash.status || user.status || 'active';
-          this.bookings = dash.upcoming_services || [];
+          const rawServices = dash.upcoming_services || [];
+          this.bookings = rawServices.filter(b => {
+            const paid = Number(b.paid_amount || 0);
+            return b.payment_status === 'paid' || paid >= 99 || (b.payment_status === 'partially_paid' && paid >= 99);
+          });
           this.userPoints = dash.e_points || 0;
           this.userEarningMoney = dash.earning_money || 0;
           this.isFirstWash = !!dash.is_first_wash;
-          this.hasCompletedFirstWash = !!dash.has_completed_first_wash;
+          this.hasCompletedFirstWash = dash.can_use_points !== undefined ? !!dash.can_use_points : !this.isFirstWash;
         }
 
         // Load saved address
@@ -1177,8 +1184,8 @@ export default {
       try {
         const payload = {
           ...this.bf,
-          use_epoints: this.hasCompletedFirstWash ? !!this.bf.use_epoints : false,
-          use_earning_money: this.hasCompletedFirstWash ? !!this.bf.use_earning_money : false,
+          use_epoints: !this.isFirstWash ? !!this.bf.use_epoints : false,
+          use_earning_money: !this.isFirstWash ? !!this.bf.use_earning_money : false,
           address: this.bf.address.trim(),
           save_as_default_address: this.addressChoice === 'new' ? this.bf.save_as_default_address : false
         };

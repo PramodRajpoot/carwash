@@ -231,7 +231,12 @@ export default function BookingsScreen() {
         },
       });
 
-      const list: BookingItem[] = response.data?.upcoming_services || [];
+      // Only show washes which have paid ₹99 advance or full amount
+      const rawList: BookingItem[] = response.data?.upcoming_services || [];
+      const list = rawList.filter((b) => {
+        const paid = Number(b.paid_amount || 0);
+        return b.payment_status === 'paid' || paid >= 99 || (b.payment_status === 'partially_paid' && paid >= 99);
+      });
       const dedupedList = Array.from(
         new Map(list.map((item) => [item.id, item])).values()
       );
@@ -506,8 +511,12 @@ export default function BookingsScreen() {
     }
   };
 
-  // Filter bookings
+  // Filter bookings: only show washes which have paid ₹99 advance or full amount
   const filteredBookings = bookings.filter((b) => {
+    const paid = Number(b.paid_amount || 0);
+    const isPaidWash = b.payment_status === 'paid' || paid >= 99 || (b.payment_status === 'partially_paid' && paid >= 99);
+    if (!isPaidWash) return false;
+
     if (activeFilter === 'upcoming') {
       return ['pending', 'assigned', 'ongoing', 'postponed'].includes(b.status);
     }

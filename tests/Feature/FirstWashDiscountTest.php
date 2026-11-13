@@ -202,4 +202,117 @@ class FirstWashDiscountTest extends TestCase
         $this->assertEquals(0, $this->customer->e_points);
         $this->assertEquals(0.00, (float)$this->customer->earning_money);
     }
+
+    public function test_when_first_wash_has_paid_advance_slot_is_booked_and_second_wash_cannot_take_first_discount()
+    {
+        // 1. First wash has paid ₹99 slot advance (partially_paid)
+        $firstBooking = Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => now()->addDay()->toDateString(),
+            'slot_time' => '10:00 - 11:00',
+            'status' => 'pending',
+            'payment_method' => 'online',
+            'payment_status' => 'partially_paid',
+            'paid_amount' => 99.00,
+            'coupon_code' => 'FIRSTWASH10',
+            'coupon_discount' => 200.00,
+            'total_price' => 2124.00,
+            'gst_amount' => 324.00,
+        ]);
+
+        $this->actingAs($this->customer, 'sanctum');
+
+        // Dashboard indicates customer has taken first wash discount (is_first_wash = false, can_use_points = true)
+        // and upcoming_services contains this wash
+        $dashResponse = $this->getJson('/api/customer/dashboard');
+        $dashData = $dashResponse->json();
+        $this->assertFalse($dashData['is_first_wash']);
+        $this->assertTrue($dashData['can_use_points']);
+        $this->assertCount(1, $dashData['upcoming_services']);
+
+        // Coupon application is now allowed (not blocked by first wash restriction)
+        Coupon::create([
+            'code' => 'SAVE50',
+            'discount_type' => 'fixed',
+            'discount_value' => 50,
+            'vehicle_type' => 'all',
+            'status' => 'active',
+        ]);
+        $couponCheck = $this->postJson('/api/bookings/apply-coupon', [
+            'code' => 'SAVE50',
+            'price' => 2000,
+        ]);
+        $couponCheck->assertStatus(200);
+
+        // 2. Book 2nd wash while first wash is still pending:
+        // Customer does NOT get 10% discount again, and CAN use E-Points and Earning Money!
+        $response = $this->postJson('/api/bookings', [
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => now()->addDays(2)->toDateString(),
+            'slot_time' => '14:00 - 15:00',
+            'payment_method' => 'online',
+            'address' => '789 Second Wash Lane, Delhi',
+            'use_epoints' => true,
+            'use_earning_money' => true,
+        ]);
+
+        $response->assertStatus(201);
+        $data = $response->json();
+
+        // Must NOT have FIRSTWASH10 coupon
+        $this->assertNotEquals('FIRSTWASH10', $data['booking']['coupon_code']);
+        // Must use E-Points and Earning Money
+        $this->assertEquals(50, $data['booking']['epoints_used']);
+        $this->assertEquals(100.00, (float)$data['booking']['earning_money_used']);
+    }
+
+    public function test_unpaid_pending_booking_does_not_consume_first_wash_discount_and_is_not_in_wash_list()
+    {
+        // 1. Customer initiates a booking but does NOT pay (paid_amount = 0, pending_payment, slot not booked)
+        $unpaidBooking = Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => now()->addDay()->toDateString(),
+            'slot_time' => '10:00 - 11:00',
+            'status' => 'pending',
+            'payment_method' => 'online',
+            'payment_status' => 'pending_payment',
+            'paid_amount' => 0.00,
+            'total_price' => 2124.00,
+            'gst_amount' => 324.00,
+        ]);
+
+        $this->actingAs($this->customer, 'sanctum');
+
+        // Dashboard must still show is_first_wash = true because slot was never appointed and 99/full was never paid
+        // And the Wash List (upcoming_services) must NOT display the unpaid booking!
+        $dashResponse = $this->getJson('/api/customer/dashboard');
+        $dashData = $dashResponse->json();
+        $this->assertTrue($dashData['is_first_wash']);
+        $this->assertFalse($dashData['can_use_points']);
+        $this->assertCount(0, $dashData['upcoming_services']);
+
+        // When placing a booking, customer STILL gets 10% first wash discount!
+        $response = $this->postJson('/api/bookings', [
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => now()->addDays(2)->toDateString(),
+            'slot_time' => '14:00 - 15:00',
+            'payment_method' => 'online',
+            'address' => '789 Real Booking Lane, Delhi',
+        ]);
+
+        $response->assertStatus(201);
+        $data = $response->json();
+        $this->assertEquals('FIRSTWASH10', $data['booking']['coupon_code']);
+        $this->assertEquals(200.00, (float)$data['booking']['coupon_discount']);
+    }
 }
