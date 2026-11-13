@@ -267,6 +267,15 @@ class BookingController extends Controller
 
         $price += $addonPrice;
 
+        $completedWashesCount = Booking::where('customer_id', $user->id)
+            ->where('status', 'completed')
+            ->count();
+        $hasCompletedFirstWash = ($completedWashesCount > 0);
+        $priorBookingsCount = Booking::where('customer_id', $user->id)
+            ->where('status', '!=', 'cancelled')
+            ->count();
+        $isFirstWash = ($completedWashesCount === 0 && $priorBookingsCount === 0);
+
         // Check payment details
         if ($request->payment_method === 'subscription') {
             $subscription = Subscription::where('customer_id', $user->id)
@@ -291,11 +300,19 @@ class BookingController extends Controller
             $price = 0.00;
             $paymentStatus = 'paid'; // Subscription is pre-paid
         } else {
-            // Apply Coupon if applicable
+            // Apply Coupon or First Wash 10% Discount
             $couponCode = null;
             $couponDiscount = 0.00;
 
-            if ($request->filled('coupon_code')) {
+            if ($isFirstWash) {
+                // First wash automatically gets 10% discount
+                $couponDiscount = (float) round($price * 0.10, 2);
+                $couponCode = 'FIRSTWASH10';
+                $price -= $couponDiscount;
+                if ($price < 0) {
+                    $price = 0.00;
+                }
+            } elseif ($request->filled('coupon_code')) {
                 $coupon = Coupon::where('code', strtoupper($request->coupon_code))
                     ->where('status', 'active')
                     ->first();
@@ -336,9 +353,9 @@ class BookingController extends Controller
             }
         }
 
-        // Apply E-Points if requested
+        // Apply E-Points if requested (only after first wash is completed)
         $epointsUsed = 0;
-        if ($request->boolean('use_epoints')) {
+        if ($hasCompletedFirstWash && $request->boolean('use_epoints')) {
             if ($user->e_points > 0) {
                 $maxPointsAllowed = (int) floor($price * 0.125);
                 $epointsUsed = min($user->e_points, $maxPointsAllowed);
@@ -349,9 +366,9 @@ class BookingController extends Controller
             }
         }
 
-        // Apply Earning Money if requested
+        // Apply Earning Money if requested (only after first wash is completed)
         $earningMoneyUsed = 0.00;
-        if ($request->boolean('use_earning_money')) {
+        if ($hasCompletedFirstWash && $request->boolean('use_earning_money')) {
             if ($user->earning_money > 0) {
                 $earningMoneyUsed = min($user->earning_money, $price);
                 if ($earningMoneyUsed > 0) {
@@ -657,6 +674,18 @@ class BookingController extends Controller
             'code' => 'required|string',
             'price' => 'required|numeric'
         ]);
+
+        $user = $request->user();
+        if ($user) {
+            $completedWashes = Booking::where('customer_id', $user->id)->where('status', 'completed')->count();
+            $priorActiveBookings = Booking::where('customer_id', $user->id)->where('status', '!=', 'cancelled')->count();
+            if ($completedWashes === 0 && $priorActiveBookings === 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'First wash already includes 10% discount! Additional coupons cannot be stacked.'
+                ], 400);
+            }
+        }
 
         $coupon = Coupon::where('code', strtoupper($request->code))
             ->where('status', 'active')

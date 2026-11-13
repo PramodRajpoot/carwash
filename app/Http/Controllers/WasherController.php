@@ -371,7 +371,8 @@ class WasherController extends Controller
         // When booking is completed, confirm pending E-Points for referrer as Earning Money
         if ($request->status === 'completed' && $oldStatus !== 'completed') {
             $customer = $booking->customer;
-            if ($customer && $customer->referred_by && $customer->first_booking_discount) {
+            $completedCount = $customer ? Booking::where('customer_id', $customer->id)->where('status', 'completed')->count() : 0;
+            if ($customer && $customer->referred_by && ($customer->first_booking_discount || $completedCount === 1)) {
                 $referrer = User::find($customer->referred_by);
                 if ($referrer) {
                     $commission = (int) round($booking->total_price * 0.10);

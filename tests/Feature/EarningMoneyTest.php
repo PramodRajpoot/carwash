@@ -125,6 +125,20 @@ class EarningMoneyTest extends TestCase
         $this->customer->earning_money = 300.00;
         $this->customer->save();
 
+        // Customer has completed first wash
+        Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => now()->subDays(2)->toDateString(),
+            'slot_time' => '10:00 - 11:00',
+            'status' => 'completed',
+            'payment_method' => 'online',
+            'payment_status' => 'paid',
+            'total_price' => 500.00,
+        ]);
+
         $this->actingAs($this->customer, 'sanctum');
 
         // Act - book with use_earning_money = true

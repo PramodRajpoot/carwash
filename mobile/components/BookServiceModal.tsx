@@ -115,6 +115,8 @@ export default function BookServiceModal({
   const [couponLoading, setCouponLoading] = useState(false);
   const [useEPoints, setUseEPoints] = useState(false);
   const [useEarningMoney, setUseEarningMoney] = useState(false);
+  const [isFirstWash, setIsFirstWash] = useState(false);
+  const [hasCompletedFirstWash, setHasCompletedFirstWash] = useState(false);
 
   // Payment choice
   const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full');
@@ -309,6 +311,8 @@ export default function BookServiceModal({
             const validSavedAddress = savedDbAddress && savedDbAddress !== 'Select Location';
             setUserPoints(d.e_points || 0);
             setUserEarningMoney(parseFloat(d.earning_money || 0));
+            setIsFirstWash(!!d.is_first_wash);
+            setHasCompletedFirstWash(!!d.has_completed_first_wash);
             if (validSavedAddress) {
               setSavedAddress(savedDbAddress);
               setCustomAddress(savedDbAddress);
@@ -441,15 +445,23 @@ export default function BookServiceModal({
   const basePrice = selectedPackage ? Number(selectedPackage.price) : 0;
   const rawSubtotal = basePrice + addonTotal;
 
-  // Maximum allowed E-Points discount (capped at 12.5% of wash)
-  const maxEPointsDiscount = Math.min(userPoints, Math.round(rawSubtotal * 0.125));
-  const appliedEPointsDiscount = useEPoints ? maxEPointsDiscount : 0;
+  // First Wash Flat 10% Discount
+  const firstWashDiscount = isFirstWash ? Math.round(rawSubtotal * 0.10) : 0;
+
+  // Maximum allowed E-Points discount (capped at 12.5% of wash - only after 1st wash completed)
+  const maxEPointsDiscount = hasCompletedFirstWash
+    ? Math.min(userPoints, Math.round(rawSubtotal * 0.125))
+    : 0;
+  const appliedEPointsDiscount = (hasCompletedFirstWash && useEPoints) ? maxEPointsDiscount : 0;
+
+  // Effective coupon or first wash discount
+  const effectiveDiscount = isFirstWash ? firstWashDiscount : couponDiscount;
 
   // Price after coupon & points
-  const priceAfterDiscounts = Math.max(0, rawSubtotal - couponDiscount - appliedEPointsDiscount);
+  const priceAfterDiscounts = Math.max(0, rawSubtotal - effectiveDiscount - appliedEPointsDiscount);
 
-  // Earning Money applied (up to 100% of remainder)
-  const appliedEarningMoney = useEarningMoney
+  // Earning Money applied (up to 100% of remainder - only after 1st wash completed)
+  const appliedEarningMoney = (hasCompletedFirstWash && useEarningMoney)
     ? Math.min(userEarningMoney, priceAfterDiscounts)
     : 0;
 
@@ -467,6 +479,13 @@ export default function BookServiceModal({
 
   // Apply Coupon
   const applyCoupon = async () => {
+    if (isFirstWash) {
+      setCouponFeedback({
+        success: true,
+        msg: 'First wash 10% discount is already applied!',
+      });
+      return;
+    }
     if (!couponCode.trim() || !selectedPackage) return;
     safeHapticLight();
     setCouponLoading(true);
@@ -551,8 +570,8 @@ export default function BookServiceModal({
         payment_type: paymentType,
         addon_ids: selectedAddonIds,
         coupon_code: couponDiscount > 0 ? couponCode.trim().toUpperCase() : null,
-        use_epoints: useEPoints,
-        use_earning_money: useEarningMoney,
+        use_epoints: hasCompletedFirstWash ? useEPoints : false,
+        use_earning_money: hasCompletedFirstWash ? useEarningMoney : false,
       };
 
       const res = await axios.post(`${API_BASE}/api/bookings`, payload, {
@@ -1132,30 +1151,44 @@ export default function BookServiceModal({
             {/* Coupon & Points */}
             <View style={styles.formGroup}>
               <Text style={[styles.fieldLabel, isDark && styles.darkText]}>
-                Coupon Code
+                Offers & Discounts
               </Text>
-              <View style={styles.couponRow}>
-                <TextInput
-                  style={[styles.couponInput, isDark && styles.darkInput]}
-                  placeholder="e.g. WELCOME10"
-                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                  value={couponCode}
-                  onChangeText={setCouponCode}
-                  autoCapitalize="characters"
-                />
-                <TouchableOpacity
-                  style={[styles.couponBtn, couponLoading && { opacity: 0.7 }]}
-                  onPress={couponDiscount > 0 ? removeCoupon : applyCoupon}
-                  disabled={couponLoading}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.couponBtnText}>
-                    {couponLoading ? 'Checking...' : couponDiscount > 0 ? 'Remove' : 'Apply'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              {isFirstWash ? (
+                <View style={[styles.firstWashCard, isDark && styles.darkDropdown]}>
+                  <Text style={{ fontSize: 20, marginRight: 10 }}>🎉</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.firstWashTitle, isDark && styles.darkText]}>
+                      10% First Wash Discount Applied!
+                    </Text>
+                    <Text style={[styles.firstWashSubtitle, isDark && styles.darkSubtext]}>
+                      Flat 10% discount (-₹{firstWashDiscount.toFixed(2)}) applied automatically on your first wash.
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.couponRow}>
+                  <TextInput
+                    style={[styles.couponInput, isDark && styles.darkInput]}
+                    placeholder="e.g. WELCOME10"
+                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                    value={couponCode}
+                    onChangeText={setCouponCode}
+                    autoCapitalize="characters"
+                  />
+                  <TouchableOpacity
+                    style={[styles.couponBtn, couponLoading && { opacity: 0.7 }]}
+                    onPress={couponDiscount > 0 ? removeCoupon : applyCoupon}
+                    disabled={couponLoading}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.couponBtnText}>
+                      {couponLoading ? 'Checking...' : couponDiscount > 0 ? 'Remove' : 'Apply'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
-              {couponFeedback && (
+              {couponFeedback && !isFirstWash && (
                 <Text
                   style={[
                     styles.couponFeedback,
@@ -1166,49 +1199,60 @@ export default function BookServiceModal({
                 </Text>
               )}
 
-              {/* Points Toggles */}
-              {userPoints > 0 && (
-                <TouchableOpacity
-                  style={[styles.pointsToggle, isDark ? styles.darkDropdown : styles.lightDropdown]}
-                  onPress={() => setUseEPoints(!useEPoints)}
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.pointsTitle, isDark && styles.darkText]}>
-                      Use E-Points ({userPoints} pts available)
-                    </Text>
-                    <Text style={[styles.pointsSub, isDark && styles.darkSubtext]}>
-                      Redeems up to 12.5% (₹{maxEPointsDiscount})
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name={useEPoints ? 'checkbox' : 'square-outline'}
-                    size={22}
-                    color="#f59e0b"
-                  />
-                </TouchableOpacity>
-              )}
+              {!hasCompletedFirstWash ? (
+                <View style={[styles.lockedBenefitsBox, isDark && styles.darkDropdown]}>
+                  <Ionicons name="lock-closed" size={16} color="#f59e0b" style={{ marginRight: 8 }} />
+                  <Text style={[styles.lockedBenefitsText, isDark && styles.darkSubtext]}>
+                    E-Points & Earning Money unlock after completing your 1st wash.
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  {/* Points Toggles */}
+                  {userPoints > 0 && (
+                    <TouchableOpacity
+                      style={[styles.pointsToggle, isDark ? styles.darkDropdown : styles.lightDropdown]}
+                      onPress={() => setUseEPoints(!useEPoints)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.pointsTitle, isDark && styles.darkText]}>
+                          Use E-Points ({userPoints} pts available)
+                        </Text>
+                        <Text style={[styles.pointsSub, isDark && styles.darkSubtext]}>
+                          Redeems up to 12.5% (₹{maxEPointsDiscount})
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name={useEPoints ? 'checkbox' : 'square-outline'}
+                        size={22}
+                        color="#f59e0b"
+                      />
+                    </TouchableOpacity>
+                  )}
 
-              {userEarningMoney > 0 && (
-                <TouchableOpacity
-                  style={[styles.pointsToggle, isDark ? styles.darkDropdown : styles.lightDropdown]}
-                  onPress={() => setUseEarningMoney(!useEarningMoney)}
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.pointsTitle, isDark && styles.darkText]}>
-                      Use Earning Money (₹{userEarningMoney.toFixed(2)} balance)
-                    </Text>
-                    <Text style={[styles.pointsSub, isDark && styles.darkSubtext]}>
-                      Apply directly to wash balance
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name={useEarningMoney ? 'checkbox' : 'square-outline'}
-                    size={22}
-                    color="#10b981"
-                  />
-                </TouchableOpacity>
+                  {userEarningMoney > 0 && (
+                    <TouchableOpacity
+                      style={[styles.pointsToggle, isDark ? styles.darkDropdown : styles.lightDropdown]}
+                      onPress={() => setUseEarningMoney(!useEarningMoney)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.pointsTitle, isDark && styles.darkText]}>
+                          Use Earning Money (₹{userEarningMoney.toFixed(2)} balance)
+                        </Text>
+                        <Text style={[styles.pointsSub, isDark && styles.darkSubtext]}>
+                          Apply directly to wash balance
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name={useEarningMoney ? 'checkbox' : 'square-outline'}
+                        size={22}
+                        color="#10b981"
+                      />
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
             </View>
 
@@ -1295,7 +1339,16 @@ export default function BookServiceModal({
                   </Text>
                 </View>
               )}
-              {couponDiscount > 0 && (
+              {isFirstWash ? (
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryItemLabel, isDark && styles.darkSubtext]}>
+                    First Wash Discount (10%)
+                  </Text>
+                  <Text style={[styles.summaryItemVal, { color: '#10b981' }]}>
+                    -₹{firstWashDiscount.toFixed(2)}
+                  </Text>
+                </View>
+              ) : couponDiscount > 0 ? (
                 <View style={styles.summaryItem}>
                   <Text style={[styles.summaryItemLabel, isDark && styles.darkSubtext]}>
                     Coupon Discount ({couponCode})
@@ -1304,7 +1357,7 @@ export default function BookServiceModal({
                     -₹{couponDiscount.toFixed(2)}
                   </Text>
                 </View>
-              )}
+              ) : null}
               {appliedEPointsDiscount > 0 && (
                 <View style={styles.summaryItem}>
                   <Text style={[styles.summaryItemLabel, isDark && styles.darkSubtext]}>
@@ -2097,6 +2150,42 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     marginTop: 4,
+  },
+  firstWashCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderWidth: 1,
+    borderColor: '#10b981',
+  },
+  firstWashTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#10b981',
+  },
+  firstWashSubtitle: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  lockedBenefitsBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    marginTop: 10,
+  },
+  lockedBenefitsText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#d97706',
+    flex: 1,
   },
   pointsToggle: {
     flexDirection: 'row',

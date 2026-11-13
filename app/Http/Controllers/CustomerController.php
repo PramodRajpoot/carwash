@@ -99,6 +99,15 @@ class CustomerController extends Controller
             ];
         }
 
+        $completedWashesCount = Booking::where('customer_id', $user->id)
+            ->where('status', 'completed')
+            ->count();
+        $hasCompletedFirstWash = ($completedWashesCount > 0);
+        $priorActiveBookings = Booking::where('customer_id', $user->id)
+            ->where('status', '!=', 'cancelled')
+            ->count();
+        $isFirstWash = ($completedWashesCount === 0 && $priorActiveBookings === 0);
+
         return response()->json([
             'user'                  => $user,
             'subscription'          => $activeSubscription,
@@ -115,6 +124,9 @@ class CustomerController extends Controller
             'active_coupons'        => $activeCoupons,
             'unread_notifications'  => $unreadNotifications,
             'first_booking_discount' => $user->first_booking_discount,
+            'is_first_wash'         => $isFirstWash,
+            'has_completed_first_wash' => $hasCompletedFirstWash,
+            'completed_washes_count' => $completedWashesCount,
             'earning_money'         => $user->earning_money,
             'address'               => $savedAddress,
             'monthly_washes'        => $monthlyWashes,
