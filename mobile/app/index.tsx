@@ -760,6 +760,22 @@ export default function HomeScreen() {
           />
         </TouchableOpacity>
 
+        {/* ── 5. HOME CLEANING SECTION BANNER ── */}
+        <TouchableOpacity
+          style={styles.promoBannerCard}
+          activeOpacity={0.9}
+          onPress={() => {
+            safeHapticMedium();
+            router.push({ pathname: '/services', params: { search: 'Home' } });
+          }}
+        >
+          <Image
+            source={require('../assets/images/home/home_cleaning_banner.png')}
+            style={styles.promoBannerImg}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+
         {/* ── 5. WHY CHOOSE CLEANATDOORSTEP SECTION ── */}
         <View style={styles.whyUsSection}>
           <Text style={[styles.sectionHeading, isDark && styles.darkSectionHeading, { marginBottom: 12 }]}>

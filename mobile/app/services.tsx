@@ -16,7 +16,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -137,6 +137,7 @@ const VEHICLE_FILTERS = [
 
 export default function ServicesScreen() {
   const router = useRouter();
+  const localParams = useLocalSearchParams<{ search?: string; category?: string }>();
   const scrollViewRef = useRef<any>(null);
 
   const [packages, setPackages] = useState<any[]>([]);
@@ -144,7 +145,15 @@ export default function ServicesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeVehicle, setActiveVehicle] = useState('all');
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(
+    typeof localParams?.search === 'string' ? localParams.search : ''
+  );
+
+  useEffect(() => {
+    if (typeof localParams?.search === 'string' && localParams.search) {
+      setSearchQuery(localParams.search);
+    }
+  }, [localParams?.search]);
   const [currentPage, setCurrentPage] = useState(1);
   const [visibleCount, setVisibleCount] = useState(3);
   const [error, setError] = useState<string | null>(null);
