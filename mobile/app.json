@@ -18,7 +18,32 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.pramod_kumar12345.cleanatdoorstep"
+      "package": "com.pramod_kumar12345.cleanatdoorstep",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "cleanatdoorstep"
+            },
+            {
+              "scheme": "http",
+              "host": "187.126.119.129",
+              "pathPrefix": "/register"
+            },
+            {
+              "scheme": "https",
+              "host": "187.126.119.129",
+              "pathPrefix": "/register"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",

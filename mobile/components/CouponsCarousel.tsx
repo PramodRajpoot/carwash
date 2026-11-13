@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { safeHapticSuccess, safeHapticMedium } from '../utils/haptics';
+import { buildReferralMessage } from '../utils/referral';
 
 interface Props {
   isDark?: boolean;
@@ -39,7 +40,8 @@ export default function CouponsCarousel({
     safeHapticMedium();
     try {
       await Share.share({
-        message: `Use my CleanAtDoorstep referral code "${referralCode}" to get an exclusive discount on your car wash!`,
+        message: buildReferralMessage(referralCode),
+        title: 'Earn Money with CleanAtDoorstep',
       });
     } catch {}
   };

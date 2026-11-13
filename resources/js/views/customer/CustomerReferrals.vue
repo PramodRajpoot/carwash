@@ -47,16 +47,19 @@
 
       <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);">
         <div style="font-size: 0.85rem; margin-bottom: 0.75rem; font-weight: 600;">Share via:</div>
-        <div class="flex gap-2">
-          <a :href="'https://api.whatsapp.com/send?text=' + encodeURIComponent('Join me on CleanAt Doorstep! Use my referral code ' + data.referral_code + ' to get rewarded.')" target="_blank" class="btn btn-sm" style="background: #25D366; color: white; border: none; flex: 1; justify-content: center;">
-            WhatsApp
+        <div class="flex gap-2" style="flex-wrap: wrap;">
+          <a :href="'https://api.whatsapp.com/send?text=' + encodeURIComponent(buildShareMessage(data.referral_code))" target="_blank" class="btn btn-sm" style="background: #25D366; color: white; border: none; flex: 1; min-width: 110px; justify-content: center; text-decoration: none; display: flex; align-items: center; gap: 0.4rem;">
+            <span>💬</span> WhatsApp
           </a>
-          <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(appUrl) + '&quote=' + encodeURIComponent('Join me on CleanAt Doorstep! Use my referral code ' + data.referral_code + ' to get rewarded.')" target="_blank" class="btn btn-sm" style="background: #1877F2; color: white; border: none; flex: 1; justify-content: center;">
-            Facebook
+          <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(getReferralLink(data.referral_code)) + '&quote=' + encodeURIComponent(buildShareMessage(data.referral_code))" target="_blank" class="btn btn-sm" style="background: #1877F2; color: white; border: none; flex: 1; min-width: 110px; justify-content: center; text-decoration: none; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📘</span> Facebook
           </a>
-          <a href="https://www.instagram.com/" target="_blank" class="btn btn-sm" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white; border: none; flex: 1; justify-content: center;">
-            Instagram
-          </a>
+          <button @click="copyFullMessage" class="btn btn-sm" style="background: var(--accent-cyan); color: white; border: none; flex: 1; min-width: 140px; justify-content: center; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📋</span> {{ copiedMessage ? '✓ Message Copied' : 'Copy Message' }}
+          </button>
+          <button v-if="canNativeShare" @click="shareNative" class="btn btn-sm btn-outline" style="min-width: 90px; justify-content: center; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📤</span> Share
+          </button>
         </div>
       </div>
     </div>
@@ -99,12 +102,61 @@ import { copyToClipboard } from '../../utils/clipboard.js';
 
 export default {
   name: 'CustomerReferrals',
-  data() { return { data: {}, copiedCode: null, loading: true }; },
+  data() {
+    return {
+      data: {},
+      copiedCode: null,
+      copiedMessage: false,
+      loading: true,
+    };
+  },
   computed: {
-    appUrl() { return window.location.origin; }
+    appUrl() { return window.location.origin; },
+    canNativeShare() {
+      return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    },
   },
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },
+    getReferralLink(code) {
+      const c = (code || this.data.referral_code || 'CARWASH').trim().toUpperCase();
+      const base = (this.appUrl || window.location.origin).replace(/\/+$/, '');
+      return `${base}/register?ref=${encodeURIComponent(c)}`;
+    },
+    buildShareMessage(code) {
+      const c = (code || this.data.referral_code || 'CARWASH').trim().toUpperCase();
+      const referralLink = this.getReferralLink(c);
+      return `🚗💰 EARN MONEY WITH CLEANATDOORSTEP!
+
+Greetings of the Day! 👋
+
+Introducing CLEANATDOORSTEP PVT. LTD. — a growing doorstep car wash brand with 80+ outlets across India! 🇮🇳
+
+💸 ZERO INVESTMENT
+Start earning without investing a single rupee!
+
+📱 JUST REFER & EARN
+Share our car wash services with your friends, family & contacts.
+
+🚘 NO SERVICE WORK
+Our professional team handles car cleaning. You just refer customers!
+
+💰 EARN ON SUCCESSFUL REFERRALS
+Get rewarded when your referred customers book eligible services.
+
+🏠 DOORSTEP CAR WASH
+Professional car cleaning at home, starting from ₹299!*
+
+✨ Your Smartphone Can Become Your Earning Partner!
+
+🔗 REGISTER & START EARNING TODAY
+👉 ${referralLink}
+
+🚗 CLEANATDOORSTEP
+Refer More • Earn More • Grow Together!
+
+*Service prices and referral rewards are subject to applicable terms.`;
+    },
     async copy() {
       if (!this.data.referral_code) return;
       const ok = await copyToClipboard(this.data.referral_code, 'Referral code copied to clipboard!');
@@ -115,6 +167,35 @@ export default {
             this.copiedCode = null;
           }
         }, 2000);
+      }
+    },
+    async copyFullMessage() {
+      if (!this.data.referral_code) return;
+      const message = this.buildShareMessage(this.data.referral_code);
+      const ok = await copyToClipboard(message, 'Referral message & link copied to clipboard!');
+      if (ok) {
+        this.copiedMessage = true;
+        setTimeout(() => {
+          this.copiedMessage = false;
+        }, 2000);
+      }
+    },
+    async shareNative() {
+      if (!this.data.referral_code) return;
+      const message = this.buildShareMessage(this.data.referral_code);
+      const link = this.getReferralLink(this.data.referral_code);
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: 'Earn Money with CleanAtDoorstep',
+            text: message,
+            url: link,
+          });
+        } else {
+          this.copyFullMessage();
+        }
+      } catch (e) {
+        // user canceled share
       }
     },
   },

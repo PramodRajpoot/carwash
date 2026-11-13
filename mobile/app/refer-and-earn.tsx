@@ -23,6 +23,7 @@ import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
 import { showSweetAlert } from '../utils/sweetAlert';
 import { useAppTheme } from '../utils/themeManager';
+import { buildReferralMessage, getReferralLink } from '../utils/referral';
 
 interface ReferredUser {
   id: number;
@@ -55,8 +56,7 @@ const formatDate = (value?: string) => {
   }
 };
 
-const buildShareText = (code?: string) =>
-  `Join me on CleanAt Doorstep! Use my referral code ${code || 'CARWASH'} to get rewarded.`;
+const buildShareText = (code?: string) => buildReferralMessage(code);
 
 export default function ReferAndEarnScreen() {
   const router = useRouter();
@@ -154,22 +154,25 @@ export default function ReferAndEarnScreen() {
     if (!data.referral_code) return;
 
     try {
+      const message = buildReferralMessage(data.referral_code);
       await Share.share({
-        message: `My referral code: ${data.referral_code}. Use it to get rewards on CleanAt Doorstep!`,
-        title: 'My Referral Code',
+        message,
+        title: 'Earn Money with CleanAtDoorstep',
       });
       setCopied(true);
-      showSweetAlert('Copied', 'Referral code is ready to share.', 'success');
+      showSweetAlert('Ready to Share', 'Referral message and link are ready.', 'success');
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      showSweetAlert('Copy failed', 'Unable to share your referral code right now.', 'error');
+      showSweetAlert('Share failed', 'Unable to share your referral code right now.', 'error');
     }
   };
 
-  const openShareLink = async (type: 'whatsapp' | 'facebook' | 'instagram') => {
+  const openShareLink = async (type: 'whatsapp' | 'facebook' | 'instagram' | 'more') => {
     if (!data.referral_code) return;
 
-    const shareMessage = encodeURIComponent(buildShareText(data.referral_code));
+    const message = buildReferralMessage(data.referral_code);
+    const referralUrl = getReferralLink(data.referral_code);
+    const shareMessage = encodeURIComponent(message);
 
     try {
       if (type === 'whatsapp') {
@@ -179,13 +182,16 @@ export default function ReferAndEarnScreen() {
       if (type === 'facebook') {
         await Linking.openURL(
           `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-            API_BASE
+            referralUrl
           )}&quote=${shareMessage}`
         );
       }
 
-      if (type === 'instagram') {
-        await Linking.openURL('https://www.instagram.com/');
+      if (type === 'instagram' || type === 'more') {
+        await Share.share({
+          message,
+          title: 'Earn Money with CleanAtDoorstep',
+        });
       }
     } catch {
       showSweetAlert('Share failed', 'Unable to open the share link right now.', 'error');
@@ -337,6 +343,15 @@ export default function ReferAndEarnScreen() {
               >
                 <Ionicons name="logo-instagram" size={16} color="#fff" />
                 <Text style={styles.shareBtnText}>Instagram</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[styles.shareBtn, { backgroundColor: '#0284c7' }]}
+                onPress={() => openShareLink('more')}
+              >
+                <Ionicons name="share-social-outline" size={16} color="#fff" />
+                <Text style={styles.shareBtnText}>Share</Text>
               </TouchableOpacity>
             </View>
           </View>

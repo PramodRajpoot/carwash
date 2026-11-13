@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -32,11 +32,41 @@ axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const searchParams = useLocalSearchParams<{ ref?: string }>();
+  const searchParams = useLocalSearchParams<{
+    ref?: string;
+    referral?: string;
+    code?: string;
+    referral_code?: string;
+  }>();
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16);
 
   const { isDark, toggleTheme } = useAppTheme();
+
+  const extractIncomingReferral = useCallback((): string => {
+    const raw =
+      searchParams?.ref ||
+      searchParams?.referral ||
+      searchParams?.code ||
+      searchParams?.referral_code;
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw.trim().toUpperCase();
+    }
+    if (typeof window !== 'undefined' && window.location?.search) {
+      try {
+        const sp = new URLSearchParams(window.location.search);
+        const urlRef =
+          sp.get('ref') ||
+          sp.get('referral') ||
+          sp.get('code') ||
+          sp.get('referral_code');
+        if (urlRef && urlRef.trim()) {
+          return urlRef.trim().toUpperCase();
+        }
+      } catch {}
+    }
+    return '';
+  }, [searchParams]);
 
   // Form Fields matching web RegisterView.vue
   const [name, setName] = useState('');
@@ -44,16 +74,27 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const queryRef = typeof searchParams?.ref === 'string' ? searchParams.ref : '';
-  const [prevQueryRef, setPrevQueryRef] = useState(queryRef);
-  const [referralCode, setReferralCode] = useState(queryRef.toUpperCase());
+  const [referralCode, setReferralCode] = useState(() => extractIncomingReferral());
 
-  if (prevQueryRef !== queryRef) {
-    setPrevQueryRef(queryRef);
-    if (queryRef) {
-      setReferralCode(queryRef.toUpperCase());
-    }
-  }
+  useEffect(() => {
+    const loadReferral = async () => {
+      const incoming = extractIncomingReferral();
+      if (incoming) {
+        setReferralCode(incoming);
+        await AsyncStorage.setItem('pending_referral_code', incoming);
+        return;
+      }
+
+      try {
+        const pending = await AsyncStorage.getItem('pending_referral_code');
+        if (pending && pending.trim()) {
+          setReferralCode(pending.trim().toUpperCase());
+        }
+      } catch {}
+    };
+
+    loadReferral();
+  }, [extractIncomingReferral]);
 
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -195,6 +236,7 @@ export default function RegisterScreen() {
 
         await AsyncStorage.setItem('userToken', token);
         await AsyncStorage.setItem('userData', JSON.stringify(user));
+        await AsyncStorage.removeItem('pending_referral_code');
 
         safeHapticSuccess();
 
