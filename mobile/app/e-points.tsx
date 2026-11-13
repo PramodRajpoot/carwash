@@ -63,7 +63,7 @@ export default function EPointsScreen() {
   const [user, setUser] = useState<any>({ name: 'User' });
   const [balance, setBalance] = useState<WalletBalance>({});
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [redeemAmount, setRedeemAmount] = useState('2000');
+  const [redeemAmount, setRedeemAmount] = useState('100');
   const [bankDetails, setBankDetails] = useState<BankDetails>({
     account_holder_name: '',
     bank_name: '',
@@ -161,7 +161,8 @@ export default function EPointsScreen() {
   const earningMoney = Number(balance.earning_money || 0);
   const confirmedEPoints = Number(balance.e_points || 0);
   const referralCount = Number(balance.referral_count || 0);
-  const minWithdrawal = 2000;
+  const minWithdrawal = 100;
+  const maxWithdrawalPerDay = 2000;
   const withdrawalProgress = Math.min((earningMoney / minWithdrawal) * 100, 100);
 
   const handleFooterTabPress = (tab: FooterTab) => {
@@ -253,7 +254,12 @@ export default function EPointsScreen() {
 
       const amount = Number(redeemAmount);
       if (!Number.isFinite(amount) || amount < minWithdrawal || amount > earningMoney) {
-        showSweetAlert('Invalid amount', 'Minimum withdrawal is ₹2,000.00 and cannot exceed your current balance.', 'warning');
+        showSweetAlert('Invalid amount', `Minimum withdrawal is ${formatCurrency(minWithdrawal)} and cannot exceed your current balance.`, 'warning');
+        return;
+      }
+
+      if (amount > maxWithdrawalPerDay) {
+        showSweetAlert('Limit exceeded', `Maximum withdrawal is ${formatCurrency(maxWithdrawalPerDay)} per day.`, 'warning');
         return;
       }
 
@@ -272,7 +278,7 @@ export default function EPointsScreen() {
       );
 
       showSweetAlert('Success', 'Withdrawal request submitted successfully.', 'success');
-      setRedeemAmount('2000');
+      setRedeemAmount('100');
       await loadWalletData();
     } catch (error: any) {
       showSweetAlert('Error', error?.response?.data?.message || 'Withdrawal request failed.', 'error');
@@ -388,7 +394,7 @@ export default function EPointsScreen() {
           )}
 
           <Text style={[styles.mutedText, isDark && styles.darkSubtext]}>
-            Minimum <Text style={styles.highlightText}>₹2,000.00</Text> required to withdraw.
+            Minimum <Text style={styles.highlightText}>₹100.00</Text> (Max <Text style={styles.highlightText}>₹2,000.00/day</Text>) required to withdraw.
           </Text>
 
           <View style={[styles.progressTrack, isDark && styles.darkProgressTrack]}>
@@ -403,7 +409,7 @@ export default function EPointsScreen() {
 
           <View style={styles.progressMeta}>
             <Text style={[styles.progressMetaText, isDark && styles.darkSubtext]}>{formatCurrency(earningMoney)}</Text>
-            <Text style={[styles.progressMetaText, isDark && styles.darkSubtext]}>{formatCurrency(minWithdrawal)}</Text>
+            <Text style={[styles.progressMetaText, isDark && styles.darkSubtext]}>Min: {formatCurrency(minWithdrawal)}</Text>
           </View>
 
           {earningMoney >= minWithdrawal ? (
@@ -414,7 +420,7 @@ export default function EPointsScreen() {
                   value={redeemAmount}
                   onChangeText={setRedeemAmount}
                   keyboardType="numeric"
-                  placeholder="2000"
+                  placeholder="100"
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   style={[styles.input, isDark && styles.darkInput]}
                 />

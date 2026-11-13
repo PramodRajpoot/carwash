@@ -67,23 +67,23 @@
         </div>
 
         <div class="text-muted" style="font-size:0.82rem;margin-bottom:0.5rem">
-          Minimum <strong style="color:var(--accent-cyan)">₹2,000.00</strong> required to withdraw.
+          Minimum <strong style="color:var(--accent-cyan)">₹100.00</strong> (Max <strong style="color:var(--accent-cyan)">₹2,000.00/day</strong>) required to withdraw.
         </div>
         <div style="background:var(--bg-secondary);border-radius:var(--radius-md);height:8px;margin-bottom:0.5rem">
-          <div :style="{ width: Math.min((balance.earning_money / 2000) * 100, 100) + '%', background: balance.earning_money >= 2000 ? 'var(--gradient-btn)' : 'linear-gradient(135deg,#ef4444,#f97316)', borderRadius: 'var(--radius-md)', height: '100%', transition: 'width 0.4s' }"></div>
+          <div :style="{ width: Math.min((balance.earning_money / 100) * 100, 100) + '%', background: balance.earning_money >= 100 ? 'var(--gradient-btn)' : 'linear-gradient(135deg,#ef4444,#f97316)', borderRadius: 'var(--radius-md)', height: '100%', transition: 'width 0.4s' }"></div>
         </div>
         <div class="flex justify-between" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem">
-          <span>₹{{ parseFloat(balance.earning_money || 0).toFixed(2) }}</span><span>₹2,000.00</span>
+          <span>₹{{ parseFloat(balance.earning_money || 0).toFixed(2) }}</span><span>Min ₹100.00 / Max ₹2,000.00/day</span>
         </div>
 
-        <div v-if="balance.earning_money >= 2000" class="flex gap-2 items-end">
+        <div v-if="balance.earning_money >= 100" class="flex gap-2 items-end">
           <div style="flex:1">
             <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Amount to Withdraw (₹)</label>
-            <input type="number" v-model="redeemAmountMoney" :min="2000" :max="balance.earning_money" step="100" class="form-input" placeholder="2000" />
+            <input type="number" v-model="redeemAmountMoney" :min="100" :max="Math.min(balance.earning_money, 2000)" step="50" class="form-input" placeholder="100" />
           </div>
           <button class="btn btn-primary" @click="requestWithdrawal" :disabled="redeeming || !hasBankDetails">{{ redeeming ? 'Requesting…' : 'Withdraw' }}</button>
         </div>
-        <div v-else class="text-muted" style="font-size:0.85rem">You need ₹{{ (2000 - (balance.earning_money || 0)).toFixed(2) }} more to unlock withdrawals.</div>
+        <div v-else class="text-muted" style="font-size:0.85rem">You need ₹{{ (100 - (balance.earning_money || 0)).toFixed(2) }} more to unlock withdrawals.</div>
       </div>
     </div>
 
@@ -128,7 +128,7 @@ export default {
         upi_id: '',
       },
       loading: true,
-      redeemAmountMoney: 2000,
+      redeemAmountMoney: 100,
       redeeming: false,
       savingBank: false
     };
@@ -160,9 +160,17 @@ export default {
         return;
       }
       
-      const amount = this.redeemAmountMoney;
-      if (amount < 2000 || amount > this.balance.earning_money) {
-        Swal.fire('Error', 'Invalid withdrawal amount. Minimum is ₹2,000.', 'error');
+      const amount = Number(this.redeemAmountMoney);
+      if (amount < 100) {
+        Swal.fire('Error', 'Invalid withdrawal amount. Minimum is ₹100.', 'error');
+        return;
+      }
+      if (amount > 2000) {
+        Swal.fire('Error', 'Maximum withdrawal is ₹2,000 per day.', 'error');
+        return;
+      }
+      if (amount > this.balance.earning_money) {
+        Swal.fire('Error', 'Amount exceeds your current Earning Money balance.', 'error');
         return;
       }
       

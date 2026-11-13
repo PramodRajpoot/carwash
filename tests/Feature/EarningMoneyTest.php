@@ -41,6 +41,7 @@ class EarningMoneyTest extends TestCase
             'email' => 'customer_' . uniqid() . '@example.com',
             'password' => bcrypt('password'),
             'role' => 'customer',
+            'status' => 'active',
             'referred_by' => $this->referrer->id,
             'first_booking_discount' => true,
         ]);
@@ -264,5 +265,72 @@ class EarningMoneyTest extends TestCase
             ->first();
         $this->assertNotNull($refundTrx);
         $this->assertEquals(2000.00, (float) $refundTrx->amount);
+    }
+
+    public function test_subscription_purchase_does_not_award_epoints()
+    {
+        $this->customer->e_points = 0;
+        $this->customer->save();
+
+        $subPackage = ServicePackage::create([
+            'name' => 'Monthly Plan',
+            'description' => '30 days package',
+            'price' => 1500.00,
+            'duration' => 60,
+            'vehicle_type' => 'sedan',
+            'frequency_days' => 30,
+            'max_bookings' => 4,
+            'is_subscription' => true,
+        ]);
+
+        $this->actingAs($this->customer, 'sanctum');
+
+        $response = $this->postJson('/api/customer/subscriptions', [
+            'package_id' => $subPackage->id,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+            'message' => 'Subscribed successfully!',
+        ]);
+
+        $this->customer->refresh();
+        $this->assertEquals(0, $this->customer->e_points);
+
+        // Ensure no transaction for subscription points was logged
+        $trx = WalletTransaction::where('user_id', $this->customer->id)
+            ->where('description', 'like', '%subscribing%')
+            ->first();
+        $this->assertNull($trx);
+    }
+
+    public function test_withdrawal_limits_min_100_and_max_2000_per_day()
+    {
+        $this->customer->earning_money = 5000.00;
+        $this->customer->save();
+
+        $this->actingAs($this->customer, 'sanctum');
+
+        // Below 100 fails
+        $responseBelow = $this->postJson('/api/wallet/withdraw', ['amount' => 50]);
+        $responseBelow->assertStatus(422); // Laravel validation min:100 fails with 422
+
+        // Greater than 2000 fails
+        $responseAbove = $this->postJson('/api/wallet/withdraw', ['amount' => 2500]);
+        $responseAbove->assertStatus(422); // Laravel validation max:2000 fails with 422
+
+        // Withdrawal of 100 succeeds
+        $response1 = $this->postJson('/api/wallet/withdraw', ['amount' => 100]);
+        $response1->assertStatus(200);
+
+        // Withdrawal of 1900 succeeds (total today = 2000)
+        $response2 = $this->postJson('/api/wallet/withdraw', ['amount' => 1900]);
+        $response2->assertStatus(200);
+
+        // Any further withdrawal today exceeds daily limit of 2000
+        $response3 = $this->postJson('/api/wallet/withdraw', ['amount' => 100]);
+        $response3->assertStatus(400);
+        $this->assertStringContainsString('reached your daily withdrawal limit', $response3->json('message'));
     }
 }

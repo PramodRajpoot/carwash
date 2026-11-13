@@ -201,28 +201,17 @@ class CustomerController extends Controller
             'expires_at'    => Carbon::now()->addDays($package->frequency_days),
         ]);
 
-        // Award 50 E-Points for purchasing subscription
-        $user->increment('e_points', 50);
-        WalletTransaction::create([
-            'user_id'     => $user->id,
-            'type'        => 'credit',
-            'amount'      => 50,
-            'source'      => 'booking',
-            'status'      => 'confirmed',
-            'description' => "E-Points earned for subscribing to {$package->name}",
-        ]);
-
         // Notification
         NotificationLog::create([
             'user_id' => $user->id,
             'type'    => 'subscription_expiry',
             'title'   => 'Subscription Activated!',
-            'body'    => "Your {$package->name} subscription is now active. Expires on " . Carbon::now()->addDays($package->frequency_days)->format('d M Y') . '. You earned 50 E-Points!',
+            'body'    => "Your {$package->name} subscription is now active. Expires on " . Carbon::now()->addDays($package->frequency_days)->format('d M Y') . '.',
         ]);
 
         return response()->json([
             'status'       => 'success',
-            'message'      => "Subscribed successfully! You earned 50 E-Points.",
+            'message'      => "Subscribed successfully!",
             'subscription' => $subscription,
         ]);
     }

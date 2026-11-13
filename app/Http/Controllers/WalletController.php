@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\WalletTransaction;
 use App\Models\NotificationLog;
+use App\Models\WithdrawalRequest;
+use Carbon\Carbon;
 
 class WalletController extends Controller
 {
@@ -20,14 +22,23 @@ class WalletController extends Controller
 
         $total = max((int) $totalEarned, $user->e_points);
 
+        $todayWithdrawn = (float) WithdrawalRequest::where('user_id', $user->id)
+            ->whereDate('created_at', Carbon::today())
+            ->where('status', '!=', 'rejected')
+            ->sum('amount');
+
         return response()->json([
-            'e_points'        => $user->e_points,
-            'pending_epoints' => $user->pending_epoints,
-            'earning_money'   => $user->earning_money,
-            'total'           => $total,
-            'can_redeem'      => $user->e_points >= 1000,
-            'min_redeem'      => 1000,
-            'referral_count'  => $user->referrals()->count(),
+            'e_points'               => $user->e_points,
+            'pending_epoints'        => $user->pending_epoints,
+            'earning_money'          => $user->earning_money,
+            'total'                  => $total,
+            'can_redeem'             => $user->e_points >= 1000,
+            'min_redeem'             => 1000,
+            'min_withdrawal'         => 100,
+            'max_withdrawal_per_day' => 2000,
+            'today_withdrawn'        => $todayWithdrawn,
+            'remaining_daily_limit'  => max(0, 2000 - $todayWithdrawn),
+            'referral_count'         => $user->referrals()->count(),
         ]);
     }
 

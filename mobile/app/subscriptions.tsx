@@ -284,9 +284,6 @@ export default function SubscriptionsScreen() {
       >
         <View style={[styles.sectionHeader, isDark && styles.sectionHeaderDark]}>
           <Text style={[styles.sectionTitle, isDark && styles.titleDark]}>Monthly Wash Plans</Text>
-          <View style={styles.badgePill}>
-            <Text style={styles.badgeText}>SAVE UP TO 40%</Text>
-          </View>
         </View>
 
         {monthlyPlans.map((plan) => {
