@@ -238,7 +238,10 @@ export default function SubscriptionsScreen() {
             }
           );
 
-          showSweetAlert('Success', response.data?.message || 'Subscription activated successfully.', 'success');
+          const successMessage = (response.data?.message || 'Subscription activated successfully.')
+            .replace(/\s*You earned 50 E-Points\.?/gi, '')
+            .trim();
+          showSweetAlert('Success', successMessage || 'Subscribed successfully!', 'success');
           await loadPlans();
         } catch (error: any) {
           const message = error?.response?.data?.message || 'Failed to subscribe.';
