@@ -63,7 +63,7 @@
               <th style="padding: 1rem; text-align: left;">Service Name</th>
               <th style="padding: 1rem; text-align: left;">Type</th>
               <th style="padding: 1rem; text-align: left;">Category</th>
-              <th style="padding: 1rem; text-align: left;">Vehicle Type</th>
+              <th style="padding: 1rem; text-align: left;">Service Type</th>
               <th style="padding: 1rem; text-align: left;">Price</th>
               <th style="padding: 1rem; text-align: left;">Frequency</th>
               <th style="padding: 1rem; text-align: left;">Actions</th>
@@ -264,7 +264,7 @@
 
           <div class="grid grid-2 gap-2">
             <div class="form-group">
-              <label>Vehicle Type *</label>
+              <label>Service Type *</label>
               <select v-model="serviceForm.vehicle_type" class="form-select" required>
                 <option v-if="serviceForm.is_addon" value="all">All Vehicles</option>
                 <option value="hatchback">Hatchback</option>
@@ -359,7 +359,7 @@
           <div>
             <h3 style="margin: 0;">➕ Add-on Services for "{{ managingService ? managingService.name : '' }}"</h3>
             <p class="text-muted" style="font-size: 0.85rem; margin-top: 0.25rem;">
-              Vehicle: <b style="text-transform: capitalize;">{{ managingService ? managingService.vehicle_type : '' }}</b> • Category: <b>{{ managingService ? getDisplayCategory(managingService) : '' }}</b>
+              Service Type: <b style="text-transform: capitalize;">{{ managingService ? managingService.vehicle_type : '' }}</b> • Category: <b>{{ managingService ? getDisplayCategory(managingService) : '' }}</b>
             </p>
           </div>
           <button class="btn btn-ghost btn-sm" @click="closeModal" style="font-size: 1.1rem; line-height: 1;">✕</button>
