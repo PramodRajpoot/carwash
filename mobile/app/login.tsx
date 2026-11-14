@@ -25,6 +25,7 @@ import {
   safeHapticSuccess,
   safeHapticWarning,
 } from '../utils/haptics';
+import { useAppTheme } from '../utils/themeManager';
 
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
@@ -36,7 +37,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16);
 
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useAppTheme();
   const [activeTab, setActiveTab] = useState<LoginMode>('email');
 
   // Email form state
@@ -80,9 +81,6 @@ export default function LoginScreen() {
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
-      AsyncStorage.getItem('app_theme').then((theme) => {
-        if (isMounted) setIsDark(theme === 'dark');
-      });
 
       // Auto-check if already logged in
       AsyncStorage.getItem('userToken').then((token) => {
@@ -357,6 +355,18 @@ export default function LoginScreen() {
           >
             <Ionicons name="arrow-back" size={20} color={isDark ? '#f8fafc' : '#0f172a'} />
             <Text style={[styles.backText, isDark && styles.darkBackText]}>Back</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.themeBtn, isDark && styles.darkThemeBtn]}
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isDark ? 'sunny' : 'moon-outline'}
+              size={18}
+              color={isDark ? '#fbbf24' : '#334155'}
+            />
           </TouchableOpacity>
         </View>
 
@@ -822,7 +832,19 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  themeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  darkThemeBtn: {
+    backgroundColor: '#1e293b',
   },
   backButton: {
     flexDirection: 'row',

@@ -22,10 +22,12 @@ import { getAvatarUri } from '../utils/avatar';
 import { safeHapticLight } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
 import DashboardHeader from '../components/DashboardHeader';
+import { useAppTheme } from '../utils/themeManager';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { isDark, toggleTheme } = useAppTheme();
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
@@ -34,10 +36,9 @@ export default function ProfileScreen() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'security'>('profile');
-  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('home');
+  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('profile');
 
   const [profileForm, setProfileForm] = useState({
     name: '',
@@ -103,14 +104,6 @@ export default function ProfileScreen() {
 
     bootstrap();
   }, [router]);
-
-  useEffect(() => {
-    const loadTheme = async () => {
-      const theme = await AsyncStorage.getItem('app_theme');
-      setIsDark(theme === 'dark');
-    };
-    loadTheme();
-  }, []);
 
   const userName = user?.name || 'Customer';
   const userEmail = user?.email || 'customer@example.com';
@@ -208,21 +201,18 @@ export default function ProfileScreen() {
     setActiveFooterTab(tab);
 
     if (tab === 'home') {
-      router.push('/dashboard');
-    } else if (tab === 'garage') {
-      router.push('/garage');
-    } else if (tab === 'book') {
+      router.push('/');
+    } else if (tab === 'bookings' || tab === 'book') {
       router.push('/bookings');
+    } else if (tab === 'refer') {
+      router.push('/refer-and-earn');
+    } else if (tab === 'wallet') {
+      router.push('/e-points');
+    } else if (tab === 'profile' || tab === 'garage') {
+      // already on profile
     } else if (tab === 'support') {
       router.push('/support');
     }
-  };
-
-  const toggleTheme = async () => {
-    safeHapticLight();
-    const next = !isDark;
-    setIsDark(next);
-    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
   };
 
   const handleAvatarPick = async () => {

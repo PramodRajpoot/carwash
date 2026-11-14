@@ -54,7 +54,6 @@ export default function MembershipCard({
               <Ionicons name="sparkles" size={13} color="#f59e0b" />
               <Text style={styles.badgeClubText}>DOORSTEP CLUB</Text>
             </View>
-            <Text style={styles.emptyTag}>Save up to 40%</Text>
           </View>
 
           <Text style={styles.emptyTitle}>Get a Car Wash Subscription</Text>

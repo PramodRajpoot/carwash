@@ -18,7 +18,32 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.pramod_kumar12345.cleanatdoorstep"
+      "package": "com.pramod_kumar12345.cleanatdoorstep",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "cleanatdoorstep"
+            },
+            {
+              "scheme": "http",
+              "host": "187.126.119.129",
+              "pathPrefix": "/register"
+            },
+            {
+              "scheme": "https",
+              "host": "187.126.119.129",
+              "pathPrefix": "/register"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -52,7 +77,9 @@
           "locationAlwaysAndWhenInUsePermission": "Allow CleanAtDoorstep to access your location to find nearby wash centers and provide doorstep service.",
           "locationWhenInUsePermission": "Allow CleanAtDoorstep to access your location to find nearby wash centers and provide doorstep service."
         }
-      ]
+      ],
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

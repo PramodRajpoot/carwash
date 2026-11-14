@@ -74,9 +74,9 @@
               </div>
             </td>
             <td>
-              <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid</span>
-              <template v-else-if="b.payment_status === 'partially_paid'">
-                <span class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 0).toFixed(0) }} Paid (Partial)</span>
+              <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid (Slot Booked)</span>
+              <template v-else-if="b.payment_status === 'partially_paid' || parseFloat(b.paid_amount || 0) >= 99">
+                <span class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 0).toFixed(0) }} Paid (Slot Booked)</span>
                 <div style="margin-top: 3px;">
                   <span v-if="b.payment_method === 'cod'" class="badge badge-amber" style="font-size:0.65rem;" title="Remaining amount to be paid via Cash on Delivery">
                     💵 Rest via COD
@@ -86,9 +86,9 @@
                   </span>
                 </div>
               </template>
-              <span v-else-if="b.payment_status === 'pending_payment'" class="badge badge-amber" style="font-size:0.7rem;">⏳ Pending</span>
-              <span v-else-if="b.payment_status === 'failed'" class="badge badge-rose" style="font-size:0.7rem;">✗ Failed</span>
-              <span v-else class="badge badge-cyan" style="font-size:0.7rem;">{{ b.payment_method === 'cod' ? 'COD' : 'Unpaid' }}</span>
+              <span v-else-if="b.payment_status === 'pending_payment'" class="badge badge-amber" style="font-size:0.7rem;" title="Pay full or ₹99 advance to confirm your slot">⏳ Pending Payment (Slot Not Booked)</span>
+              <span v-else-if="b.payment_status === 'failed'" class="badge badge-rose" style="font-size:0.7rem;">✗ Failed (Slot Not Booked)</span>
+              <span v-else class="badge badge-cyan" style="font-size:0.7rem;">{{ b.payment_method === 'cod' ? 'COD (Slot Not Booked)' : 'Unpaid (Slot Not Booked)' }}</span>
             </td>
             <td><span class="badge" :class="statusBadge(b.status)">{{ b.status }}</span></td>
             <td>
@@ -122,7 +122,7 @@
                     💳 Switch to Online
                   </button>
                 </template>
-                <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b.id)">Cancel</button>
+                <button v-if="canCancel(b)" class="btn btn-sm btn-danger" @click="cancel(b)" title="Cancel / Delete Wash">🗑️ Delete</button>
                 <button class="btn btn-sm btn-ghost" style="border: 1px solid var(--border-color); font-size: 0.75rem; padding: 0.2rem 0.55rem; color: var(--text-primary);" @click="downloadInvoice(b.id)" title="View & Print Tax Invoice">
                   📄 Invoice
                 </button>
@@ -237,7 +237,11 @@
                 <span>Add-ons ({{ bf.addon_ids.length }} items)</span>
                 <span>+ ₹{{ addonTotal.toFixed(2) }}</span>
               </div>
-              <div v-if="appliedCouponDiscount > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald); font-weight: 600;">
+              <div v-if="firstWashDiscount > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald); font-weight: 600;">
+                <span>🎉 First Wash Discount (10%)</span>
+                <span>- ₹{{ firstWashDiscount.toFixed(2) }}</span>
+              </div>
+              <div v-else-if="appliedCouponDiscount > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald); font-weight: 600;">
                 <span>🎟️ Coupon ({{ appliedCouponCode }})</span>
                 <span>- ₹{{ appliedCouponDiscount.toFixed(2) }}</span>
               </div>
@@ -400,8 +404,23 @@
             </div>
           </div>
           
+          <!-- First Wash Discount Badge -->
+          <div v-if="qualifiesForFirstWash" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--accent-emerald); border-radius: var(--radius-md); padding: 0.85rem; display: flex; align-items: center; gap: 0.75rem;">
+              <span style="font-size: 1.5rem;">🎉</span>
+              <div>
+                <div style="font-weight: 700; color: var(--accent-emerald); font-size: 0.92rem;">
+                  10% First Wash Discount Applied!
+                </div>
+                <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.15rem;">
+                  Flat 10% discount (-₹{{ firstWashDiscount.toFixed(2) }}) applied automatically on your first wash.
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Coupon Code Input & Apply Button -->
-          <div class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
+          <div v-else class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
             <label style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Coupon Code</label>
             <div style="display: flex; gap: 0.5rem;">
               <input 
@@ -435,8 +454,16 @@
             </div>
           </div>
           
+          <!-- Locked Benefits Notice on first wash -->
+          <div v-if="bf.package_id && isFirstWash" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; color: #d97706; font-weight: 600;">
+              <span>🔒</span>
+              <span>E-Points and Earning Money unlock on your next washes.</span>
+            </div>
+          </div>
+
           <!-- E-Points Checkbox Option -->
-          <div v-if="bf.package_id && userPoints > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+          <div v-if="bf.package_id && !isFirstWash && userPoints > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
             <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; color: var(--text-primary);">
               <input type="checkbox" v-model="bf.use_epoints" style="width: 16px; height: 16px; accent-color: var(--accent-emerald);" />
               <span>Use E-Points</span>
@@ -448,7 +475,7 @@
           </div>
 
           <!-- Earning Money Checkbox Option -->
-          <div v-if="bf.package_id && userEarningMoney > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 1rem;">
+          <div v-if="bf.package_id && !isFirstWash && userEarningMoney > 0" class="form-group" style="margin-top: 0.5rem; margin-bottom: 1rem;">
             <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; color: var(--text-primary);">
               <input type="checkbox" v-model="bf.use_earning_money" style="width: 16px; height: 16px; accent-color: var(--accent-cyan);" />
               <span>Use Earning Money</span>
@@ -531,62 +558,6 @@
       </div>
     </div>
 
-    <!-- Reschedule / Postpone Wash Booking Modal -->
-    <div v-if="postponeBooking" class="modal-overlay" @click.self="postponeBooking = null">
-      <div class="modal-content">
-        <h3>Reschedule Wash Booking #{{ postponeBooking.id }}</h3>
-        <p class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1rem;">
-          Vehicle: <strong>{{ postponeBooking.vehicle?.make_model }}</strong> | Current Date: <strong>{{ postponeBooking.booking_date }}</strong> ({{ postponeBooking.slot_time }})
-        </p>
-
-        <form @submit.prevent="submitPostpone">
-          <div class="form-group">
-            <label>Wash Date</label>
-            <input v-model="pf.booking_date" type="date" class="form-input" :min="minDate" required @change="onPostponeDateChange" @input="onPostponeDateChange" />
-            <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-              You can choose today or any future date. Completed washes cannot be modified.
-            </small>
-          </div>
-
-          <div class="form-group">
-            <label>Time Slot</label>
-            <select v-model="pf.slot_time" class="form-select" required :disabled="postponeSlotsLoading || !pf.booking_date || postponeAllSlotsFull">
-              <option value="" v-if="postponeSlotsLoading">Loading available slots...</option>
-              <option value="" v-else-if="!pf.booking_date">Select date first</option>
-              <option value="" v-else-if="postponeSlots.length === 0">No slots available for this date</option>
-              <option value="" v-else-if="postponeAllSlotsFull">All slots are full for this date</option>
-              <option v-else value="">Choose Slot</option>
-              <option v-for="s in postponeSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings || s.is_full">
-                {{ s.time_range }} {{ (s.current_bookings >= s.max_bookings || s.is_full) ? '— (Slot Full)' : '' }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Alert message when any slot is booked/full on reschedule date -->
-          <div v-if="postponeBookedSlots.length > 0 && !postponeSlotsLoading" style="margin-top: 0.5rem; margin-bottom: 0.75rem; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.85rem;">
-            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
-              <span style="font-size: 1.1rem; line-height: 1.2;">⚠️</span>
-              <div style="flex: 1;">
-                <div v-for="s in postponeBookedSlots" :key="s.time_range" style="font-weight: 600; line-height: 1.45;">
-                  <span style="font-weight: 700;">Slot Full:</span> {{ s.time_range }}
-                </div>
-                <div v-if="postponeAllSlotsFull" style="margin-top: 0.25rem; font-size: 0.78rem; font-weight: 500; color: #dc2626;">
-                  All slots are fully booked on this date. Please choose another date.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex gap-2" style="margin-top: 1.25rem;">
-            <button type="submit" class="btn btn-primary" :disabled="submittingPostpone || !pf.booking_date || !pf.slot_time">
-              {{ submittingPostpone ? 'Rescheduling...' : 'Confirm Reschedule' }}
-            </button>
-            <button type="button" class="btn btn-ghost" @click="postponeBooking = null">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
   </div>
 </template>
 <script>
@@ -603,15 +574,11 @@ export default {
       packages: [],
       availableSlots: [],
       slotsLoading: false,
-      postponeSlots: [],
       userStatus: 'active',
-      postponeSlotsLoading: false,
-      submittingPostpone: false,
       showBookingModal: false,
       bookingMsg: '',
       bookingError: false,
       bookingLoading: false,
-      postponeBooking: null,
       payingBookingId: null,
       appliedCouponDiscount: 0,
       appliedCouponCode: '',
@@ -635,11 +602,12 @@ export default {
         use_earning_money: false,
         payment_type: 'full'
       },
-      pf: { booking_date: '', slot_time: '' },
       currentPage: 1,
       itemsPerPage: 10,
       userPoints: 0,
-      userEarningMoney: 0
+      userEarningMoney: 0,
+      isFirstWash: false,
+      hasCompletedFirstWash: false
     };
   },
   computed: {
@@ -683,23 +651,36 @@ export default {
     addonTotal() {
       return this.selectedAddons.reduce((sum, a) => sum + parseFloat(a.price || 0), 0);
     },
+    qualifiesForFirstWash() {
+      return this.isFirstWash;
+    },
+    firstWashDiscount() {
+      if (!this.qualifiesForFirstWash || !this.selectedBasePlan) return 0;
+      const base = parseFloat(this.selectedBasePlan.price || 0);
+      const total = base + this.addonTotal;
+      return Math.round(total * 0.10 * 100) / 100;
+    },
+    effectiveCouponDiscount() {
+      if (this.qualifiesForFirstWash) return this.firstWashDiscount;
+      return this.appliedCouponDiscount;
+    },
     appliedEPoints() {
-      if (!this.bf.use_epoints || !this.bf.package_id) return 0;
+      if (this.isFirstWash || !this.bf.use_epoints || !this.bf.package_id) return 0;
       return this.pointsToBeDeducted;
     },
     pointsToBeDeducted() {
-      if (!this.bf.package_id) return 0;
+      if (this.isFirstWash || !this.bf.package_id) return 0;
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       const total = base + this.addonTotal;
-      const totalAfterCoupon = Math.max(0, total - this.appliedCouponDiscount);
+      const totalAfterCoupon = Math.max(0, total - this.effectiveCouponDiscount);
       const maxAllowed = Math.floor(totalAfterCoupon * 0.125);
       return Math.min(maxAllowed, this.userPoints);
     },
     appliedEarningMoney() {
-      if (!this.bf.use_earning_money || !this.bf.package_id) return 0;
+      if (this.isFirstWash || !this.bf.use_earning_money || !this.bf.package_id) return 0;
       let total = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       total += this.addonTotal;
-      total -= this.appliedCouponDiscount;
+      total -= this.effectiveCouponDiscount;
       total -= this.appliedEPoints;
       if (total <= 0) return 0;
       return Math.min(parseFloat(this.userEarningMoney || 0), total);
@@ -707,7 +688,7 @@ export default {
     taxableSubtotal() {
       const base = this.selectedBasePlan ? parseFloat(this.selectedBasePlan.price) : 0;
       const total = base + this.addonTotal;
-      return Math.max(0, total - this.appliedCouponDiscount - this.appliedEPoints - this.appliedEarningMoney);
+      return Math.max(0, total - this.effectiveCouponDiscount - this.appliedEPoints - this.appliedEarningMoney);
     },
     isCustomerBlocked() {
       const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
@@ -737,13 +718,6 @@ export default {
     allSlotsFull() {
       return this.availableSlots.length > 0 && this.bookedSlots.length === this.availableSlots.length;
     },
-    postponeBookedSlots() {
-      if (!this.postponeSlots || !this.postponeSlots.length) return [];
-      return this.postponeSlots.filter(s => (s.current_bookings >= s.max_bookings) || s.is_full);
-    },
-    postponeAllSlotsFull() {
-      return this.postponeSlots.length > 0 && this.postponeBookedSlots.length === this.postponeSlots.length;
-    },
     isCenterRemembered() {
       const saved = localStorage.getItem('selected_franchisee_id');
       return !!saved && String(this.bf.franchisee_id) === String(saved);
@@ -761,11 +735,6 @@ export default {
           localStorage.setItem('selected_franchisee_id', newVal);
         }
         this.onCenterChange();
-      }
-    },
-    'pf.booking_date'(newVal, oldVal) {
-      if (oldVal && newVal !== oldVal) {
-        this.onPostponeDateChange();
       }
     },
     'bf.package_id'(newVal) {
@@ -811,6 +780,14 @@ export default {
   },
   methods: {
     async applyCoupon(silent = false) {
+      if (this.qualifiesForFirstWash) {
+        if (!silent) {
+          this.couponFeedback = 'First wash 10% discount is already applied!';
+          this.couponSuccess = true;
+        }
+        return;
+      }
+
       if (!this.bf.coupon_code || !this.bf.coupon_code.trim()) {
         if (!silent) {
           this.couponFeedback = 'Please enter a coupon code';
@@ -894,8 +871,38 @@ export default {
       }
     },
     statusBadge(s) { return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan'; },
-    canCancel(b) { return ['pending', 'assigned'].includes(b.status); },
-    canPostpone(b) { return ['pending', 'assigned', 'postponed'].includes(b.status); },
+    isOnly99Paid(b) {
+      const paid = parseFloat(b.paid_amount || 0);
+      const advance = parseFloat(b.advance_amount || 0);
+      const total = parseFloat(b.total_price || 0);
+      return (
+        (b.payment_status === 'partially_paid' ||
+          (b.payment_type === 'partial' && paid > 0) ||
+          advance === 99 ||
+          paid === 99) &&
+        (b.payment_status !== 'paid' || paid < total) &&
+        (paid === 99 || (paid > 0 && paid <= 100) || advance === 99)
+      );
+    },
+    isPaymentIncomplete(b) {
+      const paid = parseFloat(b.paid_amount || 0);
+      return (
+        b.payment_status !== 'paid' &&
+        (['unpaid', 'pending_payment', 'failed'].includes(b.payment_status) || paid === 0)
+      );
+    },
+    // Delete icon will only show on two cases:
+    // 1. Payment is not completed
+    // 2. User paid only 99 rupees
+    canCancel(b) {
+      if (b.status === 'completed' || b.status === 'cancelled') {
+        return false;
+      }
+      if (b.payment_status === 'paid') {
+        return false;
+      }
+      return this.isPaymentIncomplete(b) || this.isOnly99Paid(b);
+    },
     needsPayment(b) {
       return ['pending_payment', 'unpaid', 'failed'].includes(b.payment_status) && 
              b.payment_method === 'online' && 
@@ -1072,9 +1079,15 @@ export default {
         if (dashRes.status === 'fulfilled') {
           dash = dashRes.value.data || {};
           this.userStatus = dash.status || user.status || 'active';
-          this.bookings = dash.upcoming_services || [];
+          const rawServices = dash.upcoming_services || [];
+          this.bookings = rawServices.filter(b => {
+            const paid = Number(b.paid_amount || 0);
+            return b.payment_status === 'paid' || paid >= 99 || (b.payment_status === 'partially_paid' && paid >= 99);
+          });
           this.userPoints = dash.e_points || 0;
           this.userEarningMoney = dash.earning_money || 0;
+          this.isFirstWash = !!dash.is_first_wash;
+          this.hasCompletedFirstWash = dash.can_use_points !== undefined ? !!dash.can_use_points : !this.isFirstWash;
         }
 
         // Load saved address
@@ -1141,38 +1154,7 @@ export default {
         }
       }
     },
-    onPostponeDateChange() {
-      this.pf.slot_time = '';
-      this.postponeSlots = [];
-      this.fetchPostponeSlots(false);
-    },
-    async fetchPostponeSlots(keepSlot = false) {
-      if (!keepSlot) {
-        this.pf.slot_time = '';
-      }
-      if (!this.postponeBooking || !this.pf.booking_date) {
-        this.postponeSlots = [];
-        return;
-      }
-      this.postponeSlotsLoading = true;
-      try {
-        const { data } = await axios.get('/api/bookings/slots', {
-          params: { franchisee_id: this.postponeBooking.franchisee_id, date: this.pf.booking_date }
-        });
-        this.postponeSlots = Array.isArray(data) ? data : [];
-        if (this.pf.slot_time) {
-          const match = this.postponeSlots.find(s => s.time_range === this.pf.slot_time);
-          if (match && (match.current_bookings >= match.max_bookings || match.is_full)) {
-            this.pf.slot_time = '';
-          }
-        }
-      } catch (e) {
-        console.error('fetchPostponeSlots error:', e);
-        this.postponeSlots = [];
-      } finally {
-        this.postponeSlotsLoading = false;
-      }
-    },
+
 
     /**
      * Create booking and initiate Cashfree checkout if online payment.
@@ -1202,6 +1184,8 @@ export default {
       try {
         const payload = {
           ...this.bf,
+          use_epoints: !this.isFirstWash ? !!this.bf.use_epoints : false,
+          use_earning_money: !this.isFirstWash ? !!this.bf.use_earning_money : false,
           address: this.bf.address.trim(),
           save_as_default_address: this.addressChoice === 'new' ? this.bf.save_as_default_address : false
         };
@@ -1430,64 +1414,67 @@ export default {
       }
     },
 
-    async cancel(id) {
-      const result = await Swal.fire({
-        title: 'Cancel Booking?',
-        text: 'Are you sure you want to cancel this booking? The slot booking amount or any payment you have made will not be refunded.',
+    async cancel(bookingOrId) {
+      const b = typeof bookingOrId === 'object' ? bookingOrId : this.bookings.find(item => item.id === bookingOrId);
+      const id = b ? b.id : bookingOrId;
+      const isPaid99 = b ? this.isOnly99Paid(b) : false;
+
+      let confirmConfig = {
+        title: 'Delete Wash Booking?',
+        text: 'Are you sure you want to delete this booking? The slot booking amount or any payment you have made will not be refunded.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Yes',
-        cancelButtonText: 'No'
-      });
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel'
+      };
 
+      if (isPaid99) {
+        confirmConfig = {
+          title: 'Delete Wash Booking?',
+          html: `
+            <div style="text-align: left; font-size: 0.9rem; line-height: 1.5;">
+              <p style="margin-bottom: 0.75rem; color: #f8fafc;">This amount (₹99.00) will not be deleted after deleting it.</p>
+              <div style="background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.35); border-radius: 8px; padding: 12px; margin-bottom: 0.75rem;">
+                <div style="color: #38bdf8; font-weight: 700; margin-bottom: 4px;">📞 Customer Care Contact:</div>
+                <div style="font-size: 0.92rem; color: #e2e8f0;">
+                  For rescheduling this wash or retaining your ₹99 advance, please contact customer care:
+                  <br>
+                  <a href="tel:9910226873" style="color: #38bdf8; font-weight: 800; font-size: 1.15rem; display: inline-block; margin-top: 6px; text-decoration: underline;">
+                    📞 9910226873
+                  </a>
+                </div>
+              </div>
+              <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.5rem;">Are you sure you still want to delete this wash booking?</p>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#ef4444',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Yes, Delete Wash',
+          cancelButtonText: 'Keep Booking'
+        };
+      }
+
+      const result = await Swal.fire(confirmConfig);
       if (!result.isConfirmed) return;
 
       try {
         await axios.post(`/api/bookings/${id}/cancel`);
-        Swal.fire('Cancelled!', 'Your booking has been cancelled.', 'success');
-        this.loadData();
-      } catch (e) {
-        Swal.fire('Error', e.response?.data?.message || 'Failed to cancel booking', 'error');
-      }
-    },
-    openPostpone(b) {
-      if (b.status === 'completed') {
-        Swal.fire('Wash Completed', 'This wash has already been completed and cannot be edited.', 'info');
-        return;
-      }
-      this.postponeBooking = b;
-      this.pf.booking_date = (b.booking_date && b.booking_date >= this.minDate) ? b.booking_date : this.minDate;
-      this.pf.slot_time = b.slot_time || '';
-      this.postponeSlots = [];
-      if (this.pf.booking_date) {
-        this.fetchPostponeSlots(true);
-      }
-    },
-    async submitPostpone() {
-      if (!this.postponeBooking) return;
-      if (this.postponeBooking.status === 'completed') {
-        Swal.fire('Wash Completed', 'Completed wash bookings cannot be edited.', 'error');
-        return;
-      }
-      if (this.pf.slot_time) {
-        const selectedSlot = this.postponeSlots.find(s => s.time_range === this.pf.slot_time);
-        if (selectedSlot && (selectedSlot.current_bookings >= selectedSlot.max_bookings || selectedSlot.is_full)) {
-          Swal.fire('Slot Full', `Slot Full: ${this.pf.slot_time}. Please choose another available slot.`, 'warning');
-          return;
+        if (isPaid99) {
+          Swal.fire({
+            title: 'Wash Deleted',
+            html: `Wash booking deleted. To reschedule this wash or retain your ₹99 advance, please contact customer care at <a href="tel:9910226873" style="color:#0284c7;font-weight:700;text-decoration:underline;">9910226873</a>.`,
+            icon: 'success'
+          });
+        } else {
+          Swal.fire('Wash Deleted!', 'Your booking has been deleted.', 'success');
         }
-      }
-      this.submittingPostpone = true;
-      try {
-        const { data } = await axios.post(`/api/bookings/${this.postponeBooking.id}/postpone`, this.pf);
-        Swal.fire('Rescheduled!', data.message || 'Booking rescheduled successfully.', 'success');
-        this.postponeBooking = null;
         this.loadData();
       } catch (e) {
-        Swal.fire('Error', e.response?.data?.message || 'Failed to reschedule booking', 'error');
-      } finally {
-        this.submittingPostpone = false;
+        Swal.fire('Error', e.response?.data?.message || 'Failed to delete booking', 'error');
       }
     },
     async downloadInvoice(id) {

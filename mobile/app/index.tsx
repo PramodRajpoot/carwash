@@ -1,1634 +1,2037 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { StatusBar } from 'expo-status-bar';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  SafeAreaView,
+  Image,
+  Dimensions,
   Platform,
   RefreshControl,
-  Image,
-  TextInput,
   Modal,
-  Pressable,
+  Alert,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import * as Location from 'expo-location';
 
 import { API_BASE } from '../constants/api';
-import { safeHapticLight, safeHapticSuccess } from '../utils/haptics';
+import { safeHapticLight, safeHapticMedium, safeHapticWarning } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
+import AppFooter, { FooterTab } from '../components/AppFooter';
+import { useAppTheme } from '../utils/themeManager';
 
-const ITEMS_PER_PAGE = 3;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BANNER_WIDTH = Math.min(SCREEN_WIDTH - 20, 460);
+const HERO_BANNER_HEIGHT = Math.round(BANNER_WIDTH / 2.2);
+const PROMO_BANNER_WIDTH = Math.min(SCREEN_WIDTH - 8, 520);
+const PROMO_BANNER_HEIGHT = Math.round(PROMO_BANNER_WIDTH * (96 / 455));
 
-// Sample fallback packages
-const SAMPLE_PACKAGES = [
-  {
-    id: 1,
-    name: 'Happywash Express',
-    category_id: 1,
-    category: { id: 1, name: 'Carwash' },
-    vehicle_type: 'hatchback',
-    description: "Foam Exterior Wash\nInterior Vacuum clean\nMat cleaning\nGlass Cleaning\nTyre Dressing",
-    price: 245.18,
-    frequency_days: 30,
-    max_bookings: 4,
-    custom_badge: 'POPULAR',
-  },
-  {
-    id: 2,
-    name: 'Happy Wash + Car Shine',
-    category_id: 1,
-    category: { id: 1, name: 'Carwash' },
-    vehicle_type: 'hatchback',
-    description: "Foam Exterior Wash\nInterior Vacuum clean\nEngine & underbody cleaning\nDashboard Polish\nFull Body Wax",
-    price: 409.18,
-    frequency_days: 30,
-    max_bookings: 4,
-    custom_badge: 'BEST VALUE',
-  },
-  {
-    id: 3,
-    name: 'Full Interior Spa + Exterior',
-    category_id: 1,
-    category: { id: 1, name: 'Carwash' },
-    vehicle_type: 'sedan',
-    description: "Complete interior vacuuming\nDashboard UV polish\nExterior snow foam wash\nTire dressing & rim detail\nAnti-bacterial sanitization",
-    price: 799,
-    frequency_days: 0,
-    max_bookings: 1,
-  },
-  {
-    id: 4,
-    name: 'Monthly Premium Detailing Pass',
-    category_id: 1,
-    category: { id: 1, name: 'Carwash' },
-    vehicle_type: 'suv',
-    description: "8 Doorstep exterior washes\nBi-weekly deep interior vacuum\nCeramic wax coating touch-up\nEngine bay steam clean",
-    price: 2499,
-    frequency_days: 30,
-    max_bookings: 8,
-    custom_badge: 'PREMIUM',
-  },
-  {
-    id: 5,
-    name: 'Complete Home Deep Cleaning',
-    category_id: 2,
-    category: { id: 2, name: 'Home Cleaning' },
-    vehicle_type: 'all',
-    description: "Living room & bedroom dusting\nBathroom deep scrub & disinfection\nKitchen oil & grease stain removal\nFloor mechanical scrubbing",
-    price: 1999,
-    frequency_days: 0,
-    max_bookings: 1,
-  },
-  {
-    id: 6,
-    name: 'Kitchen & Bathroom Sanitization',
-    category_id: 2,
-    category: { id: 2, name: 'Home Cleaning' },
-    vehicle_type: 'all',
-    description: "High-pressure tile cleaning\nSink & fixture descaling\nChimney & stove degreasing\nFull anti-microbial steam wipe",
-    price: 1299,
-    frequency_days: 0,
-    max_bookings: 1,
-  },
-  {
-    id: 7,
-    name: 'Teflon Coating & Paint Correction',
-    category_id: 1,
-    category: { id: 1, name: 'Carwash' },
-    vehicle_type: 'sedan',
-    description: "Multi-stage machine paint polish\nMinor swirl & scratch removal\nHydrophobic Teflon sealant\n12-month shine protection",
-    price: 5999,
-    frequency_days: 0,
-    max_bookings: 1,
-    custom_badge: 'TOP SHINE',
-  },
-  {
-    id: 8,
-    name: 'Commercial Fleet Maintenance',
-    category_id: 1,
-    category: { id: 1, name: 'Carwash' },
-    vehicle_type: 'commercial',
-    description: "Heavy-duty power wash\nChassis & undercarriage pressure rinse\nInterior sanitizing spray\nExpress turnaround time",
-    price: 1499,
-    frequency_days: 0,
-    max_bookings: 1,
-  },
-];
-
-// Vehicle type filter options (matches wash service page)
-const VEHICLE_FILTERS = [
-  { label: 'All', icon: 'sparkles-outline', value: 'all' },
-  { label: 'Hatchback', icon: 'car-sport-outline', value: 'hatchback' },
-  { label: 'Sedan', icon: 'car-outline', value: 'sedan' },
-  { label: 'SUV', icon: 'speedometer-outline', value: 'suv' },
-  { label: 'Commercial', icon: 'bus-outline', value: 'commercial' },
-  { label: 'Bus', icon: 'navigate-outline', value: 'bus' },
-  { label: 'Volvo Bus', icon: 'trail-sign-outline', value: 'volvo_bus' },
-];
-
-export default function ServicesScreen() {
+export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<any>(null);
 
-  const [packages, setPackages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeVehicle, setActiveVehicle] = useState('all');
-  const [filterMenuVisible, setFilterMenuVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [visibleCount, setVisibleCount] = useState(3);
-  const [error, setError] = useState<string | null>(null);
+  const { isDark, toggleTheme } = useAppTheme();
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-  const [expandedPackages, setExpandedPackages] = useState<Record<string | number, boolean>>({});
-  const [wishlistPackageIds, setWishlistPackageIds] = useState<number[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const activeVehicleLabel = VEHICLE_FILTERS.find((f) => f.value === activeVehicle)?.label || 'All';
+  // Location State
+  const [currentLocation, setCurrentLocation] = useState('Detecting location...');
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [manualLocationInput, setManualLocationInput] = useState('');
+  const [detectingGps, setDetectingGps] = useState(false);
 
-  const fetchWishlist = async (authToken?: string | null) => {
+  // Side Drawer Menu State
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Database Banners & Services State
+  const [banners, setBanners] = useState<any[]>([]);
+  const [bannersLoading, setBannersLoading] = useState(true);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(true);
+
+  // Hero Carousel State
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const carouselTimer = useRef<any>(null);
+
+  // Helper to format full banner image URLs
+  const getBannerUri = (path?: string) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const clean = path.startsWith('/') ? path : `/${path}`;
+    return `${API_BASE}${clean}`;
+  };
+
+  // Dynamic starting prices calculated directly from database packages
+  const minPrices = useMemo(() => {
+    const calcMin = (vType: string, defaultVal: number) => {
+      const vPkgs = packages.filter(
+        (p) => !p.is_subscription && (p.vehicle_type === vType || p.vehicle_type === 'all')
+      );
+      if (vPkgs.length === 0) return defaultVal;
+      const prices = vPkgs.map((p) => Number(p.price) || defaultVal);
+      return Math.round(Math.min(...prices));
+    };
+    return {
+      hatchback: calcMin('hatchback', 299),
+      sedan: calcMin('sedan', 399),
+      suv: calcMin('suv', 499),
+    };
+  }, [packages]);
+
+
+
+  // GPS Address resolution for non-logged-in guest users
+  const resolveCurrentGPSAddress = useCallback(async () => {
     try {
-      const token = authToken !== undefined ? authToken : await AsyncStorage.getItem('userToken');
-      if (!token) {
-        setWishlistPackageIds([]);
-        return;
+      const { status } = await Location.getForegroundPermissionsAsync();
+      let perm = status;
+      if (perm !== 'granted') {
+        const req = await Location.requestForegroundPermissionsAsync();
+        perm = req.status;
       }
-      const res = await axios.get(`${API_BASE}/api/customer/wishlist`, {
+      if (perm === 'granted') {
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const [geo] = await Location.reverseGeocodeAsync({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        if (geo) {
+          const parts = [geo.name, geo.district || geo.subregion, geo.city].filter(Boolean);
+          const resolved = parts.length > 0 ? parts.join(', ') : `${geo.city || 'Delhi'}, India`;
+          setCurrentLocation(resolved);
+          await AsyncStorage.setItem('header_location', resolved);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('GPS detection error:', err);
+    }
+
+    const cached = await AsyncStorage.getItem('header_location');
+    if (cached && cached.trim() && cached !== 'Select Location') {
+      setCurrentLocation(cached.trim());
+    } else {
+      setCurrentLocation('Delhi, India');
+    }
+  }, []);
+
+  // Fetch Banners and Packages from Database
+  const fetchHomeData = useCallback(async () => {
+    // 1. Database Banners
+    try {
+      const res = await axios.get(`${API_BASE}/api/banners`, {
         headers: {
-          Authorization: `Bearer ${token}`,
           'ngrok-skip-browser-warning': 'true',
           'Bypass-Tunnel-Reminder': 'true',
         },
       });
-      if (Array.isArray(res.data)) {
-        const ids = res.data
-          .map((item: any) => item.package_id || item.package?.id)
-          .filter(Boolean);
-        setWishlistPackageIds(ids);
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setBanners(res.data);
       }
-    } catch (err) {
-      console.warn('Wishlist fetch error:', err);
+    } catch (e) {
+      console.warn('Failed to fetch banners:', e);
+    } finally {
+      setBannersLoading(false);
     }
-  };
+
+    // 2. Database Services
+    try {
+      const res = await axios.get(`${API_BASE}/api/packages?is_addon=false`, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
+        },
+      });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setPackages(res.data);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch packages:', e);
+    } finally {
+      setPackagesLoading(false);
+    }
+  }, []);
+
+  // Load Auth, User Address & Theme
+  // Rule: Use ONLY saved address in database for login user else get current address at index page
+  const syncState = useCallback(async () => {
+    try {
+      const storedToken = await AsyncStorage.getItem('userToken');
+      const storedUser = await AsyncStorage.getItem('userData');
+
+      setIsLoggedIn(!!storedToken);
+      setToken(storedToken);
+
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {}
+      } else {
+        setUser(null);
+      }
+
+      if (storedToken) {
+        // Logged-in user: use ONLY saved address from database
+        try {
+          const res = await axios.get(`${API_BASE}/api/customer/dashboard?limit=1`, {
+            headers: {
+              Authorization: `Bearer ${storedToken}`,
+              'Bypass-Tunnel-Reminder': 'true',
+              'ngrok-skip-browser-warning': 'true',
+            },
+          });
+          if (res.data?.user) {
+            setUser(res.data.user);
+            await AsyncStorage.setItem('userData', JSON.stringify(res.data.user));
+          }
+          if (res.data?.unread_notifications !== undefined) {
+            setUnreadCount(res.data.unread_notifications);
+          }
+          const dbAddress = res.data?.address || res.data?.user?.address;
+          if (
+            dbAddress &&
+            typeof dbAddress === 'string' &&
+            dbAddress.trim() &&
+            dbAddress.trim() !== 'Pending Setup'
+          ) {
+            const cleanAddr = dbAddress.trim();
+            setCurrentLocation(cleanAddr);
+            await AsyncStorage.setItem('header_location', cleanAddr);
+          } else {
+            setCurrentLocation('No saved address - Tap to add');
+          }
+        } catch {
+          if (storedUser) {
+            try {
+              const u = JSON.parse(storedUser);
+              if (u?.address && u.address.trim() && u.address.trim() !== 'Pending Setup') {
+                setCurrentLocation(u.address.trim());
+              }
+            } catch {}
+          }
+        }
+      } else {
+        // Non-logged-in user: auto-detect current address via GPS
+        resolveCurrentGPSAddress();
+      }
+    } catch (e) {
+      console.warn('Sync state error:', e);
+    }
+  }, [resolveCurrentGPSAddress]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      const checkAuthAndTheme = async () => {
-        const token = await AsyncStorage.getItem('userToken');
-        setIsLoggedIn(!!token);
-        const storedTheme = await AsyncStorage.getItem('app_theme');
-        if (storedTheme) {
-          setIsDark(storedTheme === 'dark');
-        }
-        if (token) {
-          fetchWishlist(token);
-        } else {
-          setWishlistPackageIds([]);
-        }
-      };
-      checkAuthAndTheme();
-    }, [])
+    useCallback(() => {
+      syncState();
+      fetchHomeData();
+    }, [syncState, fetchHomeData])
   );
 
-  const toggleTheme = async () => {
+  useEffect(() => {
+    syncState();
+    fetchHomeData();
+  }, [syncState, fetchHomeData]);
+
+  // Auto-scroll Hero Carousel
+  useEffect(() => {
+    const count = banners.length > 0 ? banners.length : 3;
+    if (count <= 1) return;
+    carouselTimer.current = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % count);
+    }, 4500);
+
+    return () => {
+      if (carouselTimer.current) clearInterval(carouselTimer.current);
+    };
+  }, [banners.length]);
+
+  const onRefresh = async () => {
     safeHapticLight();
-    const next = !isDark;
-    setIsDark(next);
-    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
+    setRefreshing(true);
+    await Promise.all([syncState(), fetchHomeData()]);
+    setRefreshing(false);
   };
 
-  const handleToggleWishlist = async (pkg: any) => {
+  const handleToggleTheme = async () => {
     safeHapticLight();
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) {
-      showSweetAlert('Sign In Required', 'Please log in to add washes to your wishlist.', 'info');
-      router.push('/login');
-      return;
-    }
+    await toggleTheme();
+  };
 
-    const isFav = wishlistPackageIds.includes(pkg.id);
-    // Optimistic update
-    setWishlistPackageIds((prev) =>
-      isFav ? prev.filter((id) => id !== pkg.id) : [...prev, pkg.id]
-    );
-
+  // GPS Location Detection
+  const handleDetectGPS = async () => {
+    safeHapticLight();
+    setDetectingGps(true);
     try {
-      if (isFav) {
-        await axios.delete(`${API_BASE}/api/customer/wishlist/${pkg.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'ngrok-skip-browser-warning': 'true',
-            'Bypass-Tunnel-Reminder': 'true',
-          },
-        });
-        showSweetAlert('Removed', `${pkg.name} removed from your wishlist.`, 'success');
-      } else {
-        await axios.post(
-          `${API_BASE}/api/customer/wishlist`,
-          { package_id: pkg.id },
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location Permission',
+          'Please allow location permission in your phone settings to detect your address.'
+        );
+        setDetectingGps(false);
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const [geo] = await Location.reverseGeocodeAsync({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+
+      if (geo) {
+        const parts = [geo.name, geo.district || geo.subregion, geo.city].filter(Boolean);
+        const resolved = parts.length > 0 ? parts.join(', ') : `${geo.city || 'Delhi'}, India`;
+        setCurrentLocation(resolved);
+        await AsyncStorage.setItem('header_location', resolved);
+
+        // If logged in, update database address
+        if (token) {
+          axios
+            .put(
+              `${API_BASE}/api/auth/profile`,
+              { address: resolved },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Bypass-Tunnel-Reminder': 'true',
+                  'ngrok-skip-browser-warning': 'true',
+                },
+              }
+            )
+            .catch(() => {});
+        }
+        setLocationModalVisible(false);
+      }
+    } catch (err) {
+      console.warn('GPS detection error:', err);
+      Alert.alert('GPS Location', 'Unable to fetch current GPS coordinates. Please select manually.');
+    } finally {
+      setDetectingGps(false);
+    }
+  };
+
+  const handleSaveManualLocation = async (customLoc?: string) => {
+    const locToSave = (customLoc !== undefined ? customLoc : manualLocationInput).trim();
+    if (!locToSave) return;
+    safeHapticLight();
+    setCurrentLocation(locToSave);
+    await AsyncStorage.setItem('header_location', locToSave);
+    setManualLocationInput('');
+    setLocationModalVisible(false);
+
+    // If logged in, update saved address in database
+    if (token) {
+      axios
+        .put(
+          `${API_BASE}/api/auth/profile`,
+          { address: locToSave },
           {
             headers: {
               Authorization: `Bearer ${token}`,
-              'ngrok-skip-browser-warning': 'true',
               'Bypass-Tunnel-Reminder': 'true',
+              'ngrok-skip-browser-warning': 'true',
             },
           }
-        );
-        safeHapticSuccess();
-        showSweetAlert('Added to Wishlist', `${pkg.name} saved to your wishlist!`, 'success');
+        )
+        .catch(() => {});
+    }
+  };
+
+  const handleLogout = () => {
+    setMenuOpen(false);
+    showSweetAlert(
+      'Sign Out',
+      'Are you sure you want to sign out of your account?',
+      'warning',
+      async () => {
+        safeHapticWarning();
+        try {
+          if (token) {
+            await axios.post(
+              `${API_BASE}/api/auth/logout`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+        } catch {}
+        await AsyncStorage.removeItem('userToken');
+        await AsyncStorage.removeItem('userData');
+        setIsLoggedIn(false);
+        setUser(null);
+        setToken(null);
       }
-    } catch (err: any) {
-      // Revert optimistic update
-      setWishlistPackageIds((prev) =>
-        isFav ? [...prev, pkg.id] : prev.filter((id) => id !== pkg.id)
-      );
-      showSweetAlert('Error', err.response?.data?.message || 'Failed to update wishlist.', 'error');
-    }
-  };
-
-  const fetchPackagesData = async () => {
-    try {
-      setError(null);
-      const res = await fetch(`${API_BASE}/api/packages`, {
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-          'Bypass-Tunnel-Reminder': 'true',
-        },
-      });
-
-      if (!res.ok) throw new Error('Failed to fetch packages');
-      const data = await res.json();
-      setPackages(Array.isArray(data) ? data : []);
-    } catch {
-      console.log('API unreachable, using sample data');
-      setPackages(SAMPLE_PACKAGES);
-      setError('Showing sample data — server not reachable.');
-    } finally {
-      setTimeout(() => {
-        setLoading(false);
-        setRefreshing(false);
-      }, 600);
-    }
-  };
-
-  useEffect(() => {
-    fetchPackagesData();
-  }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchPackagesData();
-  };
-
-  const handleVehicleSelect = (val: string) => {
-    safeHapticLight();
-    setActiveVehicle(val);
-    setCurrentPage(1);
-  };
-
-  const handleSearchChange = (text: string) => {
-    setSearchQuery(text);
-    setCurrentPage(1);
-    setVisibleCount(3);
-  };
-
-  const handleResetFilters = () => {
-    safeHapticLight();
-    setActiveVehicle('all');
-    setSearchQuery('');
-    setCurrentPage(1);
-    setVisibleCount(3);
-  };
-
-  useEffect(() => {
-    setVisibleCount(3);
-  }, [activeVehicle, searchQuery]);
-
-  const vehicleCounts = useMemo(() => {
-    const activePkgs = packages.filter((pkg) => !pkg.is_addon);
-    const counts: Record<string, number> = { all: activePkgs.length };
-    for (const vf of VEHICLE_FILTERS) {
-      if (vf.value === 'all') continue;
-      counts[vf.value] = activePkgs.filter(
-        (p) => (p.vehicle_type || '').toLowerCase() === vf.value.toLowerCase()
-      ).length;
-    }
-    return counts;
-  }, [packages]);
-
-  const filteredPackages = useMemo(() => {
-    return packages.filter((pkg) => {
-      if (pkg.is_addon) return false;
-
-      // Vehicle filter
-      if (activeVehicle !== 'all') {
-        const pkgVeh = (pkg.vehicle_type || '').toLowerCase();
-        if (pkgVeh !== 'all' && pkgVeh !== activeVehicle.toLowerCase()) {
-          return false;
-        }
-      }
-
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const name = (pkg.name || '').toLowerCase();
-        const desc = (pkg.description || '').toLowerCase();
-        if (!name.includes(q) && !desc.includes(q)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [packages, activeVehicle, searchQuery]);
-
-  const totalItems = filteredPackages.length;
-  const visiblePackages = useMemo(() => filteredPackages.slice(0, visibleCount), [filteredPackages, visibleCount]);
-
-  const handleScroll = (event: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 120;
-    if (isNearBottom && visibleCount < totalItems) {
-      setVisibleCount((prev) => Math.min(prev + 3, totalItems));
-    }
-  };
-
-  const togglePackageExpand = (id: string | number) => {
-    safeHapticLight();
-    setExpandedPackages((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
-
-  const renderFeaturesList = (desc: string, pkgId: string | number) => {
-    if (!desc) return null;
-    const allLines = desc
-      .split(/\r?\n|•|,/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-
-    if (allLines.length === 0) return null;
-
-    const isExpanded = !!expandedPackages[pkgId];
-    const visibleLines = isExpanded ? allLines : allLines.slice(0, 1);
-    const hasMore = allLines.length > 1;
-
-    return (
-      <View style={[styles.featuresContainer, !isDark && styles.featuresContainerLight]}>
-        {visibleLines.map((item, idx) => {
-          const isLastVisible = idx === visibleLines.length - 1;
-          const showToggleHere = hasMore && isLastVisible;
-
-          return (
-            <View key={idx} style={styles.featureItemRow}>
-              <Ionicons name="checkmark-circle" size={14} color="#10b981" style={styles.featureCheckIcon} />
-              <Text style={[styles.featureItemText, !isDark && styles.featureItemTextLight]}>
-                {item}
-                {showToggleHere && (
-                  <Text
-                    style={styles.readMoreInlineText}
-                    onPress={() => togglePackageExpand(pkgId)}
-                  >
-                    {isExpanded ? '  Read Less...' : '  Read More...'}
-                  </Text>
-                )}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
     );
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, !isDark && styles.containerLight]}>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <View style={[styles.splashContainer, !isDark && styles.containerLight]}>
-          <View style={styles.splashBadge}>
-            <Image 
-              source={require('../assets/images/icon.png')} 
-              style={styles.splashLogo}
-              resizeMode="contain"
-            />
-          </View>
-          <ActivityIndicator size="large" color="#0ea5e9" />
-          <Text style={[styles.loaderText, !isDark && styles.loaderTextLight]}>Loading Packages...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const handleFooterTabPress = (tab: FooterTab) => {
+    if (tab === 'home') {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
+
+    switch (tab) {
+      case 'bookings':
+      case 'book':
+        router.push('/bookings');
+        break;
+      case 'refer':
+        router.push('/refer-and-earn');
+        break;
+      case 'wallet':
+        router.push('/e-points');
+        break;
+      case 'profile':
+      case 'garage':
+        router.push(isLoggedIn ? '/profile' : '/login');
+        break;
+    }
+  };
+
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 30 : 16);
 
   return (
-    <SafeAreaView style={[styles.container, !isDark && styles.containerLight]}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+    <View style={[styles.screenContainer, isDark && styles.darkScreenContainer]}>
+      <StatusBar style="light" />
 
-      {/* ── Top Header ── */}
-      <View style={[styles.header, isDark ? styles.headerDark : styles.headerLight]}>
-        <View style={styles.brandRow}>
-          <View style={styles.headerLogoContainer}>
-            <Image
-              source={require('../assets/images/icon.png')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
+      {/* ── TOP HEADER SECTION (BookMyShow / Cleanatdoorstep style) ── */}
+      <View style={[styles.headerContainer, { paddingTop: topPadding }]}>
+        {/* Row 1: ☰ Menu | Logo | Dashboard/SignIn Button + Bell */}
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            style={styles.hamburgerBtn}
+            onPress={() => {
+              safeHapticLight();
+              setMenuOpen(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="menu" size={26} color="#ffffff" />
+          </TouchableOpacity>
+
+          <View style={styles.brandRow}>
+            <View style={styles.headerLogoContainer}>
+              <Image
+                source={require('../assets/images/icon.png')}
+                style={styles.headerLogo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.brandTitleText} numberOfLines={1}>
+              CleanAtDoorstep
+            </Text>
           </View>
 
-          <View style={styles.brandTextWrap}>
-            <Text style={[styles.headerTitle, !isDark && styles.headerTitleLight]}>CleanAtDoorstep</Text>
-            <Text style={[styles.headerSubtitle, !isDark && styles.headerSubtitleLight]}>Doorstep Detailing • On-Demand</Text>
+          <View style={styles.headerRightActions}>
+            {/* Dashboard / Sign In Button */}
+            <TouchableOpacity
+              style={styles.authPillBtn}
+              onPress={() => {
+                safeHapticLight();
+                router.push(isLoggedIn ? '/dashboard' : '/login');
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={isLoggedIn ? 'speedometer-outline' : 'person-circle-outline'}
+                size={14}
+                color="#facc15"
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.authPillBtnText}>
+                {isLoggedIn ? 'Dashboard' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Notification Bell */}
+            <TouchableOpacity
+              style={styles.bellBtn}
+              onPress={() => {
+                safeHapticLight();
+                router.push(isLoggedIn ? '/notifications' : '/login');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="notifications" size={21} color="#ffffff" />
+              {unreadCount > 0 && <View style={styles.bellBadgeDot} />}
+            </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.headerRightRow}>
+        {/* Row 2: 📍 Location Selector | 🎁 Refer & Earn Yellow Button */}
+        <View style={styles.headerSubRow}>
           <TouchableOpacity
-            style={[styles.headerIconBtn, isDark ? styles.headerIconBtnDark : styles.headerIconBtnLight]}
-            onPress={() => router.push(isLoggedIn ? '/wishlist' : '/login')}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={wishlistPackageIds.length > 0 ? 'heart' : 'heart-outline'}
-              size={18}
-              color={wishlistPackageIds.length > 0 ? '#e11d48' : isDark ? '#94a3b8' : '#334155'}
-            />
-            {wishlistPackageIds.length > 0 && (
-              <View style={styles.wishlistCountBadge}>
-                <Text style={styles.wishlistCountBadgeText}>{wishlistPackageIds.length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.loginBtnHeader, isDark ? styles.loginBtnHeaderDark : styles.loginBtnHeaderLight]}
-            onPress={() => router.push(isLoggedIn ? '/dashboard' : '/login')}
+            style={styles.locationPill}
+            onPress={() => {
+              safeHapticLight();
+              setLocationModalVisible(true);
+            }}
             activeOpacity={0.8}
           >
-            <Ionicons
-              name={isLoggedIn ? 'speedometer-outline' : 'person-circle-outline'}
-              size={12}
-              color="#38bdf8"
-              style={{ marginRight: 4 }}
-            />
-            <Text style={[styles.loginBtnHeaderText, isDark ? styles.loginBtnHeaderTextDark : styles.loginBtnHeaderTextLight]}>
-              {isLoggedIn ? 'Dashboard' : 'Sign In'}
+            <Ionicons name="location" size={15} color="#034694" style={{ marginRight: 4 }} />
+            <Text style={styles.locationPillText} numberOfLines={1}>
+              {currentLocation}
             </Text>
+            <Ionicons name="caret-down" size={12} color="#034694" style={{ marginLeft: 4 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.headerIconBtn, isDark ? styles.headerIconBtnDark : styles.headerIconBtnLight]}
-            onPress={toggleTheme}
-            activeOpacity={0.7}
+            style={styles.referTopPill}
+            onPress={() => {
+              safeHapticLight();
+              router.push('/refer-and-earn');
+            }}
+            activeOpacity={0.85}
           >
-            <Ionicons
-              name={isDark ? 'sunny-outline' : 'moon-outline'}
-              size={18}
-              color={isDark ? '#fbbf24' : '#334155'}
-            />
+            <View style={styles.coinBadge}>
+              <Text style={styles.coinBadgeText}>₹</Text>
+            </View>
+            <Ionicons name="gift" size={16} color="#78350f" style={{ marginRight: 4 }} />
+            <Text style={styles.referTopPillText}>Refer & Earn</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── Vehicle Filter Modal Dropdown (exact match to bookings.tsx UX) ── */}
-      <Modal
-        visible={filterMenuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setFilterMenuVisible(false)}
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setFilterMenuVisible(false)}
-        >
-          <View style={[styles.filterMenuDropdown, !isDark && styles.filterMenuDropdownLight]}>
-            <View style={styles.filterMenuHeader}>
-              <View style={styles.filterMenuTitleWrap}>
-                <Ionicons name="funnel" size={14} color="#38bdf8" />
-                <Text style={[styles.filterMenuHeading, !isDark && styles.filterMenuHeadingLight]}>Filter by Vehicle</Text>
-              </View>
-              {activeVehicle !== 'all' && (
-                <TouchableOpacity
-                  onPress={() => {
-                    safeHapticLight();
-                    handleVehicleSelect('all');
-                    setFilterMenuVisible(false);
-                  }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.clearFilterText}>Reset</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={[styles.filterMenuDivider, !isDark && styles.filterMenuDividerLight]} />
-
-            {VEHICLE_FILTERS.map((option) => {
-              const isSelected = activeVehicle === option.value;
-              const count = vehicleCounts[option.value] ?? 0;
-              return (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.filterMenuItem,
-                    isSelected && (isDark ? styles.activeFilterMenuItem : styles.activeFilterMenuItemLight),
-                  ]}
-                  onPress={() => {
-                    safeHapticLight();
-                    handleVehicleSelect(option.value);
-                    setFilterMenuVisible(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={option.icon as any}
-                    size={16}
-                    color={isSelected ? '#38bdf8' : (isDark ? '#94a3b8' : '#64748b')}
-                    style={{ marginRight: 10 }}
-                  />
-                  <Text
-                    style={[
-                      styles.filterMenuItemText,
-                      !isDark && styles.filterMenuItemTextLight,
-                      isSelected && styles.activeFilterMenuItemText,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  <View
-                    style={[
-                      styles.filterMenuCountBadge,
-                      !isDark && styles.filterMenuCountBadgeLight,
-                      isSelected && styles.filterMenuCountBadgeActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.filterMenuCountText,
-                        !isDark && styles.filterMenuCountTextLight,
-                        isSelected && styles.filterMenuCountTextActive,
-                      ]}
-                    >
-                      {count}
-                    </Text>
-                  </View>
-                  {isSelected && (
-                    <Ionicons
-                      name="checkmark"
-                      size={16}
-                      color="#38bdf8"
-                      style={{ marginLeft: 8 }}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Modal>
-
+      {/* ── SCROLLABLE BODY ── */}
       <ScrollView
         ref={scrollViewRef}
-        style={[styles.scrollView, !isDark && styles.containerLight]}
+        style={styles.scrollBody}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={200}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#0ea5e9"
-            colors={['#0ea5e9']}
+            colors={['#0284c7']}
+            tintColor="#0284c7"
           />
         }
       >
-        {/* ── Section Title: Our Services ── */}
-        <View style={styles.servicesHeaderWrap}>
-          <Text style={[styles.servicesTitle, !isDark && styles.servicesTitleLight]}>Our Services</Text>
+        {/* ── 1. HERO BANNER CAROUSEL (Database Driven) ── */}
+        <View style={styles.heroSection}>
+          <TouchableOpacity
+            style={styles.heroBannerCard}
+            activeOpacity={0.92}
+            onPress={() => {
+              safeHapticMedium();
+              router.push('/book');
+            }}
+          >
+            {banners.length > 0 && getBannerUri(banners[currentSlide % banners.length]?.image_path) ? (
+              <Image
+                source={{ uri: getBannerUri(banners[currentSlide % banners.length]?.image_path)! }}
+                style={styles.heroBannerImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Image
+                source={require('../assets/images/home/hero_banner.png')}
+                style={styles.heroBannerImage}
+                resizeMode="cover"
+              />
+            )}
+          </TouchableOpacity>
+
+          {/* Carousel Indicator Dots */}
+          <View style={styles.carouselDotsRow}>
+            {(banners.length > 0 ? banners : [0, 1, 2]).map((_, idx) => (
+              <TouchableOpacity
+                key={idx}
+                onPress={() => setCurrentSlide(idx)}
+                style={[
+                  styles.dot,
+                  (currentSlide % (banners.length || 3)) === idx
+                    ? styles.dotActive
+                    : styles.dotInactive,
+                ]}
+              />
+            ))}
+          </View>
         </View>
 
-        {/* ── Search Bar & Filter Button ── */}
-        <View style={styles.searchRowWrapper}>
-          <View style={[styles.searchContainer, !isDark && styles.searchContainerLight]}>
-            <Ionicons name="search-outline" size={18} color={isDark ? '#64748b' : '#94a3b8'} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, !isDark && styles.searchInputLight]}
-              placeholder="Search services (e.g. Foam, Deep, Coating)..."
-              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-              value={searchQuery}
-              onChangeText={handleSearchChange}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearchChange('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={18} color="#94a3b8" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Vehicle Filter Button (right of search input) */}
+        {/* ── 2. QUICK ACTION GRID (4 White Cards) ── */}
+        <View style={styles.quickActionsContainer}>
+          {/* Card 1: Book Service */}
           <TouchableOpacity
-            style={[
-              styles.searchFilterTrigger,
-              !isDark && styles.searchFilterTriggerLight,
-              activeVehicle !== 'all' && styles.searchFilterTriggerActive,
-            ]}
+            style={[styles.quickCard, isDark && styles.darkQuickCard]}
+            activeOpacity={0.75}
             onPress={() => {
               safeHapticLight();
-              setFilterMenuVisible((prev) => !prev);
+              router.push('/book');
             }}
-            activeOpacity={0.8}
           >
-            <Ionicons
-              name="funnel-outline"
-              size={18}
-              color={activeVehicle !== 'all' ? '#38bdf8' : (isDark ? '#cbd5e1' : '#475569')}
-            />
-            {activeVehicle !== 'all' && <View style={styles.activeFilterDot} />}
+            <View style={styles.quickIconWrap}>
+              <Ionicons name="calendar-outline" size={24} color="#0284c7" />
+            </View>
+            <Text style={[styles.quickCardTitle, isDark && styles.darkQuickCardTitle]}>
+              Book{'\n'}Service
+            </Text>
+          </TouchableOpacity>
+
+          {/* Card 2: Subscriptions */}
+          <TouchableOpacity
+            style={[styles.quickCard, isDark && styles.darkQuickCard]}
+            activeOpacity={0.75}
+            onPress={() => {
+              safeHapticLight();
+              router.push('/subscriptions');
+            }}
+          >
+            <View style={styles.quickIconWrap}>
+              <Ionicons name="swap-horizontal-outline" size={24} color="#0284c7" />
+            </View>
+            <Text style={[styles.quickCardTitle, isDark && styles.darkQuickCardTitle]}>
+              Subscriptions
+            </Text>
+            <Text style={[styles.quickCardSub, isDark && styles.darkQuickCardSub]}>
+              (Monthly Plans)
+            </Text>
+          </TouchableOpacity>
+
+          {/* Card 3: Refer & Earn */}
+          <TouchableOpacity
+            style={[styles.quickCard, isDark && styles.darkQuickCard]}
+            activeOpacity={0.75}
+            onPress={() => {
+              safeHapticLight();
+              router.push('/refer-and-earn');
+            }}
+          >
+            <View style={styles.quickIconWrap}>
+              <Ionicons name="gift-outline" size={24} color="#ea580c" />
+            </View>
+            <Text style={[styles.quickCardTitle, isDark && styles.darkQuickCardTitle]}>
+              Refer &{'\n'}Earn
+            </Text>
+          </TouchableOpacity>
+
+          {/* Card 4: My Wallet */}
+          <TouchableOpacity
+            style={[styles.quickCard, isDark && styles.darkQuickCard]}
+            activeOpacity={0.75}
+            onPress={() => {
+              safeHapticLight();
+              router.push('/e-points');
+            }}
+          >
+            <View style={styles.quickIconWrap}>
+              <Ionicons name="wallet-outline" size={24} color="#ca8a04" />
+            </View>
+            <Text style={[styles.quickCardTitle, isDark && styles.darkQuickCardTitle]}>
+              My Wallet
+            </Text>
+            <Text style={[styles.quickCardSub, isDark && styles.darkQuickCardSub]}>
+              (E-Points)
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* ── Items Counter & Quick Summary ── */}
-        <View style={styles.resultsSummaryRow}>
-          <View style={styles.resultsCountWrap}>
-            <Text style={[styles.resultsCountText, !isDark && styles.resultsCountTextLight]}>
-              Showing <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{totalItems > 0 ? 1 : 0}</Text>–
-              <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{Math.min(visiblePackages.length, totalItems)}</Text> of{' '}
-              <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{totalItems}</Text> Services
-            </Text>
-            {activeVehicle !== 'all' && (
-              <TouchableOpacity
-                style={styles.activeVehicleChip}
-                onPress={() => handleVehicleSelect('all')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.activeVehicleChipText}>{activeVehicleLabel}</Text>
-                <Ionicons name="close-circle" size={13} color="#38bdf8" />
-              </TouchableOpacity>
-            )}
+        {/* ── 3. OUR CAR WASH SERVICES SECTION (Database Driven) ── */}
+        <View style={styles.servicesSection}>
+          <View style={styles.sectionHeaderRow}>
+            <View>
+              <Text style={[styles.sectionHeading, isDark && styles.darkSectionHeading]}>
+                Our Car Wash Services
+              </Text>
+              <Text style={[styles.sectionSubHeading, isDark && styles.darkSectionSubHeading]}>
+                Doorstep washes for every vehicle type
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                safeHapticLight();
+                router.push('/services');
+              }}
+              style={styles.viewAllBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewAllBtnText}>View All</Text>
+              <Ionicons name="arrow-forward" size={14} color="#034694" style={{ marginLeft: 3 }} />
+            </TouchableOpacity>
+          </View>
+
+          {/* 3 Vehicle Cards Row with Dynamic Starting Prices */}
+          <View style={styles.vehicleCardsRow}>
+            {/* Card 1: Hatchback */}
+            <TouchableOpacity
+              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
+              activeOpacity={0.85}
+              onPress={() => {
+                safeHapticLight();
+                router.push({ pathname: '/book', params: { vehicle: 'hatchback' } });
+              }}
+            >
+              <View style={styles.vehicleImageWrap}>
+                <Image
+                  source={require('../assets/images/home/car_hatchback.png')}
+                  style={styles.vehicleCarImg}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={[styles.vehicleCardTitle, isDark && styles.darkVehicleCardTitle]}>
+                Hatchback
+              </Text>
+              <Text style={styles.vehicleCardSub}>Car Wash</Text>
+              <View style={styles.pricePill}>
+                <Text style={styles.pricePillText}>₹{minPrices.hatchback} Onwards</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Card 2: Sedan */}
+            <TouchableOpacity
+              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
+              activeOpacity={0.85}
+              onPress={() => {
+                safeHapticLight();
+                router.push({ pathname: '/book', params: { vehicle: 'sedan' } });
+              }}
+            >
+              <View style={styles.vehicleImageWrap}>
+                <Image
+                  source={require('../assets/images/home/car_sedan.png')}
+                  style={styles.vehicleCarImg}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={[styles.vehicleCardTitle, isDark && styles.darkVehicleCardTitle]}>
+                Sedan
+              </Text>
+              <Text style={styles.vehicleCardSub}>Car Wash</Text>
+              <View style={styles.pricePill}>
+                <Text style={styles.pricePillText}>₹{minPrices.sedan} Onwards</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Card 3: SUV */}
+            <TouchableOpacity
+              style={[styles.vehicleCard, isDark && styles.darkVehicleCard]}
+              activeOpacity={0.85}
+              onPress={() => {
+                safeHapticLight();
+                router.push({ pathname: '/book', params: { vehicle: 'suv' } });
+              }}
+            >
+              <View style={styles.vehicleImageWrap}>
+                <Image
+                  source={require('../assets/images/home/car_suv.png')}
+                  style={styles.vehicleCarImg}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={[styles.vehicleCardTitle, isDark && styles.darkVehicleCardTitle]}>
+                SUV
+              </Text>
+              <Text style={styles.vehicleCardSub}>Car Wash</Text>
+              <View style={styles.pricePill}>
+                <Text style={styles.pricePillText}>₹{minPrices.suv} Onwards</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {error && (
-          <View style={styles.infoBanner}>
-            <Ionicons name="information-circle-outline" size={16} color="#38bdf8" />
-            <Text style={styles.infoBannerText}>{error}</Text>
-          </View>
-        )}
+        {/* ── 4. MONTHLY SUBSCRIPTION PLANS BANNER ── */}
+        <TouchableOpacity
+          style={styles.promoBannerCard}
+          activeOpacity={0.9}
+          onPress={() => {
+            safeHapticMedium();
+            router.push('/subscriptions');
+          }}
+        >
+          <Image
+            source={require('../assets/images/home/subscription_banner.png')}
+            style={styles.promoBannerImg}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
 
-        {/* ── Package Cards ── */}
-        {visiblePackages.length === 0 ? (
-          <View style={[styles.emptyContainer, !isDark && styles.emptyContainerLight]}>
-            <View style={[styles.emptyIconCircle, !isDark && styles.emptyIconCircleLight]}>
-              <Ionicons name="search-outline" size={40} color={isDark ? '#64748b' : '#94a3b8'} />
-            </View>
-            <Text style={[styles.emptyTitle, !isDark && styles.emptyTitleLight]}>No Services Found</Text>
-            <Text style={[styles.emptyText, !isDark && styles.emptyTextLight]}>
-              We could not find any packages matching your active category and filters.
-            </Text>
-            <TouchableOpacity
-              style={styles.resetBtn}
-              onPress={handleResetFilters}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="refresh-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
-              <Text style={styles.resetBtnText}>Reset All Filters</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          visiblePackages.map((pkg) => {
-            const hasMonthly = pkg.frequency_days > 0;
-            const isWishlisted = wishlistPackageIds.includes(pkg.id);
+        {/* ── 5. HOME CLEANING SECTION BANNER ── */}
+        <TouchableOpacity
+          style={styles.promoBannerCard}
+          activeOpacity={0.9}
+          onPress={() => {
+            safeHapticMedium();
+            router.push({ pathname: '/services', params: { search: 'Home' } });
+          }}
+        >
+          <Image
+            source={require('../assets/images/home/home_cleaning_banner.png')}
+            style={styles.promoBannerImg}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
 
-            return (
-              <View key={pkg.id} style={[styles.card, !isDark && styles.cardLight]}>
-                {/* Badges Header */}
-                <View style={styles.cardBadgesRow}>
-                  <View style={styles.leftBadges}>
-                    {pkg.vehicle_type && (
-                      <View style={[styles.badgeVehicle, !isDark && styles.badgeVehicleLight]}>
-                        <Ionicons name="car-sport-outline" size={10} color={isDark ? '#cbd5e1' : '#64748b'} style={{ marginRight: 3 }} />
-                        <Text style={[styles.badgeVehicleText, !isDark && styles.badgeVehicleTextLight]}>
-                          {pkg.vehicle_type.toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
+        {/* ── 5. WHY CHOOSE CLEANATDOORSTEP SECTION ── */}
+        <View style={styles.whyUsSection}>
+          <Text style={[styles.sectionHeading, isDark && styles.darkSectionHeading, { marginBottom: 12 }]}>
+            Why Choose Cleanatdoorstep?
+          </Text>
 
-                    {hasMonthly ? (
-                      <View style={styles.badgeGreen}>
-                        <Text style={styles.badgeGreenText}>MONTHLY PASS</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.badgePurple}>
-                        <Text style={styles.badgePurpleText}>ONE-TIME WASH</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.rightBadgesGroup}>
-                    {pkg.custom_badge && (
-                      <View style={styles.badgeHighlight}>
-                        <Text style={styles.badgeHighlightText}>
-                          {pkg.custom_badge}
-                        </Text>
-                      </View>
-                    )}
-
-                    {/* Wishlist Heart Icon Button */}
-                    <TouchableOpacity
-                      style={[
-                        styles.wishlistHeartBtn,
-                        isWishlisted && styles.wishlistHeartBtnActive,
-                        !isDark && styles.wishlistHeartBtnLight,
-                      ]}
-                      onPress={() => handleToggleWishlist(pkg)}
-                      activeOpacity={0.7}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Ionicons
-                        name={isWishlisted ? 'heart' : 'heart-outline'}
-                        size={17}
-                        color={isWishlisted ? '#e11d48' : isDark ? '#94a3b8' : '#64748b'}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Package Title */}
-                <Text style={[styles.cardTitle, !isDark && styles.cardTitleLight]}>{pkg.name}</Text>
-
-                {/* Key Features Breakdown */}
-                {renderFeaturesList(pkg.description, pkg.id)}
-
-                {/* Price + CTA Footer */}
-                <View style={[styles.cardFooter, !isDark && styles.cardFooterLight]}>
-                  <View>
-                    <View style={styles.priceRow}>
-                      <Text style={styles.priceSymbol}>₹</Text>
-                      <Text style={[styles.priceValue, !isDark && styles.priceValueLight]}>
-                        {typeof pkg.price === 'number' ? pkg.price.toFixed(2) : pkg.price}
-                      </Text>
-                      {hasMonthly && <Text style={[styles.priceUnit, !isDark && styles.priceUnitLight]}> / mo</Text>}
-                    </View>
-                    {pkg.max_bookings > 1 && (
-                      <View style={styles.washCountRow}>
-                        <Ionicons name="flash" size={12} color="#10b981" />
-                        <Text style={[styles.washCount, !isDark && styles.washCountLight]}>
-                          {pkg.max_bookings} washes included
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.bookBtn}
-                    onPress={() => router.push(isLoggedIn ? `/book?package_id=${pkg.id}` : '/login')}
-                  >
-                    <Text style={styles.bookBtnText}>Book Wash</Text>
-                    <Ionicons name="arrow-forward" size={15} color="#ffffff" style={{ marginLeft: 6 }} />
-                  </TouchableOpacity>
-                </View>
+          <View style={styles.whyUsGrid}>
+            {/* Feature 1 */}
+            <View style={[styles.whyCard, isDark && styles.darkWhyCard]}>
+              <View style={styles.whyIconWrap}>
+                <Ionicons name="shield-checkmark-outline" size={22} color="#0284c7" />
               </View>
-            );
-          })
-        )}
+              <Text style={[styles.whyText, isDark && styles.darkWhyText]}>
+                Trained{'\n'}Professionals
+              </Text>
+            </View>
 
-        {visibleCount < totalItems && (
-          <View style={styles.loadMoreHint}>
-            <Text style={[styles.loadMoreHintText, !isDark && styles.loadMoreHintTextLight]}>Scroll for more services</Text>
+            {/* Feature 2 */}
+            <View style={[styles.whyCard, isDark && styles.darkWhyCard]}>
+              <View style={styles.whyIconWrap}>
+                <Ionicons name="leaf-outline" size={22} color="#059669" />
+              </View>
+              <Text style={[styles.whyText, isDark && styles.darkWhyText]}>
+                Eco-Friendly{'\n'}Cleaning
+              </Text>
+            </View>
+
+            {/* Feature 3 */}
+            <View style={[styles.whyCard, isDark && styles.darkWhyCard]}>
+              <View style={styles.whyIconWrap}>
+                <Ionicons name="time-outline" size={22} color="#0284c7" />
+              </View>
+              <Text style={[styles.whyText, isDark && styles.darkWhyText]}>
+                At Your{'\n'}Doorstep
+              </Text>
+            </View>
+
+            {/* Feature 4 */}
+            <View style={[styles.whyCard, isDark && styles.darkWhyCard]}>
+              <View style={styles.whyIconWrap}>
+                <Ionicons name="ribbon-outline" size={22} color="#d97706" />
+              </View>
+              <Text style={[styles.whyText, isDark && styles.darkWhyText]}>
+                Quality{'\n'}Assurance
+              </Text>
+            </View>
           </View>
-        )}
+        </View>
 
-        {/* Bottom spacer */}
-        <View style={{ height: 50 }} />
+        {/* ── 6. REFER & EARN BANNER ── */}
+        <TouchableOpacity
+          style={styles.promoBannerCard}
+          activeOpacity={0.9}
+          onPress={() => {
+            safeHapticMedium();
+            router.push('/refer-and-earn');
+          }}
+        >
+          <Image
+            source={require('../assets/images/home/refer_banner.png')}
+            style={styles.promoBannerImg}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+
+      {/* ── FIXED BOTTOM NAVIGATION BAR ── */}
+      <AppFooter
+        activeTab="home"
+        isDark={isDark}
+        onTabPress={handleFooterTabPress}
+      />
+
+      {/* ── LOCATION SELECTOR MODAL ── */}
+      <Modal
+        visible={locationModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setLocationModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.locationModalCard, isDark && styles.darkLocationModalCard]}>
+            <View style={styles.locationModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="location" size={20} color="#0284c7" />
+                <Text style={[styles.locationModalTitle, isDark && styles.darkLocationModalTitle]}>
+                  Select Your Location
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setLocationModalVisible(false)}>
+                <Ionicons name="close" size={22} color={isDark ? '#cbd5e1' : '#64748b'} />
+              </TouchableOpacity>
+            </View>
+
+            {isLoggedIn ? (
+              <View style={styles.savedDbAddressBadge}>
+                <Ionicons name="shield-checkmark" size={14} color="#059669" />
+                <Text style={styles.savedDbAddressBadgeText}>
+                  Logged In: Header uses your saved address from database
+                </Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.detectGpsBtn}
+              onPress={handleDetectGPS}
+              disabled={detectingGps}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="navigate-circle-outline" size={22} color="#0284c7" />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.detectGpsTitle}>
+                  {detectingGps ? 'Detecting your GPS location...' : 'Use Current GPS Location'}
+                </Text>
+                <Text style={styles.detectGpsSub}>
+                  {isLoggedIn
+                    ? 'Detect coordinates and update your database saved address'
+                    : 'Tap to automatically reverse geocode address'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <Text style={[styles.orDividerText, isDark && styles.darkOrDividerText]}>
+              OR ENTER AREA / CITY
+            </Text>
+
+            <View style={styles.locationInputRow}>
+              <TextInput
+                value={manualLocationInput}
+                onChangeText={setManualLocationInput}
+                placeholder="e.g. Ramesh Nagar, Delhi"
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                style={[styles.locationTextInput, isDark && styles.darkLocationTextInput]}
+              />
+              <TouchableOpacity
+                style={styles.locationSaveBtn}
+                onPress={() => handleSaveManualLocation()}
+              >
+                <Text style={styles.locationSaveBtnText}>Set</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Suggestions */}
+            <View style={styles.quickLocationsRow}>
+              {['Ramesh Nagar, Delhi', 'Connaught Place, Delhi', 'Noida Sector 18', 'Gurugram CyberHub'].map(
+                (loc) => (
+                  <TouchableOpacity
+                    key={loc}
+                    style={styles.suggestionPill}
+                    onPress={() => handleSaveManualLocation(loc)}
+                  >
+                    <Text style={styles.suggestionPillText}>{loc}</Text>
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── HAMBURGER SIDE DRAWER MENU MODAL ── */}
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <View style={styles.drawerBackdrop}>
+          <TouchableOpacity
+            style={styles.drawerBackdropDismiss}
+            activeOpacity={1}
+            onPress={() => setMenuOpen(false)}
+          />
+
+          <View style={[styles.drawerContainer, isDark && styles.darkDrawerContainer]}>
+            {/* Drawer User Card */}
+            <View style={styles.drawerHeader}>
+              <View style={styles.drawerUserRow}>
+                <View style={styles.drawerAvatarWrap}>
+                  <Text style={styles.drawerAvatarInitial}>
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'C'}
+                  </Text>
+                </View>
+
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.drawerUserName} numberOfLines={1}>
+                    {isLoggedIn && user?.name ? user.name : 'Welcome Guest!'}
+                  </Text>
+                  <Text style={styles.drawerUserEmail} numberOfLines={1}>
+                    {isLoggedIn && user?.email ? user.email : 'Doorstep Car Care Service'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.drawerCloseBtn}
+                  onPress={() => setMenuOpen(false)}
+                >
+                  <Ionicons name="close" size={20} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+
+              {!isLoggedIn ? (
+                <TouchableOpacity
+                  style={styles.drawerLoginBtn}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    router.push('/login');
+                  }}
+                >
+                  <Text style={styles.drawerLoginBtnText}>Sign In / Register</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.drawerVerifiedBadge}>
+                  <Ionicons name="checkmark-circle" size={12} color="#38bdf8" />
+                  <Text style={styles.drawerVerifiedText}>VERIFIED CUSTOMER</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Drawer Navigation Links */}
+            <ScrollView style={styles.drawerList} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.drawerGroupHeader, isDark && styles.darkDrawerGroupHeader]}>
+                EXPLORE & BOOK
+              </Text>
+
+              {isLoggedIn && (
+                <TouchableOpacity
+                  style={styles.drawerItem}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    router.push('/dashboard');
+                  }}
+                >
+                  <Ionicons name="speedometer-outline" size={20} color="#0284c7" />
+                  <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                    Dashboard
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/book');
+                }}
+              >
+                <Ionicons name="calendar-outline" size={20} color="#0284c7" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  Book Service
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/services');
+                }}
+              >
+                <Ionicons name="sparkles-outline" size={20} color="#0284c7" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  Our Wash Packages
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/subscriptions');
+                }}
+              >
+                <Ionicons name="cube-outline" size={20} color="#0284c7" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  Monthly Subscriptions
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/bookings');
+                }}
+              >
+                <Ionicons name="file-tray-full-outline" size={20} color="#0284c7" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  My Bookings
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/garage');
+                }}
+              >
+                <Ionicons name="car-sport-outline" size={20} color="#059669" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  My Garage
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={[styles.drawerGroupHeader, isDark && styles.darkDrawerGroupHeader, { marginTop: 16 }]}>
+                REWARDS & WALLET
+              </Text>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/refer-and-earn');
+                }}
+              >
+                <Ionicons name="gift-outline" size={20} color="#ea580c" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  Refer & Earn (10% Bonus)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/e-points');
+                }}
+              >
+                <Ionicons name="wallet-outline" size={20} color="#ca8a04" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  E-Points Wallet
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/offer');
+                }}
+              >
+                <Ionicons name="pricetag-outline" size={20} color="#e11d48" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  Coupons & Offers
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push('/support');
+                }}
+              >
+                <Ionicons name="headset-outline" size={20} color="#6366f1" />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  Help & Support
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerItem}
+                onPress={handleToggleTheme}
+              >
+                <Ionicons
+                  name={isDark ? 'sunny-outline' : 'moon-outline'}
+                  size={20}
+                  color={isDark ? '#fbbf24' : '#475569'}
+                />
+                <Text style={[styles.drawerItemText, isDark && styles.darkDrawerItemText]}>
+                  {isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+                </Text>
+              </TouchableOpacity>
+
+              {isLoggedIn && (
+                <TouchableOpacity
+                  style={[styles.drawerItem, styles.drawerLogoutItem]}
+                  onPress={handleLogout}
+                >
+                  <Ionicons name="log-out-outline" size={20} color="#dc2626" />
+                  <Text style={styles.drawerLogoutText}>Sign Out</Text>
+                </TouchableOpacity>
+              )}
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
-    backgroundColor: '#080c15', // Rich luxury dark background
+    backgroundColor: '#f8fafc',
   },
-  splashContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#080c15',
-  },
-  splashBadge: {
-    width: 90,
-    height: 90,
-    borderRadius: 24,
-    backgroundColor: 'rgba(14, 165, 233, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(14, 165, 233, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  splashLogo: {
-    width: 56,
-    height: 56,
-  },
-  loaderText: {
-    color: '#94a3b8',
-    marginTop: 14,
-    fontSize: 14,
-    fontWeight: '500',
+  darkScreenContainer: {
+    backgroundColor: '#090d16',
   },
 
   /* ── Header ── */
-  header: {
-    backgroundColor: '#dfefff',
-    borderRadius: 22,
-    marginTop: 50,
-    marginHorizontal: 14,
-    paddingTop: Platform.OS === 'android' ? 14 : 10,
-    paddingBottom: 10,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.22)',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#7dd3fc',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.10,
+  headerContainer: {
+    backgroundColor: '#034694', // Clean brand dark-blue gradient background
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
     shadowRadius: 10,
-    elevation: 2,
+    elevation: 8,
+    zIndex: 10,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  hamburgerBtn: {
+    padding: 6,
+    borderRadius: 8,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
     flex: 1,
-    marginRight: 8,
-  },
-  brandTextWrap: {
-    flex: 1,
+    marginHorizontal: 6,
   },
   headerLogoContainer: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: 10,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.18)',
-    justifyContent: 'center',
+    backgroundColor: '#e0f2fe',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    shadowColor: '#0ea5e9',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   headerLogo: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
+    width: 20,
+    height: 20,
   },
-  headerTitle: {
-    color: '#0f172a',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: -0.2,
+  brandTitleText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -0.3,
   },
-  headerSubtitle: {
-    color: '#475569',
-    fontSize: 9,
-    fontWeight: '600',
-  },
-  loginBtnHeader: {
+  headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#eaf5ff',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 14,
+    gap: 8,
+  },
+  authPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
-    minWidth: 92,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
-  loginBtnHeaderText: {
-    color: '#0ea5e9',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  headerRightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 0,
-  },
-  activeFilterDot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#38bdf8',
-  },
-
-  /* ── Filter Modal Dropdown ── */
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: Platform.OS === 'android' ? 142 : 156,
-    paddingRight: 16,
-  },
-  filterMenuDropdown: {
-    width: 220,
-    backgroundColor: '#0f172a',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-    paddingVertical: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  filterMenuHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  filterMenuTitleWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  filterMenuHeading: {
-    color: '#f8fafc',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  clearFilterText: {
-    color: '#38bdf8',
+  authPillBtnText: {
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
   },
-  filterMenuDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    marginVertical: 4,
-  },
-  filterMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  activeFilterMenuItem: {
-    backgroundColor: 'rgba(14, 165, 233, 0.14)',
-  },
-  filterMenuItemText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#cbd5e1',
-  },
-  activeFilterMenuItemText: {
-    color: '#38bdf8',
-    fontWeight: '700',
-  },
-  filterMenuCountBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  filterMenuCountBadgeActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.2)',
-  },
-  filterMenuCountText: {
-    color: '#94a3b8',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  filterMenuCountTextActive: {
-    color: '#38bdf8',
-    fontWeight: '700',
-  },
-
-  /* ── ScrollView ── */
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: 16,
-  },
-
-  /* ── Section Title: Our Services ── */
-  servicesHeaderWrap: {
-    paddingHorizontal: 18,
-    marginBottom: 12,
-  },
-  servicesTitle: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-
-  /* ── Search Bar & Filter ── */
-  searchRowWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    gap: 10,
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#111827',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#ffffff',
-    fontSize: 13,
-    paddingVertical: 0,
-  },
-  searchFilterTrigger: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#111827',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+  bellBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
-  searchFilterTriggerActive: {
-    backgroundColor: 'rgba(14, 165, 233, 0.18)',
-    borderColor: '#38bdf8',
-  },
-
-  /* ── Results Summary ── */
-  resultsSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    marginBottom: 12,
-    gap: 8,
-  },
-  resultsCountWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-    flex: 1,
-  },
-  resultsCountText: {
-    color: '#64748b',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  highlightText: {
-    color: '#94a3b8',
-    fontWeight: '700',
-  },
-  activeVehicleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(14, 165, 233, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  activeVehicleChipText: {
-    color: '#38bdf8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  /* ── Info Banner ── */
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 14,
-    padding: 10,
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-    gap: 6,
-  },
-  infoBannerText: {
-    color: '#38bdf8',
-    fontSize: 12,
-  },
-
-  /* ── Empty State ── */
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 50,
-    paddingHorizontal: 30,
-    marginHorizontal: 16,
-    backgroundColor: '#111827',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  emptyIconCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  emptyTitle: {
-    color: '#ffffff',
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  emptyText: {
-    color: '#64748b',
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 18,
-  },
-  resetBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0d9488',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 14,
-  },
-  resetBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
-  /* ── Package Card ── */
-  card: {
-    backgroundColor: '#111827',
-    borderRadius: 20,
-    padding: 18,
-    marginHorizontal: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  cardBadgesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  leftBadges: {
-    flexDirection: 'row',
-    gap: 6,
-    flexWrap: 'wrap',
-    flex: 1,
-  },
-  badgeVehicle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  badgeVehicleText: {
-    color: '#cbd5e1',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  badgeGreen: {
-    backgroundColor: 'rgba(16, 185, 129, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  badgeGreenText: {
-    color: '#34d399',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  badgePurple: {
-    backgroundColor: 'rgba(168, 85, 247, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.25)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  badgePurpleText: {
-    color: '#c084fc',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  badgeHighlight: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.35)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  badgeHighlightText: {
-    color: '#fbbf24',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  rightBadgesGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  wishlistHeartBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wishlistHeartBtnLight: {
-    backgroundColor: '#f1f5f9',
-    borderColor: '#e2e8f0',
-  },
-  wishlistHeartBtnActive: {
-    backgroundColor: 'rgba(225, 29, 72, 0.12)',
-    borderColor: 'rgba(225, 29, 72, 0.35)',
-  },
-  wishlistCountBadge: {
+  bellBadgeDot: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#e11d48',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  wishlistCountBadgeText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  cardTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 8,
-    letterSpacing: -0.2,
+    top: 6,
+    right: 7,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ef4444',
+    borderWidth: 1.5,
+    borderColor: '#034694',
   },
 
-  /* ── Features Breakdown ── */
-  featuresContainer: {
-    gap: 6,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    padding: 10,
-    borderRadius: 12,
-  },
-  featureItemRow: {
+  /* ── Sub Row ── */
+  headerSubRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
     gap: 8,
   },
-  featureCheckIcon: {
-    marginTop: 2,
-  },
-  featureItemText: {
+  locationPill: {
     flex: 1,
-    color: '#94a3b8',
-    fontSize: 12.5,
-    lineHeight: 18,
-  },
-  readMoreInlineText: {
-    color: '#ef4444',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  /* ── Card Footer ── */
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  priceSymbol: {
-    color: '#38bdf8',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  priceValue: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  priceUnit: {
-    color: '#94a3b8',
-    fontSize: 12,
-    fontWeight: '500',
-    marginLeft: 2,
-  },
-  washCountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  washCount: {
-    color: '#10b981',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  bookBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0d9488',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 12,
-    shadowColor: '#0d9488',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     elevation: 3,
   },
-  bookBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
+  locationPillText: {
+    flex: 1,
+    fontSize: 12,
     fontWeight: '700',
+    color: '#0f172a',
+  },
+  referTopPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fbbf24', // Yellow matching screenshot
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    shadowColor: '#d97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  coinBadge: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#d97706',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+  },
+  coinBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  referTopPillText: {
+    color: '#451a03',
+    fontSize: 12,
+    fontWeight: '800',
   },
 
-  /* ── Pagination (matching bookings.tsx / screenshot: < 1/4 >) ── */
-  paginationRow: {
+  /* ── Scroll Body ── */
+  scrollBody: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 12,
+    paddingBottom: 24,
+  },
+
+  /* ── Hero Banner ── */
+  heroSection: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 14,
+  },
+  heroBannerCard: {
+    width: BANNER_WIDTH,
+    height: HERO_BANNER_HEIGHT,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#034694',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  heroBannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  carouselDotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 20,
-    marginBottom: 8,
+    marginTop: 8,
+    gap: 6,
   },
-  pageNavBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#111827',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+  dot: {
+    height: 6,
+    borderRadius: 3,
   },
-  pageNavBtnDisabled: {
-    opacity: 0.35,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+  dotActive: {
+    width: 18,
+    backgroundColor: '#fbbf24', // Active yellow pill
   },
-  pageIndicator: {
-    minWidth: 72,
-    paddingVertical: 8,
+  dotInactive: {
+    width: 6,
+    backgroundColor: '#cbd5e1',
+  },
+
+  /* ── Quick Actions Grid (4 Cards) ── */
+  quickActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: '#111827',
+    marginBottom: 20,
+    gap: 8,
+  },
+  quickCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pageIndicatorText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#f8fafc',
-  },
-  loadMoreHint: {
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadMoreHintText: {
-    color: '#94a3b8',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  loadMoreHintTextLight: {
-    color: '#64748b',
-  },
-
-  /* ── Header Icon Button ── */
-  headerIconBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f2f8ff',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.3)',
-  },
-  headerIconBtnDark: {
-    backgroundColor: '#111827',
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-  },
-  headerIconBtnLight: {
-    backgroundColor: '#f1f5f9',
     borderColor: '#e2e8f0',
-  },
-  loginBtnHeaderDark: {
-    backgroundColor: 'rgba(14, 165, 233, 0.12)',
-    borderColor: 'rgba(56, 189, 248, 0.24)',
-  },
-  loginBtnHeaderLight: {
-    backgroundColor: 'rgba(2, 132, 199, 0.08)',
-    borderColor: 'rgba(2, 132, 199, 0.25)',
-  },
-  loginBtnHeaderTextDark: {
-    color: '#7dd3fc',
-  },
-  headerLight: {
-    backgroundColor: '#ffffff',
-    borderBottomColor: '#e2e8f0',
-  },
-  headerDark: {
-    backgroundColor: '#0f172a',
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-    shadowColor: '#020817',
-  },
-
-  /* ── Light Mode Overrides ── */
-  containerLight: {
-    backgroundColor: '#f8fafc',
-  },
-  loaderTextLight: {
-    color: '#64748b',
-  },
-  loginBtnHeaderTextLight: {
-    color: '#0284c7',
-  },
-  headerTitleLight: {
-    color: '#0f172a',
-  },
-  headerSubtitleLight: {
-    color: '#64748b',
-  },
-  servicesTitleLight: {
-    color: '#0f172a',
-  },
-  searchContainerLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  searchInputLight: {
-    color: '#0f172a',
-  },
-  searchFilterTriggerLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  resultsCountTextLight: {
-    color: '#64748b',
-  },
-  highlightTextLight: {
-    color: '#0f172a',
-  },
-  cardLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
+    shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    minHeight: 88,
   },
-  cardTitleLight: {
+  darkQuickCard: {
+    backgroundColor: '#111827',
+    borderColor: '#1e293b',
+  },
+  quickIconWrap: {
+    marginBottom: 6,
+  },
+  quickCardTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  darkQuickCardTitle: {
+    color: '#f8fafc',
+  },
+  quickCardSub: {
+    fontSize: 8.5,
+    fontWeight: '600',
+    color: '#64748b',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  darkQuickCardSub: {
+    color: '#94a3b8',
+  },
+
+  /* ── Services Section ── */
+  servicesSection: {
+    paddingHorizontal: 12,
+    marginBottom: 18,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionHeading: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0f172a',
+    letterSpacing: -0.3,
+  },
+  darkSectionHeading: {
+    color: '#f8fafc',
+  },
+  sectionSubHeading: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 2,
+  },
+  darkSectionSubHeading: {
+    color: '#94a3b8',
+  },
+  darkMutedText: {
+    color: '#94a3b8',
+  },
+  viewAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewAllBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#034694',
+  },
+  vehicleCardsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  vehicleCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    paddingTop: 10,
+    paddingBottom: 12,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  darkVehicleCard: {
+    backgroundColor: '#111827',
+    borderColor: '#1e293b',
+  },
+  vehicleCardActive: {
+    borderColor: '#0284c7',
+    borderWidth: 2,
+    backgroundColor: 'rgba(2, 132, 199, 0.04)',
+  },
+  vehicleImageWrap: {
+    width: '100%',
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  vehicleCarImg: {
+    width: '94%',
+    height: '100%',
+  },
+  vehicleCardTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginTop: 2,
+  },
+  darkVehicleCardTitle: {
+    color: '#f8fafc',
+  },
+  vehicleCardSub: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 6,
+  },
+  pricePill: {
+    backgroundColor: '#facc15', // Vibrant yellow pill matching screenshot
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 12,
+    width: '96%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pricePillActive: {
+    backgroundColor: '#0284c7',
+  },
+  pricePillText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#000000',
+  },
+
+  /* ── Dynamic Database Services Cards ── */
+  dbServicesContainer: {
+    marginTop: 14,
+    gap: 10,
+  },
+  servicesLoadingWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 18,
+  },
+  servicesLoadingText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  emptyServicesWrap: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyServicesText: {
+    fontSize: 12.5,
+    color: '#64748b',
+    fontStyle: 'italic',
+  },
+  serviceItemCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  darkServiceItemCard: {
+    backgroundColor: '#111827',
+    borderColor: '#1e293b',
+  },
+  serviceItemTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  vehicleBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+  },
+  vehicleBadgePillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#0284c7',
+  },
+  customBadgePill: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+  },
+  customBadgePillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#b45309',
+  },
+  serviceItemTitle: {
+    fontSize: 15,
+    fontWeight: '800',
     color: '#0f172a',
   },
-  cardFooterLight: {
+  darkServiceItemTitle: {
+    color: '#f8fafc',
+  },
+  serviceItemPriceWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  serviceItemPriceCurrency: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0284c7',
+    marginTop: 1,
+    marginRight: 1,
+  },
+  serviceItemPriceValue: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0284c7',
+  },
+  serviceFeaturesWrap: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
+    gap: 4,
   },
-  badgeVehicleLight: {
-    backgroundColor: '#f1f5f9',
+  featureItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  featureItemText: {
+    fontSize: 11.5,
+    color: '#475569',
+    fontWeight: '500',
+    flex: 1,
+  },
+  darkFeatureItemText: {
+    color: '#94a3b8',
+  },
+  serviceItemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  bookNowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  bookNowBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  /* ── Promo Banners ── */
+  promoBannerCard: {
+    width: PROMO_BANNER_WIDTH,
+    height: PROMO_BANNER_HEIGHT,
+    alignSelf: 'center',
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    marginBottom: 18,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  promoBannerImg: {
+    width: '100%',
+    height: '100%',
+  },
+
+  /* ── Why Choose Us Section ── */
+  whyUsSection: {
+    paddingHorizontal: 12,
+    marginBottom: 18,
+  },
+  whyUsGrid: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  whyCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
     borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    minHeight: 82,
   },
-  badgeVehicleTextLight: {
+  darkWhyCard: {
+    backgroundColor: '#111827',
+    borderColor: '#1e293b',
+  },
+  whyIconWrap: {
+    marginBottom: 6,
+  },
+  whyText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#1e293b',
+    textAlign: 'center',
+    lineHeight: 13,
+  },
+  darkWhyText: {
+    color: '#e2e8f0',
+  },
+
+  /* ── Location Modal ── */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  locationModalCard: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  darkLocationModalCard: {
+    backgroundColor: '#111827',
+  },
+  locationModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  locationModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  darkLocationModalTitle: {
+    color: '#f8fafc',
+  },
+  savedDbAddressBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(5, 150, 105, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    marginBottom: 14,
+  },
+  savedDbAddressBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#059669',
+    flex: 1,
+  },
+  detectGpsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 16,
+  },
+  detectGpsTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0284c7',
+  },
+  detectGpsSub: {
+    fontSize: 10.5,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  orDividerText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94a3b8',
+    letterSpacing: 0.6,
+    marginBottom: 10,
+  },
+  darkOrDividerText: {
+    color: '#64748b',
+  },
+  locationInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  locationTextInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    color: '#0f172a',
+  },
+  darkLocationTextInput: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+    color: '#ffffff',
+  },
+  locationSaveBtn: {
+    height: 44,
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationSaveBtnText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  quickLocationsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  suggestionPill: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  suggestionPillText: {
+    fontSize: 11,
+    fontWeight: '600',
     color: '#475569',
   },
-  featuresContainerLight: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#f1f5f9',
+
+  /* ── Drawer Menu ── */
+  drawerBackdrop: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
   },
-  featureItemTextLight: {
-    color: '#334155',
+  drawerBackdropDismiss: {
+    flex: 1,
   },
-  priceValueLight: {
-    color: '#0f172a',
+  drawerContainer: {
+    width: 300,
+    maxWidth: '85%',
+    backgroundColor: '#ffffff',
+    height: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 16,
   },
-  priceUnitLight: {
+  darkDrawerContainer: {
+    backgroundColor: '#111827',
+  },
+  drawerHeader: {
+    backgroundColor: '#034694',
+    paddingTop: Platform.OS === 'android' ? 44 : 50,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
+  },
+  drawerUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  drawerAvatarWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#facc15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerAvatarInitial: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#034694',
+  },
+  drawerUserName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  drawerUserEmail: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 1,
+  },
+  drawerCloseBtn: {
+    padding: 6,
+  },
+  drawerLoginBtn: {
+    marginTop: 12,
+    backgroundColor: '#facc15',
+    paddingVertical: 7,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  drawerLoginBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#034694',
+  },
+  drawerVerifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  drawerVerifiedText: {
+    color: '#e0f2fe',
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
+  drawerList: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingTop: 16,
+  },
+  drawerGroupHeader: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94a3b8',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginLeft: 6,
+  },
+  darkDrawerGroupHeader: {
     color: '#64748b',
   },
-  washCountLight: {
-    color: '#059669',
+  drawerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 11,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    gap: 12,
+    marginBottom: 2,
   },
-  emptyContainerLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
+  drawerItemText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e293b',
   },
-  emptyIconCircleLight: {
-    backgroundColor: '#f1f5f9',
+  darkDrawerItemText: {
+    color: '#f8fafc',
   },
-  emptyTitleLight: {
-    color: '#0f172a',
+  drawerLogoutItem: {
+    marginTop: 10,
+    backgroundColor: '#fff1f2',
   },
-  emptyTextLight: {
-    color: '#64748b',
-  },
-  pageNavBtnLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  pageIndicatorLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  pageIndicatorTextLight: {
-    color: '#334155',
-  },
-  filterMenuDropdownLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  filterMenuHeadingLight: {
-    color: '#0f172a',
-  },
-  filterMenuDividerLight: {
-    backgroundColor: '#f1f5f9',
-  },
-  filterMenuItemTextLight: {
-    color: '#334155',
-  },
-  filterMenuCountBadgeLight: {
-    backgroundColor: '#f1f5f9',
-  },
-  filterMenuCountTextLight: {
-    color: '#64748b',
-  },
-  activeFilterMenuItemLight: {
-    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+  drawerLogoutText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#dc2626',
   },
 });

@@ -24,6 +24,7 @@ import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium, safeHapticSuccess } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
+import { useAppTheme } from '../utils/themeManager';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -64,7 +65,7 @@ export default function BookScreen() {
   // Authentication & User State
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useAppTheme();
 
   // Core Data Loaded
   const [loading, setLoading] = useState(true);
@@ -128,7 +129,11 @@ export default function BookScreen() {
           setVehicles(vList);
           if (vList.length > 0) {
             const paramVId = searchParams.vehicle_id ? Number(searchParams.vehicle_id) : null;
-            const matchV = paramVId ? vList.find((v) => v.id === paramVId) : null;
+            const paramVType = typeof searchParams.vehicle === 'string' ? searchParams.vehicle.toLowerCase() : null;
+            let matchV = paramVId ? vList.find((v) => v.id === paramVId) : null;
+            if (!matchV && paramVType) {
+              matchV = vList.find((v) => v.vehicle_type?.toLowerCase() === paramVType) || null;
+            }
             setSelectedVehicleId(matchV ? matchV.id : vList[0].id);
           }
         }
@@ -162,13 +167,11 @@ export default function BookScreen() {
       try {
         const storedToken = await AsyncStorage.getItem('userToken');
         const storedUser = await AsyncStorage.getItem('userData');
-        const storedTheme = await AsyncStorage.getItem('app_theme');
 
         if (storedToken && storedUser) {
           if (isMounted) {
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
-            setIsDark(storedTheme === 'dark');
           }
           await loadData(storedToken);
         } else {
@@ -189,13 +192,6 @@ export default function BookScreen() {
     safeHapticLight();
     setRefreshing(true);
     await loadData();
-  };
-
-  const toggleTheme = async () => {
-    safeHapticLight();
-    const next = !isDark;
-    setIsDark(next);
-    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
   };
 
   // Selected Objects

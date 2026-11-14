@@ -8,6 +8,21 @@
         <p class="text-muted" style="font-size:0.9rem;margin-top:0.25rem">Create your free account</p>
       </div>
 
+      <!-- Open in App Banner -->
+      <div v-if="form.referred_by_code" style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:12px;padding:0.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
+        <div style="font-size:0.85rem">
+          <div style="font-weight:700;color:var(--accent-cyan);display:flex;align-items:center;gap:4px">
+            <span>📱</span> CleanAtDoorstep App
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">
+            Have the app? Continue with referral code
+          </div>
+        </div>
+        <a :href="appDeepLink" class="btn btn-sm" style="background:var(--accent-cyan);color:#fff;text-decoration:none;font-weight:600;padding:6px 14px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px">
+          Open App →
+        </a>
+      </div>
+
       <div style="display:flex;flex-direction:column;gap:0.75rem">
         <!-- Full Name -->
         <div>
@@ -101,12 +116,59 @@ export default {
       loading: false, serverError: '', showPwd: { main: false, confirm: false }
     };
   },
+  computed: {
+    appDeepLink() {
+      const code = (this.form.referred_by_code || '').trim().toUpperCase();
+      return `cleanatdoorstep://register?ref=${encodeURIComponent(code)}`;
+    },
+  },
+  created() {
+    this.extractAndApplyReferralCode();
+  },
   mounted() {
-    // Pre-fill referral code from URL query param
-    const ref = this.$route.query.ref;
-    if (ref) this.form.referred_by_code = ref.toUpperCase();
+    this.extractAndApplyReferralCode();
+  },
+  watch: {
+    '$route.query': {
+      handler() {
+        this.extractAndApplyReferralCode();
+      },
+      immediate: true,
+      deep: true,
+    },
   },
   methods: {
+    extractAndApplyReferralCode() {
+      const q = this.$route?.query || {};
+      let ref = q.ref || q.referral || q.code || q.referral_code;
+
+      if (!ref && typeof window !== 'undefined' && window.location?.search) {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          ref = params.get('ref') || params.get('referral') || params.get('code') || params.get('referral_code');
+        } catch (e) {}
+      }
+
+      if (ref && typeof ref === 'string') {
+        const cleaned = ref.trim().toUpperCase();
+        if (cleaned) {
+          this.form.referred_by_code = cleaned;
+          try {
+            sessionStorage.setItem('cleanatdoorstep_ref', cleaned);
+            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(`CLEANATDOORSTEP_REF:${cleaned}`).catch(() => {});
+            }
+          } catch (e) {}
+        }
+      } else {
+        try {
+          const cached = sessionStorage.getItem('cleanatdoorstep_ref');
+          if (cached && !this.form.referred_by_code) {
+            this.form.referred_by_code = cached;
+          }
+        } catch (e) {}
+      }
+    },
     clearError(field) {
       this.errors[field] = '';
     },

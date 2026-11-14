@@ -23,6 +23,7 @@ import { API_BASE } from '../constants/api';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { useAppTheme } from '../utils/themeManager';
 
 interface SupportTicket {
   id: number;
@@ -40,8 +41,8 @@ export default function SupportScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
+  const { isDark, toggleTheme } = useAppTheme();
 
-  const [isDark, setIsDark] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -52,17 +53,6 @@ export default function SupportScreen() {
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
-
-  const syncTheme = useCallback(async () => {
-    const storedTheme = await AsyncStorage.getItem('app_theme');
-    setIsDark(storedTheme === 'dark');
-  }, []);
-
-  const handleToggleTheme = useCallback(async () => {
-    const nextTheme = !isDark ? 'dark' : 'light';
-    setIsDark(nextTheme === 'dark');
-    await AsyncStorage.setItem('app_theme', nextTheme);
-  }, [isDark]);
 
   const syncUser = useCallback(async () => {
     const userData = await AsyncStorage.getItem('userData');
@@ -108,17 +98,15 @@ export default function SupportScreen() {
   }, [selectedTicketId]);
 
   useEffect(() => {
-    syncTheme();
     syncUser();
     loadTickets();
-  }, [loadTickets, syncTheme, syncUser]);
+  }, [loadTickets, syncUser]);
 
   useFocusEffect(
     useCallback(() => {
-      syncTheme();
       syncUser();
       loadTickets();
-    }, [loadTickets, syncTheme, syncUser])
+    }, [loadTickets, syncUser])
   );
 
   const clearForm = () => {
@@ -263,7 +251,7 @@ export default function SupportScreen() {
           title="Help & Support"
           subtitle="Customer care"
           isDark={isDark}
-          onToggleTheme={handleToggleTheme}
+          onToggleTheme={toggleTheme}
         />
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={isDark ? '#f8fafc' : '#0284c7'} />
@@ -283,7 +271,7 @@ export default function SupportScreen() {
         title="Help & Support"
         subtitle="Customer care"
         isDark={isDark}
-        onToggleTheme={handleToggleTheme}
+        onToggleTheme={toggleTheme}
       />
 
       <ScrollView

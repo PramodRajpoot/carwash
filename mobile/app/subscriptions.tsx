@@ -21,6 +21,7 @@ import { API_BASE } from '../constants/api';
 import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
+import { useAppTheme } from '../utils/themeManager';
 
 interface Plan {
   id: number;
@@ -107,15 +108,24 @@ export default function SubscriptionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
+  const { isDark, toggleTheme } = useAppTheme();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
-  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>('book');
+  const [activeFooterTab, setActiveFooterTab] = useState<FooterTab | 'none'>('none');
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<number, boolean>>({});
+
+  const syncUser = useCallback(async () => {
+    const storedUser = await AsyncStorage.getItem('userData');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {}
+    }
+  }, []);
 
   const loadPlans = useCallback(async () => {
     try {
@@ -152,32 +162,15 @@ export default function SubscriptionsScreen() {
     }
   }, []);
 
-  const syncTheme = useCallback(async () => {
-    const storedTheme = await AsyncStorage.getItem('app_theme');
-    setIsDark(storedTheme === 'dark');
-    const storedUser = await AsyncStorage.getItem('userData');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {}
-    }
-  }, []);
-
   useEffect(() => {
-    syncTheme();
+    syncUser();
     loadPlans();
-  }, [loadPlans, syncTheme]);
-
-  const toggleTheme = useCallback(async () => {
-    const next = !isDark;
-    setIsDark(next);
-    await AsyncStorage.setItem('app_theme', next ? 'dark' : 'light');
-  }, [isDark]);
+  }, [loadPlans, syncUser]);
 
   useFocusEffect(
     useCallback(() => {
-      syncTheme();
-    }, [syncTheme])
+      syncUser();
+    }, [syncUser])
   );
 
   const monthlyPlans = useMemo(() => {
@@ -196,25 +189,6 @@ export default function SubscriptionsScreen() {
 
   const handleFooterTabPress = (tab: FooterTab) => {
     setActiveFooterTab(tab);
-
-    if (tab === 'home') {
-      router.replace('/dashboard');
-      return;
-    }
-
-    if (tab === 'garage') {
-      router.push('/garage');
-      return;
-    }
-
-    if (tab === 'book') {
-      router.push('/bookings');
-      return;
-    }
-
-    if (tab === 'support') {
-      router.push('/support');
-    }
   };
 
   const formatPrice = (value: number | string | undefined) => {
@@ -264,7 +238,10 @@ export default function SubscriptionsScreen() {
             }
           );
 
-          showSweetAlert('Success', response.data?.message || 'Subscription activated successfully.', 'success');
+          const successMessage = (response.data?.message || 'Subscription activated successfully.')
+            .replace(/\s*You earned 50 E-Points\.?/gi, '')
+            .trim();
+          showSweetAlert('Success', successMessage || 'Subscribed successfully!', 'success');
           await loadPlans();
         } catch (error: any) {
           const message = error?.response?.data?.message || 'Failed to subscribe.';
@@ -310,9 +287,6 @@ export default function SubscriptionsScreen() {
       >
         <View style={[styles.sectionHeader, isDark && styles.sectionHeaderDark]}>
           <Text style={[styles.sectionTitle, isDark && styles.titleDark]}>Monthly Wash Plans</Text>
-          <View style={styles.badgePill}>
-            <Text style={styles.badgeText}>SAVE UP TO 40%</Text>
-          </View>
         </View>
 
         {monthlyPlans.map((plan) => {

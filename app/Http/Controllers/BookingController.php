@@ -62,6 +62,55 @@ class BookingController extends Controller
         return response()->json($offers);
     }
 
+    /**
+     * Synchronize a slot's current_bookings count based strictly on actual bookings
+     * where full payment or at least ₹99 has been paid.
+     * Failed or unpaid/pending payments do NOT book the slot.
+     */
+    public static function syncSlotBookings($franchiseeId, $bookingDate, $slotTime)
+    {
+        if (!$franchiseeId || !$bookingDate || !$slotTime) {
+            return;
+        }
+
+        $activeWashersCount = \App\Models\Washer::where('franchisee_id', $franchiseeId)
+            ->where('status', 'active')
+            ->count();
+        $washerCapacity = $activeWashersCount > 0 ? $activeWashersCount : 1;
+
+        $actual = Booking::where('franchisee_id', $franchiseeId)
+            ->where('booking_date', $bookingDate)
+            ->where('slot_time', $slotTime)
+            ->slotBooked()
+            ->count();
+
+        $slot = Slot::where('franchisee_id', $franchiseeId)
+            ->where('date', $bookingDate)
+            ->where('time_range', $slotTime)
+            ->first();
+
+        $effectiveMax = $washerCapacity;
+        if ($slot && $slot->max_bookings && $slot->max_bookings <= $washerCapacity) {
+            $effectiveMax = $slot->max_bookings;
+        }
+
+        if ($slot) {
+            $slot->current_bookings = $actual;
+            $slot->max_bookings = $effectiveMax;
+            $slot->save();
+        } else {
+            Slot::create([
+                'franchisee_id' => $franchiseeId,
+                'date' => $bookingDate,
+                'time_range' => $slotTime,
+                'max_bookings' => $effectiveMax,
+                'current_bookings' => $actual,
+                'is_active' => true,
+                'status' => 'active'
+            ]);
+        }
+    }
+
     public function checkSlotAvailability(Request $request)
     {
         $request->validate([
@@ -107,7 +156,7 @@ class BookingController extends Controller
             $actual = Booking::where('franchisee_id', $request->franchisee_id)
                 ->where('booking_date', $request->date)
                 ->where('slot_time', $slot->time_range)
-                ->whereNotIn('status', ['cancelled'])
+                ->slotBooked()
                 ->count();
             if ($slot->current_bookings !== $actual) {
                 $slot->current_bookings = $actual;
@@ -179,7 +228,7 @@ class BookingController extends Controller
         $actualCurrentBookings = Booking::where('franchisee_id', $franchisee->id)
             ->where('booking_date', $request->booking_date)
             ->where('slot_time', $request->slot_time)
-            ->whereNotIn('status', ['cancelled'])
+            ->slotBooked()
             ->count();
 
         if ($actualCurrentBookings >= $effectiveMax) {
@@ -218,6 +267,22 @@ class BookingController extends Controller
 
         $price += $addonPrice;
 
+        $completedWashesCount = Booking::where('customer_id', $user->id)
+            ->where('status', 'completed')
+            ->count();
+        // A wash only counts as a prior wash if it actually booked a slot (paid ₹99 or full amount)
+        $priorWashExists = Booking::where('customer_id', $user->id)
+            ->slotBooked()
+            ->exists();
+        $tookFirstWashDiscount = Booking::where('customer_id', $user->id)
+            ->where('coupon_code', 'FIRSTWASH10')
+            ->slotBooked()
+            ->exists();
+
+        // Only the first wash gets 10% discount. Once a wash is booked with paid 99 or full amount, rest washes can use points & earning money.
+        $isFirstWash = (!$priorWashExists && !$tookFirstWashDiscount);
+        $canUsePoints = !$isFirstWash;
+
         // Check payment details
         if ($request->payment_method === 'subscription') {
             $subscription = Subscription::where('customer_id', $user->id)
@@ -242,11 +307,19 @@ class BookingController extends Controller
             $price = 0.00;
             $paymentStatus = 'paid'; // Subscription is pre-paid
         } else {
-            // Apply Coupon if applicable
+            // Apply Coupon or First Wash 10% Discount
             $couponCode = null;
             $couponDiscount = 0.00;
 
-            if ($request->filled('coupon_code')) {
+            if ($isFirstWash) {
+                // First wash automatically gets 10% discount
+                $couponDiscount = (float) round($price * 0.10, 2);
+                $couponCode = 'FIRSTWASH10';
+                $price -= $couponDiscount;
+                if ($price < 0) {
+                    $price = 0.00;
+                }
+            } elseif ($request->filled('coupon_code')) {
                 $coupon = Coupon::where('code', strtoupper($request->coupon_code))
                     ->where('status', 'active')
                     ->first();
@@ -287,9 +360,9 @@ class BookingController extends Controller
             }
         }
 
-        // Apply E-Points if requested
+        // Apply E-Points if requested (allowed on rest washes, after first wash is taken/booked)
         $epointsUsed = 0;
-        if ($request->boolean('use_epoints')) {
+        if ($canUsePoints && $request->boolean('use_epoints')) {
             if ($user->e_points > 0) {
                 $maxPointsAllowed = (int) floor($price * 0.125);
                 $epointsUsed = min($user->e_points, $maxPointsAllowed);
@@ -300,9 +373,9 @@ class BookingController extends Controller
             }
         }
 
-        // Apply Earning Money if requested
+        // Apply Earning Money if requested (allowed on rest washes, after first wash is taken/booked)
         $earningMoneyUsed = 0.00;
-        if ($request->boolean('use_earning_money')) {
+        if ($canUsePoints && $request->boolean('use_earning_money')) {
             if ($user->earning_money > 0) {
                 $earningMoneyUsed = min($user->earning_money, $price);
                 if ($earningMoneyUsed > 0) {
@@ -310,21 +383,6 @@ class BookingController extends Controller
                     $user->decrement('earning_money', $earningMoneyUsed);
                 }
             }
-        }
-
-        // Increment or create Slot bookings count
-        if ($slot) {
-            $slot->current_bookings = $actualCurrentBookings + 1;
-            $slot->max_bookings = $effectiveMax;
-            $slot->save();
-        } else {
-            Slot::create([
-                'franchisee_id' => $franchisee->id,
-                'date' => $request->booking_date,
-                'time_range' => $request->slot_time,
-                'max_bookings' => $effectiveMax,
-                'current_bookings' => $actualCurrentBookings + 1
-            ]);
         }
 
         // Calculate 18% GST on taxable subtotal (unless subscription booking)
@@ -381,6 +439,10 @@ class BookingController extends Controller
             'epoints_used' => $epointsUsed,
             'earning_money_used' => $earningMoneyUsed,
         ]);
+
+        // Sync slot bookings count: slot is ONLY booked if user paid full payment (e.g. subscription or zero-price).
+        // If payment is pending/failed/unpaid, the slot is NOT booked until payment completes.
+        self::syncSlotBookings($franchisee->id, $request->booking_date, $request->slot_time);
 
         if ($epointsUsed > 0) {
             \App\Models\WalletTransaction::create([
@@ -528,15 +590,8 @@ class BookingController extends Controller
             }
         }
 
-        // Decrement slot count
-        $slot = Slot::where('franchisee_id', $booking->franchisee_id)
-            ->where('date', $booking->booking_date)
-            ->where('time_range', $booking->slot_time)
-            ->first();
-
-        if ($slot && $slot->current_bookings > 0) {
-            $slot->decrement('current_bookings');
-        }
+        // Synchronize slot count: only bookings with full payment or at least ₹99 occupy slots
+        self::syncSlotBookings($booking->franchisee_id, $booking->booking_date, $booking->slot_time);
 
         return response()->json([
             'status' => 'success',
@@ -561,10 +616,13 @@ class BookingController extends Controller
         }
 
         if ($booking->status === 'cancelled') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Cancelled bookings cannot be rescheduled.'
-            ], 422);
+            $isPaid99 = ((float) $booking->paid_amount >= 99) || ($booking->payment_status === 'partially_paid');
+            if (!$isPaid99) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Cancelled bookings cannot be rescheduled unless advance payment was completed.'
+                ], 422);
+            }
         }
 
         $request->validate([
@@ -587,7 +645,7 @@ class BookingController extends Controller
         $actualNewCount = Booking::where('franchisee_id', $booking->franchisee_id)
             ->where('booking_date', $request->booking_date)
             ->where('slot_time', $request->slot_time)
-            ->whereNotIn('status', ['cancelled'])
+            ->slotBooked()
             ->count();
 
         if ($actualNewCount >= $effectiveNewMax) {
@@ -597,36 +655,18 @@ class BookingController extends Controller
             ], 400);
         }
 
-        // Decrement OLD slot
-        $oldSlot = Slot::where('franchisee_id', $booking->franchisee_id)
-            ->where('date', $booking->booking_date)
-            ->where('time_range', $booking->slot_time)
-            ->first();
-
-        if ($oldSlot && $oldSlot->current_bookings > 0) {
-            $oldSlot->decrement('current_bookings');
-        }
-
-        // Increment NEW slot
-        if ($newSlot) {
-            $newSlot->current_bookings = $actualNewCount + 1;
-            $newSlot->max_bookings = $effectiveNewMax;
-            $newSlot->save();
-        } else {
-            Slot::create([
-                'franchisee_id' => $booking->franchisee_id,
-                'date' => $request->booking_date,
-                'time_range' => $request->slot_time,
-                'max_bookings' => $effectiveNewMax,
-                'current_bookings' => $actualNewCount + 1
-            ]);
-        }
+        $oldDate = $booking->booking_date;
+        $oldSlotTime = $booking->slot_time;
 
         // Update booking details
         $booking->booking_date = $request->booking_date;
         $booking->slot_time = $request->slot_time;
         $booking->status = 'postponed';
         $booking->save();
+
+        // Synchronize both old and new slots based on actual paid bookings
+        self::syncSlotBookings($booking->franchisee_id, $oldDate, $oldSlotTime);
+        self::syncSlotBookings($booking->franchisee_id, $request->booking_date, $request->slot_time);
 
         return response()->json([
             'status' => 'success',
@@ -641,6 +681,24 @@ class BookingController extends Controller
             'code' => 'required|string',
             'price' => 'required|numeric'
         ]);
+
+        $user = $request->user();
+        if ($user) {
+            $priorWashExists = Booking::where('customer_id', $user->id)
+                ->slotBooked()
+                ->exists();
+            $tookFirstWashDiscount = Booking::where('customer_id', $user->id)
+                ->where('coupon_code', 'FIRSTWASH10')
+                ->slotBooked()
+                ->exists();
+            $isFirstWash = (!$priorWashExists && !$tookFirstWashDiscount);
+            if ($isFirstWash) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'First wash already includes 10% discount! Additional coupons cannot be stacked.'
+                ], 400);
+            }
+        }
 
         $coupon = Coupon::where('code', strtoupper($request->code))
             ->where('status', 'active')

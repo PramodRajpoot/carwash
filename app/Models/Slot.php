@@ -20,6 +20,13 @@ class Slot extends Model
         'status',
     ];
 
+    protected $appends = ['is_full'];
+
+    public function getIsFullAttribute()
+    {
+        return (int) ($this->current_bookings ?? 0) >= (int) ($this->max_bookings ?? 1);
+    }
+
     public function franchisee()
     {
         return $this->belongsTo(Franchisee::class);

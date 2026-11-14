@@ -19,6 +19,7 @@ import { API_BASE } from '../constants/api';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { useAppTheme } from '../utils/themeManager';
 
 interface WishlistPackage {
   id?: number;
@@ -49,16 +50,11 @@ export default function WishlistScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, 16) + 6;
+  const { isDark, toggleTheme } = useAppTheme();
 
-  const [isDark, setIsDark] = useState(false);
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [user, setUser] = useState<any>({ name: 'User' });
-
-  const syncTheme = useCallback(async () => {
-    const storedTheme = await AsyncStorage.getItem('app_theme');
-    setIsDark(storedTheme === 'dark');
-  }, []);
 
   const syncUser = useCallback(async () => {
     const userData = await AsyncStorage.getItem('userData');
@@ -99,12 +95,6 @@ export default function WishlistScreen() {
     }
   }, []);
 
-  const handleToggleTheme = useCallback(async () => {
-    const nextTheme = !isDark ? 'dark' : 'light';
-    setIsDark(nextTheme === 'dark');
-    await AsyncStorage.setItem('app_theme', nextTheme);
-  }, [isDark]);
-
   const removeItem = useCallback(async (id: number) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -127,10 +117,9 @@ export default function WishlistScreen() {
   }, []);
 
   useEffect(() => {
-    syncTheme();
     syncUser();
     fetchWishlist();
-  }, [fetchWishlist, syncTheme, syncUser]);
+  }, [fetchWishlist, syncUser]);
 
   const handleFooterTabPress = (tab: FooterTab) => {
     if (tab === 'home') {
@@ -163,7 +152,7 @@ export default function WishlistScreen() {
           subtitle="Saved services"
           isDark={isDark}
           showLocation={false}
-          onToggleTheme={handleToggleTheme}
+          onToggleTheme={toggleTheme}
         />
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={isDark ? '#f8fafc' : '#0284c7'} />
@@ -184,7 +173,7 @@ export default function WishlistScreen() {
         subtitle="Saved services"
         isDark={isDark}
         showLocation={false}
-        onToggleTheme={handleToggleTheme}
+        onToggleTheme={toggleTheme}
       />
 
       <ScrollView

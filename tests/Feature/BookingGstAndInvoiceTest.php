@@ -69,6 +69,20 @@ class BookingGstAndInvoiceTest extends TestCase
             'plate_number' => 'DL10AB1234',
             'vehicle_type' => 'sedan',
         ]);
+
+        // Prior completed booking so regular GST test does not get first wash discount
+        Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $this->package->id,
+            'booking_date' => now()->subDays(5)->toDateString(),
+            'slot_time' => '10:00 - 11:00',
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'paid_amount' => 500.00,
+            'total_price' => 500.00,
+        ]);
     }
 
     public function test_booking_calculates_18_percent_gst_and_stores_gst_amount()

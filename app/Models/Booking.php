@@ -104,4 +104,41 @@ class Booking extends Model
     {
         return $this->belongsTo(ServicePackage::class, 'package_id');
     }
+
+    /**
+     * Scope for bookings that have actually booked/reserved a slot.
+     * Slot is ONLY booked in two cases:
+     * 1. User has paid full payment (payment_status == 'paid')
+     * 2. User has paid at least ₹99 (paid_amount >= 99, or payment_status == 'partially_paid' with paid_amount >= 99)
+     * If payment is failed, unpaid, pending_payment, or paid_amount < 99, slot is NOT booked.
+     */
+    public function scopeSlotBooked($query)
+    {
+        return $query->whereNotIn('status', ['cancelled'])
+            ->where(function ($q) {
+                $q->where('payment_status', 'paid')
+                  ->orWhere('paid_amount', '>=', 99)
+                  ->orWhere(function ($sub) {
+                      $sub->where('payment_status', 'partially_paid')
+                          ->where('paid_amount', '>=', 99);
+                  });
+            });
+    }
+
+    /**
+     * Check if this individual booking has booked a slot.
+     */
+    public function isSlotBooked(): bool
+    {
+        if ($this->status === 'cancelled') {
+            return false;
+        }
+
+        if ($this->payment_status === 'paid') {
+            return true;
+        }
+
+        $paid = (float) ($this->paid_amount ?? 0);
+        return $paid >= 99;
+    }
 }
