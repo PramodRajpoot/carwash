@@ -10,6 +10,7 @@ use App\Models\Subscription;
 use App\Models\WalletTransaction;
 use App\Models\PlatformSetting;
 use App\Models\ServiceCategory;
+use App\Models\ServiceType;
 use App\Models\ServicePackage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -483,6 +484,86 @@ class SuperAdminController extends Controller
         $category = ServiceCategory::findOrFail($id);
         $category->delete();
         return response()->json(['status' => 'success', 'message' => 'Category deleted successfully.']);
+    }
+
+    // ─── Service Types Management ────────────────────────────────────────
+
+    public function getServiceTypes()
+    {
+        return response()->json(ServiceType::all());
+    }
+
+    public function createServiceType(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'nullable|string|max:100|unique:service_types,code',
+            'description' => 'nullable|string',
+            'status' => 'required|in:active,inactive'
+        ]);
+
+        $code = $request->filled('code') 
+            ? Str::slug($request->code, '_') 
+            : Str::slug($request->name, '_');
+
+        if (ServiceType::where('code', $code)->exists()) {
+            $code = $code . '_' . time();
+        }
+
+        $serviceType = ServiceType::create([
+            'name' => $request->name,
+            'code' => $code,
+            'description' => $request->description,
+            'status' => $request->status,
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Service type created successfully.', 'service_type' => $serviceType]);
+    }
+
+    public function updateServiceType(Request $request, $id)
+    {
+        $serviceType = ServiceType::findOrFail($id);
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'nullable|string|max:100|unique:service_types,code,' . $id,
+            'description' => 'nullable|string',
+            'status' => 'required|in:active,inactive'
+        ]);
+
+        $oldCode = $serviceType->code;
+        $code = $request->filled('code') 
+            ? Str::slug($request->code, '_') 
+            : $serviceType->code;
+
+        $serviceType->update([
+            'name' => $request->name,
+            'code' => $code,
+            'description' => $request->description,
+            'status' => $request->status,
+        ]);
+
+        if ($oldCode !== $code) {
+            ServicePackage::where('vehicle_type', $oldCode)->update(['vehicle_type' => $code]);
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Service type updated successfully.', 'service_type' => $serviceType]);
+    }
+
+    public function deleteServiceType($id)
+    {
+        $serviceType = ServiceType::findOrFail($id);
+
+        $packagesCount = ServicePackage::where('vehicle_type', $serviceType->code)->count();
+        if ($packagesCount > 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Cannot delete this service type because {$packagesCount} package(s) are currently associated with it. Please reassign or delete them first."
+            ], 422);
+        }
+
+        $serviceType->delete();
+        return response()->json(['status' => 'success', 'message' => 'Service type deleted successfully.']);
     }
 
     // ─── Services Management ────────────────────────────────────────────

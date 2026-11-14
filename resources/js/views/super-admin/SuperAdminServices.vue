@@ -11,6 +11,7 @@
       <div class="tabs">
         <button class="tab" :class="{ active: activeTab === 'services' }" @click="activeTab = 'services'">Services / Packages</button>
         <button class="tab" :class="{ active: activeTab === 'categories' }" @click="activeTab = 'categories'">Categories</button>
+        <button class="tab" :class="{ active: activeTab === 'types' }" @click="activeTab = 'types'">Service Types</button>
       </div>
     </div>
 
@@ -107,9 +108,9 @@
                   {{ getDisplayCategory(service) }}
                 </span>
               </td>
-              <td style="padding: 1rem; text-transform: capitalize;">
+              <td style="padding: 1rem;">
                 <span v-if="service.vehicle_type === 'all'" class="badge badge-cyan" style="font-size: 0.72rem;">All Vehicles</span>
-                <span v-else>{{ service.vehicle_type }}</span>
+                <span v-else style="font-weight: 500;">{{ getServiceTypeName(service.vehicle_type) }}</span>
               </td>
               <td style="padding: 1rem; font-weight: 700; color: var(--accent-emerald);">₹{{ service.price }}</td>
               <td style="padding: 1rem;">
@@ -219,6 +220,80 @@
       </div>
     </div>
 
+    <!-- SERVICE TYPES TAB -->
+    <div v-if="activeTab === 'types'" class="tab-content">
+      <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h3 style="margin: 0;">Service Types</h3>
+          <p class="text-muted" style="font-size: 0.85rem; margin-top: 0.25rem;">
+            Manage vehicle service types (such as Hatchback, Sedan, SUV, Commercial, Bus, etc.) used for service pricing and bookings.
+          </p>
+        </div>
+        <button class="btn btn-primary" @click="openTypeModal()">+ Add Service Type</button>
+      </div>
+
+      <div class="glass-card mb-4" style="background: var(--bg-primary);">
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">
+              <th style="padding: 1rem; text-align: left;">ID</th>
+              <th style="padding: 1rem; text-align: left;">Service Type Name</th>
+              <th style="padding: 1rem; text-align: left;">Code / Identifier</th>
+              <th style="padding: 1rem; text-align: left;">Description</th>
+              <th style="padding: 1rem; text-align: left;">Status</th>
+              <th style="padding: 1rem; text-align: left;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="serviceTypes.length === 0">
+              <td colspan="6" class="text-center" style="padding: 2rem;">No service types found.</td>
+            </tr>
+            <tr v-for="type in paginatedServiceTypes" :key="type.id" style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 1rem;">#{{ type.id }}</td>
+              <td style="padding: 1rem; font-weight: 600;">{{ type.name }}</td>
+              <td style="padding: 1rem;">
+                <code style="background: var(--surface-hover); color: var(--accent-cyan); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                  {{ type.code }}
+                </code>
+              </td>
+              <td style="padding: 1rem; color: var(--text-muted); font-size: 0.85rem;">{{ type.description || '-' }}</td>
+              <td style="padding: 1rem;">
+                <span :style="{ background: type.status === 'active' ? '#dcfce7' : '#fee2e2', color: type.status === 'active' ? '#166534' : '#991b1b', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', textTransform: 'capitalize' }">
+                  {{ type.status }}
+                </span>
+              </td>
+              <td style="padding: 1rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="btn btn-outline btn-sm" @click="openTypeModal(type)">Edit</button>
+                  <button class="btn btn-outline btn-sm" style="border-color: var(--accent-rose); color: var(--accent-rose);" @click="deleteType(type.id)">Delete</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
+            <select v-model="typesPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="typesCurrentPage = 1">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="75">75</option>
+              <option :value="100">100</option>
+            </select>
+            <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
+              Showing {{ (typesCurrentPage - 1) * typesPerPage + 1 }} to {{ Math.min(typesCurrentPage * typesPerPage, serviceTypes.length) }} of {{ serviceTypes.length }}
+            </span>
+          </div>
+          <div class="flex gap-1">
+            <button class="btn btn-sm btn-outline" :disabled="typesCurrentPage === 1" @click="typesCurrentPage--">Prev</button>
+            <button class="btn btn-sm btn-outline" :disabled="typesCurrentPage >= totalTypesPages" @click="typesCurrentPage++">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL FOR SERVICE (MAIN OR ADD-ON) -->
     <div class="modal-overlay" v-if="showServiceModal" @click.self="closeModal">
       <div class="modal-content" style="max-width: 750px;">
@@ -266,13 +341,13 @@
             <div class="form-group">
               <label>Service Type *</label>
               <select v-model="serviceForm.vehicle_type" class="form-select" required>
-                <option v-if="serviceForm.is_addon" value="all">All Vehicles</option>
-                <option value="hatchback">Hatchback</option>
-                <option value="sedan">Sedan</option>
-                <option value="suv">SUV</option>
-                <option value="commercial">Commercial</option>
-                <option value="bus">Bus</option>
-                <option value="volvo_bus">Volvo Bus</option>
+                <option v-if="serviceForm.is_addon" value="all">All Vehicles / All Service Types</option>
+                <option v-for="t in activeServiceTypes" :key="t.id" :value="t.code">
+                  {{ t.name }}
+                </option>
+                <option v-if="serviceForm.vehicle_type && serviceForm.vehicle_type !== 'all' && !activeServiceTypes.some(t => t.code === serviceForm.vehicle_type)" :value="serviceForm.vehicle_type">
+                  {{ formatTypeName(serviceForm.vehicle_type) }}
+                </option>
               </select>
             </div>
             <div class="form-group">
@@ -345,6 +420,48 @@
           <div class="flex gap-2" style="margin-top: 1.5rem;">
             <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
               {{ isSubmitting ? 'Saving...' : 'Save Category' }}
+            </button>
+            <button type="button" class="btn btn-ghost" @click="closeModal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL FOR SERVICE TYPE -->
+    <div class="modal-overlay" v-if="showTypeModal" @click.self="closeModal">
+      <div class="modal-content" style="max-width: 550px;">
+        <h3>{{ editingType ? 'Edit Service Type' : 'Add New Service Type' }}</h3>
+        
+        <form @submit.prevent="saveType">
+          <div class="form-group">
+            <label>Service Type Name *</label>
+            <input v-model="typeForm.name" type="text" class="form-input" placeholder="e.g. Sedan, Luxury SUV, Bike" required @input="onTypeNameInput">
+          </div>
+
+          <div class="form-group">
+            <label>Code / Identifier *</label>
+            <input v-model="typeForm.code" type="text" class="form-input" placeholder="e.g. sedan, luxury_suv, bike" required>
+            <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">
+              Unique system key (lowercase, underscores). Used for package pricing and bookings.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea v-model="typeForm.description" class="form-textarea" rows="3" placeholder="Brief description of this service type"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Status</label>
+            <select v-model="typeForm.status" class="form-select">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div class="flex gap-2" style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+              {{ isSubmitting ? 'Saving...' : (editingType ? 'Update Service Type' : 'Save Service Type') }}
             </button>
             <button type="button" class="btn btn-ghost" @click="closeModal">Cancel</button>
           </div>
@@ -475,7 +592,19 @@ export default {
       servicesCurrentPage: 1,
       servicesPerPage: 10,
       categoriesCurrentPage: 1,
-      categoriesPerPage: 10
+      categoriesPerPage: 10,
+
+      serviceTypes: [],
+      showTypeModal: false,
+      editingType: null,
+      typeForm: {
+        name: '',
+        code: '',
+        description: '',
+        status: 'active'
+      },
+      typesCurrentPage: 1,
+      typesPerPage: 10
     }
   },
   computed: {
@@ -484,6 +613,9 @@ export default {
     },
     activeCategories() {
       return this.categories.filter(c => c.status === 'active');
+    },
+    activeServiceTypes() {
+      return this.serviceTypes.filter(t => t.status === 'active');
     },
     mainServicesCount() {
       return this.services.filter(s => !s.is_addon).length;
@@ -513,17 +645,26 @@ export default {
     },
     totalCategoriesPages() {
       return Math.ceil(this.categories.length / this.categoriesPerPage) || 1;
+    },
+    paginatedServiceTypes() {
+      const start = (this.typesCurrentPage - 1) * this.typesPerPage;
+      return this.serviceTypes.slice(start, start + this.typesPerPage);
+    },
+    totalTypesPages() {
+      return Math.ceil(this.serviceTypes.length / this.typesPerPage) || 1;
     }
   },
   methods: {
     async loadData() {
       try {
-        const [servicesRes, categoriesRes] = await Promise.all([
+        const [servicesRes, categoriesRes, typesRes] = await Promise.all([
           axios.get('/api/super-admin/services'),
-          axios.get('/api/super-admin/categories')
+          axios.get('/api/super-admin/categories'),
+          axios.get('/api/super-admin/service-types')
         ]);
         this.services = servicesRes.data;
         this.categories = categoriesRes.data;
+        this.serviceTypes = typesRes.data;
       } catch (error) {
         console.error('Failed to load data', error);
       }
@@ -533,9 +674,23 @@ export default {
         return service.category.name;
       }
       if (service.vehicle_type && service.vehicle_type !== 'all') {
-        return service.vehicle_type.charAt(0).toUpperCase() + service.vehicle_type.slice(1);
+        return this.getServiceTypeName(service.vehicle_type);
       }
       return 'General';
+    },
+    getServiceTypeName(code) {
+      if (!code) return '-';
+      if (code === 'all') return 'All Vehicles';
+      const found = this.serviceTypes.find(t => t.code === code);
+      if (found) return found.name;
+      return this.formatTypeName(code);
+    },
+    formatTypeName(code) {
+      if (!code) return '';
+      return code
+        .split('_')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
     },
     
     // Category Methods
@@ -576,6 +731,62 @@ export default {
       }
     },
 
+    // Service Type Methods
+    openTypeModal(type = null) {
+      if (type) {
+        this.editingType = type;
+        this.typeForm = { ...type };
+      } else {
+        this.editingType = null;
+        this.typeForm = {
+          name: '',
+          code: '',
+          description: '',
+          status: 'active'
+        };
+      }
+      this.showTypeModal = true;
+    },
+    onTypeNameInput() {
+      if (!this.editingType) {
+        this.typeForm.code = this.typeForm.name
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+      }
+    },
+    async saveType() {
+      if (!this.typeForm.name || !this.typeForm.code) {
+        alert('Please provide both name and code for the service type.');
+        return;
+      }
+      this.isSubmitting = true;
+      try {
+        if (this.editingType) {
+          await axios.put(`/api/super-admin/service-types/${this.editingType.id}`, this.typeForm);
+        } else {
+          await axios.post('/api/super-admin/service-types', this.typeForm);
+        }
+        await this.loadData();
+        this.closeModal();
+      } catch (error) {
+        alert(error.response?.data?.message || 'Failed to save service type');
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+    async deleteType(id) {
+      if (confirm('Are you sure you want to delete this service type?')) {
+        try {
+          await axios.delete(`/api/super-admin/service-types/${id}`);
+          await this.loadData();
+        } catch (error) {
+          alert(error.response?.data?.message || 'Failed to delete service type');
+        }
+      }
+    },
+
     // Service Methods
     openServiceModal(service = null, isAddon = false) {
       this.serviceImageFile = null;
@@ -606,7 +817,7 @@ export default {
           category_id: '',
           name: '',
           description: '',
-          vehicle_type: isAddon ? 'all' : 'sedan',
+          vehicle_type: isAddon ? 'all' : (this.activeServiceTypes[0]?.code || 'sedan'),
           price: isAddon ? 50 : '',
           frequency_days: isAddon ? 1 : 15,
           max_bookings: 1,
@@ -736,9 +947,11 @@ export default {
     closeModal() {
       this.showServiceModal = false;
       this.showCategoryModal = false;
+      this.showTypeModal = false;
       this.showManageAddonsModal = false;
       this.editingService = null;
       this.editingCategory = null;
+      this.editingType = null;
       this.managingService = null;
       this.selectedManagingAddonIds = [];
       this.serviceImageFile = null;

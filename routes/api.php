@@ -49,6 +49,7 @@ Route::get('/auth/google/callback', [App\Http\Controllers\GoogleAuthController::
 
 // Public service data
 Route::get('/categories', [BookingController::class, 'getCategories']);
+Route::get('/service-types', function() { return response()->json(\App\Models\ServiceType::where('status', 'active')->get()); });
 Route::get('/packages', [BookingController::class, 'getPackages']);
 Route::get('/centers',  [BookingController::class, 'getCenters']);
 Route::get('/offers',   [BookingController::class, 'getOffers']);
@@ -274,6 +275,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/categories', [SuperAdminController::class, 'createCategory']);
         Route::put('/categories/{id}', [SuperAdminController::class, 'updateCategory']);
         Route::delete('/categories/{id}', [SuperAdminController::class, 'deleteCategory']);
+
+        Route::get('/service-types', [SuperAdminController::class, 'getServiceTypes']);
+        Route::post('/service-types', [SuperAdminController::class, 'createServiceType']);
+        Route::put('/service-types/{id}', [SuperAdminController::class, 'updateServiceType']);
+        Route::delete('/service-types/{id}', [SuperAdminController::class, 'deleteServiceType']);
 
         Route::get('/services', [SuperAdminController::class, 'getServices']);
         Route::post('/services', [SuperAdminController::class, 'createService']);
