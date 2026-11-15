@@ -33,8 +33,8 @@
     <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
       <div class="container">
         <div class="section-title">
-          <h2>Our Partners' <span class="text-gradient">Valuable Feedback</span></h2>
-          <p>Hear directly from our successful franchise partners across India.</p>
+          <h2>Our <span class="text-gradient">Happy Customers</span></h2>
+          <p>Hear Directly from Our Happy Customers</p>
         </div>
         <div class="grid grid-3 gap-3">
           <div v-for="(feedback, i) in partnerFeedback" :key="i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
@@ -257,8 +257,8 @@
     <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
       <div class="container">
         <div class="section-title">
-          <h2>Our Partners' <span class="text-gradient">Valuable Feedback</span></h2>
-          <p>Hear directly from our successful franchise partners across India.</p>
+          <h2>Our <span class="text-gradient">Happy Customers</span></h2>
+          <p>Hear Directly from Our Happy Customers</p>
         </div>
         <div class="grid grid-3 gap-3">
           <div v-for="(feedback, i) in partnerFeedback" :key="'copy-' + i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
