@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Hero / Banner -->
-    <section class="hero" style="position: relative; overflow: hidden; display: flex; align-items: center;">
+    <section class="hero" style="position: relative; overflow: hidden; display: flex; align-items: center; min-height: 70vh;">
       <!-- Background Slider -->
       <div v-if="banners && banners.length > 0">
         <div v-for="(banner, index) in banners" :key="banner.id" class="hero-bg" 
@@ -9,25 +9,10 @@
         </div>
       </div>
       <div v-else class="hero-bg" style="background-image: url('/images/hero.png');"></div>
-      
-      <!-- Overlay to make text readable -->
-      <div class="hero-overlay"></div>
 
       <!-- Slider Controls -->
       <div v-if="banners && banners.length > 1" class="slider-controls">
         <button v-for="(banner, index) in banners" :key="index" @click="currentBannerIndex = index; resetSliderInterval()" class="dot-btn" :class="{ active: currentBannerIndex === index }"></button>
-      </div>
-
-      <!-- Content -->
-      <div class="container flex items-center" style="gap:4rem;flex-wrap:wrap;position: relative;z-index: 10;">
-        <div class="hero-content fade-in-up" style="max-width: 650px; width: 100%;">
-          <h1 style="color: #fff;"><span class="text-gradient">Premium Car Wash</span><br>At Your Doorstep</h1>
-          <p class="hero-text" style="color: rgba(255,255,255,0.85); line-height: 1.6;">Experience eco-friendly, waterless car cleaning with our professional detailing team. Book online, sit back, and watch your vehicle shine — all from the comfort of your home.</p>
-          <div class="flex gap-2" style="flex-wrap: wrap;">
-            <router-link to="/services" class="btn btn-primary" style="padding: 0.85rem 1.5rem;">Explore Services</router-link>
-            <router-link to="/register" class="btn btn-outline pulse-glow" style="border-color: rgba(255,255,255,0.3); color: #fff; padding: 0.85rem 1.5rem;">Book Now</router-link>
-          </div>
-        </div>
       </div>
     </section>
 
