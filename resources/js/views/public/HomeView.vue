@@ -106,9 +106,11 @@
           <p>We service every type of vehicle — from compact hatchbacks to luxury Volvo buses.</p>
         </div>
         <div class="grid grid-3 gap-3">
-          <div v-for="cat in categories" :key="cat.type" class="glass-card text-center" style="cursor:pointer" @click="$router.push('/services')">
-            <div style="font-size:3rem;margin-bottom:0.75rem">{{ cat.icon }}</div>
-            <h4>{{ cat.name }}</h4>
+          <div v-for="cat in categories" :key="cat.type" class="glass-card text-center category-card" style="cursor:pointer; padding: 2rem 1.5rem; transition: all 0.3s ease;" @click="$router.push('/services')">
+            <div class="category-img-wrap" style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+              <img :src="cat.image" :alt="cat.name" class="category-img" style="max-height: 90px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12)); transition: transform 0.3s ease;" />
+            </div>
+            <h4 style="margin-bottom:0.25rem">{{ cat.name }}</h4>
             <p class="text-muted" style="font-size:0.85rem;margin-top:0.3rem">Starting ₹{{ cat.price }}</p>
           </div>
         </div>
@@ -420,7 +422,7 @@
     </section>
 
     <!-- App Download Section -->
-    <section class="section" style="padding: 2rem 0; background: var(--bg-primary);">
+    <!-- <section class="section" style="padding: 2rem 0; background: var(--bg-primary);">
       <div class="container">
         <div class="app-download-banner">
           <div class="app-download-content fade-in-up">
@@ -467,7 +469,7 @@
           </div>
         </div>
       </div>
-    </section>
+    </section> -->
 
   </div>
 </template>
@@ -525,12 +527,12 @@ export default {
       currentBannerIndex: 0,
       sliderInterval: null,
       categories: [
-        { type: 'hatchback', name: 'Hatchbacks', icon: '🚙', price: 299 },
-        { type: 'sedan', name: 'Sedans', icon: '🚗', price: 399 },
-        { type: 'suv', name: 'SUVs', icon: '🚘', price: 499 },
-        { type: 'commercial', name: 'Commercial', icon: '🚐', price: 699 },
-        { type: 'bus', name: 'Buses', icon: '🚌', price: 1499 },
-        { type: 'volvo_bus', name: 'Volvo Buses', icon: '🚍', price: 2499 },
+        { type: 'hatchback', name: 'Hatchbacks', image: '/images/vehicles/hatchback.png', price: 299 },
+        { type: 'sedan', name: 'Sedans', image: '/images/vehicles/sedan.png', price: 399 },
+        { type: 'suv', name: 'SUVs', image: '/images/vehicles/suv.png', price: 499 },
+        { type: 'commercial', name: 'Commercial', image: '/images/vehicles/commercial.png', price: 699 },
+        { type: 'bus', name: 'Buses', image: '/images/vehicles/bus.png', price: 1499 },
+        { type: 'volvo_bus', name: 'Volvo Buses', image: '/images/vehicles/volvo_bus.png', price: 2499 },
       ],
       testimonials: [],
       partnerFeedback: [],
@@ -797,6 +799,19 @@ export default {
 @keyframes ticker {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* ── Category Cards ── */
+.category-card {
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.category-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 10px 30px rgba(0, 180, 255, 0.12);
+}
+.category-card:hover .category-img {
+  transform: scale(1.08);
 }
 
 /* ── Feedback Cards ── */
