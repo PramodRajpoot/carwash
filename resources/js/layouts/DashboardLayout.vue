@@ -87,6 +87,7 @@
           <template v-if="isCmsOpen">
             <li><router-link to="/super-admin/cms/about"><span class="nav-icon">ℹ️</span> About Us</router-link></li>
             <li><router-link to="/super-admin/testimonials"><span class="nav-icon">💬</span> Testimonials</router-link></li>
+            <li><router-link to="/super-admin/happy-customers"><span class="nav-icon">😊</span> Happy Customers</router-link></li>
             <li><router-link to="/super-admin/blog"><span class="nav-icon">📝</span> Blog</router-link></li>
             <li><router-link to="/super-admin/faqs"><span class="nav-icon">❓</span> FAQs</router-link></li>
             <li><router-link to="/super-admin/cms/privacy-policy"><span class="nav-icon">🔒</span> Privacy Policy</router-link></li>
@@ -191,6 +192,7 @@ export default {
         'superadmin-washers': 'Washer Management', 'superadmin-customers': 'Customer Management',
         'superadmin-orders': 'Booking Management', 'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
         'superadmin-marketing': 'Marketing', 'superadmin-withdrawals': 'Payouts & Withdrawals',
+        'superadmin-happy-customers': 'Happy Customers', 'superadmin-partner-feedback': 'Happy Customers',
       };
       return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },

@@ -203,7 +203,8 @@ export const routes = [
             { path: 'reports', name: 'superadmin-reports', component: AdminReports },
             { path: 'payment-gateway', name: 'superadmin-payment-gateway', component: SuperAdminPaymentGateway },
             { path: 'marketing', name: 'superadmin-marketing', component: SuperAdminMarketing },
-            { path: 'withdrawals', name: 'superadmin-withdrawals', component: SuperAdminWithdrawals }
+            { path: 'withdrawals', name: 'superadmin-withdrawals', component: SuperAdminWithdrawals },
+            { path: 'happy-customers', name: 'superadmin-happy-customers', component: SuperAdminPartnerFeedback },
         ],
     },
 
