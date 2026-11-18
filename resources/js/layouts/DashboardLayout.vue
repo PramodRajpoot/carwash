@@ -100,6 +100,7 @@
           <li><router-link to="/super-admin/referrals"><span class="nav-icon">🔗</span> Refferal Program</router-link></li>
           <li><router-link to="/super-admin/settings"><span class="nav-icon">⚙️</span> Setting</router-link></li>
           <li><router-link to="/super-admin/tickets"><span class="nav-icon">🎫</span> Supports</router-link></li>
+          <li><router-link to="/super-admin/partner-valuable-feedback"><span class="nav-icon">🎥</span> Partner Valuable Feedback</router-link></li>
         </template>
       </ul>
       <div style="padding:0 1.5rem;margin-top:auto;border-top:1px solid var(--border-color);padding-top:1rem">
@@ -192,7 +193,7 @@ export default {
         'superadmin-washers': 'Washer Management', 'superadmin-customers': 'Customer Management',
         'superadmin-orders': 'Booking Management', 'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
         'superadmin-marketing': 'Marketing', 'superadmin-withdrawals': 'Payouts & Withdrawals',
-        'superadmin-happy-customers': 'Happy Customers', 'superadmin-partner-feedback': 'Happy Customers',
+        'superadmin-happy-customers': 'Happy Customers', 'superadmin-partner-feedback': 'Partner Valuable Feedback',
       };
       return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },

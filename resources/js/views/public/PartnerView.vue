@@ -1,5 +1,17 @@
 <template>
   <div>
+    <!-- Partner Page Hero Slider -->
+    <section class="partner-hero" style="position:relative;overflow:hidden;min-height:70vh;display:flex;align-items:center;background:var(--bg-primary)">
+      <template v-if="banners.length">
+        <div v-for="(banner,index) in banners" :key="banner.id" style="position:absolute;inset:0;background-position:center;background-size:cover;transition:opacity 1s ease" :style="{backgroundImage:'url('+banner.image_path+')',opacity:currentBannerIndex===index?1:0}"></div>
+      </template>
+      <div v-else style="position:absolute;inset:0;background:url('/images/hero.png') center/cover no-repeat"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,17,32,.88),rgba(11,17,32,.25));z-index:2"></div>
+      <div v-if="banners.length>1" style="position:absolute;bottom:24px;left:0;width:100%;display:flex;justify-content:center;gap:10px;z-index:20">
+        <button v-for="(banner,index) in banners" :key="'dot-'+banner.id" @click="goToBanner(index)" aria-label="Show slide" style="width:12px;height:12px;border-radius:50%;border:0;padding:0;cursor:pointer" :style="{background:index===currentBannerIndex?'var(--accent-cyan)':'rgba(255,255,255,.45)',transform:index===currentBannerIndex?'scale(1.25)':'none'}"></button>
+      </div>
+    </section>
+
     <!-- Why Partner With Us Section -->
     <section class="section" style="background: var(--bg-secondary); padding: 4rem 0;">
       <div class="container">
@@ -286,6 +298,29 @@
       </div>
     </section>
 
+    <!-- Partners' Valuable Feedback -->
+    <section v-if="partnerFeedback.length" class="section" style="background:var(--bg-primary);padding:4rem 0">
+      <div class="container">
+        <div class="section-title text-center" style="margin-bottom:2.5rem">
+          <span style="display:block;margin-bottom:.5rem;color:var(--accent-cyan);font-size:.8rem;font-weight:700;text-transform:uppercase">Partner Testimonials</span>
+          <h2 style="font-size:2.5rem;font-weight:800">Our Partners' Valuable Feedback</h2>
+        </div>
+        <div style="max-width:760px;margin:auto;position:relative">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="height:390px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center">
+              <video v-if="partnerFeedback[currentFeedbackIndex].video_path" controls :poster="partnerFeedback[currentFeedbackIndex].thumbnail_path" style="width:100%;height:100%;object-fit:cover"><source :src="partnerFeedback[currentFeedbackIndex].video_path"></video>
+              <img v-else-if="partnerFeedback[currentFeedbackIndex].thumbnail_path" :src="partnerFeedback[currentFeedbackIndex].thumbnail_path" style="width:100%;height:100%;object-fit:cover" />
+              <span v-else class="text-muted">No media available</span>
+            </div>
+            <div style="padding:1.25rem"><h4>{{ partnerFeedback[currentFeedbackIndex].name || 'CleanAtDoorstep Partner' }}</h4><p v-if="partnerFeedback[currentFeedbackIndex].city" class="text-muted text-sm">{{ partnerFeedback[currentFeedbackIndex].city }}</p><p class="text-muted" style="font-style:italic">"{{ partnerFeedback[currentFeedbackIndex].quote }}"</p></div>
+          </div>
+          <button v-if="partnerFeedback.length>1" @click="previousFeedback" aria-label="Previous feedback" class="partner-feedback-arrow" style="left:-65px">‹</button>
+          <button v-if="partnerFeedback.length>1" @click="nextFeedback" aria-label="Next feedback" class="partner-feedback-arrow" style="right:-65px">›</button>
+          <div v-if="partnerFeedback.length>1" style="display:flex;justify-content:center;gap:8px;margin-top:1.25rem"><button v-for="(item,index) in partnerFeedback" :key="item.id" @click="goToFeedback(index)" aria-label="Show feedback" style="width:10px;height:10px;border-radius:50%;border:0;padding:0;cursor:pointer" :style="{background:index===currentFeedbackIndex?'var(--accent-cyan)':'var(--border-color)'}"></button></div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </template>
 
@@ -299,6 +334,10 @@ export default {
       submitting: false,
       error: '',
       form: this.emptyForm(),
+      banners: [],
+      currentBannerIndex: 0,
+      partnerFeedback: [],
+      currentFeedbackIndex: 0,
     };
   },
   methods: {
@@ -338,6 +377,108 @@ export default {
         doSubmit();
       }
     },
+    goToBanner(index) {
+      this.currentBannerIndex = index;
+    },
+    nextFeedback() {
+      if (this.partnerFeedback.length) this.currentFeedbackIndex = (this.currentFeedbackIndex + 1) % this.partnerFeedback.length;
+    },
+    previousFeedback() {
+      if (this.partnerFeedback.length) this.currentFeedbackIndex = (this.currentFeedbackIndex - 1 + this.partnerFeedback.length) % this.partnerFeedback.length;
+    },
+    goToFeedback(index) {
+      this.currentFeedbackIndex = index;
+    },
+  },
+  mounted() {
+    // Fetch banners from the server
+    axios.get('/api/banners').then((response) => {
+      this.banners = response.data;
+    });
+    // Fetch partner feedback from the server
+    axios.get('/api/partner-valuable-feedback').then((response) => {
+      this.partnerFeedback = response.data;
+    });
   },
 };
 </script>
+
+<style>
+.partner-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary);
+}
+
+.partner-hero div {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  transition: opacity 1s ease;
+}
+
+/* Partner hero slide opacity is controlled by Vue inline styles. */
+
+.partner-feedback-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s;
+  z-index: 10;
+}
+
+.partner-feedback-arrow:hover {
+  background: var(--accent-cyan);
+}
+
+.partner-feedback-arrow:focus {
+  outline: none;
+}
+
+.card {
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-card);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+  z-index: 1;
+}
+
+.glass-card > * {
+  position: relative;
+  z-index: 2;
+}
+</style>

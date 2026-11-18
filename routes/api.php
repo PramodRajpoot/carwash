@@ -25,6 +25,7 @@ use App\Http\Controllers\CmsController;
 use App\Http\Controllers\PaymentGatewayController;
 use App\Http\Controllers\CashfreeController;
 use App\Http\Controllers\WasherController;
+use App\Http\Controllers\PartnerValuableFeedbackController;
 
 /*
 |--------------------------------------------------------------------------
@@ -334,6 +335,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/partner-feedback/{id}', [PartnerFeedbackController::class, 'update']); // FormData with _method=PUT
         Route::delete('/partner-feedback/{id}', [PartnerFeedbackController::class, 'destroy']);
 
+        // Partner Valuable Feedback Management
+        Route::get('/partner-valuable-feedback', [PartnerValuableFeedbackController::class, 'adminIndex']);
+        Route::post('/partner-valuable-feedback', [PartnerValuableFeedbackController::class, 'store']);
+        Route::put('/partner-valuable-feedback/{id}', [PartnerValuableFeedbackController::class, 'update']);
+        Route::post('/partner-valuable-feedback/{id}', [PartnerValuableFeedbackController::class, 'update']);
+        Route::delete('/partner-valuable-feedback/{id}', [PartnerValuableFeedbackController::class, 'destroy']);
+
         // FAQ Management
         Route::get('/faqs', [FaqController::class, 'adminIndex']);
         Route::post('/faqs', [FaqController::class, 'store']);
@@ -383,3 +391,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tasks/{id}/complete',             [WasherController::class, 'washerUpdateTaskStatus']);
     });
 });
+
+// Public Feedback Endpoints
+Route::get('/partner-valuable-feedback', [PartnerValuableFeedbackController::class, 'index']);
