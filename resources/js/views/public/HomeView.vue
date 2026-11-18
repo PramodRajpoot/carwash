@@ -255,34 +255,6 @@
       </div>
     </section>
 
-    <!-- Partner Feedback -->
-    <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
-      <div class="container">
-        <div class="section-title">
-          <h2>Our <span class="text-gradient">Happy Customers</span></h2>
-          <p>Hear Directly from Our Happy Customers</p>
-        </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="(feedback, i) in partnerFeedback" :key="'copy-' + i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
-            <div class="feedback-thumb">
-               <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
-               <div v-else class="feedback-thumb-placeholder"></div>
-               <!-- Play button overlay -->
-               <div class="play-btn-overlay" v-if="feedback.video_path">
-                 <div class="play-btn-circle">
-                   <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-                 </div>
-               </div>
-            </div>
-            <div style="padding:1.5rem">
-               <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city }} Partner</h4>
-               <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- FAQ -->
     <section class="section">
       <div class="container" style="max-width:800px">
@@ -1374,6 +1346,19 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .video-lightbox-overlay {
+    padding: 1rem;
+  }
+  .video-lightbox-content {
+    max-width: 100%;
+    border-radius: 14px;
+  }
+  .lightbox-glow {
+    border-radius: 16px;
+  }
+  .lightbox-info-inner {
+    padding: 1rem 1.25rem 1.25rem;
+  }
   .refer-earn-steps {
     flex-direction: column;
     gap: 1.5rem;
