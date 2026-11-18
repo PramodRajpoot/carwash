@@ -305,18 +305,19 @@
           <span style="display:block;margin-bottom:.5rem;color:var(--accent-cyan);font-size:.8rem;font-weight:700;text-transform:uppercase">Partner Testimonials</span>
           <h2 style="font-size:2.5rem;font-weight:800">Our Partners' Valuable Feedback</h2>
         </div>
-        <div style="max-width:760px;margin:auto;position:relative">
-          <div class="card" style="padding:0;overflow:hidden">
-            <div style="height:390px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center">
-              <video v-if="partnerFeedback[currentFeedbackIndex].video_path" controls :poster="partnerFeedback[currentFeedbackIndex].thumbnail_path" style="width:100%;height:100%;object-fit:cover"><source :src="partnerFeedback[currentFeedbackIndex].video_path"></video>
-              <img v-else-if="partnerFeedback[currentFeedbackIndex].thumbnail_path" :src="partnerFeedback[currentFeedbackIndex].thumbnail_path" style="width:100%;height:100%;object-fit:cover" />
+        <div class="grid grid-3 gap-3">
+          <div v-for="feedback in partnerFeedback.slice(0, 3)" :key="feedback.id" class="card" style="padding:0;overflow:hidden">
+            <div style="height:220px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center">
+              <video v-if="feedback.video_path" controls :poster="feedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover"><source :src="feedback.video_path"></video>
+              <img v-else-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover" />
               <span v-else class="text-muted">No media available</span>
             </div>
-            <div style="padding:1.25rem"><h4>{{ partnerFeedback[currentFeedbackIndex].name || 'CleanAtDoorstep Partner' }}</h4><p v-if="partnerFeedback[currentFeedbackIndex].city" class="text-muted text-sm">{{ partnerFeedback[currentFeedbackIndex].city }}</p><p class="text-muted" style="font-style:italic">"{{ partnerFeedback[currentFeedbackIndex].quote }}"</p></div>
+            <div style="padding:1.25rem">
+              <h4>{{ feedback.name || 'CleanAtDoorstep Partner' }}</h4>
+              <p v-if="feedback.city" class="text-muted text-sm">{{ feedback.city }}</p>
+              <p class="text-muted" style="font-style:italic">"{{ feedback.quote }}"</p>
+            </div>
           </div>
-          <button v-if="partnerFeedback.length>1" @click="previousFeedback" aria-label="Previous feedback" class="partner-feedback-arrow" style="left:-65px">‹</button>
-          <button v-if="partnerFeedback.length>1" @click="nextFeedback" aria-label="Next feedback" class="partner-feedback-arrow" style="right:-65px">›</button>
-          <div v-if="partnerFeedback.length>1" style="display:flex;justify-content:center;gap:8px;margin-top:1.25rem"><button v-for="(item,index) in partnerFeedback" :key="item.id" @click="goToFeedback(index)" aria-label="Show feedback" style="width:10px;height:10px;border-radius:50%;border:0;padding:0;cursor:pointer" :style="{background:index===currentFeedbackIndex?'var(--accent-cyan)':'var(--border-color)'}"></button></div>
         </div>
       </div>
     </section>

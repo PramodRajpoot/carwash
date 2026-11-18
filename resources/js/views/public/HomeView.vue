@@ -441,7 +441,35 @@
           </div>
         </div>
       </div>
-    </section> -->
+    </section -->
+
+    <!-- Partners' Valuable Feedback -->
+    <section class="section" v-if="partnerValuableFeedback && partnerValuableFeedback.length > 0">
+      <div class="container">
+        <div class="section-title">
+          <h2>Our <span class="text-gradient">Partners' Valuable Feedback</span></h2>
+          <p>Hear directly from our franchise partners.</p>
+        </div>
+        <div class="grid grid-3 gap-3">
+          <div v-for="feedback in partnerValuableFeedback" :key="feedback.id" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer" @click="openVideoLightbox(feedback)">
+            <div class="feedback-thumb">
+              <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
+              <div v-else class="feedback-thumb-placeholder"></div>
+              <div class="play-btn-overlay" v-if="feedback.video_path">
+                <div class="play-btn-circle">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                </div>
+              </div>
+            </div>
+            <div style="padding:1.5rem">
+              <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.name || 'CleanAtDoorstep Partner' }}</h4>
+              <p v-if="feedback.city" class="text-muted" style="font-size:0.85rem;margin-bottom:.35rem">{{ feedback.city }}</p>
+              <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
   </div>
 </template>
@@ -509,7 +537,8 @@ export default {
       testimonials: [],
       partnerFeedback: [],
       faqs: [],
-      aboutUs: null
+      aboutUs: null,
+      partnerValuableFeedback: []
     };
   },
   mounted() {
@@ -520,6 +549,7 @@ export default {
     this.fetchPartnerFeedback();
     this.fetchFaqs();
     this.fetchAboutUs();
+    this.fetchPartnerValuableFeedback();
   },
   methods: {
     async fetchPackages() {
@@ -583,6 +613,26 @@ export default {
         console.error('Failed to fetch About Us:', error);
       }
     },
+    async fetchOffers() {
+      try {
+        const response = await fetch('/api/offers');
+        if (response.ok) {
+          this.offers = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch offers:', error);
+      }
+    },
+    async fetchPartnerValuableFeedback() {
+      try {
+        const response = await fetch('/api/partner-valuable-feedback');
+        if (response.ok) {
+          this.partnerValuableFeedback = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch partner valuable feedback:', error);
+      }
+    },
     startBannerSlider() {
       if (this.banners && this.banners.length > 1) {
         this.sliderInterval = setInterval(() => {
@@ -607,16 +657,6 @@ export default {
         clearInterval(this.sliderInterval);
       }
       this.startBannerSlider();
-    },
-    async fetchOffers() {
-      try {
-        const response = await fetch('/api/offers');
-        if (response.ok) {
-          this.offers = await response.json();
-        }
-      } catch (error) {
-        console.error('Failed to fetch offers:', error);
-      }
     },
     toggleFaq(index) {
       const wasOpen = this.faqs[index].open;
@@ -1373,7 +1413,7 @@ export default {
   }
   .refer-earn-title {
     font-size: 1.8rem;
-  }
+ }
   .refer-earn-section {
     padding: 3.5rem 0 3rem;
   }
