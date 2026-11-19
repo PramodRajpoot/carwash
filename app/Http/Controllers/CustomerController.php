@@ -224,6 +224,7 @@ class CustomerController extends Controller
         $request->validate([
             'package_id' => 'required|exists:service_packages,id',
             'selected_month' => 'nullable|regex:/^\\d{4}-\\d{2}$/',
+            'cashfree_order_id' => 'required|string',
         ]);
 
         $package = ServicePackage::findOrFail($request->package_id);
@@ -256,36 +257,43 @@ class CustomerController extends Controller
             ], 422);
         }
 
+        $subscription = Subscription::where('customer_id', $user->id)
+            ->where('package_id', $package->id)
+            ->where('selected_month', $selectedMonth)
+            ->where('cashfree_order_id', $request->cashfree_order_id)
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$subscription) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'A verified full payment is required before this subscription can be activated.',
+            ], 422);
+        }
+
         Subscription::where('customer_id', $user->id)
             ->where('status', 'active')
             ->update(['status' => 'expired']);
 
-        $subscription = Subscription::create([
-            'customer_id'    => $user->id,
-            'package_id'     => $package->id,
-            'status'         => 'active',
-            'booking_count'  => 0,
-            'starts_at'      => $monthStart,
-            'expires_at'     => $monthStart->copy()->endOfMonth(),
-            'selected_month' => $selectedMonth,
+        $subscription->update([
+            'status' => 'active',
             'payment_status' => 'paid',
-            'paid_amount'    => $package->price,
-            'payment_method' => $request->input('payment_method', 'online'),
-            'is_refundable'  => false,
+            'paid_amount' => $package->price,
+            'payment_method' => 'online',
+            'is_refundable' => false,
         ]);
 
-        // Notification
         NotificationLog::create([
             'user_id' => $user->id,
-            'type'    => 'subscription_expiry',
-            'title'   => 'Subscription Activated!',
-            'body'    => "Your {$package->name} subscription is active for {$monthStart->format('F Y')} and is valid through " . $monthStart->copy()->endOfMonth()->format('d M Y') . '. Payment is full and non-refundable; rescheduling is available.',
+            'type' => 'subscription_expiry',
+            'title' => 'Subscription Activated!',
+            'body' => "Your {$package->name} subscription is active for {$monthStart->format('F Y')} and fully paid. Payment is non-refundable; rescheduling is available.",
         ]);
 
         return response()->json([
-            'status'       => 'success',
-            'message'      => "Subscribed successfully!",
-            'subscription' => $subscription,
+            'status' => 'success',
+            'message' => 'Subscribed successfully!',
+            'subscription' => $subscription->fresh(['package']),
         ]);
     }
 

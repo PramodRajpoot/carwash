@@ -104,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Cashfree Payment
     Route::post('/cashfree/create-order',       [CashfreeController::class, 'createOrder']);
+    Route::post('/cashfree/create-subscription-order', [CashfreeController::class, 'createSubscriptionOrder']);
     Route::get('/cashfree/verify/{orderId}',    [CashfreeController::class, 'verifyPayment']);
 
     // Feedback / Reviews

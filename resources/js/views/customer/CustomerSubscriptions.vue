@@ -93,6 +93,61 @@
     <div v-else class="text-center text-muted" style="padding: 2rem;">
       No subscription plans are currently available.
     </div>
+
+    <div v-if="showScheduleModal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 680px;">
+        <h3>Choose Your 4 Wash Dates & Slots</h3>
+        <p class="text-muted" style="font-size: 0.82rem; margin-bottom: 1rem;">
+          Select 4 separate days in {{ selectedMonthLabel }}. Full payment is required after these details are confirmed.
+        </p>
+
+        <div class="grid grid-2 gap-2">
+          <div class="form-group">
+            <label>Vehicle</label>
+            <select v-model="scheduleVehicleId" class="form-select">
+              <option value="">Select Vehicle</option>
+              <option v-for="v in vehicles" :key="v.id" :value="String(v.id)">{{ v.make_model }} {{ v.plate_number ? '(' + v.plate_number + ')' : '' }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Service Center</label>
+            <select v-model="scheduleCenterId" class="form-select" @change="refreshAllScheduleSlots">
+              <option value="">Select Center</option>
+              <option v-for="c in centers" :key="c.id" :value="String(c.id)">{{ c.center_name }} - {{ c.city }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Doorstep Address</label>
+          <textarea v-model="scheduleAddress" class="form-input" rows="2" placeholder="Enter complete service address"></textarea>
+        </div>
+
+        <div v-for="(item, index) in scheduleItems" :key="index" class="glass-card" style="padding: 0.75rem; margin-bottom: 0.75rem;">
+          <strong style="display: block; margin-bottom: 0.5rem;">Wash {{ index + 1 }}</strong>
+          <div class="grid grid-2 gap-2">
+            <div class="form-group">
+              <label>Date</label>
+              <input v-model="item.date" type="date" class="form-input" :min="monthMinDate" :max="monthMaxDate" @change="loadScheduleSlots(index)">
+            </div>
+            <div class="form-group">
+              <label>Time Slot</label>
+              <select v-model="item.slot" class="form-select" :disabled="!item.date || !scheduleCenterId || scheduleSlotLoading[index]">
+                <option value="">{{ scheduleSlotLoading[index] ? 'Loading slots...' : 'Select Slot' }}</option>
+                <option v-for="slot in scheduleSlots[index]" :key="slot.time_range" :value="slot.time_range" :disabled="slot.is_full || slot.current_bookings >= slot.max_bookings">
+                  {{ slot.time_range }}{{ slot.is_full || slot.current_bookings >= slot.max_bookings ? ' — Full' : '' }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2" style="margin-top: 1rem;">
+          <button type="button" class="btn btn-primary" :disabled="subscribingId !== null" @click="confirmFourWashSchedule">Continue to Full Payment</button>
+          <button type="button" class="btn btn-ghost" @click="showScheduleModal = false">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -120,7 +175,31 @@ export default {
       subscribingId: null,
       selectedMonth,
       monthOptions,
+      showScheduleModal: false,
+      schedulePlan: null,
+      vehicles: [],
+      centers: [],
+      scheduleVehicleId: '',
+      scheduleCenterId: '',
+      scheduleAddress: '',
+      scheduleItems: [{ date: '', slot: '' }, { date: '', slot: '' }, { date: '', slot: '' }, { date: '', slot: '' }],
+      scheduleSlots: [[], [], [], []],
+      scheduleSlotLoading: [false, false, false, false],
     };
+  },
+  computed: {
+    selectedMonthLabel() {
+      const month = this.monthOptions.find(m => m.value === this.selectedMonth);
+      return month ? month.label : this.selectedMonth;
+    },
+    monthMinDate() {
+      return `${this.selectedMonth}-01`;
+    },
+    monthMaxDate() {
+      const [year, month] = this.selectedMonth.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      return `${this.selectedMonth}-${String(lastDay).padStart(2, '0')}`;
+    },
   },
   methods: {
     formatType(t) {
@@ -148,6 +227,19 @@ export default {
         console.error(e);
       }
 
+      try {
+        const [vehicles, centers, dashboard] = await Promise.all([
+          axios.get('/api/customer/vehicles'),
+          axios.get('/api/centers'),
+          axios.get('/api/customer/dashboard'),
+        ]);
+        this.vehicles = vehicles.data;
+        this.centers = centers.data;
+        this.scheduleAddress = dashboard.data.address || '';
+      } catch (e) {
+        console.error(e);
+      }
+
       this.loading = false;
     },
     async subscribe(packageId) {
@@ -157,26 +249,142 @@ export default {
         ? 'The 4-wash plan allows one wash on each separate day in the selected month.'
         : 'The 26-wash plan allows the 26 washes to be scheduled during the selected month.';
 
-      if (!confirm(`${planRule}\n\nPayment will be full, in advance and non-refundable. You may reschedule your washes. Proceed?`)) return;
+      if (washes === 4) {
+        this.schedulePlan = plan;
+        this.scheduleItems = [{ date: '', slot: '' }, { date: '', slot: '' }, { date: '', slot: '' }, { date: '', slot: '' }];
+        this.scheduleSlots = [[], [], [], []];
+        this.showScheduleModal = true;
+        return;
+      }
+
+      if (!confirm(`${planRule}\n\nPayment will be full, in advance and non-refundable. You may reschedule your washes. Proceed to secure payment?`)) return;
       this.subscribingId = packageId;
       try {
-        const { data } = await axios.post('/api/customer/subscriptions', {
+        const { data } = await axios.post('/api/cashfree/create-subscription-order', {
           package_id: packageId,
           selected_month: this.selectedMonth,
-          payment_status: 'paid',
-          paid_amount: plan?.price,
-          payment_method: 'online',
         });
-        alert(data.message);
-        this.loadSubscriptions();
+
+        if (data.status !== 'success' || !data.payment_session_id) {
+          alert(data.message || 'Could not initiate subscription payment.');
+          this.subscribingId = null;
+          return;
+        }
+
+        // eslint-disable-next-line no-undef
+        const cashfreeInstance = Cashfree({ mode: data.environment === 'production' ? 'production' : 'sandbox' });
+        cashfreeInstance.checkout({
+          paymentSessionId: data.payment_session_id,
+          redirectTarget: '_self',
+          returnUrl: window.location.origin + '/cashfree/return?order_id=' + encodeURIComponent(data.cashfree_order_id),
+        });
       } catch (e) {
         alert(e.response?.data?.message || 'Failed to subscribe.');
       }
       this.subscribingId = null;
-    }
+    },
+    async loadScheduleSlots(index) {
+      const item = this.scheduleItems[index];
+      item.slot = '';
+      if (!this.scheduleCenterId || !item.date) {
+        this.scheduleSlots[index] = [];
+        return;
+      }
+      this.scheduleSlotLoading[index] = true;
+      try {
+        const { data } = await axios.get('/api/bookings/slots', {
+          params: { franchisee_id: this.scheduleCenterId, date: item.date },
+        });
+        this.scheduleSlots[index] = data || [];
+      } catch (e) {
+        this.scheduleSlots[index] = [];
+      }
+      this.scheduleSlotLoading[index] = false;
+    },
+    refreshAllScheduleSlots() {
+      this.scheduleItems.forEach((item, index) => {
+        if (item.date) this.loadScheduleSlots(index);
+      });
+    },
+    async confirmFourWashSchedule() {
+      if (!this.schedulePlan) return;
+      if (!this.scheduleVehicleId) return alert('Please select a vehicle.');
+      if (!this.scheduleCenterId) return alert('Please select a service center.');
+      if (!this.scheduleAddress.trim()) return alert('Please enter the doorstep address.');
+
+      const dates = this.scheduleItems.map(item => item.date);
+      if (dates.some(date => !date) || this.scheduleItems.some(item => !item.slot)) {
+        return alert('Please select date and slot for all 4 washes.');
+      }
+      if (new Set(dates).size !== 4) return alert('Please select 4 different dates.');
+      if (dates.some(date => !date.startsWith(this.selectedMonth))) {
+        return alert('All wash dates must be inside the selected subscription month.');
+      }
+
+      this.subscribingId = this.schedulePlan.id;
+      try {
+        const { data } = await axios.post('/api/cashfree/create-subscription-order', {
+          package_id: this.schedulePlan.id,
+          selected_month: this.selectedMonth,
+          vehicle_id: Number(this.scheduleVehicleId),
+          franchisee_id: Number(this.scheduleCenterId),
+          address: this.scheduleAddress.trim(),
+          schedules: this.scheduleItems.map(item => ({ date: item.date, slot: item.slot })),
+        });
+
+        if (data.status !== 'success' || !data.payment_session_id) {
+          alert(data.message || 'Could not initiate subscription payment.');
+          return;
+        }
+
+        // eslint-disable-next-line no-undef
+        const cashfreeInstance = Cashfree({ mode: data.environment === 'production' ? 'production' : 'sandbox' });
+        cashfreeInstance.checkout({
+          paymentSessionId: data.payment_session_id,
+          redirectTarget: '_self',
+          returnUrl: window.location.origin + '/cashfree/return?order_id=' + encodeURIComponent(data.cashfree_order_id),
+        });
+      } catch (e) {
+        alert(e.response?.data?.message || 'Failed to initiate subscription payment.');
+      } finally {
+        this.subscribingId = null;
+      }
+    },
   },
   mounted() {
     this.loadSubscriptions();
   }
 };
 </script>
+
+<style scoped>
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 8px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 700px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+</style>

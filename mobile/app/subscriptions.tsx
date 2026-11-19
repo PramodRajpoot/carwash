@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Platform,
   RefreshControl,
   SafeAreaView,
@@ -200,13 +201,10 @@ export default function SubscriptionsScreen() {
 
           setSubscribingId(plan.id);
           const response = await axios.post(
-            `${API_BASE}/api/customer/subscriptions`,
-            { 
+            `${API_BASE}/api/cashfree/create-subscription-order`,
+            {
               package_id: plan.id,
               selected_month: selectedMonth,
-              payment_status: 'paid',
-              paid_amount: plan.price,
-              payment_method: 'online',
             },
             {
               headers: {
@@ -217,13 +215,14 @@ export default function SubscriptionsScreen() {
             }
           );
 
-          const successMessage = (response.data?.message || 'Subscription activated successfully.')
-            .replace(/\s*You earned 50 E-Points\.?/gi, '')
-            .trim();
-          showSweetAlert('Success', successMessage || 'Subscribed successfully!', 'success');
-          await loadPlans();
+          if (response.data?.status !== 'success' || !response.data?.payment_session_id) {
+            throw new Error(response.data?.message || 'Could not initiate subscription payment.');
+          }
+
+          const checkoutUrl = `${API_BASE}/cashfree/checkout?payment_session_id=${encodeURIComponent(response.data.payment_session_id)}&env=${encodeURIComponent(response.data.environment || 'sandbox')}`;
+          await Linking.openURL(checkoutUrl);
         } catch (error: any) {
-          const message = error?.response?.data?.message || 'Failed to subscribe.';
+          const message = error?.response?.data?.message || error?.message || 'Failed to subscribe.';
           showSweetAlert('Subscription failed', message, 'error');
         } finally {
           setSubscribingId(null);

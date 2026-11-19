@@ -22,6 +22,7 @@ class Subscription extends Model
         'payment_method',
         'is_refundable',
         'cashfree_order_id',
+        'schedules',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class Subscription extends Model
         'booking_count' => 'integer',
         'paid_amount' => 'decimal:2',
         'is_refundable' => 'boolean',
+        'schedules' => 'json',
     ];
 
     public function customer()
