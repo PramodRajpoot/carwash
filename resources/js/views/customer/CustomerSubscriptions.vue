@@ -35,6 +35,21 @@
       <h4>Available Subscription Plans</h4>
     </div>
 
+    <div class="glass-card" style="margin-bottom: 1.5rem; padding: 1rem;">
+      <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <strong style="display: block; margin-bottom: 0.25rem;">Select Subscription Month</strong>
+          <span class="text-muted" style="font-size: 0.78rem;">The plan is valid only for the selected month.</span>
+        </div>
+        <select v-model="selectedMonth" class="form-select" style="width: 220px;">
+          <option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option>
+        </select>
+      </div>
+      <div class="text-muted" style="font-size: 0.78rem; margin-top: 0.75rem;">
+        Full advance payment • Non-refundable • Rescheduling allowed
+      </div>
+    </div>
+
     <div v-if="loading" class="text-center text-muted" style="padding: 2rem;">
       Loading subscription plans...
     </div>
@@ -48,6 +63,14 @@
           </div>
           <h4 style="margin-bottom: 0.5rem;">{{ p.name }}</h4>
           <p class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;">{{ p.description }}</p>
+          <div class="text-muted" style="font-size: 0.78rem; margin-bottom: 1rem; min-height: 2.4rem;">
+            <template v-if="Number(p.max_bookings) === 4">
+              4 separate wash slots may be booked on separate days in the selected month.
+            </template>
+            <template v-else-if="Number(p.max_bookings) === 26">
+              26 washes are available in the selected month; choose the month only at purchase.
+            </template>
+          </div>
         </div>
         <div>
           <div style="margin-bottom: 1rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color);" class="flex justify-between items-end">
@@ -78,11 +101,25 @@ import axios from 'axios';
 export default {
   name: 'CustomerSubscriptions',
   data() {
+    const now = new Date();
+    const selectedMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthOptions = [];
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthOptions.push({
+        value,
+        label: date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+      });
+    }
+
     return {
       packages: [],
       activeSub: null,
       loading: true,
       subscribingId: null,
+      selectedMonth,
+      monthOptions,
     };
   },
   methods: {
@@ -94,23 +131,42 @@ export default {
     },
     async loadSubscriptions() {
       try {
-        const [pk, sub] = await Promise.all([
-          axios.get('/api/packages'),
-          axios.get('/api/customer/subscriptions')
-        ]);
-        // Filter packages that are recurring subscription packages
-        this.packages = pk.data.filter(p => p.is_subscription || (!p.is_addon && p.frequency_days >= 30));
+        const pk = await axios.get('/api/packages');
+        this.packages = pk.data.filter(p => {
+          const washes = Number(p.max_bookings || 0);
+          const isSubscription = p.is_subscription || (!p.is_addon && Number(p.frequency_days || 0) >= 30);
+          return isSubscription && [4, 26].includes(washes);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+
+      try {
+        const sub = await axios.get('/api/customer/subscriptions');
         this.activeSub = sub.data.find(s => s.status === 'active') || null;
       } catch (e) {
         console.error(e);
       }
+
       this.loading = false;
     },
     async subscribe(packageId) {
-      if (!confirm('Subscribing will activate this package immediately and expire any previous active plan. Proceed?')) return;
+      const plan = this.packages.find(p => p.id === packageId);
+      const washes = plan ? Number(plan.max_bookings) : 0;
+      const planRule = washes === 4
+        ? 'The 4-wash plan allows one wash on each separate day in the selected month.'
+        : 'The 26-wash plan allows the 26 washes to be scheduled during the selected month.';
+
+      if (!confirm(`${planRule}\n\nPayment will be full, in advance and non-refundable. You may reschedule your washes. Proceed?`)) return;
       this.subscribingId = packageId;
       try {
-        const { data } = await axios.post('/api/customer/subscriptions', { package_id: packageId });
+        const { data } = await axios.post('/api/customer/subscriptions', {
+          package_id: packageId,
+          selected_month: this.selectedMonth,
+          payment_status: 'paid',
+          paid_amount: plan?.price,
+          payment_method: 'online',
+        });
         alert(data.message);
         this.loadSubscriptions();
       } catch (e) {
