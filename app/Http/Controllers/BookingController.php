@@ -246,6 +246,23 @@ class BookingController extends Controller
             ], 400);
         }
 
+        // Prevent double booking of 4-wash subscription on the same day
+        if ((int) $package->max_bookings === 4) {
+            $alreadyBookedThatDay = Booking::where('customer_id', $user->id)
+                ->where('package_id', $package->id)
+                ->where('booking_date', $request->booking_date)
+                ->where('payment_method', 'subscription')
+                ->whereNotIn('status', ['cancelled'])
+                ->exists();
+
+            if ($alreadyBookedThatDay) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'The 4-wash plan allows one wash on each separate day.'
+                ], 400);
+            }
+        }
+
         // Initialize price
         $price = $package->price;
         $paymentStatus = 'unpaid';
@@ -294,6 +311,21 @@ class BookingController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'No active subscription found for this package'
+                ], 400);
+            }
+
+            $bookingDate = Carbon::parse($request->booking_date);
+            if ($subscription->selected_month && $bookingDate->format('Y-m') !== $subscription->selected_month) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This subscription can only be used in ' . $subscription->selected_month . '.'
+                ], 400);
+            }
+
+            if ($subscription->expires_at && $bookingDate->gt(Carbon::parse($subscription->expires_at)->endOfDay())) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This subscription has expired for the selected month.'
                 ], 400);
             }
 
@@ -440,6 +472,11 @@ class BookingController extends Controller
             'earning_money_used' => $earningMoneyUsed,
         ]);
 
+        if ($request->payment_method === 'subscription' && isset($subscription)) {
+            $subscription->increment('booking_count');
+            $subscription->refresh();
+        }
+
         // Sync slot bookings count: slot is ONLY booked if user paid full payment (e.g. subscription or zero-price).
         // If payment is pending/failed/unpaid, the slot is NOT booked until payment completes.
         self::syncSlotBookings($franchisee->id, $request->booking_date, $request->slot_time);
@@ -527,6 +564,16 @@ class BookingController extends Controller
 
         $booking->status = 'cancelled';
         $booking->save();
+
+        if ($booking->payment_method === 'subscription') {
+            $subscription = Subscription::where('customer_id', $booking->customer_id)
+                ->where('package_id', $booking->package_id)
+                ->where('status', 'active')
+                ->first();
+            if ($subscription && $subscription->booking_count > 0) {
+                $subscription->decrement('booking_count');
+            }
+        }
 
         // Refund points if epoints_used > 0
         if ($booking->epoints_used > 0) {
@@ -691,6 +738,7 @@ class BookingController extends Controller
                 ->where('coupon_code', 'FIRSTWASH10')
                 ->slotBooked()
                 ->exists();
+
             $isFirstWash = (!$priorWashExists && !$tookFirstWashDiscount);
             if ($isFirstWash) {
                 return response()->json([

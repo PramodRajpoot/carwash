@@ -129,6 +129,7 @@ export default function BookingSummaryScreen() {
   const [useEarningMoney, setUseEarningMoney] = useState(false);
   const [isFirstWash, setIsFirstWash] = useState(false);
   const [hasCompletedFirstWash, setHasCompletedFirstWash] = useState(false);
+  const [activeSubscription, setActiveSubscription] = useState<any>(null);
 
   // Payment Selection: Defaults to partial (₹99 online advance)
   const [paymentType, setPaymentType] = useState<'partial' | 'full'>('partial');
@@ -316,6 +317,7 @@ export default function BookingSummaryScreen() {
           setIsFirstWash(isFirst);
           const allowPoints = d.can_use_points !== undefined ? !!d.can_use_points : !isFirst;
           setHasCompletedFirstWash(allowPoints);
+          setActiveSubscription(d.subscription || null);
 
           const savedDbAddress = typeof d.address === 'string' ? d.address.trim() : '';
           const validSavedAddress = savedDbAddress && savedDbAddress !== 'Select Location';

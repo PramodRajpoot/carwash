@@ -39,7 +39,7 @@
       Loading subscription plans...
     </div>
 
-    <div v-else class="grid grid-3 gap-3">
+    <div v-else-if="packages.length" class="grid grid-3 gap-3">
       <div v-for="p in packages" :key="p.id" class="card flex flex-col justify-between" style="border-top: 3px solid var(--accent-cyan);">
         <div>
           <div class="flex justify-between items-center" style="margin-bottom: 0.5rem;">
@@ -65,6 +65,10 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <div v-else class="text-center text-muted" style="padding: 2rem;">
+      No subscription plans are currently available.
     </div>
   </div>
 </template>

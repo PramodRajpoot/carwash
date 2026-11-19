@@ -223,21 +223,55 @@ class CustomerController extends Controller
 
         $request->validate([
             'package_id' => 'required|exists:service_packages,id',
+            'selected_month' => 'nullable|regex:/^\\d{4}-\\d{2}$/',
         ]);
 
         $package = ServicePackage::findOrFail($request->package_id);
+
+        if (!(bool) $package->is_subscription || !in_array((int) $package->max_bookings, [4, 26], true)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Only 4-wash and 26-wash monthly subscription plans are available.',
+            ], 422);
+        }
+
+        $selectedMonth = $request->input('selected_month', Carbon::now()->format('Y-m'));
+        try {
+            $monthStart = Carbon::createFromFormat('Y-m', $selectedMonth)->startOfMonth();
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid subscription month.'], 422);
+        }
+
+        if ($monthStart->lt(Carbon::now()->startOfMonth())) {
+            return response()->json(['status' => 'error', 'message' => 'Please select the current or a future month.'], 422);
+        }
+
+        // Subscription plans are sold only with a full, advance, non-refundable payment.
+        $paidAmount = (float) $request->input('paid_amount', $package->price);
+        $paymentStatus = $request->input('payment_status', 'paid');
+        if ($paymentStatus !== 'paid' || $paidAmount + 0.001 < (float) $package->price) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Full advance payment is required for subscription plans. Partial or pending payments are not allowed.',
+            ], 422);
+        }
 
         Subscription::where('customer_id', $user->id)
             ->where('status', 'active')
             ->update(['status' => 'expired']);
 
         $subscription = Subscription::create([
-            'customer_id'   => $user->id,
-            'package_id'    => $package->id,
-            'status'        => 'active',
-            'booking_count' => 0,
-            'starts_at'     => Carbon::now(),
-            'expires_at'    => Carbon::now()->addDays($package->frequency_days),
+            'customer_id'    => $user->id,
+            'package_id'     => $package->id,
+            'status'         => 'active',
+            'booking_count'  => 0,
+            'starts_at'      => $monthStart,
+            'expires_at'     => $monthStart->copy()->endOfMonth(),
+            'selected_month' => $selectedMonth,
+            'payment_status' => 'paid',
+            'paid_amount'    => $package->price,
+            'payment_method' => $request->input('payment_method', 'online'),
+            'is_refundable'  => false,
         ]);
 
         // Notification
@@ -245,7 +279,7 @@ class CustomerController extends Controller
             'user_id' => $user->id,
             'type'    => 'subscription_expiry',
             'title'   => 'Subscription Activated!',
-            'body'    => "Your {$package->name} subscription is now active. Expires on " . Carbon::now()->addDays($package->frequency_days)->format('d M Y') . '.',
+            'body'    => "Your {$package->name} subscription is active for {$monthStart->format('F Y')} and is valid through " . $monthStart->copy()->endOfMonth()->format('d M Y') . '. Payment is full and non-refundable; rescheduling is available.',
         ]);
 
         return response()->json([

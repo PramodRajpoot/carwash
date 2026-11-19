@@ -40,67 +40,25 @@ interface Plan {
 const SAMPLE_PLANS: Plan[] = [
   {
     id: 1,
-    name: 'Happywash Express',
-    vehicle_type: 'hatchback',
-    description: 'Foam exterior wash\nInterior vacuum\nMat cleaning\nGlass cleaning',
-    price: 245.18,
+    name: '4 Washes Monthly Plan',
+    vehicle_type: 'all',
+    description: '4 washes in the selected month\nChoose a separate date and slot for each wash\nFull advance payment\nNon-refundable',
+    price: 2450,
     frequency_days: 30,
     max_bookings: 4,
-    custom_badge: 'POPULAR',
+    custom_badge: '4 WASHES',
     is_subscription: true,
   },
   {
-    id: 2,
-    name: 'Happy Wash + Car Shine',
-    vehicle_type: 'hatchback',
-    description: 'Foam wash\nEngine clean\nDashboard polish\nFull body wax',
-    price: 409.18,
+    id: 26,
+    name: '26 Washes Monthly Pass',
+    vehicle_type: 'all',
+    description: '26 washes in the selected month\nSelect only the month at purchase\nFull advance payment\nNon-refundable\nRescheduling available',
+    price: 4999,
     frequency_days: 30,
-    max_bookings: 4,
-    custom_badge: 'BEST VALUE',
+    max_bookings: 26,
+    custom_badge: '26 WASHES',
     is_subscription: true,
-  },
-  {
-    id: 3,
-    name: 'Full Interior Spa + Exterior',
-    vehicle_type: 'sedan',
-    description: 'Interior vacuum\nDashboard polish\nSnow foam wash\nTire dressing',
-    price: 799,
-    frequency_days: 0,
-    max_bookings: 1,
-    is_subscription: false,
-  },
-  {
-    id: 4,
-    name: 'Monthly Premium Detailing Pass',
-    vehicle_type: 'suv',
-    description: '8 doorstep exterior washes\nDeep interior vacuum\nCeramic wax touch-up',
-    price: 2499,
-    frequency_days: 30,
-    max_bookings: 8,
-    custom_badge: 'PREMIUM',
-    is_subscription: true,
-  },
-  {
-    id: 7,
-    name: 'Teflon Coating & Paint Correction',
-    vehicle_type: 'sedan',
-    description: 'Paint polish\nScratch correction\nHydrophobic sealant\n12-month shine protection',
-    price: 5999,
-    frequency_days: 0,
-    max_bookings: 1,
-    custom_badge: 'TOP SHINE',
-    is_subscription: false,
-  },
-  {
-    id: 8,
-    name: 'Commercial Fleet Maintenance',
-    vehicle_type: 'commercial',
-    description: 'Heavy-duty power wash\nUnderbody rinse\nInterior sanitizing',
-    price: 1499,
-    frequency_days: 0,
-    max_bookings: 1,
-    is_subscription: false,
   },
 ];
 
@@ -117,6 +75,20 @@ export default function SubscriptionsScreen() {
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab | 'none'>('none');
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<number, boolean>>({});
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  const monthOptions = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() + index, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const label = date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+      return { value, label };
+    });
+  }, []);
 
   const syncUser = useCallback(async () => {
     const storedUser = await AsyncStorage.getItem('userData');
@@ -149,7 +121,8 @@ export default function SubscriptionsScreen() {
             const isSubscription = Boolean(item?.is_subscription);
             const isAddon = Boolean(item?.is_addon);
             const frequencyDays = Number(item?.frequency_days ?? 0);
-            return isSubscription || (!isAddon && frequencyDays >= 30);
+            const washes = Number(item?.max_bookings ?? 0);
+            return (isSubscription || (!isAddon && frequencyDays >= 30)) && [4, 26].includes(washes);
           })
         : SAMPLE_PLANS;
       setPlans(cleaned.length ? cleaned : SAMPLE_PLANS);
@@ -228,7 +201,13 @@ export default function SubscriptionsScreen() {
           setSubscribingId(plan.id);
           const response = await axios.post(
             `${API_BASE}/api/customer/subscriptions`,
-            { package_id: plan.id },
+            { 
+              package_id: plan.id,
+              selected_month: selectedMonth,
+              payment_status: 'paid',
+              paid_amount: plan.price,
+              payment_method: 'online',
+            },
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -287,6 +266,25 @@ export default function SubscriptionsScreen() {
       >
         <View style={[styles.sectionHeader, isDark && styles.sectionHeaderDark]}>
           <Text style={[styles.sectionTitle, isDark && styles.titleDark]}>Monthly Wash Plans</Text>
+        </View>
+
+        <View style={[styles.monthSelector, isDark && styles.monthSelectorDark]}>
+          <Text style={[styles.monthLabel, isDark && styles.titleDark]}>Select subscription month</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthOptions}>
+            {monthOptions.map((month) => (
+              <TouchableOpacity
+                key={month.value}
+                activeOpacity={0.85}
+                onPress={() => setSelectedMonth(month.value)}
+                style={[styles.monthOption, selectedMonth === month.value && styles.monthOptionActive]}
+              >
+                <Text style={[styles.monthOptionText, selectedMonth === month.value && styles.monthOptionTextActive]}>{month.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Text style={[styles.paymentNote, isDark && styles.subtleTextDark]}>
+            Full advance payment • Non-refundable • Rescheduling allowed
+          </Text>
         </View>
 
         {monthlyPlans.map((plan) => {
@@ -614,5 +612,54 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
     fontSize: 12,
+  },
+  monthSelector: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  monthSelectorDark: {
+    backgroundColor: '#10243a',
+    borderColor: '#1e3a5f',
+  },
+  monthLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 10,
+  },
+  monthOptions: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  monthOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
+  },
+  monthOptionActive: {
+    backgroundColor: '#0ea5e9',
+    borderColor: '#0ea5e9',
+  },
+  monthOptionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  monthOptionTextActive: {
+    color: '#ffffff',
+  },
+  paymentNote: {
+    marginTop: 10,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
   },
 });
