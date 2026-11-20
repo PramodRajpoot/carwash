@@ -168,6 +168,7 @@
 
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
 export default {
   name: 'CustomerSubscriptions',
   data() {
@@ -277,7 +278,17 @@ export default {
         return;
       }
 
-      if (!confirm(`${planRule}\n\nPayment will be full, in advance and non-refundable. You may reschedule your washes. Proceed to secure payment?`)) return;
+      const result = await Swal.fire({
+        title: 'Confirm Subscription',
+        text: `${planRule}\n\nPayment will be full, in advance and non-refundable. You may reschedule your washes. Proceed to secure payment?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, proceed',
+        cancelButtonText: 'No, cancel',
+      });
+
+      if (!result.isConfirmed) return;
+
       this.subscribingId = packageId;
       try {
         const { data } = await axios.post('/api/cashfree/create-subscription-order', {
@@ -286,7 +297,11 @@ export default {
         });
 
         if (data.status !== 'success' || !data.payment_session_id) {
-          alert(data.message || 'Could not initiate subscription payment.');
+          Swal.fire({
+            title: 'Error',
+            text: data.message || 'Could not initiate subscription payment.',
+            icon: 'error',
+          });
           this.subscribingId = null;
           return;
         }
@@ -299,7 +314,11 @@ export default {
           returnUrl: window.location.origin + '/cashfree/return?order_id=' + encodeURIComponent(data.cashfree_order_id),
         });
       } catch (e) {
-        alert(e.response?.data?.message || 'Failed to subscribe.');
+        Swal.fire({
+          title: 'Error',
+          text: e.response?.data?.message || 'Failed to subscribe.',
+          icon: 'error',
+        });
       }
       this.subscribingId = null;
     },
@@ -312,7 +331,7 @@ export default {
       if (!start) return;
       if (start < this.monthMinDate) {
         this.scheduleItems[0].date = '';
-        alert('Previous dates cannot be selected.');
+        Swal.fire('Invalid Date', 'Previous dates cannot be selected.', 'warning');
         return;
       }
       const first = new Date(`${start}T00:00:00`);
@@ -356,22 +375,22 @@ export default {
     },
     async confirmWashSchedule() {
       if (!this.schedulePlan) return;
-      if (!this.scheduleVehicleId) return alert('Please select a vehicle.');
-      if (!this.scheduleCenterId) return alert('Please select a service center.');
-      if (!this.scheduleAddress.trim()) return alert('Please enter the doorstep address.');
+      if (!this.scheduleVehicleId) return Swal.fire('Select Vehicle', 'Please select a vehicle.', 'warning');
+      if (!this.scheduleCenterId) return Swal.fire('Select Center', 'Please select a service center.', 'warning');
+      if (!this.scheduleAddress.trim()) return Swal.fire('Enter Address', 'Please enter the doorstep address.', 'warning');
 
       const requiredCount = Number(this.schedulePlan.max_bookings);
       const dates = this.scheduleItems.map(item => item.date);
       const is26Plan = requiredCount === 26;
       if (dates.some(date => !date) || (!is26Plan && this.scheduleItems.some(item => !item.slot))) {
-        return alert(`Please select date${is26Plan ? '' : ' and slot'} for all ${requiredCount} washes.`);
+        return Swal.fire('Incomplete Selection', `Please select date${is26Plan ? '' : ' and slot'} for all ${requiredCount} washes.`, 'warning');
       }
-      if (new Set(dates).size !== requiredCount) return alert(`Please select ${requiredCount} different dates.`);
+      if (new Set(dates).size !== requiredCount) return Swal.fire('Duplicate Dates', `Please select ${requiredCount} different dates.`, 'warning');
       if (dates.some(date => !date.startsWith(this.selectedMonth))) {
-        return alert('All wash dates must be inside the selected subscription month.');
+        return Swal.fire('Invalid Dates', 'All wash dates must be inside the selected subscription month.', 'warning');
       }
       if (dates.some(date => date < this.monthMinDate)) {
-        return alert('Previous dates cannot be selected.');
+        return Swal.fire('Invalid Dates', 'Previous dates cannot be selected.', 'warning');
       }
 
       this.subscribingId = this.schedulePlan.id;
@@ -386,8 +405,7 @@ export default {
         });
 
         if (data.status !== 'success' || !data.payment_session_id) {
-          alert(data.message || 'Could not initiate subscription payment.');
-          return;
+          return Swal.fire('Error', data.message || 'Could not initiate subscription payment.', 'error');
         }
 
         // eslint-disable-next-line no-undef
@@ -398,7 +416,7 @@ export default {
           returnUrl: window.location.origin + '/cashfree/return?order_id=' + encodeURIComponent(data.cashfree_order_id),
         });
       } catch (e) {
-        alert(e.response?.data?.message || 'Failed to initiate subscription payment.');
+        Swal.fire('Error', e.response?.data?.message || 'Failed to initiate subscription payment.', 'error');
       } finally {
         this.subscribingId = null;
       }
