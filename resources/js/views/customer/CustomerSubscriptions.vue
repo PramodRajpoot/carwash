@@ -95,10 +95,10 @@
     </div>
 
     <div v-if="showScheduleModal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 680px;">
-        <h3>Choose Your 4 Wash Dates & Slots</h3>
+      <div class="modal-content" style="max-width: 680px; max-height: 92vh; overflow-y: auto;">
+        <h3>Choose Your {{ schedulePlan?.max_bookings || 4 }} Wash Dates & Slots</h3>
         <p class="text-muted" style="font-size: 0.82rem; margin-bottom: 1rem;">
-          Select 4 separate days in {{ selectedMonthLabel }}. Full payment is required after these details are confirmed.
+          Select {{ schedulePlan?.max_bookings || 4 }} separate days in {{ selectedMonthLabel }}. Full payment is required after these details are confirmed.
         </p>
 
         <div class="grid grid-2 gap-2">
@@ -123,7 +123,22 @@
           <textarea v-model="scheduleAddress" class="form-input" rows="2" placeholder="Enter complete service address"></textarea>
         </div>
 
-        <div v-for="(item, index) in scheduleItems" :key="index" class="glass-card" style="padding: 0.75rem; margin-bottom: 0.75rem;">
+        <div v-if="Number(schedulePlan?.max_bookings) === 26" class="glass-card" style="padding: 0.75rem; margin-bottom: 0.75rem;">
+          <div class="form-group">
+            <label>Select the first wash date</label>
+            <input v-model="scheduleItems[0].date" type="date" class="form-input" :min="monthMinDate" :max="monthMaxDate" @change="autoGenerate26Dates">
+          </div>
+          <div v-if="scheduleItems[0].date" class="text-muted" style="font-size: 0.78rem;">
+            25 following dates are selected automatically. No slot selection is required.
+          </div>
+          <div v-if="scheduleItems[0].date" class="grid grid-2 gap-2" style="margin-top: 0.75rem; max-height: 260px; overflow-y: auto;">
+            <div v-for="(item, index) in scheduleItems" :key="index" style="padding: 0.45rem 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.78rem;">
+              <strong>Wash {{ index + 1 }}:</strong> {{ formatScheduleDate(item.date) }}
+            </div>
+          </div>
+        </div>
+
+        <div v-else v-for="(item, index) in scheduleItems" :key="index" class="glass-card" style="padding: 0.75rem; margin-bottom: 0.75rem;">
           <strong style="display: block; margin-bottom: 0.5rem;">Wash {{ index + 1 }}</strong>
           <div class="grid grid-2 gap-2">
             <div class="form-group">
@@ -143,7 +158,7 @@
         </div>
 
         <div class="flex gap-2" style="margin-top: 1rem;">
-          <button type="button" class="btn btn-primary" :disabled="subscribingId !== null" @click="confirmFourWashSchedule">Continue to Full Payment</button>
+          <button type="button" class="btn btn-primary" :disabled="subscribingId !== null" @click="confirmWashSchedule">Continue to Full Payment</button>
           <button type="button" class="btn btn-ghost" @click="showScheduleModal = false">Cancel</button>
         </div>
       </div>
@@ -249,10 +264,11 @@ export default {
         ? 'The 4-wash plan allows one wash on each separate day in the selected month.'
         : 'The 26-wash plan allows the 26 washes to be scheduled during the selected month.';
 
-      if (washes === 4) {
+      if ([4, 26].includes(washes)) {
         this.schedulePlan = plan;
-        this.scheduleItems = [{ date: '', slot: '' }, { date: '', slot: '' }, { date: '', slot: '' }, { date: '', slot: '' }];
-        this.scheduleSlots = [[], [], [], []];
+        this.scheduleItems = Array.from({ length: washes }, () => ({ date: '', slot: '' }));
+        this.scheduleSlots = Array.from({ length: washes }, () => []);
+        this.scheduleSlotLoading = Array.from({ length: washes }, () => false);
         this.showScheduleModal = true;
         return;
       }
@@ -283,6 +299,29 @@ export default {
       }
       this.subscribingId = null;
     },
+    formatScheduleDate(date) {
+      if (!date) return '';
+      return new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    },
+    autoGenerate26Dates() {
+      const start = this.scheduleItems[0]?.date;
+      if (!start) return;
+      const first = new Date(`${start}T00:00:00`);
+      const [year, month] = this.selectedMonth.split('-').map(Number);
+      const lastDay = new Date(year, month, 0);
+
+      for (let i = 0; i < 26; i++) {
+        const date = new Date(first);
+        date.setDate(first.getDate() + i);
+        if (date > lastDay) {
+          this.scheduleItems[i].date = '';
+        } else {
+          const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          this.scheduleItems[i].date = value;
+        }
+        this.scheduleItems[i].slot = '';
+      }
+    },
     async loadScheduleSlots(index) {
       const item = this.scheduleItems[index];
       item.slot = '';
@@ -306,17 +345,19 @@ export default {
         if (item.date) this.loadScheduleSlots(index);
       });
     },
-    async confirmFourWashSchedule() {
+    async confirmWashSchedule() {
       if (!this.schedulePlan) return;
       if (!this.scheduleVehicleId) return alert('Please select a vehicle.');
       if (!this.scheduleCenterId) return alert('Please select a service center.');
       if (!this.scheduleAddress.trim()) return alert('Please enter the doorstep address.');
 
+      const requiredCount = Number(this.schedulePlan.max_bookings);
       const dates = this.scheduleItems.map(item => item.date);
-      if (dates.some(date => !date) || this.scheduleItems.some(item => !item.slot)) {
-        return alert('Please select date and slot for all 4 washes.');
+      const is26Plan = requiredCount === 26;
+      if (dates.some(date => !date) || (!is26Plan && this.scheduleItems.some(item => !item.slot))) {
+        return alert(`Please select date${is26Plan ? '' : ' and slot'} for all ${requiredCount} washes.`);
       }
-      if (new Set(dates).size !== 4) return alert('Please select 4 different dates.');
+      if (new Set(dates).size !== requiredCount) return alert(`Please select ${requiredCount} different dates.`);
       if (dates.some(date => !date.startsWith(this.selectedMonth))) {
         return alert('All wash dates must be inside the selected subscription month.');
       }
@@ -329,7 +370,7 @@ export default {
           vehicle_id: Number(this.scheduleVehicleId),
           franchisee_id: Number(this.scheduleCenterId),
           address: this.scheduleAddress.trim(),
-          schedules: this.scheduleItems.map(item => ({ date: item.date, slot: item.slot })),
+          schedules: this.scheduleItems.map(item => ({ date: item.date, slot: is26Plan ? '' : item.slot })),
         });
 
         if (data.status !== 'success' || !data.payment_session_id) {

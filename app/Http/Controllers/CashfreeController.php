@@ -253,6 +253,60 @@ class CashfreeController extends Controller
                         'body' => "Your {$subscription->package->name} subscription is active and fully paid for {$subscription->selected_month}. Payment is non-refundable; rescheduling is available.",
                     ]);
 
+                    // Automatically create the 4 or 26 scheduled wash bookings after successful paid subscription verification.
+                    if (in_array((int) $subscription->package->max_bookings, [4, 26], true) && is_array($subscription->schedules)) {
+                        $scheduleData = $subscription->schedules;
+                        $vehicleId = (int) ($scheduleData['vehicle_id'] ?? 0);
+                        $franchiseeId = (int) ($scheduleData['franchisee_id'] ?? 0);
+                        $address = (string) ($scheduleData['address'] ?? '');
+                        $washes = $scheduleData['washes'] ?? [];
+                        $requiredWashes = (int) $subscription->package->max_bookings;
+
+                        $vehicle = \App\Models\Vehicle::where('customer_id', $subscription->customer_id)->find($vehicleId);
+                        $franchisee = \App\Models\Franchisee::find($franchiseeId);
+
+                        if ($vehicle && $franchisee && count($washes) === $requiredWashes) {
+                            foreach ($washes as $wash) {
+                                $bookingDate = Carbon::parse($wash['date'])->format('Y-m-d');
+                                $slotTime = (string) ($wash['slot'] ?? '');
+                                if ($slotTime === '' && $requiredWashes === 26) {
+                                    $masterSlot = \App\Models\MasterSlot::where('status', 'active')->orderBy('id')->first();
+                                    $slotTime = $masterSlot ? $masterSlot->time_range : '09:00 AM - 11:00 AM';
+                                }
+
+
+                                $exists = Booking::where('customer_id', $subscription->customer_id)
+                                    ->where('package_id', $subscription->package_id)
+                                    ->where('booking_date', $bookingDate)
+                                    ->where('slot_time', $slotTime)
+                                    ->where('payment_method', 'subscription')
+                                    ->exists();
+
+                                if (!$exists) {
+                                    Booking::create([
+                                        'customer_id' => $subscription->customer_id,
+                                        'vehicle_id' => $vehicle->id,
+                                        'franchisee_id' => $franchisee->id,
+                                        'package_id' => $subscription->package_id,
+                                        'booking_date' => $bookingDate,
+                                        'slot_time' => $slotTime,
+                                        'address' => $address,
+                                        'status' => 'pending',
+                                        'payment_status' => 'paid',
+                                        'payment_method' => 'subscription',
+                                        'payment_type' => 'full',
+                                        'advance_amount' => 0,
+                                        'paid_amount' => 0,
+                                        'total_price' => 0,
+                                        'gst_amount' => 0,
+                                    ]);
+                                    \App\Http\Controllers\BookingController::syncSlotBookings($franchisee->id, $bookingDate, $slotTime);
+                                }
+                            }
+                            $subscription->update(['booking_count' => $requiredWashes]);
+                        }
+                    }
+
                     return response()->json([
                         'status' => 'success',
                         'payment_status' => 'paid',
@@ -454,27 +508,44 @@ class CashfreeController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Invalid subscription plan.'], 422);
         }
 
-        if ((int) $package->max_bookings === 4) {
+        $requiredWashes = (int) $package->max_bookings;
+        if (in_array($requiredWashes, [4, 26], true)) {
             $schedules = $request->input('schedules', []);
-            if (count($schedules) !== 4) {
-                return response()->json(['status' => 'error', 'message' => 'Please select 4 wash dates and slots.'], 422);
+            if (count($schedules) !== $requiredWashes) {
+                return response()->json(['status' => 'error', 'message' => "Please select {$requiredWashes} wash dates and slots."], 422);
             }
             if (!$request->filled('vehicle_id') || !$request->filled('franchisee_id') || !$request->filled('address')) {
-                return response()->json(['status' => 'error', 'message' => 'Vehicle, center and address are required for 4-wash booking.'], 422);
+                return response()->json(['status' => 'error', 'message' => "Vehicle, center and address are required for {$requiredWashes}-wash booking."], 422);
             }
 
             $dates = [];
             foreach ($schedules as $schedule) {
-                if (empty($schedule['date']) || empty($schedule['slot'])) {
+                if (empty($schedule['date'])) {
+                    return response()->json(['status' => 'error', 'message' => 'A date is required for each wash.'], 422);
+                }
+                if ($requiredWashes === 4 && empty($schedule['slot'])) {
                     return response()->json(['status' => 'error', 'message' => 'Date and slot are required for each wash.'], 422);
                 }
                 if (substr($schedule['date'], 0, 7) !== $request->selected_month) {
                     return response()->json(['status' => 'error', 'message' => 'All wash dates must be inside the selected month.'], 422);
                 }
+                if (Carbon::parse($schedule['date'])->lt(Carbon::today())) {
+                    return response()->json(['status' => 'error', 'message' => 'Wash dates cannot be in the past.'], 422);
+                }
                 $dates[] = $schedule['date'];
             }
-            if (count(array_unique($dates)) !== 4) {
-                return response()->json(['status' => 'error', 'message' => 'Please select 4 different wash dates.'], 422);
+
+            if ($requiredWashes === 26) {
+                for ($i = 1; $i < count($dates); $i++) {
+                    $previous = Carbon::parse($dates[$i - 1]);
+                    $current = Carbon::parse($dates[$i]);
+                    if (!$current->equalTo($previous->copy()->addDay())) {
+                        return response()->json(['status' => 'error', 'message' => 'The 26-wash plan requires 26 consecutive daily dates.'], 422);
+                    }
+                }
+            }
+            if (count(array_unique($dates)) !== $requiredWashes) {
+                return response()->json(['status' => 'error', 'message' => "Please select {$requiredWashes} different wash dates."], 422);
             }
         }
 
@@ -507,7 +578,7 @@ class CashfreeController extends Controller
             'paid_amount' => 0,
             'payment_method' => 'online',
             'is_refundable' => false,
-            'schedules' => (int) $package->max_bookings === 4 ? [
+            'schedules' => in_array((int) $package->max_bookings, [4, 26], true) ? [
                 'vehicle_id' => (int) $request->vehicle_id,
                 'franchisee_id' => (int) $request->franchisee_id,
                 'address' => trim((string) $request->address),
