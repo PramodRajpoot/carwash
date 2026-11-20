@@ -208,6 +208,10 @@ export default {
       return month ? month.label : this.selectedMonth;
     },
     monthMinDate() {
+      const today = new Date();
+      const todayValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const currentMonth = todayValue.slice(0, 7);
+      if (this.selectedMonth === currentMonth) return todayValue;
       return `${this.selectedMonth}-01`;
     },
     monthMaxDate() {
@@ -306,6 +310,11 @@ export default {
     autoGenerate26Dates() {
       const start = this.scheduleItems[0]?.date;
       if (!start) return;
+      if (start < this.monthMinDate) {
+        this.scheduleItems[0].date = '';
+        alert('Previous dates cannot be selected.');
+        return;
+      }
       const first = new Date(`${start}T00:00:00`);
       const [year, month] = this.selectedMonth.split('-').map(Number);
       const lastDay = new Date(year, month, 0);
@@ -360,6 +369,9 @@ export default {
       if (new Set(dates).size !== requiredCount) return alert(`Please select ${requiredCount} different dates.`);
       if (dates.some(date => !date.startsWith(this.selectedMonth))) {
         return alert('All wash dates must be inside the selected subscription month.');
+      }
+      if (dates.some(date => date < this.monthMinDate)) {
+        return alert('Previous dates cannot be selected.');
       }
 
       this.subscribingId = this.schedulePlan.id;
