@@ -401,31 +401,37 @@ export default {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  inset: 0;
+  background: rgba(7, 13, 26, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
 
+[data-theme="light"] .modal-overlay {
+  background: rgba(10, 25, 47, 0.45);
+}
+
 .modal-content {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
   padding: 2rem;
   width: 90%;
   max-width: 700px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--bg-glass);
   backdrop-filter: blur(10px);
-  border-radius: 8px;
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
 }
 </style>
