@@ -32,11 +32,9 @@
     <!-- Partner Feedback / Happy Customers -->
     <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
       <div class="container">
-        <div class="section-header-flex">
-          <div class="section-title" style="margin-bottom:0;text-align:left">
-            <h2>Our <span class="text-gradient">Happy Customers</span></h2>
-            <p>Hear Directly from Our Happy Customers</p>
-          </div>
+        <div class="section-title">
+          <h2>Our <span class="text-gradient">Happy Customers</span></h2>
+          <p>Hear Directly from Our Happy Customers</p>
         </div>
 
         <div class="cards-slider-container">
@@ -477,11 +475,9 @@
     <!-- Partners' Valuable Feedback -->
     <section class="section" v-if="partnerValuableFeedback && partnerValuableFeedback.length > 0">
       <div class="container">
-        <div class="section-header-flex">
-          <div class="section-title" style="margin-bottom:0;text-align:left">
-            <h2>Our <span class="text-gradient">Partners' Valuable Feedback</span></h2>
-            <p>Hear directly from our franchise partners.</p>
-          </div>
+        <div class="section-title">
+          <h2>Our <span class="text-gradient">Partners' Valuable Feedback</span></h2>
+          <p>Hear directly from our franchise partners.</p>
         </div>
 
         <div class="cards-slider-container">
