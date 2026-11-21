@@ -70,3 +70,4 @@ class StorageMediaController extends Controller
         return $response;
     }
 }
+
