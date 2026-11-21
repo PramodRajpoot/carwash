@@ -143,7 +143,23 @@
           <div class="grid grid-2 gap-2">
             <div class="form-group">
               <label>Date</label>
-              <input v-model="item.date" type="date" class="form-input" :min="monthMinDate" :max="monthMaxDate" @change="loadScheduleSlots(index)">
+              <input
+                v-model="item.date"
+                type="date"
+                class="form-input"
+                :min="getWashMinDate(index)"
+                :max="monthMaxDate"
+                :disabled="isWashDisabled(index)"
+                @change="onScheduleDateChange(index)"
+              >
+              <div v-if="Number(schedulePlan?.max_bookings) === 4">
+                <small v-if="isWashDisabled(index)" class="text-muted" style="display: block; font-size: 0.74rem; margin-top: 0.25rem;">
+                  Please select Wash {{ index }} date first
+                </small>
+                <small v-else-if="index > 0 && scheduleItems[index - 1]?.date" class="text-muted" style="display: block; font-size: 0.74rem; margin-top: 0.25rem;">
+                  Must be after {{ formatScheduleDate(scheduleItems[index - 1].date) }}
+                </small>
+              </div>
             </div>
             <div class="form-group">
               <label>Time Slot</label>
@@ -217,8 +233,11 @@ export default {
     },
     monthMaxDate() {
       const [year, month] = this.selectedMonth.split('-').map(Number);
-      const lastDay = new Date(year, month, 0).getDate();
-      return `${this.selectedMonth}-${String(lastDay).padStart(2, '0')}`;
+      const nextMonthObj = new Date(year, month, 1);
+      const nextYear = nextMonthObj.getFullYear();
+      const nextMonthStr = String(nextMonthObj.getMonth() + 1).padStart(2, '0');
+      const lastDay = new Date(nextYear, nextMonthObj.getMonth() + 1, 0).getDate();
+      return `${nextYear}-${nextMonthStr}-${String(lastDay).padStart(2, '0')}`;
     },
   },
   methods: {
@@ -326,6 +345,67 @@ export default {
       if (!date) return '';
       return new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     },
+    getNextDate(dateString) {
+      if (!dateString) return '';
+      const [year, month, day] = dateString.split('-').map(Number);
+      const d = new Date(year, month - 1, day + 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dd}`;
+    },
+    getWashMinDate(index) {
+      if (Number(this.schedulePlan?.max_bookings) !== 4) {
+        return this.monthMinDate;
+      }
+      if (index === 0) {
+        return this.monthMinDate;
+      }
+      const prevDate = this.scheduleItems[index - 1]?.date;
+      if (!prevDate) {
+        return this.monthMinDate;
+      }
+      const nextDay = this.getNextDate(prevDate);
+      return nextDay > this.monthMinDate ? nextDay : this.monthMinDate;
+    },
+    isWashDisabled(index) {
+      if (Number(this.schedulePlan?.max_bookings) !== 4) {
+        return false;
+      }
+      if (index === 0) {
+        return false;
+      }
+      return !this.scheduleItems[index - 1]?.date;
+    },
+    onScheduleDateChange(index) {
+      if (Number(this.schedulePlan?.max_bookings) === 4) {
+        // If current date is invalid compared to previous date, clear it
+        if (index > 0) {
+          const prevDate = this.scheduleItems[index - 1]?.date;
+          if (prevDate && this.scheduleItems[index].date && this.scheduleItems[index].date <= prevDate) {
+            this.scheduleItems[index].date = '';
+            this.scheduleItems[index].slot = '';
+            this.scheduleSlots[index] = [];
+            Swal.fire({
+              title: 'Invalid Date',
+              text: `Wash ${index + 1} date must be after Wash ${index} date (${this.formatScheduleDate(prevDate)}).`,
+              icon: 'warning',
+            });
+            return;
+          }
+        }
+        // If any subsequent wash has a date that is <= its preceding wash date or preceding wash date is empty, reset it
+        for (let i = index + 1; i < this.scheduleItems.length; i++) {
+          const prevDate = this.scheduleItems[i - 1]?.date;
+          if (!prevDate || (this.scheduleItems[i].date && this.scheduleItems[i].date <= prevDate)) {
+            this.scheduleItems[i].date = '';
+            this.scheduleItems[i].slot = '';
+            this.scheduleSlots[i] = [];
+          }
+        }
+      }
+      this.loadScheduleSlots(index);
+    },
     autoGenerate26Dates() {
       const start = this.scheduleItems[0]?.date;
       if (!start) return;
@@ -335,13 +415,12 @@ export default {
         return;
       }
       const first = new Date(`${start}T00:00:00`);
-      const [year, month] = this.selectedMonth.split('-').map(Number);
-      const lastDay = new Date(year, month, 0);
+      const maxDate = new Date(`${this.monthMaxDate}T23:59:59`);
 
       for (let i = 0; i < 26; i++) {
         const date = new Date(first);
         date.setDate(first.getDate() + i);
-        if (date > lastDay) {
+        if (date > maxDate) {
           this.scheduleItems[i].date = '';
         } else {
           const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -386,11 +465,27 @@ export default {
         return Swal.fire('Incomplete Selection', `Please select date${is26Plan ? '' : ' and slot'} for all ${requiredCount} washes.`, 'warning');
       }
       if (new Set(dates).size !== requiredCount) return Swal.fire('Duplicate Dates', `Please select ${requiredCount} different dates.`, 'warning');
-      if (dates.some(date => !date.startsWith(this.selectedMonth))) {
-        return Swal.fire('Invalid Dates', 'All wash dates must be inside the selected subscription month.', 'warning');
+      const [year, month] = this.selectedMonth.split('-').map(Number);
+      const nextMonthObj = new Date(year, month, 1);
+      const nextMonthValue = `${nextMonthObj.getFullYear()}-${String(nextMonthObj.getMonth() + 1).padStart(2, '0')}`;
+      const allowedMonths = [this.selectedMonth, nextMonthValue];
+
+      if (dates.some(date => !allowedMonths.includes(date.slice(0, 7)))) {
+        return Swal.fire('Invalid Dates', 'All wash dates must be inside the selected month or following month.', 'warning');
       }
-      if (dates.some(date => date < this.monthMinDate)) {
-        return Swal.fire('Invalid Dates', 'Previous dates cannot be selected.', 'warning');
+      if (dates.some(date => date < this.monthMinDate || date > this.monthMaxDate)) {
+        return Swal.fire('Invalid Dates', 'Selected dates are outside the allowed subscription period.', 'warning');
+      }
+      if (requiredCount === 4) {
+        for (let i = 1; i < dates.length; i++) {
+          if (dates[i] <= dates[i - 1]) {
+            return Swal.fire(
+              'Invalid Date Sequence',
+              `Wash ${i + 1} date must be after Wash ${i} date (${this.formatScheduleDate(dates[i - 1])}).`,
+              'warning'
+            );
+          }
+        }
       }
 
       this.subscribingId = this.schedulePlan.id;

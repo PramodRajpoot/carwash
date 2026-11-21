@@ -508,6 +508,20 @@ class CashfreeController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Invalid subscription plan.'], 422);
         }
 
+        try {
+            $monthStart = Carbon::createFromFormat('Y-m', $request->selected_month)->startOfMonth();
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid subscription month.'], 422);
+        }
+
+        if ($monthStart->lt(Carbon::now()->startOfMonth())) {
+            return response()->json(['status' => 'error', 'message' => 'Please select the current or a future month.'], 422);
+        }
+
+        $nextMonth = $monthStart->copy()->addMonth()->format('Y-m');
+        $allowedMonths = [$request->selected_month, $nextMonth];
+        $subscriptionEnd = $monthStart->copy()->addMonth()->endOfMonth();
+
         $requiredWashes = (int) $package->max_bookings;
         if (in_array($requiredWashes, [4, 26], true)) {
             $schedules = $request->input('schedules', []);
@@ -526,13 +540,29 @@ class CashfreeController extends Controller
                 if ($requiredWashes === 4 && empty($schedule['slot'])) {
                     return response()->json(['status' => 'error', 'message' => 'Date and slot are required for each wash.'], 422);
                 }
-                if (substr($schedule['date'], 0, 7) !== $request->selected_month) {
-                    return response()->json(['status' => 'error', 'message' => 'All wash dates must be inside the selected month.'], 422);
+                if (!in_array(substr($schedule['date'], 0, 7), $allowedMonths, true)) {
+                    return response()->json(['status' => 'error', 'message' => 'All wash dates must be inside the selected month or following month.'], 422);
                 }
                 if (Carbon::parse($schedule['date'])->lt(Carbon::today())) {
                     return response()->json(['status' => 'error', 'message' => 'Wash dates cannot be in the past.'], 422);
                 }
+                if (Carbon::parse($schedule['date'])->gt($subscriptionEnd)) {
+                    return response()->json(['status' => 'error', 'message' => 'Wash dates cannot exceed the allowed subscription period.'], 422);
+                }
                 $dates[] = $schedule['date'];
+            }
+
+            if ($requiredWashes === 4) {
+                for ($i = 1; $i < count($dates); $i++) {
+                    $previous = Carbon::parse($dates[$i - 1]);
+                    $current = Carbon::parse($dates[$i]);
+                    if ($current->lte($previous)) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => "Wash " . ($i + 1) . " date must be after Wash {$i} date (" . $previous->format('d M Y') . ")."
+                        ], 422);
+                    }
+                }
             }
 
             if ($requiredWashes === 26) {
@@ -549,16 +579,6 @@ class CashfreeController extends Controller
             }
         }
 
-        try {
-            $monthStart = Carbon::createFromFormat('Y-m', $request->selected_month)->startOfMonth();
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => 'Invalid subscription month.'], 422);
-        }
-
-        if ($monthStart->lt(Carbon::now()->startOfMonth())) {
-            return response()->json(['status' => 'error', 'message' => 'Please select the current or a future month.'], 422);
-        }
-
         $credentials = $this->getCredentials();
         if (!$credentials || empty($credentials['client_id'])) {
             return response()->json(['status' => 'error', 'message' => 'Cashfree payment gateway is not configured.'], 500);
@@ -572,7 +592,7 @@ class CashfreeController extends Controller
             'status' => 'pending',
             'booking_count' => 0,
             'starts_at' => $monthStart,
-            'expires_at' => $monthStart->copy()->endOfMonth(),
+            'expires_at' => $subscriptionEnd,
             'selected_month' => $request->selected_month,
             'payment_status' => 'pending',
             'paid_amount' => 0,
