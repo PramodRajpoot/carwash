@@ -29,30 +29,58 @@
       </div>
     </div>
 
-    <!-- Partner Feedback -->
+    <!-- Partner Feedback / Happy Customers -->
     <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
       <div class="container">
-        <div class="section-title">
-          <h2>Our <span class="text-gradient">Happy Customers</span></h2>
-          <p>Hear Directly from Our Happy Customers</p>
+        <div class="section-header-flex">
+          <div class="section-title" style="margin-bottom:0;text-align:left">
+            <h2>Our <span class="text-gradient">Happy Customers</span></h2>
+            <p>Hear Directly from Our Happy Customers</p>
+          </div>
+          <div class="slider-nav-btns" v-if="partnerFeedback.length > 1">
+            <button class="slider-arrow-btn" @click="scrollSlider('customerSlider', -1)" aria-label="Previous Customer Feedback">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button class="slider-arrow-btn" @click="scrollSlider('customerSlider', 1)" aria-label="Next Customer Feedback">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
         </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="(feedback, i) in partnerFeedback" :key="i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
-            <div class="feedback-thumb">
-               <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" />
-               <div v-else class="feedback-thumb-placeholder"></div>
-               <!-- Play button overlay -->
-               <div class="play-btn-overlay" v-if="feedback.video_path">
-                 <div class="play-btn-circle">
-                   <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-                 </div>
-               </div>
-            </div>
-            <div style="padding:1.5rem">
-               <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city ? feedback.city + ' Customer' : 'Happy Customer' }}</h4>
-               <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+
+        <div class="cards-slider-container">
+          <div ref="customerSlider" class="cards-slider-track" @scroll="onSliderScroll('customer')">
+            <div
+              v-for="(feedback, i) in partnerFeedback"
+              :key="feedback.id || i"
+              class="card feedback-card slider-card"
+              @click="openVideoLightbox(feedback)"
+            >
+              <div class="feedback-thumb">
+                <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" loading="lazy" />
+                <div v-else class="feedback-thumb-placeholder"></div>
+                <!-- Play button overlay -->
+                <div class="play-btn-overlay" v-if="feedback.video_path">
+                  <div class="play-btn-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:1.5rem">
+                <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city ? feedback.city + ' Customer' : 'Happy Customer' }}</h4>
+                <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div class="slider-dots" v-if="partnerFeedback.length > 1">
+          <span
+            v-for="(_, dotIdx) in partnerFeedback"
+            :key="dotIdx"
+            class="slider-dot"
+            :class="{ active: customerActiveDot === dotIdx }"
+            @click="scrollToCard('customerSlider', dotIdx)"
+          ></span>
         </div>
       </div>
 
@@ -457,27 +485,55 @@
     <!-- Partners' Valuable Feedback -->
     <section class="section" v-if="partnerValuableFeedback && partnerValuableFeedback.length > 0">
       <div class="container">
-        <div class="section-title">
-          <h2>Our <span class="text-gradient">Partners' Valuable Feedback</span></h2>
-          <p>Hear directly from our franchise partners.</p>
+        <div class="section-header-flex">
+          <div class="section-title" style="margin-bottom:0;text-align:left">
+            <h2>Our <span class="text-gradient">Partners' Valuable Feedback</span></h2>
+            <p>Hear directly from our franchise partners.</p>
+          </div>
+          <div class="slider-nav-btns" v-if="partnerValuableFeedback.length > 1">
+            <button class="slider-arrow-btn" @click="scrollSlider('partnerSlider', -1)" aria-label="Previous Partner Feedback">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button class="slider-arrow-btn" @click="scrollSlider('partnerSlider', 1)" aria-label="Next Partner Feedback">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
         </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="feedback in partnerValuableFeedback" :key="feedback.id" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer" @click="openVideoLightbox(feedback)">
-            <div class="feedback-thumb">
-              <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" />
-              <div v-else class="feedback-thumb-placeholder"></div>
-              <div class="play-btn-overlay" v-if="feedback.video_path">
-                <div class="play-btn-circle">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+
+        <div class="cards-slider-container">
+          <div ref="partnerSlider" class="cards-slider-track" @scroll="onSliderScroll('partner')">
+            <div
+              v-for="feedback in partnerValuableFeedback"
+              :key="feedback.id"
+              class="card feedback-card slider-card"
+              @click="openVideoLightbox(feedback)"
+            >
+              <div class="feedback-thumb">
+                <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" loading="lazy" />
+                <div v-else class="feedback-thumb-placeholder"></div>
+                <div class="play-btn-overlay" v-if="feedback.video_path">
+                  <div class="play-btn-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div style="padding:1.5rem">
-              <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.name || (feedback.city ? feedback.city + ' Partner' : 'CleanAtDoorstep Partner') }}</h4>
-              <p v-if="feedback.city" class="text-muted" style="font-size:0.85rem;margin-bottom:.35rem">{{ feedback.city }}</p>
-              <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+              <div style="padding:1.5rem">
+                <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.name || (feedback.city ? feedback.city + ' Partner' : 'CleanAtDoorstep Partner') }}</h4>
+                <p v-if="feedback.city" class="text-muted" style="font-size:0.85rem;margin-bottom:.35rem">{{ feedback.city }}</p>
+                <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div class="slider-dots" v-if="partnerValuableFeedback.length > 1">
+          <span
+            v-for="(_, dotIdx) in partnerValuableFeedback"
+            :key="dotIdx"
+            class="slider-dot"
+            :class="{ active: partnerActiveDot === dotIdx }"
+            @click="scrollToCard('partnerSlider', dotIdx)"
+          ></span>
         </div>
       </div>
     </section>
@@ -549,7 +605,10 @@ export default {
       partnerFeedback: [],
       faqs: [],
       aboutUs: null,
-      partnerValuableFeedback: []
+      partnerValuableFeedback: [],
+      customerActiveDot: 0,
+      partnerActiveDot: 0,
+      feedbackSliderTimer: null
     };
   },
   mounted() {
@@ -561,6 +620,11 @@ export default {
     this.fetchFaqs();
     this.fetchAboutUs();
     this.fetchPartnerValuableFeedback();
+    this.startFeedbackSliders();
+  },
+  beforeUnmount() {
+    if (this.sliderInterval) clearInterval(this.sliderInterval);
+    if (this.feedbackSliderTimer) clearInterval(this.feedbackSliderTimer);
   },
   methods: {
     async fetchPackages() {
@@ -777,6 +841,59 @@ export default {
       this.lightboxOpen = false;
       this.lightboxFeedback = null;
       document.body.style.overflow = '';
+    },
+    scrollSlider(refName, direction) {
+      const container = this.$refs[refName];
+      if (!container) return;
+      const card = container.querySelector('.slider-card');
+      const cardWidth = card ? card.offsetWidth + 24 : 340;
+      container.scrollBy({
+        left: direction * cardWidth,
+        behavior: 'smooth'
+      });
+    },
+    scrollToCard(refName, index) {
+      const container = this.$refs[refName];
+      if (!container) return;
+      const cards = container.querySelectorAll('.slider-card');
+      if (cards[index]) {
+        cards[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      }
+    },
+    onSliderScroll(type) {
+      const refName = type === 'customer' ? 'customerSlider' : 'partnerSlider';
+      const container = this.$refs[refName];
+      if (!container) return;
+      const card = container.querySelector('.slider-card');
+      const cardWidth = card ? card.offsetWidth + 24 : 340;
+      const index = Math.round(container.scrollLeft / cardWidth);
+      if (type === 'customer') {
+        this.customerActiveDot = Math.max(0, Math.min(this.partnerFeedback.length - 1, index));
+      } else {
+        this.partnerActiveDot = Math.max(0, Math.min(this.partnerValuableFeedback.length - 1, index));
+      }
+    },
+    startFeedbackSliders() {
+      if (this.feedbackSliderTimer) clearInterval(this.feedbackSliderTimer);
+      this.feedbackSliderTimer = setInterval(() => {
+        if (this.lightboxOpen) return;
+        if (this.partnerFeedback && this.partnerFeedback.length > 3) {
+          this.autoAdvanceSlider('customerSlider', 'customer');
+        }
+        if (this.partnerValuableFeedback && this.partnerValuableFeedback.length > 3) {
+          this.autoAdvanceSlider('partnerSlider', 'partner');
+        }
+      }, 5000);
+    },
+    autoAdvanceSlider(refName, type) {
+      const container = this.$refs[refName];
+      if (!container) return;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (container.scrollLeft >= maxScroll - 15) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        this.scrollSlider(refName, 1);
+      }
     }
   }
 };
@@ -870,6 +987,118 @@ export default {
 }
 .category-card:hover .category-img {
   transform: scale(1.08);
+}
+
+/* ── Feedback Sliders ── */
+.section-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.slider-nav-btns {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.slider-arrow-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.slider-arrow-btn:hover {
+  background: var(--accent-cyan);
+  color: #0b1120;
+  border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.35);
+}
+
+.slider-arrow-btn:active {
+  transform: translateY(0);
+}
+
+.cards-slider-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.cards-slider-track {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0.5rem 0.25rem 1rem 0.25rem;
+}
+
+.cards-slider-track::-webkit-scrollbar {
+  display: none;
+}
+
+.slider-card {
+  flex: 0 0 calc((100% - 3rem) / 3);
+  min-width: 300px;
+  max-width: 380px;
+  scroll-snap-align: start;
+  padding: 0 !important;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 992px) {
+  .slider-card {
+    flex: 0 0 calc((100% - 1.5rem) / 2);
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 640px) {
+  .slider-card {
+    flex: 0 0 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
+.slider-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.slider-dot.active {
+  width: 24px;
+  background: var(--accent-cyan);
 }
 
 /* ── Feedback Cards ── */

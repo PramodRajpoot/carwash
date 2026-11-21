@@ -11,7 +11,7 @@ class PartnerValuableFeedbackController extends Controller
     public function index()
     {
         return response()->json(
-            PartnerValuableFeedback::where('is_active', true)->latest()->take(3)->get()
+            PartnerValuableFeedback::where('is_active', true)->latest()->get()
         );
     }
 

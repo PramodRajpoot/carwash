@@ -301,33 +301,56 @@
     <!-- Partners' Valuable Feedback -->
     <section v-if="partnerFeedback.length" class="section" style="background:var(--bg-primary);padding:4rem 0">
       <div class="container">
-        <div class="section-title text-center" style="margin-bottom:2.5rem">
-          <span style="display:block;margin-bottom:.5rem;color:var(--accent-cyan);font-size:.8rem;font-weight:700;text-transform:uppercase">Partner Testimonials</span>
-          <h2 style="font-size:2.5rem;font-weight:800">Our Partners' Valuable Feedback</h2>
+        <div class="section-header-flex">
+          <div class="section-title" style="margin-bottom:0;text-align:left">
+            <span style="display:block;margin-bottom:.5rem;color:var(--accent-cyan);font-size:.8rem;font-weight:700;text-transform:uppercase">Partner Testimonials</span>
+            <h2 style="font-size:2.5rem;font-weight:800">Our Partners' Valuable Feedback</h2>
+          </div>
+          <div class="slider-nav-btns" v-if="partnerFeedback.length > 1">
+            <button class="slider-arrow-btn" @click="scrollSlider(-1)" aria-label="Previous Partner Feedback">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button class="slider-arrow-btn" @click="scrollSlider(1)" aria-label="Next Partner Feedback">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
         </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="feedback in partnerFeedback.slice(0, 3)" :key="feedback.id" class="card" style="padding:0;overflow:hidden">
-            <div style="height:220px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center">
-              <video
-                v-if="feedback.video_path"
-                :src="formatMediaUrl(feedback.video_path)"
-                controls
-                playsinline
-                preload="metadata"
-                :poster="formatMediaUrl(feedback.thumbnail_path)"
-                style="width:100%;height:100%;object-fit:cover"
-              >
-                <source :src="formatMediaUrl(feedback.video_path)" type="video/mp4">
-              </video>
-              <img v-else-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" style="width:100%;height:100%;object-fit:cover" />
-              <span v-else class="text-muted">No media available</span>
-            </div>
-            <div style="padding:1.25rem">
-              <h4>{{ feedback.name || 'CleanAtDoorstep Partner' }}</h4>
-              <p v-if="feedback.city" class="text-muted text-sm">{{ feedback.city }}</p>
-              <p class="text-muted" style="font-style:italic">"{{ feedback.quote }}"</p>
+
+        <div class="cards-slider-container">
+          <div ref="feedbackSlider" class="cards-slider-track" @scroll="onSliderScroll">
+            <div v-for="feedback in partnerFeedback" :key="feedback.id" class="card slider-card" style="padding:0;overflow:hidden">
+              <div style="height:220px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center">
+                <video
+                  v-if="feedback.video_path"
+                  :src="formatMediaUrl(feedback.video_path)"
+                  controls
+                  playsinline
+                  preload="metadata"
+                  :poster="formatMediaUrl(feedback.thumbnail_path)"
+                  style="width:100%;height:100%;object-fit:cover"
+                >
+                  <source :src="formatMediaUrl(feedback.video_path)" type="video/mp4">
+                </video>
+                <img v-else-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" style="width:100%;height:100%;object-fit:cover" />
+                <span v-else class="text-muted">No media available</span>
+              </div>
+              <div style="padding:1.25rem">
+                <h4>{{ feedback.name || 'CleanAtDoorstep Partner' }}</h4>
+                <p v-if="feedback.city" class="text-muted text-sm">{{ feedback.city }}</p>
+                <p class="text-muted" style="font-style:italic">"{{ feedback.quote }}"</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div class="slider-dots" v-if="partnerFeedback.length > 1">
+          <span
+            v-for="(_, dotIdx) in partnerFeedback"
+            :key="dotIdx"
+            class="slider-dot"
+            :class="{ active: currentFeedbackIndex === dotIdx }"
+            @click="scrollToCard(dotIdx)"
+          ></span>
         </div>
       </div>
     </section>
@@ -418,6 +441,28 @@ export default {
     goToFeedback(index) {
       this.currentFeedbackIndex = index;
     },
+    scrollSlider(direction) {
+      const container = this.$refs.feedbackSlider;
+      if (!container) return;
+      const card = container.querySelector('.slider-card');
+      const cardWidth = card ? card.offsetWidth + 24 : 340;
+      container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+    },
+    scrollToCard(index) {
+      const container = this.$refs.feedbackSlider;
+      if (!container) return;
+      const cards = container.querySelectorAll('.slider-card');
+      if (cards[index]) {
+        cards[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      }
+    },
+    onSliderScroll() {
+      const container = this.$refs.feedbackSlider;
+      if (!container) return;
+      const card = container.querySelector('.slider-card');
+      const cardWidth = card ? card.offsetWidth + 24 : 340;
+      this.currentFeedbackIndex = Math.max(0, Math.min(this.partnerFeedback.length - 1, Math.round(container.scrollLeft / cardWidth)));
+    },
   },
   mounted() {
     // Fetch banners from the server
@@ -451,6 +496,116 @@ export default {
 }
 
 /* Partner hero slide opacity is controlled by Vue inline styles. */
+
+.section-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.slider-nav-btns {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.slider-arrow-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.slider-arrow-btn:hover {
+  background: var(--accent-cyan);
+  color: #0b1120;
+  border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.35);
+}
+
+.slider-arrow-btn:active {
+  transform: translateY(0);
+}
+
+.cards-slider-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.cards-slider-track {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0.5rem 0.25rem 1rem 0.25rem;
+}
+
+.cards-slider-track::-webkit-scrollbar {
+  display: none;
+}
+
+.slider-card {
+  flex: 0 0 calc((100% - 3rem) / 3);
+  min-width: 300px;
+  max-width: 380px;
+  scroll-snap-align: start;
+  padding: 0 !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 992px) {
+  .slider-card {
+    flex: 0 0 calc((100% - 1.5rem) / 2);
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 640px) {
+  .slider-card {
+    flex: 0 0 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
+.slider-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.slider-dot.active {
+  width: 24px;
+  background: var(--accent-cyan);
+}
 
 .partner-feedback-arrow {
   position: absolute;
