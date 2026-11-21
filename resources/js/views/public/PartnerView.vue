@@ -308,8 +308,18 @@
         <div class="grid grid-3 gap-3">
           <div v-for="feedback in partnerFeedback.slice(0, 3)" :key="feedback.id" class="card" style="padding:0;overflow:hidden">
             <div style="height:220px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center">
-              <video v-if="feedback.video_path" controls :poster="feedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover"><source :src="feedback.video_path"></video>
-              <img v-else-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover" />
+              <video
+                v-if="feedback.video_path"
+                :src="formatMediaUrl(feedback.video_path)"
+                controls
+                playsinline
+                preload="metadata"
+                :poster="formatMediaUrl(feedback.thumbnail_path)"
+                style="width:100%;height:100%;object-fit:cover"
+              >
+                <source :src="formatMediaUrl(feedback.video_path)" type="video/mp4">
+              </video>
+              <img v-else-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" style="width:100%;height:100%;object-fit:cover" />
               <span v-else class="text-muted">No media available</span>
             </div>
             <div style="padding:1.25rem">
@@ -342,6 +352,24 @@ export default {
     };
   },
   methods: {
+    formatMediaUrl(url) {
+      if (!url || typeof url !== 'string') return '';
+      if (
+        url.startsWith('http://carwash.local') ||
+        url.startsWith('https://carwash.local') ||
+        url.startsWith('http://localhost') ||
+        url.startsWith('https://localhost')
+      ) {
+        try {
+          const parsed = new URL(url);
+          return parsed.pathname;
+        } catch (e) {}
+      }
+      if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+        return '/' + url;
+      }
+      return url;
+    },
     emptyForm() {
       return { name: '', email: '', phone: '', city: '', budget: '', message: '', latitude: null, longitude: null };
     },

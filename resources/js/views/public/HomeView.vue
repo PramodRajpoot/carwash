@@ -39,7 +39,7 @@
         <div class="grid grid-3 gap-3">
           <div v-for="(feedback, i) in partnerFeedback" :key="i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
             <div class="feedback-thumb">
-               <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
+               <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" />
                <div v-else class="feedback-thumb-placeholder"></div>
                <!-- Play button overlay -->
                <div class="play-btn-overlay" v-if="feedback.video_path">
@@ -49,7 +49,7 @@
                </div>
             </div>
             <div style="padding:1.5rem">
-               <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city }} Partner</h4>
+               <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city ? feedback.city + ' Customer' : 'Happy Customer' }}</h4>
                <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
             </div>
           </div>
@@ -73,23 +73,34 @@
             </button>
 
             <div class="lightbox-video-wrapper">
-              <video v-if="lightboxFeedback && lightboxFeedback.video_path" ref="lightboxVideo" controls autoplay :poster="lightboxFeedback.thumbnail_path" class="lightbox-video">
-                <source :src="lightboxFeedback.video_path" type="video/mp4">
+              <video
+                v-if="lightboxFeedback && lightboxFeedback.video_path"
+                :key="lightboxFeedback.id ? String(lightboxFeedback.id) + (lightboxFeedback.video_path || '') : lightboxFeedback.video_path"
+                ref="lightboxVideo"
+                :src="formatMediaUrl(lightboxFeedback.video_path)"
+                :poster="formatMediaUrl(lightboxFeedback.thumbnail_path)"
+                controls
+                autoplay
+                playsinline
+                preload="auto"
+                class="lightbox-video"
+              >
+                <source :src="formatMediaUrl(lightboxFeedback.video_path)" type="video/mp4">
                 Your browser does not support the video tag.
               </video>
               <div v-else class="lightbox-no-video">
-                <img v-if="lightboxFeedback && lightboxFeedback.thumbnail_path" :src="lightboxFeedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover;" />
+                <img v-if="lightboxFeedback && lightboxFeedback.thumbnail_path" :src="formatMediaUrl(lightboxFeedback.thumbnail_path)" style="width:100%;height:100%;object-fit:cover;" />
                 <p v-else class="text-muted" style="text-align:center;padding:3rem;">No video available</p>
               </div>
             </div>
 
             <div v-if="lightboxFeedback" class="lightbox-info">
               <div class="lightbox-info-inner">
-                <div class="lightbox-partner-badge">
+                <div v-if="lightboxFeedback.city" class="lightbox-partner-badge">
                   <span class="lightbox-badge-icon">📍</span>
                   <span>{{ lightboxFeedback.city }}</span>
                 </div>
-                <h4 class="lightbox-title">{{ lightboxFeedback.city }} Partner</h4>
+                <h4 class="lightbox-title">{{ lightboxFeedback.name || (lightboxFeedback.city ? lightboxFeedback.city + ' Partner' : 'Customer Feedback') }}</h4>
                 <p class="lightbox-quote">"{{ lightboxFeedback.quote }}"</p>
               </div>
             </div>
@@ -453,7 +464,7 @@
         <div class="grid grid-3 gap-3">
           <div v-for="feedback in partnerValuableFeedback" :key="feedback.id" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer" @click="openVideoLightbox(feedback)">
             <div class="feedback-thumb">
-              <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
+              <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" />
               <div v-else class="feedback-thumb-placeholder"></div>
               <div class="play-btn-overlay" v-if="feedback.video_path">
                 <div class="play-btn-circle">
@@ -462,7 +473,7 @@
               </div>
             </div>
             <div style="padding:1.5rem">
-              <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.name || 'CleanAtDoorstep Partner' }}</h4>
+              <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.name || (feedback.city ? feedback.city + ' Partner' : 'CleanAtDoorstep Partner') }}</h4>
               <p v-if="feedback.city" class="text-muted" style="font-size:0.85rem;margin-bottom:.35rem">{{ feedback.city }}</p>
               <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
             </div>
@@ -719,14 +730,49 @@ export default {
         }, 5000);
       }
     },
+    formatMediaUrl(url) {
+      if (!url || typeof url !== 'string') return '';
+      if (
+        url.startsWith('http://carwash.local') ||
+        url.startsWith('https://carwash.local') ||
+        url.startsWith('http://localhost') ||
+        url.startsWith('https://localhost')
+      ) {
+        try {
+          const parsed = new URL(url);
+          return parsed.pathname;
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+        return '/' + url;
+      }
+      return url;
+    },
     openVideoLightbox(feedback) {
       this.lightboxFeedback = feedback;
       this.lightboxOpen = true;
       document.body.style.overflow = 'hidden';
+      this.$nextTick(() => {
+        if (this.$refs.lightboxVideo) {
+          try {
+            this.$refs.lightboxVideo.load();
+            const p = this.$refs.lightboxVideo.play();
+            if (p && typeof p.catch === 'function') {
+              p.catch(() => {});
+            }
+          } catch (e) {
+            // Autoplay prevented by browser
+          }
+        }
+      });
     },
     closeLightbox() {
       if (this.$refs.lightboxVideo) {
-        this.$refs.lightboxVideo.pause();
+        try {
+          this.$refs.lightboxVideo.pause();
+        } catch (e) {}
       }
       this.lightboxOpen = false;
       this.lightboxFeedback = null;
