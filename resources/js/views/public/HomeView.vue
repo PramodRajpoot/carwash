@@ -37,14 +37,6 @@
             <h2>Our <span class="text-gradient">Happy Customers</span></h2>
             <p>Hear Directly from Our Happy Customers</p>
           </div>
-          <div class="slider-nav-btns" v-if="partnerFeedback.length > 1">
-            <button class="slider-arrow-btn" @click="scrollSlider('customerSlider', -1)" aria-label="Previous Customer Feedback">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <button class="slider-arrow-btn" @click="scrollSlider('customerSlider', 1)" aria-label="Next Customer Feedback">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
-          </div>
         </div>
 
         <div class="cards-slider-container">
@@ -489,14 +481,6 @@
           <div class="section-title" style="margin-bottom:0;text-align:left">
             <h2>Our <span class="text-gradient">Partners' Valuable Feedback</span></h2>
             <p>Hear directly from our franchise partners.</p>
-          </div>
-          <div class="slider-nav-btns" v-if="partnerValuableFeedback.length > 1">
-            <button class="slider-arrow-btn" @click="scrollSlider('partnerSlider', -1)" aria-label="Previous Partner Feedback">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <button class="slider-arrow-btn" @click="scrollSlider('partnerSlider', 1)" aria-label="Next Partner Feedback">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
           </div>
         </div>
 
