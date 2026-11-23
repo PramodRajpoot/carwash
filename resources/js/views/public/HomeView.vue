@@ -135,12 +135,70 @@
           <p>We service every type of vehicle — from compact hatchbacks to luxury Volvo buses.</p>
         </div>
         <div class="grid grid-3 gap-3">
-          <div v-for="cat in categories" :key="cat.type" class="glass-card text-center category-card" style="cursor:pointer; padding: 2rem 1.5rem; transition: all 0.3s ease;" @click="$router.push('/services')">
+          <div v-for="cat in categories" :key="cat.type" class="glass-card text-center category-card" style="cursor:pointer; padding: 2rem 1.5rem; transition: all 0.3s ease;" @click="$router.push({ path: '/services', query: { category: 'Carwash' } })">
             <div class="category-img-wrap" style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
               <img :src="cat.image" :alt="cat.name" class="category-img" style="max-height: 90px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12)); transition: transform 0.3s ease;" />
             </div>
             <h4 style="margin-bottom:0.25rem">{{ cat.name }}</h4>
             <p class="text-muted" style="font-size:0.85rem;margin-top:0.3rem">Starting ₹{{ cat.price }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Home Cleaning Categories -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="section-title">
+          <h2>Home Cleaning <span class="text-gradient">Categories</span></h2>
+          <p>Professional doorstep sofa cleaning, furniture rejuvenation & deep residential sanitization.</p>
+        </div>
+        <div class="grid grid-3 gap-3">
+          <div
+            v-for="cat in homeCleaningCategories"
+            :key="cat.id"
+            class="glass-card text-center category-card"
+            style="cursor: pointer; padding: 2rem 1.5rem; transition: all 0.3s ease; display: flex; flex-direction: column; justify-content: space-between;"
+            @click="goToHomeService(cat)"
+          >
+            <div>
+              <div class="category-img-wrap" style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); border: 2px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; filter: drop-shadow(0 8px 16px rgba(16, 185, 129, 0.2));">
+                  {{ cat.icon || '🛋️' }}
+                </div>
+              </div>
+              <div v-if="cat.badge" style="margin-bottom: 0.5rem;">
+                <span class="badge badge-emerald" style="font-size: 0.72rem; letter-spacing: 0.5px;">{{ cat.badge }}</span>
+              </div>
+              <h4 style="margin-bottom: 0.25rem;">{{ cat.name }}</h4>
+              <p class="text-muted" style="font-size: 0.82rem; line-height: 1.4; margin-top: 0.35rem;">{{ cat.description }}</p>
+            </div>
+            <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+              <span class="text-muted" style="font-size: 0.85rem;">Starting <strong style="color: var(--accent-emerald); font-size: 1.1rem;">₹{{ cat.price }}</strong></span>
+              <span class="btn btn-primary btn-sm" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Explore &rarr;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Home Cleaning Highlight Banner -->
+        <div 
+          class="glass-card" 
+          style="margin-top: 2rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.08)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-lg); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.25rem; cursor: pointer;"
+          @click="$router.push({ path: '/services', query: { category: 'Home Cleaning' } })"
+        >
+          <div style="display: flex; align-items: center; gap: 1.25rem;">
+            <div style="font-size: 3rem;">🏠</div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span class="badge badge-emerald">DOORSTEP SERVICE</span>
+                <span style="font-size: 0.8rem; color: #10b981; font-weight: 700;">SAVE UP TO 40%</span>
+              </div>
+              <h3 style="margin: 0 0 0.35rem 0; font-size: 1.35rem;">Keep Your Home Fresh, Clean & Sanitized</h3>
+              <p class="text-muted" style="margin: 0; font-size: 0.88rem;">Professional sofa shampooing & residential sanitation without leaving your house.</p>
+            </div>
+          </div>
+          <div>
+            <button class="btn btn-primary" style="white-space: nowrap; font-weight: 600;">View All Home Services &rarr;</button>
           </div>
         </div>
       </div>
@@ -543,6 +601,51 @@ export default {
     filteredPackages() {
       return this.filteredServices;
     },
+    // Home Cleaning Categories
+    homeCleaningCategories() {
+      const homePkgs = (this.packages || []).filter(p => !p.is_addon && this.isHomeCleaningPkg(p));
+      if (homePkgs.length > 0) {
+        return homePkgs.map(p => ({
+          id: p.id,
+          name: p.name + (p.vehicle_type && p.vehicle_type !== 'home' && p.vehicle_type !== 'all' ? ` (${this.formatHomeType(p.vehicle_type)})` : ''),
+          shortTitle: this.formatHomeType(p.vehicle_type) || p.name,
+          description: p.description || 'Deep foam shampooing, fabric stain removal & doorstep sanitization',
+          price: p.price,
+          badge: p.custom_badge || (Number(p.price) <= 600 ? 'POPULAR' : 'BEST VALUE'),
+          icon: (p.name || '').toLowerCase().includes('sofa') || (p.vehicle_type || '').toLowerCase().includes('sofa') ? '🛋️' : '🏠',
+          packageId: p.id
+        }));
+      }
+      return [
+        {
+          id: 'sofa_3_5',
+          name: 'Sofa Cleaning (3-5 Seater)',
+          shortTitle: '3-5 Seater Sofa',
+          description: 'Deep foam shampooing, fabric stain removal & doorstep sanitization',
+          price: 600,
+          badge: 'POPULAR',
+          icon: '🛋️',
+        },
+        {
+          id: 'sofa_5_8',
+          name: 'Sofa Cleaning (5-8 Seater)',
+          shortTitle: '5-8 Seater Sofa',
+          description: 'Complete multi-seater fabric & leather sofa rejuvenation',
+          price: 800,
+          badge: 'BEST VALUE',
+          icon: '🛋️',
+        },
+        {
+          id: 'home_deep',
+          name: 'Full Home Deep Cleaning',
+          shortTitle: 'Full Home',
+          description: 'Complete residential dusting, floor scrubbing & sanitization',
+          price: 1299,
+          badge: 'DOORSTEP',
+          icon: '🏠',
+        }
+      ];
+    },
   },
   data() {
     return {
@@ -615,6 +718,33 @@ export default {
         console.error('Failed to fetch packages:', e);
       }
       this.loadingServices = false;
+    },
+    isHomeCleaningPkg(pkg) {
+      if (!pkg) return false;
+      const cName = (pkg.category?.name || pkg.category_name || '').toLowerCase();
+      const vt = (pkg.vehicle_type || '').toLowerCase();
+      const name = (pkg.name || '').toLowerCase();
+      return (
+        cName.includes('home') ||
+        vt.includes('sofa') ||
+        vt.includes('seator') ||
+        vt === 'home' ||
+        name.includes('sofa') ||
+        name.includes('home clean')
+      );
+    },
+    formatHomeType(vt) {
+      if (!vt) return '';
+      return vt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    },
+    goToHomeService(cat) {
+      this.$router.push({
+        path: '/services',
+        query: {
+          category: 'Home Cleaning',
+          search: cat.shortTitle || ''
+        }
+      });
     },
     async fetchBanners() {
       try {
