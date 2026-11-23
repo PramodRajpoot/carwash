@@ -22,6 +22,7 @@ import { API_BASE } from '../constants/api';
 import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import DashboardHeader from '../components/DashboardHeader';
+import SubscriptionScheduleModal from '../components/SubscriptionScheduleModal';
 import { useAppTheme } from '../utils/themeManager';
 
 interface Plan {
@@ -69,11 +70,15 @@ export default function SubscriptionsScreen() {
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16) + 6;
   const { isDark, toggleTheme } = useAppTheme();
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [activeSub, setActiveSub] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
+  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
+  const [selectedPlanForSchedule, setSelectedPlanForSchedule] = useState<Plan | null>(null);
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab | 'none'>('none');
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<number, boolean>>({});
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -91,6 +96,11 @@ export default function SubscriptionsScreen() {
     });
   }, []);
 
+  const selectedMonthLabel = useMemo(() => {
+    const m = monthOptions.find((item) => item.value === selectedMonth);
+    return m ? m.label : selectedMonth;
+  }, [monthOptions, selectedMonth]);
+
   const syncUser = useCallback(async () => {
     const storedUser = await AsyncStorage.getItem('userData');
     if (storedUser) {
@@ -102,23 +112,29 @@ export default function SubscriptionsScreen() {
 
   const loadPlans = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      setIsLoggedIn(Boolean(token));
+      const userToken = await AsyncStorage.getItem('userToken');
+      setToken(userToken);
+      setIsLoggedIn(Boolean(userToken));
 
-      const response = await fetch(`${API_BASE}/api/packages`, {
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-          'Bypass-Tunnel-Reminder': 'true',
-        },
-      });
+      const reqHeaders: Record<string, string> = {
+        'ngrok-skip-browser-warning': 'true',
+        'Bypass-Tunnel-Reminder': 'true',
+      };
+      if (userToken) reqHeaders.Authorization = `Bearer ${userToken}`;
 
-      if (!response.ok) {
-        throw new Error('Packages request failed');
-      }
+      const [packagesRes, subsRes] = await Promise.all([
+        fetch(`${API_BASE}/api/packages`, { headers: reqHeaders })
+          .then((r) => (r.ok ? r.json() : []))
+          .catch(() => []),
+        userToken
+          ? fetch(`${API_BASE}/api/customer/subscriptions`, { headers: reqHeaders })
+              .then((r) => (r.ok ? r.json() : []))
+              .catch(() => [])
+          : Promise.resolve([]),
+      ]);
 
-      const data = await response.json();
-      const cleaned = Array.isArray(data)
-        ? data.filter((item: any) => {
+      const cleaned = Array.isArray(packagesRes)
+        ? packagesRes.filter((item: any) => {
             const isSubscription = Boolean(item?.is_subscription);
             const isAddon = Boolean(item?.is_addon);
             const frequencyDays = Number(item?.frequency_days ?? 0);
@@ -127,8 +143,16 @@ export default function SubscriptionsScreen() {
           })
         : SAMPLE_PLANS;
       setPlans(cleaned.length ? cleaned : SAMPLE_PLANS);
+
+      if (Array.isArray(subsRes)) {
+        const active = subsRes.find((s: any) => s.status === 'active') || null;
+        setActiveSub(active);
+      } else {
+        setActiveSub(null);
+      }
     } catch (error) {
       setPlans(SAMPLE_PLANS);
+      setActiveSub(null);
       console.log('Using sample subscription plans:', error);
     } finally {
       setLoading(false);
@@ -181,52 +205,40 @@ export default function SubscriptionsScreen() {
     }));
   };
 
-  const handleSubscribe = async (plan: Plan) => {
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const handleSubscribe = (plan: Plan) => {
     if (!isLoggedIn) {
       router.push('/login');
       return;
     }
 
+    const washes = Number(plan.max_bookings || 0);
+    if ([4, 26].includes(washes)) {
+      setSelectedPlanForSchedule(plan);
+      setScheduleModalVisible(true);
+      return;
+    }
+
     showSweetAlert(
-      'Subscribe plan',
-      'Subscribing will activate this package immediately and expire any previous active plan. Proceed?',
+      'Confirm Subscription',
+      'Payment will be full, in advance and non-refundable. You may reschedule your washes. Proceed?',
       'warning',
-      async () => {
-        try {
-          const token = await AsyncStorage.getItem('userToken');
-          if (!token) {
-            router.push('/login');
-            return;
-          }
-
-          setSubscribingId(plan.id);
-          const response = await axios.post(
-            `${API_BASE}/api/cashfree/create-subscription-order`,
-            {
-              package_id: plan.id,
-              selected_month: selectedMonth,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'ngrok-skip-browser-warning': 'true',
-                'Bypass-Tunnel-Reminder': 'true',
-              },
-            }
-          );
-
-          if (response.data?.status !== 'success' || !response.data?.payment_session_id) {
-            throw new Error(response.data?.message || 'Could not initiate subscription payment.');
-          }
-
-          const checkoutUrl = `${API_BASE}/cashfree/checkout?payment_session_id=${encodeURIComponent(response.data.payment_session_id)}&env=${encodeURIComponent(response.data.environment || 'sandbox')}`;
-          await Linking.openURL(checkoutUrl);
-        } catch (error: any) {
-          const message = error?.response?.data?.message || error?.message || 'Failed to subscribe.';
-          showSweetAlert('Subscription failed', message, 'error');
-        } finally {
-          setSubscribingId(null);
-        }
+      () => {
+        setSelectedPlanForSchedule(plan);
+        setScheduleModalVisible(true);
       }
     );
   };
@@ -263,8 +275,44 @@ export default function SubscriptionsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#38bdf8" colors={['#38bdf8']} />}
       >
+        {/* Active Subscription Summary */}
+        <View style={[styles.activeSubCard, isDark && styles.activeSubCardDark]}>
+          <View style={styles.activeSubHeader}>
+            <Text style={[styles.activeSubTitle, isDark && styles.titleDark]}>Your Current Subscription</Text>
+            {activeSub && <View style={styles.emeraldBadge}><Text style={styles.emeraldBadgeText}>ACTIVE</Text></View>}
+          </View>
+
+          {activeSub ? (
+            <View style={styles.activeSubBody}>
+              <Text style={styles.activeSubPlanName}>{activeSub.package?.name}</Text>
+              <Text style={[styles.activeSubUsage, isDark && styles.whiteText]}>
+                Usage:{' '}
+                <Text style={{ fontWeight: '800', color: isDark ? '#38bdf8' : '#0284c7' }}>
+                  {activeSub.booking_count || 0} / {activeSub.package?.max_bookings || 1} washes
+                </Text>{' '}
+                completed
+              </Text>
+              <Text style={[styles.activeSubDates, isDark && styles.subtleTextDark]}>
+                Valid from {formatDate(activeSub.starts_at)} to {formatDate(activeSub.expires_at)}
+              </Text>
+              <TouchableOpacity
+                style={styles.scheduleWashBtn}
+                onPress={() => router.push('/bookings')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="calendar-outline" size={16} color="#07182b" />
+                <Text style={styles.scheduleWashBtnText}>Schedule Wash</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text style={[styles.activeSubEmpty, isDark && styles.subtleTextDark]}>
+              You do not have an active monthly subscription. Choose a package below to subscribe and start saving!
+            </Text>
+          )}
+        </View>
+
         <View style={[styles.sectionHeader, isDark && styles.sectionHeaderDark]}>
-          <Text style={[styles.sectionTitle, isDark && styles.titleDark]}>Monthly Wash Plans</Text>
+          <Text style={[styles.sectionTitle, isDark && styles.titleDark]}>Available Subscription Plans</Text>
         </View>
 
         <View style={[styles.monthSelector, isDark && styles.monthSelectorDark]}>
@@ -329,6 +377,18 @@ export default function SubscriptionsScreen() {
                 )}
               </View>
 
+              {/* Feature note matching web */}
+              <View style={[styles.planFeatureNoteWrap, isDark && styles.planFeatureNoteWrapDark]}>
+                <Ionicons name="information-circle-outline" size={14} color="#38bdf8" />
+                <Text style={[styles.planFeatureNoteText, isDark && styles.subtleTextDark]}>
+                  {Number(plan.max_bookings) === 4
+                    ? '4 separate wash slots may be booked on separate days in the selected month.'
+                    : Number(plan.max_bookings) === 26
+                    ? '26 washes are available in the selected month; choose the month only at purchase.'
+                    : `${plan.max_bookings || 1} washes included with flexible scheduling.`}
+                </Text>
+              </View>
+
               <View style={styles.cardFooter}>
                 <View style={styles.metaBlock}>
                   {(plan.max_bookings || 0) > 1 && (
@@ -359,6 +419,21 @@ export default function SubscriptionsScreen() {
           );
         })}
       </ScrollView>
+
+      {/* Subscription Schedule Modal */}
+      <SubscriptionScheduleModal
+        visible={scheduleModalVisible}
+        onClose={() => setScheduleModalVisible(false)}
+        onSuccess={() => {
+          setScheduleModalVisible(false);
+          loadPlans();
+        }}
+        plan={selectedPlanForSchedule}
+        selectedMonth={selectedMonth}
+        selectedMonthLabel={selectedMonthLabel}
+        token={token}
+        isDark={isDark}
+      />
 
       <AppFooter
         activeTab={activeFooterTab}
@@ -660,5 +735,114 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#64748b',
+  },
+  activeSubCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderLeftWidth: 4,
+    borderLeftColor: '#10b981',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6 },
+      android: { elevation: 2 },
+    }),
+  },
+  activeSubCardDark: {
+    backgroundColor: '#10243a',
+    borderColor: '#1e3a5f',
+    borderLeftColor: '#10b981',
+  },
+  activeSubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  activeSubTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  emeraldBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  emeraldBadgeText: {
+    color: '#10b981',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  activeSubBody: {
+    marginTop: 4,
+  },
+  activeSubPlanName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0284c7',
+    marginBottom: 4,
+  },
+  activeSubUsage: {
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  whiteText: {
+    color: '#f8fafc',
+  },
+  activeSubDates: {
+    fontSize: 11,
+    color: '#64748b',
+    marginBottom: 12,
+  },
+  scheduleWashBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#38bdf8',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  scheduleWashBtnText: {
+    color: '#07182b',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  activeSubEmpty: {
+    fontSize: 12,
+    color: '#64748b',
+    lineHeight: 18,
+  },
+  planFeatureNoteWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  planFeatureNoteWrapDark: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+  },
+  planFeatureNoteText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#0369a1',
+    lineHeight: 15,
+    fontWeight: '600',
   },
 });
