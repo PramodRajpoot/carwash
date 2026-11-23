@@ -154,29 +154,12 @@
           <p>Professional doorstep sofa cleaning, furniture rejuvenation & deep residential sanitization.</p>
         </div>
         <div class="grid grid-3 gap-3">
-          <div
-            v-for="cat in homeCleaningCategories"
-            :key="cat.id"
-            class="glass-card text-center category-card"
-            style="cursor: pointer; padding: 2rem 1.5rem; transition: all 0.3s ease; display: flex; flex-direction: column; justify-content: space-between;"
-            @click="goToHomeService(cat)"
-          >
-            <div>
-              <div class="category-img-wrap" style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
-                <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); border: 2px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; filter: drop-shadow(0 8px 16px rgba(16, 185, 129, 0.2));">
-                  {{ cat.icon || '🛋️' }}
-                </div>
-              </div>
-              <div v-if="cat.badge" style="margin-bottom: 0.5rem;">
-                <span class="badge badge-emerald" style="font-size: 0.72rem; letter-spacing: 0.5px;">{{ cat.badge }}</span>
-              </div>
-              <h4 style="margin-bottom: 0.25rem;">{{ cat.name }}</h4>
-              <p class="text-muted" style="font-size: 0.82rem; line-height: 1.4; margin-top: 0.35rem;">{{ cat.description }}</p>
+          <div v-for="cat in homeCleaningCategories" :key="cat.id" class="glass-card text-center category-card" style="cursor:pointer; padding: 2rem 1.5rem; transition: all 0.3s ease;" @click="goToHomeService(cat)">
+            <div class="category-img-wrap" style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+              <img :src="cat.image" :alt="cat.name" class="category-img" style="max-height: 90px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12)); transition: transform 0.3s ease;" />
             </div>
-            <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
-              <span class="text-muted" style="font-size: 0.85rem;">Starting <strong style="color: var(--accent-emerald); font-size: 1.1rem;">₹{{ cat.price }}</strong></span>
-              <span class="btn btn-primary btn-sm" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Explore &rarr;</span>
-            </div>
+            <h4 style="margin-bottom:0.25rem">{{ cat.name }}</h4>
+            <p class="text-muted" style="font-size:0.85rem;margin-top:0.3rem">Starting ₹{{ cat.price }}</p>
           </div>
         </div>
 
@@ -604,45 +587,61 @@ export default {
     // Home Cleaning Categories
     homeCleaningCategories() {
       const homePkgs = (this.packages || []).filter(p => !p.is_addon && this.isHomeCleaningPkg(p));
-      if (homePkgs.length > 0) {
-        return homePkgs.map(p => ({
+      const items = homePkgs.map(p => {
+        const vt = (p.vehicle_type || '').toLowerCase();
+        let img = '/images/home_cleaning/home_deep.svg';
+        if (vt.includes('3_5') || vt.includes('3-5')) img = '/images/home_cleaning/sofa_3_5.svg';
+        else if (vt.includes('5_8') || vt.includes('5-8')) img = '/images/home_cleaning/sofa_5_8.svg';
+
+        let displayName = p.name;
+        if (p.vehicle_type && p.vehicle_type !== 'home' && p.vehicle_type !== 'all') {
+          displayName = this.formatHomeType(p.vehicle_type);
+        }
+
+        return {
           id: p.id,
-          name: p.name + (p.vehicle_type && p.vehicle_type !== 'home' && p.vehicle_type !== 'all' ? ` (${this.formatHomeType(p.vehicle_type)})` : ''),
-          shortTitle: this.formatHomeType(p.vehicle_type) || p.name,
-          description: p.description || 'Deep foam shampooing, fabric stain removal & doorstep sanitization',
-          price: p.price,
-          badge: p.custom_badge || (Number(p.price) <= 600 ? 'POPULAR' : 'BEST VALUE'),
-          icon: (p.name || '').toLowerCase().includes('sofa') || (p.vehicle_type || '').toLowerCase().includes('sofa') ? '🛋️' : '🏠',
+          name: displayName,
+          shortTitle: displayName,
+          image: img,
+          price: Math.round(Number(p.price)),
           packageId: p.id
-        }));
+        };
+      });
+
+      if (items.length > 0) {
+        if (items.length < 3 && !items.some(x => x.name.toLowerCase().includes('home') || x.name.toLowerCase().includes('deep'))) {
+          items.push({
+            id: 'home_deep',
+            name: 'Full Home Cleaning',
+            shortTitle: 'Home Cleaning',
+            image: '/images/home_cleaning/home_deep.svg',
+            price: 1299,
+          });
+        }
+        return items;
       }
+
       return [
         {
           id: 'sofa_3_5',
-          name: 'Sofa Cleaning (3-5 Seater)',
+          name: '3-5 Seater Sofa',
           shortTitle: '3-5 Seater Sofa',
-          description: 'Deep foam shampooing, fabric stain removal & doorstep sanitization',
+          image: '/images/home_cleaning/sofa_3_5.svg',
           price: 600,
-          badge: 'POPULAR',
-          icon: '🛋️',
         },
         {
           id: 'sofa_5_8',
-          name: 'Sofa Cleaning (5-8 Seater)',
+          name: '5-8 Seater Sofa',
           shortTitle: '5-8 Seater Sofa',
-          description: 'Complete multi-seater fabric & leather sofa rejuvenation',
+          image: '/images/home_cleaning/sofa_5_8.svg',
           price: 800,
-          badge: 'BEST VALUE',
-          icon: '🛋️',
         },
         {
           id: 'home_deep',
-          name: 'Full Home Deep Cleaning',
-          shortTitle: 'Full Home',
-          description: 'Complete residential dusting, floor scrubbing & sanitization',
+          name: 'Full Home Cleaning',
+          shortTitle: 'Home Cleaning',
+          image: '/images/home_cleaning/home_deep.svg',
           price: 1299,
-          badge: 'DOORSTEP',
-          icon: '🏠',
         }
       ];
     },
@@ -735,7 +734,11 @@ export default {
     },
     formatHomeType(vt) {
       if (!vt) return '';
-      return vt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      return vt
+        .replace(/3_5_seator_sofas?/i, '3-5 Seater Sofa')
+        .replace(/5_8_seator_sofas?/i, '5-8 Seater Sofa')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
     },
     goToHomeService(cat) {
       this.$router.push({

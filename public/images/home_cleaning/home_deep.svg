@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200">
+  <defs>
+    <filter id="shadow3" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    <linearGradient id="houseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="roofGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground Shadow -->
+  <ellipse cx="200" cy="180" rx="160" ry="14" fill="#000000" opacity="0.2"/>
+
+  <g filter="url(#shadow3)">
+    <!-- Roof -->
+    <polygon points="200,35 100,100 300,100" fill="url(#roofGrad)"/>
+    <!-- Chimney -->
+    <rect x="245" y="45" width="24" height="45" rx="4" fill="#e11d48"/>
+    <!-- House Body -->
+    <rect x="115" y="98" width="170" height="75" rx="12" fill="url(#houseGrad)"/>
+    <!-- Door -->
+    <rect x="180" y="125" width="40" height="48" rx="6" fill="#ffffff" opacity="0.9"/>
+    <circle cx="212" cy="150" r="3.5" fill="#6366f1"/>
+    <!-- Windows -->
+    <rect x="130" y="115" width="34" height="34" rx="6" fill="#fef08a"/>
+    <line x1="147" y1="115" x2="147" y2="149" stroke="#ca8a04" stroke-width="2"/>
+    <line x1="130" y1="132" x2="164" y2="132" stroke="#ca8a04" stroke-width="2"/>
+
+    <rect x="236" y="115" width="34" height="34" rx="6" fill="#fef08a"/>
+    <line x1="253" y1="115" x2="253" y2="149" stroke="#ca8a04" stroke-width="2"/>
+    <line x1="236" y1="132" x2="270" y2="132" stroke="#ca8a04" stroke-width="2"/>
+  </g>
+
+  <!-- Sparkles -->
+  <path d="M 90 60 Q 90 70 80 70 Q 90 70 90 80 Q 90 70 100 70 Q 90 70 90 60" fill="#38bdf8"/>
+  <path d="M 310 50 Q 310 60 300 60 Q 310 60 310 70 Q 310 60 320 60 Q 310 60 310 50" fill="#facc15"/>
+  <path d="M 200 15 Q 200 24 192 24 Q 200 24 200 33 Q 200 24 208 24 Q 200 24 200 15" fill="#34d399"/>
+</svg>

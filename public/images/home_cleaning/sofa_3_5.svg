@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    <linearGradient id="sofaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="cushionGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="legGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <linearGradient id="pillowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#eab308"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground Shadow -->
+  <ellipse cx="200" cy="180" rx="160" ry="14" fill="#000000" opacity="0.2"/>
+
+  <g filter="url(#shadow)">
+    <!-- Sofa Legs -->
+    <polygon points="75,150 70,180 78,180 85,150" fill="url(#legGrad)"/>
+    <polygon points="120,150 118,178 126,178 128,150" fill="url(#legGrad)"/>
+    <polygon points="280,150 274,178 282,178 288,150" fill="url(#legGrad)"/>
+    <polygon points="325,150 322,180 330,180 335,150" fill="url(#legGrad)"/>
+
+    <!-- Sofa Backrest -->
+    <rect x="65" y="50" width="270" height="75" rx="20" fill="url(#sofaGrad)"/>
+    <!-- Backrest Tufting/Dividers -->
+    <line x1="155" y1="55" x2="155" y2="115" stroke="#0369a1" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    <line x1="245" y1="55" x2="245" y2="115" stroke="#0369a1" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- Seat Base -->
+    <rect x="55" y="115" width="290" height="42" rx="14" fill="url(#sofaGrad)"/>
+
+    <!-- Seat Cushions (3-seater) -->
+    <rect x="75" y="110" width="78" height="28" rx="10" fill="url(#cushionGrad)"/>
+    <rect x="161" y="110" width="78" height="28" rx="10" fill="url(#cushionGrad)"/>
+    <rect x="247" y="110" width="78" height="28" rx="10" fill="url(#cushionGrad)"/>
+
+    <!-- Left Armrest -->
+    <rect x="50" y="80" width="32" height="68" rx="16" fill="url(#sofaGrad)"/>
+    <rect x="53" y="83" width="26" height="62" rx="13" fill="none" stroke="#7dd3fc" stroke-width="1.5" opacity="0.7"/>
+
+    <!-- Right Armrest -->
+    <rect x="318" y="80" width="32" height="68" rx="16" fill="url(#sofaGrad)"/>
+    <rect x="321" y="83" width="26" height="62" rx="13" fill="none" stroke="#7dd3fc" stroke-width="1.5" opacity="0.7"/>
+
+    <!-- Throw Pillows -->
+    <rect x="84" y="95" width="26" height="26" rx="7" transform="rotate(-15 84 95)" fill="url(#pillowGrad)"/>
+    <rect x="285" y="92" width="26" height="26" rx="7" transform="rotate(18 285 92)" fill="url(#pillowGrad)"/>
+  </g>
+
+  <!-- Sparkles for Clean Doorstep Detailing -->
+  <path d="M 80 40 Q 80 48 72 48 Q 80 48 80 56 Q 80 48 88 48 Q 80 48 80 40" fill="#38bdf8"/>
+  <path d="M 320 35 Q 320 45 310 45 Q 320 45 320 55 Q 320 45 330 45 Q 320 45 320 35" fill="#facc15"/>
+  <path d="M 200 30 Q 200 36 194 36 Q 200 36 200 42 Q 200 36 206 36 Q 200 36 200 30" fill="#34d399"/>
+</svg>
