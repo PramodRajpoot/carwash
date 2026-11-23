@@ -55,6 +55,8 @@ interface ServicePkg {
   custom_badge?: string;
   max_bookings?: number;
   addons?: ServicePkg[];
+  category?: { id?: number; name?: string };
+  category_name?: string;
 }
 
 interface SlotItem {
@@ -433,6 +435,16 @@ export default function BookingSummaryScreen() {
     return packages.find((p) => p.id === selectedPackageId) || null;
   }, [packages, selectedPackageId]);
 
+  const isHomeCleaning = useMemo(() => {
+    const cat = String(searchParams.category || '').toLowerCase();
+    if (cat.includes('home')) return true;
+    const pkgCat = String(selectedPackage?.category?.name || selectedPackage?.category_name || '').toLowerCase();
+    if (pkgCat.includes('home')) return true;
+    const pkgName = String(selectedPackage?.name || '').toLowerCase();
+    if (pkgName.includes('sofa') || pkgName.includes('home')) return true;
+    return false;
+  }, [searchParams.category, selectedPackage]);
+
   // Selected Addon Objects
   const selectedAddons = useMemo(() => {
     if (selectedAddonIds.length === 0) return [];
@@ -583,12 +595,16 @@ export default function BookingSummaryScreen() {
 
   // Submit Booking & Initiate Online Payment
   const handleConfirmBooking = async () => {
-    if (!selectedVehicle?.id) {
+    if (!isHomeCleaning && !selectedVehicle?.id) {
       showSweetAlert('Vehicle Required', 'Please select or add a vehicle.', 'warning');
       return;
     }
     if (!selectedPackage?.id) {
-      showSweetAlert('Package Required', 'Please select a wash package.', 'warning');
+      showSweetAlert(
+        'Package Required',
+        isHomeCleaning ? 'Please select a home cleaning service.' : 'Please select a wash package.',
+        'warning'
+      );
       return;
     }
     if (!selectedCenter?.id) {
@@ -596,7 +612,11 @@ export default function BookingSummaryScreen() {
       return;
     }
     if (!selectedDate) {
-      showSweetAlert('Date Required', 'Please choose a wash date.', 'warning');
+      showSweetAlert(
+        'Date Required',
+        isHomeCleaning ? 'Please choose a service date.' : 'Please choose a wash date.',
+        'warning'
+      );
       return;
     }
     if (!selectedSlot) {
@@ -615,8 +635,8 @@ export default function BookingSummaryScreen() {
     setErrorMsg('');
 
     try {
-      const payload = {
-        vehicle_id: selectedVehicle.id,
+      const payload: any = {
+        vehicle_id: selectedVehicle?.id || (vehicles.length > 0 ? vehicles[0].id : undefined),
         franchisee_id: selectedCenter.id,
         package_id: selectedPackage.id,
         booking_date: selectedDate,
@@ -675,7 +695,7 @@ export default function BookingSummaryScreen() {
         setVerifiedBooking(booking);
       }
     } catch (err: any) {
-      console.error('Booking submission error:', err);
+      console.error('Booking submission error:', err.response?.data || err.message || err);
       const msg = err.response?.data?.message || 'Failed to place booking. Please try again.';
       setErrorMsg(msg);
       showSweetAlert('Booking Failed', msg, 'error');
@@ -807,16 +827,20 @@ export default function BookingSummaryScreen() {
             </Text>
 
             <View style={[styles.confirmedDetailsBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
+              {!isHomeCleaning && (
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Vehicle</Text>
+                  <Text style={[styles.detailValue, isDark && styles.darkText]}>
+                    {selectedVehicle ? `${selectedVehicle.make_model} (${selectedVehicle.plate_number || 'No Plate'})` : 'Your Vehicle'}
+                  </Text>
+                </View>
+              )}
               <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Vehicle</Text>
-                <Text style={[styles.detailValue, isDark && styles.darkText]}>
-                  {selectedVehicle ? `${selectedVehicle.make_model} (${selectedVehicle.plate_number || 'No Plate'})` : 'Your Vehicle'}
+                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>
+                  {isHomeCleaning ? 'Home Package' : 'Wash Package'}
                 </Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Wash Package</Text>
                 <Text style={[styles.detailValue, isDark && styles.darkText]}>
-                  {selectedPackage?.name || 'Car Wash Service'}
+                  {selectedPackage?.name || (isHomeCleaning ? 'Home Cleaning Service' : 'Car Wash Service')}
                 </Text>
               </View>
               {selectedAddons.length > 0 && (
@@ -841,7 +865,9 @@ export default function BookingSummaryScreen() {
               </View>
               {paymentType === 'partial' && (
                 <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>Remaining Due (Post-Wash)</Text>
+                  <Text style={[styles.detailLabel, isDark && styles.darkSubtext]}>
+                    {isHomeCleaning ? 'Remaining Due (Post-Service)' : 'Remaining Due (Post-Wash)'}
+                  </Text>
                   <Text style={[styles.detailValue, isDark && styles.darkText]}>
                     ₹{remainingDue.toFixed(2)}
                   </Text>
@@ -856,7 +882,9 @@ export default function BookingSummaryScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="calendar" size={18} color="#ffffff" style={{ marginRight: 8 }} />
-                <Text style={styles.primaryConfirmedBtnText}>View In My Washes</Text>
+                <Text style={styles.primaryConfirmedBtnText}>
+                  {isHomeCleaning ? 'View In My Bookings' : 'View In My Washes'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.secondaryConfirmedBtn, isDark && styles.darkSecondaryBtn]}
@@ -885,64 +913,98 @@ export default function BookingSummaryScreen() {
             </View>
           ) : null}
 
-          {/* SECTION 1: USER VEHICLE INFO & SERVICE HUB */}
+          {/* SECTION 1: VEHICLE OR HOME SERVICE CONTEXT INFO */}
           <View style={[styles.modernCard, isDark && styles.darkCard]}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.badgeLabelRow}>
-                <Ionicons name="car-sport" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>VEHICLE INFORMATION</Text>
+                <Ionicons
+                  name={isHomeCleaning ? 'home' : 'car-sport'}
+                  size={16}
+                  color={isHomeCleaning ? '#059669' : '#0284c7'}
+                />
+                <Text style={[styles.badgeLabelText, isHomeCleaning && { color: '#059669' }]}>
+                  {isHomeCleaning ? 'HOME CLEANING SERVICE' : 'VEHICLE INFORMATION'}
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.switchLinkBtn}
                 onPress={() => router.back()}
                 activeOpacity={0.7}
               >
-                <Text style={styles.switchLinkText}>Change</Text>
-                <Ionicons name="chevron-back" size={13} color="#0284c7" />
+                <Text style={[styles.switchLinkText, isHomeCleaning && { color: '#059669' }]}>Change</Text>
+                <Ionicons name="chevron-back" size={13} color={isHomeCleaning ? '#059669' : '#0284c7'} />
               </TouchableOpacity>
             </View>
 
-            <View style={[styles.vehicleHeroBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
-              <View style={styles.vehicleEmojiCircle}>
-                <Text style={{ fontSize: 28 }}>{getVehicleEmoji(selectedVehicle?.vehicle_type)}</Text>
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <View style={styles.vehicleTitleRow}>
-                  <Text style={[styles.vehicleNameText, isDark && styles.darkText]} numberOfLines={1}>
-                    {selectedVehicle?.make_model || 'Vehicle'}
-                  </Text>
-                  <View style={styles.typeBadgePill}>
-                    <Text style={styles.typeBadgeText}>
-                      {(selectedVehicle?.vehicle_type || 'CAR').toUpperCase()}
-                    </Text>
-                  </View>
+            {isHomeCleaning ? (
+              <View style={[styles.vehicleHeroBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
+                <View style={[styles.vehicleEmojiCircle, { backgroundColor: isDark ? '#064e3b' : '#ecfdf5' }]}>
+                  <Text style={{ fontSize: 28 }}>🏠</Text>
                 </View>
 
-                {selectedVehicle?.plate_number ? (
-                  <View style={styles.plateContainer}>
-                    <View style={styles.plateIndStripe}>
-                      <Text style={styles.plateIndText}>IND</Text>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.vehicleTitleRow}>
+                    <Text style={[styles.vehicleNameText, isDark && styles.darkText]} numberOfLines={1}>
+                      Doorstep Home Service
+                    </Text>
+                    <View style={[styles.typeBadgePill, { backgroundColor: '#d1fae5' }]}>
+                      <Text style={[styles.typeBadgeText, { color: '#065f46' }]}>
+                        HOME CARE
+                      </Text>
                     </View>
-                    <Text style={styles.plateNumberText}>{selectedVehicle.plate_number.toUpperCase()}</Text>
                   </View>
-                ) : (
-                  <Text style={[styles.noPlateText, isDark && styles.darkSubtext]}>No plate registered</Text>
-                )}
+                  <Text style={[styles.noPlateText, isDark && styles.darkSubtext]}>
+                    Service executed at your doorstep address
+                  </Text>
+                </View>
               </View>
-            </View>
+            ) : (
+              <View style={[styles.vehicleHeroBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
+                <View style={styles.vehicleEmojiCircle}>
+                  <Text style={{ fontSize: 28 }}>{getVehicleEmoji(selectedVehicle?.vehicle_type)}</Text>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <View style={styles.vehicleTitleRow}>
+                    <Text style={[styles.vehicleNameText, isDark && styles.darkText]} numberOfLines={1}>
+                      {selectedVehicle?.make_model || 'Vehicle'}
+                    </Text>
+                    <View style={styles.typeBadgePill}>
+                      <Text style={styles.typeBadgeText}>
+                        {(selectedVehicle?.vehicle_type || 'CAR').toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {selectedVehicle?.plate_number ? (
+                    <View style={styles.plateContainer}>
+                      <View style={styles.plateIndStripe}>
+                        <Text style={styles.plateIndText}>IND</Text>
+                      </View>
+                      <Text style={styles.plateNumberText}>{selectedVehicle.plate_number.toUpperCase()}</Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.noPlateText, isDark && styles.darkSubtext]}>No plate registered</Text>
+                  )}
+                </View>
+              </View>
+            )}
 
             {/* Service Hub Row */}
             <View style={[styles.hubSelectorRow, isDark ? styles.darkBorderTop : styles.lightBorderTop]}>
-              <View style={styles.hubIconCircle}>
-                <Ionicons name="business" size={14} color="#0284c7" />
+              <View style={[styles.hubIconCircle, isHomeCleaning && { backgroundColor: '#ecfdf5' }]}>
+                <Ionicons
+                  name="business"
+                  size={14}
+                  color={isHomeCleaning ? '#059669' : '#0284c7'}
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.hubNameText, isDark && styles.darkText]} numberOfLines={1}>
                   {selectedCenter?.center_name || 'Doorstep Service Station'}
                 </Text>
                 <Text style={[styles.hubSubText, isDark && styles.darkSubtext]} numberOfLines={1}>
-                  {selectedCenter?.city || selectedCenter?.address || 'Certified Wash Center'}
+                  {selectedCenter?.city || selectedCenter?.address || (isHomeCleaning ? 'Operating Service Hub' : 'Certified Wash Center')}
                 </Text>
               </View>
               <View style={styles.hubVerifiedBadge}>
@@ -952,20 +1014,32 @@ export default function BookingSummaryScreen() {
             </View>
           </View>
 
-          {/* SECTION 2: SELECTED WASH & ADD-ON SERVICES */}
+          {/* SECTION 2: SELECTED SERVICES */}
           <View style={[styles.modernCard, isDark && styles.darkCard]}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.badgeLabelRow}>
-                <Ionicons name="sparkles" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>SELECTED SERVICES</Text>
+                <Ionicons
+                  name={isHomeCleaning ? 'home' : 'sparkles'}
+                  size={16}
+                  color={isHomeCleaning ? '#059669' : '#0284c7'}
+                />
+                <Text style={[styles.badgeLabelText, isHomeCleaning && { color: '#059669' }]}>
+                  {isHomeCleaning ? 'SELECTED HOME SERVICES' : 'SELECTED SERVICES'}
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.switchLinkBtn}
                 onPress={() => router.back()}
                 activeOpacity={0.7}
               >
-                <Ionicons name="create-outline" size={13} color="#0284c7" />
-                <Text style={[styles.switchLinkText, { marginLeft: 3 }]}>Edit Services</Text>
+                <Ionicons
+                  name="create-outline"
+                  size={13}
+                  color={isHomeCleaning ? '#059669' : '#0284c7'}
+                />
+                <Text style={[styles.switchLinkText, isHomeCleaning && { color: '#059669' }, { marginLeft: 3 }]}>
+                  Edit Services
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -973,15 +1047,19 @@ export default function BookingSummaryScreen() {
             {selectedPackage ? (
               <View style={[styles.selectedServiceItem, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
                 <View style={styles.serviceItemTop}>
-                  <View style={styles.serviceIconCircle}>
-                    <Ionicons name="water" size={18} color="#0284c7" />
+                  <View style={[styles.serviceIconCircle, isHomeCleaning && { backgroundColor: '#ecfdf5' }]}>
+                    <Ionicons
+                      name={isHomeCleaning ? 'home' : 'water'}
+                      size={18}
+                      color={isHomeCleaning ? '#059669' : '#0284c7'}
+                    />
                   </View>
                   <View style={{ flex: 1, paddingHorizontal: 10 }}>
                     <Text style={[styles.serviceItemTitle, isDark && styles.darkText]}>
                       {selectedPackage.name}
                     </Text>
                     <Text style={[styles.serviceItemDesc, isDark && styles.darkSubtext]} numberOfLines={2}>
-                      {selectedPackage.description || 'Full exterior foam wash, tire dressing & interior vacuuming'}
+                      {selectedPackage.description || (isHomeCleaning ? 'Professional home deep cleaning & sanitization' : 'Full exterior foam wash, tire dressing & interior vacuuming')}
                     </Text>
                   </View>
                   <View style={styles.serviceItemPriceWrap}>
@@ -1046,12 +1124,18 @@ export default function BookingSummaryScreen() {
             )}
           </View>
 
-          {/* SECTION 3: WASH SCHEDULE (DATE & TIME) */}
+          {/* SECTION 3: SERVICE SCHEDULE (DATE & TIME) */}
           <View style={[styles.modernCard, isDark && styles.darkCard]}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.badgeLabelRow}>
-                <Ionicons name="calendar" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>WASH SCHEDULE</Text>
+                <Ionicons
+                  name="calendar"
+                  size={16}
+                  color={isHomeCleaning ? '#059669' : '#0284c7'}
+                />
+                <Text style={[styles.badgeLabelText, isHomeCleaning && { color: '#059669' }]}>
+                  {isHomeCleaning ? 'SERVICE SCHEDULE' : 'WASH SCHEDULE'}
+                </Text>
               </View>
               <Text style={[styles.headerCountTag, isDark && styles.darkSubtext]}>
                 {selectedDate}
@@ -1496,7 +1580,7 @@ export default function BookingSummaryScreen() {
                 </Text>
                 <Text style={styles.planPriceAmount}>₹99.00</Text>
                 <Text style={[styles.planNoteText, isDark && styles.darkSubtext]}>
-                  Remaining ₹{remainingDue.toFixed(2)} after wash
+                  Remaining ₹{remainingDue.toFixed(2)} {isHomeCleaning ? 'after service' : 'after wash'}
                 </Text>
               </TouchableOpacity>
 
@@ -1527,7 +1611,7 @@ export default function BookingSummaryScreen() {
                 </Text>
                 <Text style={styles.planPriceAmountGreen}>₹{calculatedTotal.toFixed(2)}</Text>
                 <Text style={[styles.planNoteText, isDark && styles.darkSubtext]}>
-                  0 pending balance post-wash
+                  0 pending balance {isHomeCleaning ? 'post-service' : 'post-wash'}
                 </Text>
               </TouchableOpacity>
             </View>

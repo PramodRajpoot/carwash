@@ -122,7 +122,56 @@ const SAMPLE_PACKAGES = [
     frequency_days: 0,
     max_bookings: 1,
   },
+  {
+    id: 9,
+    name: 'Sofa Cleaning',
+    category_id: 2,
+    category: { id: 2, name: 'Home Cleaning' },
+    vehicle_type: '5-8_seater_sofa',
+    description: "Deep fabric foam cleaning\nDust mite & allergen extraction\nStain spot treatment\nQuick-dry sanitization",
+    price: 800,
+    frequency_days: 1,
+    max_bookings: 1,
+  },
+  {
+    id: 10,
+    name: 'Sofa Cleaning',
+    category_id: 2,
+    category: { id: 2, name: 'Home Cleaning' },
+    vehicle_type: '3-5_seater_sofa',
+    description: "Deep fabric foam cleaning\nDust mite & allergen extraction\nStain spot treatment\nQuick-dry sanitization",
+    price: 600,
+    frequency_days: 1,
+    max_bookings: 1,
+  },
 ];
+
+// Helper to format service type names (e.g. 5-8_seater_sofa -> 5-8 Seater Sofa)
+function formatTypeName(code?: string): string {
+  if (!code) return '';
+  if (code.toLowerCase() === 'all') return 'All';
+  if (code.toLowerCase() === 'volvo_bus') return 'Volvo Bus';
+  return code
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
+    .map((w) => (w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ''))
+    .join(' ');
+}
+
+// Helper to choose appropriate icons
+function getTypeIcon(code?: string, categoryName?: string): string {
+  const c = (code || '').toLowerCase();
+  const cat = (categoryName || '').toLowerCase();
+  if (c === 'all') return 'sparkles-outline';
+  if (c.includes('hatchback')) return 'car-sport-outline';
+  if (c.includes('sedan')) return 'car-outline';
+  if (c.includes('suv')) return 'speedometer-outline';
+  if (c.includes('commercial')) return 'bus-outline';
+  if (c.includes('volvo')) return 'trail-sign-outline';
+  if (c.includes('bus')) return 'navigate-outline';
+  if (c.includes('sofa') || cat.includes('home')) return 'bed-outline';
+  return 'cube-outline';
+}
 
 // Vehicle type filter options (matches wash service page)
 const VEHICLE_FILTERS = [
@@ -141,19 +190,47 @@ export default function ServicesScreen() {
   const scrollViewRef = useRef<any>(null);
 
   const [packages, setPackages] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeVehicle, setActiveVehicle] = useState('all');
+
+  // Active Category ('all', 'Carwash', 'Home Cleaning', etc.)
+  const [activeCategory, setActiveCategory] = useState<string>(() => {
+    if (typeof localParams?.category === 'string' && localParams.category) {
+      return localParams.category;
+    }
+    if (typeof localParams?.search === 'string' && localParams.search.toLowerCase() === 'home') {
+      return 'Home Cleaning';
+    }
+    return 'all';
+  });
+
+  // Active Sub-filter (specific vehicle type or home cleaning service type)
+  const [activeSubFilter, setActiveSubFilter] = useState('all');
+
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(
-    typeof localParams?.search === 'string' ? localParams.search : ''
-  );
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof localParams?.search === 'string' && localParams.search.toLowerCase() !== 'home') {
+      return localParams.search;
+    }
+    return '';
+  });
 
   useEffect(() => {
-    if (typeof localParams?.search === 'string' && localParams.search) {
-      setSearchQuery(localParams.search);
+    if (typeof localParams?.category === 'string' && localParams.category) {
+      setActiveCategory(localParams.category);
+      setActiveSubFilter('all');
+    } else if (typeof localParams?.search === 'string' && localParams.search) {
+      if (localParams.search.toLowerCase() === 'home') {
+        setActiveCategory('Home Cleaning');
+        setActiveSubFilter('all');
+        setSearchQuery('');
+      } else {
+        setSearchQuery(localParams.search);
+      }
     }
-  }, [localParams?.search]);
+  }, [localParams?.category, localParams?.search]);
   const [currentPage, setCurrentPage] = useState(1);
   const [visibleCount, setVisibleCount] = useState(3);
   const [error, setError] = useState<string | null>(null);
@@ -161,8 +238,6 @@ export default function ServicesScreen() {
   const { isDark, toggleTheme } = useAppTheme();
   const [expandedPackages, setExpandedPackages] = useState<Record<string | number, boolean>>({});
   const [wishlistPackageIds, setWishlistPackageIds] = useState<number[]>([]);
-
-  const activeVehicleLabel = VEHICLE_FILTERS.find((f) => f.value === activeVehicle)?.label || 'All';
 
   const fetchWishlist = async (authToken?: string | null) => {
     try {
@@ -256,16 +331,29 @@ export default function ServicesScreen() {
   const fetchPackagesData = async () => {
     try {
       setError(null);
-      const res = await fetch(`${API_BASE}/api/packages`, {
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-          'Bypass-Tunnel-Reminder': 'true',
-        },
-      });
+      const headers: Record<string, string> = {
+        'ngrok-skip-browser-warning': 'true',
+        'Bypass-Tunnel-Reminder': 'true',
+      };
 
-      if (!res.ok) throw new Error('Failed to fetch packages');
-      const data = await res.json();
-      setPackages(Array.isArray(data) ? data : []);
+      const [pkgRes, catRes, stRes] = await Promise.all([
+        axios.get(`${API_BASE}/api/packages`, { headers }).catch(() => null),
+        axios.get(`${API_BASE}/api/categories`, { headers }).catch(() => null),
+        axios.get(`${API_BASE}/api/service-types`, { headers }).catch(() => null),
+      ]);
+
+      if (pkgRes && Array.isArray(pkgRes.data) && pkgRes.data.length > 0) {
+        setPackages(pkgRes.data);
+      } else {
+        setPackages(SAMPLE_PACKAGES);
+      }
+
+      if (catRes && Array.isArray(catRes.data) && catRes.data.length > 0) {
+        setCategories(catRes.data);
+      }
+      if (stRes && Array.isArray(stRes.data) && stRes.data.length > 0) {
+        setServiceTypes(stRes.data);
+      }
     } catch {
       console.log('API unreachable, using sample data');
       setPackages(SAMPLE_PACKAGES);
@@ -274,7 +362,7 @@ export default function ServicesScreen() {
       setTimeout(() => {
         setLoading(false);
         setRefreshing(false);
-      }, 600);
+      }, 500);
     }
   };
 
@@ -287,10 +375,19 @@ export default function ServicesScreen() {
     fetchPackagesData();
   };
 
-  const handleVehicleSelect = (val: string) => {
+  const handleCategorySelect = (catValue: string) => {
     safeHapticLight();
-    setActiveVehicle(val);
+    setActiveCategory(catValue);
+    setActiveSubFilter('all');
     setCurrentPage(1);
+    setVisibleCount(3);
+  };
+
+  const handleSubFilterSelect = (val: string) => {
+    safeHapticLight();
+    setActiveSubFilter(val);
+    setCurrentPage(1);
+    setVisibleCount(3);
   };
 
   const handleSearchChange = (text: string) => {
@@ -301,7 +398,8 @@ export default function ServicesScreen() {
 
   const handleResetFilters = () => {
     safeHapticLight();
-    setActiveVehicle('all');
+    setActiveCategory('all');
+    setActiveSubFilter('all');
     setSearchQuery('');
     setCurrentPage(1);
     setVisibleCount(3);
@@ -309,45 +407,214 @@ export default function ServicesScreen() {
 
   useEffect(() => {
     setVisibleCount(3);
-  }, [activeVehicle, searchQuery]);
+  }, [activeCategory, activeSubFilter, searchQuery]);
 
-  const vehicleCounts = useMemo(() => {
+  // Dynamic Category Pills List
+  const categoryList = useMemo(() => {
+    const list: Array<{ label: string; value: string; icon: string }> = [
+      { label: 'All Services', value: 'all', icon: 'sparkles-outline' },
+    ];
+
+    const knownCats = new Set<string>();
+
+    if (categories.length > 0) {
+      categories.forEach((c) => {
+        if (c.name && !knownCats.has(c.name.toLowerCase())) {
+          knownCats.add(c.name.toLowerCase());
+          list.push({
+            label: c.name,
+            value: c.name,
+            icon: c.name.toLowerCase().includes('home') ? 'home-outline' : 'car-sport-outline',
+          });
+        }
+      });
+    }
+
+    packages.forEach((p) => {
+      const cName = p.category?.name || p.category_name;
+      if (cName && !knownCats.has(cName.toLowerCase())) {
+        knownCats.add(cName.toLowerCase());
+        list.push({
+          label: cName,
+          value: cName,
+          icon: cName.toLowerCase().includes('home') ? 'home-outline' : 'car-sport-outline',
+        });
+      }
+    });
+
+    if (!knownCats.has('carwash')) {
+      list.push({ label: 'Carwash', value: 'Carwash', icon: 'car-sport-outline' });
+    }
+    if (!knownCats.has('home cleaning')) {
+      list.push({ label: 'Home Cleaning', value: 'Home Cleaning', icon: 'home-outline' });
+    }
+
+    return list;
+  }, [categories, packages]);
+
+  // Category counts
+  const categoryCounts = useMemo(() => {
     const activePkgs = packages.filter((pkg) => !pkg.is_addon);
     const counts: Record<string, number> = { all: activePkgs.length };
-    for (const vf of VEHICLE_FILTERS) {
-      if (vf.value === 'all') continue;
-      counts[vf.value] = activePkgs.filter(
-        (p) => (p.vehicle_type || '').toLowerCase() === vf.value.toLowerCase()
-      ).length;
-    }
-    return counts;
-  }, [packages]);
 
+    categoryList.forEach((cat) => {
+      if (cat.value === 'all') return;
+      counts[cat.value] = activePkgs.filter((p) => {
+        const cName = (p.category?.name || p.category_name || '').toLowerCase();
+        return cName === cat.value.toLowerCase();
+      }).length;
+    });
+
+    return counts;
+  }, [packages, categoryList]);
+
+  // Is Home or Carwash category active
+  const isHomeCategory = useMemo(() => activeCategory.toLowerCase().includes('home'), [activeCategory]);
+  const isCarCategory = useMemo(() => activeCategory.toLowerCase().includes('carwash'), [activeCategory]);
+
+  const filterModalTitle = useMemo(() => {
+    if (isHomeCategory) return 'Filter by Service Type';
+    if (isCarCategory) return 'Filter by Vehicle';
+    return 'Filter by Vehicle & Type';
+  }, [isHomeCategory, isCarCategory]);
+
+  // Dynamic Sub-filters based on the active category
+  const dynamicFilterOptions = useMemo(() => {
+    const basePkgs = packages.filter((p) => {
+      if (p.is_addon) return false;
+      if (activeCategory === 'all') return true;
+      const cName = (p.category?.name || p.category_name || '').toLowerCase();
+      return cName === activeCategory.toLowerCase();
+    });
+
+    if (isHomeCategory) {
+      // Home Cleaning Sub-filters: collect distinct service types from Home Cleaning packages
+      const typeMap = new Map<string, { label: string; value: string; icon: string; count: number }>();
+
+      basePkgs.forEach((p) => {
+        const rawCode = (p.vehicle_type || '').toLowerCase();
+        if (rawCode && rawCode !== 'all') {
+          if (!typeMap.has(rawCode)) {
+            const st = serviceTypes.find((t) => t.code?.toLowerCase() === rawCode);
+            const label = st ? st.name : formatTypeName(rawCode);
+            typeMap.set(rawCode, {
+              label,
+              value: rawCode,
+              icon: 'bed-outline',
+              count: 0,
+            });
+          }
+          typeMap.get(rawCode)!.count += 1;
+        }
+      });
+
+      return [
+        { label: 'All Home Cleaning', value: 'all', icon: 'sparkles-outline', count: basePkgs.length },
+        ...Array.from(typeMap.values()),
+      ];
+    }
+
+    if (isCarCategory) {
+      // Carwash Sub-filters: Hatchback, Sedan, SUV, Commercial, Bus, Volvo Bus
+      return VEHICLE_FILTERS.map((vf) => {
+        const count =
+          vf.value === 'all'
+            ? basePkgs.length
+            : basePkgs.filter((p) => (p.vehicle_type || '').toLowerCase() === vf.value.toLowerCase()).length;
+        return {
+          ...vf,
+          count,
+        };
+      });
+    }
+
+    // "All Services" category: show All, followed by Vehicle types, followed by Home types
+    const carOptions = VEHICLE_FILTERS.filter((vf) => vf.value !== 'all').map((vf) => ({
+      ...vf,
+      count: basePkgs.filter((p) => (p.vehicle_type || '').toLowerCase() === vf.value.toLowerCase()).length,
+    }));
+
+    const homeTypes = new Set<string>();
+    const homeOptions: Array<{ label: string; value: string; icon: string; count: number }> = [];
+
+    basePkgs
+      .filter((p) => (p.category?.name || p.category_name || '').toLowerCase().includes('home'))
+      .forEach((p) => {
+        const code = (p.vehicle_type || '').toLowerCase();
+        if (code && code !== 'all' && !homeTypes.has(code)) {
+          homeTypes.add(code);
+          const st = serviceTypes.find((t) => t.code?.toLowerCase() === code);
+          const label = st ? st.name : formatTypeName(code);
+          const count = basePkgs.filter((item) => (item.vehicle_type || '').toLowerCase() === code).length;
+          homeOptions.push({
+            label,
+            value: code,
+            icon: 'bed-outline',
+            count,
+          });
+        }
+      });
+
+    return [
+      { label: 'All Services', value: 'all', icon: 'sparkles-outline', count: basePkgs.length },
+      ...carOptions,
+      ...homeOptions,
+    ];
+  }, [packages, activeCategory, isHomeCategory, isCarCategory, serviceTypes]);
+
+  const activeSubFilterLabel = useMemo(() => {
+    const found = dynamicFilterOptions.find((f) => f.value.toLowerCase() === activeSubFilter.toLowerCase());
+    return found ? found.label : formatTypeName(activeSubFilter);
+  }, [dynamicFilterOptions, activeSubFilter]);
+
+  // Filtered packages
   const filteredPackages = useMemo(() => {
     return packages.filter((pkg) => {
       if (pkg.is_addon) return false;
 
-      // Vehicle filter
-      if (activeVehicle !== 'all') {
-        const pkgVeh = (pkg.vehicle_type || '').toLowerCase();
-        if (pkgVeh !== 'all' && pkgVeh !== activeVehicle.toLowerCase()) {
+      const pkgCatName = (pkg.category?.name || pkg.category_name || '').toLowerCase();
+      const pkgVehType = (pkg.vehicle_type || '').toLowerCase();
+
+      // 1. Category Filter
+      if (activeCategory !== 'all') {
+        const targetCat = activeCategory.toLowerCase();
+        if (pkgCatName !== targetCat) {
           return false;
         }
       }
 
-      // Search query
+      // 2. Sub-Filter (Vehicle / Service Type)
+      if (activeSubFilter !== 'all') {
+        const targetFilter = activeSubFilter.toLowerCase();
+        if (pkgVehType !== 'all' && pkgVehType !== targetFilter) {
+          return false;
+        }
+      }
+
+      // 3. Search query: checks name, description, category, vehicle/service type, and custom badge
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const name = (pkg.name || '').toLowerCase();
         const desc = (pkg.description || '').toLowerCase();
-        if (!name.includes(q) && !desc.includes(q)) {
+        const formattedType = formatTypeName(pkgVehType).toLowerCase();
+        const badge = (pkg.custom_badge || '').toLowerCase();
+
+        const matches =
+          name.includes(q) ||
+          desc.includes(q) ||
+          pkgCatName.includes(q) ||
+          pkgVehType.includes(q) ||
+          formattedType.includes(q) ||
+          badge.includes(q);
+
+        if (!matches) {
           return false;
         }
       }
 
       return true;
     });
-  }, [packages, activeVehicle, searchQuery]);
+  }, [packages, activeCategory, activeSubFilter, searchQuery]);
 
   const totalItems = filteredPackages.length;
   const visiblePackages = useMemo(() => filteredPackages.slice(0, visibleCount), [filteredPackages, visibleCount]);
@@ -496,7 +763,7 @@ export default function ServicesScreen() {
         </View>
       </View>
 
-      {/* ── Vehicle Filter Modal Dropdown (exact match to bookings.tsx UX) ── */}
+      {/* ── Dynamic Category / Type Filter Dropdown ── */}
       <Modal
         visible={filterMenuVisible}
         transparent
@@ -511,13 +778,15 @@ export default function ServicesScreen() {
             <View style={styles.filterMenuHeader}>
               <View style={styles.filterMenuTitleWrap}>
                 <Ionicons name="funnel" size={14} color="#38bdf8" />
-                <Text style={[styles.filterMenuHeading, !isDark && styles.filterMenuHeadingLight]}>Filter by Vehicle</Text>
+                <Text style={[styles.filterMenuHeading, !isDark && styles.filterMenuHeadingLight]} numberOfLines={1}>
+                  {filterModalTitle}
+                </Text>
               </View>
-              {activeVehicle !== 'all' && (
+              {activeSubFilter !== 'all' && (
                 <TouchableOpacity
                   onPress={() => {
                     safeHapticLight();
-                    handleVehicleSelect('all');
+                    handleSubFilterSelect('all');
                     setFilterMenuVisible(false);
                   }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -529,66 +798,68 @@ export default function ServicesScreen() {
 
             <View style={[styles.filterMenuDivider, !isDark && styles.filterMenuDividerLight]} />
 
-            {VEHICLE_FILTERS.map((option) => {
-              const isSelected = activeVehicle === option.value;
-              const count = vehicleCounts[option.value] ?? 0;
-              return (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.filterMenuItem,
-                    isSelected && (isDark ? styles.activeFilterMenuItem : styles.activeFilterMenuItemLight),
-                  ]}
-                  onPress={() => {
-                    safeHapticLight();
-                    handleVehicleSelect(option.value);
-                    setFilterMenuVisible(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={option.icon as any}
-                    size={16}
-                    color={isSelected ? '#38bdf8' : (isDark ? '#94a3b8' : '#64748b')}
-                    style={{ marginRight: 10 }}
-                  />
-                  <Text
+            <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
+              {dynamicFilterOptions.map((option) => {
+                const isSelected = activeSubFilter.toLowerCase() === option.value.toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={option.value}
                     style={[
-                      styles.filterMenuItemText,
-                      !isDark && styles.filterMenuItemTextLight,
-                      isSelected && styles.activeFilterMenuItemText,
+                      styles.filterMenuItem,
+                      isSelected && (isDark ? styles.activeFilterMenuItem : styles.activeFilterMenuItemLight),
                     ]}
+                    onPress={() => {
+                      safeHapticLight();
+                      handleSubFilterSelect(option.value);
+                      setFilterMenuVisible(false);
+                    }}
+                    activeOpacity={0.7}
                   >
-                    {option.label}
-                  </Text>
-                  <View
-                    style={[
-                      styles.filterMenuCountBadge,
-                      !isDark && styles.filterMenuCountBadgeLight,
-                      isSelected && styles.filterMenuCountBadgeActive,
-                    ]}
-                  >
+                    <Ionicons
+                      name={option.icon as any}
+                      size={16}
+                      color={isSelected ? '#38bdf8' : (isDark ? '#94a3b8' : '#64748b')}
+                      style={{ marginRight: 10 }}
+                    />
                     <Text
                       style={[
-                        styles.filterMenuCountText,
-                        !isDark && styles.filterMenuCountTextLight,
-                        isSelected && styles.filterMenuCountTextActive,
+                        styles.filterMenuItemText,
+                        !isDark && styles.filterMenuItemTextLight,
+                        isSelected && styles.activeFilterMenuItemText,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {option.label}
+                    </Text>
+                    <View
+                      style={[
+                        styles.filterMenuCountBadge,
+                        !isDark && styles.filterMenuCountBadgeLight,
+                        isSelected && styles.filterMenuCountBadgeActive,
                       ]}
                     >
-                      {count}
-                    </Text>
-                  </View>
-                  {isSelected && (
-                    <Ionicons
-                      name="checkmark"
-                      size={16}
-                      color="#38bdf8"
-                      style={{ marginLeft: 8 }}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+                      <Text
+                        style={[
+                          styles.filterMenuCountText,
+                          !isDark && styles.filterMenuCountTextLight,
+                          isSelected && styles.filterMenuCountTextActive,
+                        ]}
+                      >
+                        {option.count}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark"
+                        size={16}
+                        color="#38bdf8"
+                        style={{ marginLeft: 8 }}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>
@@ -614,13 +885,71 @@ export default function ServicesScreen() {
           <Text style={[styles.servicesTitle, !isDark && styles.servicesTitleLight]}>Our Services</Text>
         </View>
 
+        {/* ── Category Filter Pills Bar ── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryPillsContainer}
+          style={styles.categoryPillsScroll}
+        >
+          {categoryList.map((cat) => {
+            const isSelected = activeCategory.toLowerCase() === cat.value.toLowerCase();
+            const count = categoryCounts[cat.value] ?? 0;
+            return (
+              <TouchableOpacity
+                key={cat.value}
+                style={[
+                  styles.categoryPill,
+                  !isDark && styles.categoryPillLight,
+                  isSelected && (isDark ? styles.categoryPillActive : styles.categoryPillActiveLight),
+                ]}
+                onPress={() => handleCategorySelect(cat.value)}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={cat.icon as any}
+                  size={14}
+                  color={isSelected ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b')}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.categoryPillText,
+                    !isDark && styles.categoryPillTextLight,
+                    isSelected && (isDark ? styles.categoryPillTextActiveDark : styles.categoryPillTextActiveLight),
+                  ]}
+                >
+                  {cat.label}
+                </Text>
+                <View
+                  style={[
+                    styles.categoryPillCount,
+                    !isDark && styles.categoryPillCountLight,
+                    isSelected && styles.categoryPillCountActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.categoryPillCountText,
+                      !isDark && styles.categoryPillCountTextLight,
+                      isSelected && styles.categoryPillCountTextActive,
+                    ]}
+                  >
+                    {count}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
         {/* ── Search Bar & Filter Button ── */}
         <View style={styles.searchRowWrapper}>
           <View style={[styles.searchContainer, !isDark && styles.searchContainerLight]}>
             <Ionicons name="search-outline" size={18} color={isDark ? '#64748b' : '#94a3b8'} style={styles.searchIcon} />
             <TextInput
               style={[styles.searchInput, !isDark && styles.searchInputLight]}
-              placeholder="Search services (e.g. Foam, Deep, Coating)..."
+              placeholder="Search services (e.g. Sofa, Foam, Deep)..."
               placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
               value={searchQuery}
               onChangeText={handleSearchChange}
@@ -633,12 +962,12 @@ export default function ServicesScreen() {
             )}
           </View>
 
-          {/* Vehicle Filter Button (right of search input) */}
+          {/* Sub-filter Button (right of search input) */}
           <TouchableOpacity
             style={[
               styles.searchFilterTrigger,
               !isDark && styles.searchFilterTriggerLight,
-              activeVehicle !== 'all' && styles.searchFilterTriggerActive,
+              activeSubFilter !== 'all' && styles.searchFilterTriggerActive,
             ]}
             onPress={() => {
               safeHapticLight();
@@ -649,9 +978,9 @@ export default function ServicesScreen() {
             <Ionicons
               name="funnel-outline"
               size={18}
-              color={activeVehicle !== 'all' ? '#38bdf8' : (isDark ? '#cbd5e1' : '#475569')}
+              color={activeSubFilter !== 'all' ? '#38bdf8' : (isDark ? '#cbd5e1' : '#475569')}
             />
-            {activeVehicle !== 'all' && <View style={styles.activeFilterDot} />}
+            {activeSubFilter !== 'all' && <View style={styles.activeFilterDot} />}
           </TouchableOpacity>
         </View>
 
@@ -663,13 +992,13 @@ export default function ServicesScreen() {
               <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{Math.min(visiblePackages.length, totalItems)}</Text> of{' '}
               <Text style={[styles.highlightText, !isDark && styles.highlightTextLight]}>{totalItems}</Text> Services
             </Text>
-            {activeVehicle !== 'all' && (
+            {activeSubFilter !== 'all' && (
               <TouchableOpacity
                 style={styles.activeVehicleChip}
-                onPress={() => handleVehicleSelect('all')}
+                onPress={() => handleSubFilterSelect('all')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.activeVehicleChipText}>{activeVehicleLabel}</Text>
+                <Text style={styles.activeVehicleChipText}>{activeSubFilterLabel}</Text>
                 <Ionicons name="close-circle" size={13} color="#38bdf8" />
               </TouchableOpacity>
             )}
@@ -706,20 +1035,30 @@ export default function ServicesScreen() {
           visiblePackages.map((pkg) => {
             const hasMonthly = pkg.frequency_days > 0;
             const isWishlisted = wishlistPackageIds.includes(pkg.id);
+            const isHomeService =
+              (pkg.category?.name || pkg.category_name || '').toLowerCase().includes('home') ||
+              (pkg.vehicle_type || '').toLowerCase().includes('sofa');
 
             return (
               <View key={pkg.id} style={[styles.card, !isDark && styles.cardLight]}>
                 {/* Badges Header */}
                 <View style={styles.cardBadgesRow}>
                   <View style={styles.leftBadges}>
-                    {pkg.vehicle_type && (
+                    {isHomeService ? (
+                      <View style={[styles.badgeHome, !isDark && styles.badgeHomeLight]}>
+                        <Ionicons name="home-outline" size={10} color="#10b981" style={{ marginRight: 3 }} />
+                        <Text style={[styles.badgeHomeText, !isDark && styles.badgeHomeTextLight]}>
+                          {formatTypeName(pkg.vehicle_type && pkg.vehicle_type !== 'all' ? pkg.vehicle_type : 'Home Cleaning').toUpperCase()}
+                        </Text>
+                      </View>
+                    ) : pkg.vehicle_type ? (
                       <View style={[styles.badgeVehicle, !isDark && styles.badgeVehicleLight]}>
                         <Ionicons name="car-sport-outline" size={10} color={isDark ? '#cbd5e1' : '#64748b'} style={{ marginRight: 3 }} />
                         <Text style={[styles.badgeVehicleText, !isDark && styles.badgeVehicleTextLight]}>
                           {pkg.vehicle_type.toUpperCase()}
                         </Text>
                       </View>
-                    )}
+                    ) : null}
 
                     {hasMonthly ? (
                       <View style={styles.badgeGreen}>
@@ -727,7 +1066,9 @@ export default function ServicesScreen() {
                       </View>
                     ) : (
                       <View style={styles.badgePurple}>
-                        <Text style={styles.badgePurpleText}>ONE-TIME WASH</Text>
+                        <Text style={styles.badgePurpleText}>
+                          {isHomeService ? 'ONE-TIME SERVICE' : 'ONE-TIME WASH'}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -781,7 +1122,7 @@ export default function ServicesScreen() {
                       <View style={styles.washCountRow}>
                         <Ionicons name="flash" size={12} color="#10b981" />
                         <Text style={[styles.washCount, !isDark && styles.washCountLight]}>
-                          {pkg.max_bookings} washes included
+                          {pkg.max_bookings} {isHomeService ? 'services' : 'washes'} included
                         </Text>
                       </View>
                     )}
@@ -790,9 +1131,15 @@ export default function ServicesScreen() {
                   <TouchableOpacity
                     activeOpacity={0.85}
                     style={styles.bookBtn}
-                    onPress={() => router.push(isLoggedIn ? `/book?package_id=${pkg.id}` : '/login')}
+                    onPress={() =>
+                      router.push(
+                        isLoggedIn
+                          ? `/book?package_id=${pkg.id}&category=${isHomeService ? 'Home Cleaning' : 'Carwash'}`
+                          : '/login'
+                      )
+                    }
                   >
-                    <Text style={styles.bookBtnText}>Book Wash</Text>
+                    <Text style={styles.bookBtnText}>{isHomeService ? 'Book Service' : 'Book Wash'}</Text>
                     <Ionicons name="arrow-forward" size={15} color="#ffffff" style={{ marginLeft: 6 }} />
                   </TouchableOpacity>
                 </View>
@@ -946,12 +1293,13 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   filterMenuDropdown: {
-    width: 220,
+    width: 240,
     backgroundColor: '#0f172a',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(56, 189, 248, 0.25)',
     paddingVertical: 8,
+    maxHeight: 380,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
@@ -1042,6 +1390,75 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.4,
+  },
+
+  /* ── Category Filter Pills ── */
+  categoryPillsScroll: {
+    marginBottom: 14,
+  },
+  categoryPillsContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  categoryPillLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  categoryPillActive: {
+    backgroundColor: 'rgba(14, 165, 233, 0.2)',
+    borderColor: '#38bdf8',
+  },
+  categoryPillActiveLight: {
+    backgroundColor: '#e0f2fe',
+    borderColor: '#0284c7',
+  },
+  categoryPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94a3b8',
+  },
+  categoryPillTextLight: {
+    color: '#64748b',
+  },
+  categoryPillTextActiveDark: {
+    color: '#38bdf8',
+  },
+  categoryPillTextActiveLight: {
+    color: '#0284c7',
+  },
+  categoryPillCount: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  categoryPillCountLight: {
+    backgroundColor: '#f1f5f9',
+  },
+  categoryPillCountActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  categoryPillCountText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94a3b8',
+  },
+  categoryPillCountTextLight: {
+    color: '#64748b',
+  },
+  categoryPillCountTextActive: {
+    color: '#38bdf8',
   },
 
   /* ── Search Bar & Filter ── */
@@ -1238,6 +1655,29 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  badgeHome: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  badgeHomeLight: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  badgeHomeText: {
+    color: '#34d399',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  badgeHomeTextLight: {
+    color: '#059669',
   },
   badgeGreen: {
     backgroundColor: 'rgba(16, 185, 129, 0.14)',
