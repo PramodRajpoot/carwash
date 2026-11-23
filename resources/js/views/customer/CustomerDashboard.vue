@@ -112,7 +112,14 @@
       <div v-if="data.upcoming_services && data.upcoming_services.length">
         <div v-for="b in data.upcoming_services" :key="b.id" class="flex justify-between items-center" style="padding:0.75rem 0;border-bottom:1px solid var(--border-color)">
           <div>
-            <div style="font-weight:500">{{ b.vehicle?.make_model }}</div>
+            <div style="font-weight:500">
+              <span v-if="isHomeBooking(b)" style="color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
+                🏠 {{ b.package?.name || 'Home Service' }}
+              </span>
+              <span v-else>
+                🚗 {{ b.vehicle?.make_model || 'Vehicle' }} {{ b.package?.name ? '— ' + b.package.name : '' }}
+              </span>
+            </div>
             <div class="text-muted" style="font-size:0.8rem">{{ b.booking_date }} • {{ b.slot_time }}</div>
             <div v-if="b.address" class="text-muted" style="font-size:0.75rem;margin-top:2px">📍 {{ b.address }}</div>
           </div>
@@ -143,6 +150,16 @@ export default {
   },
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },
+    isHomeBooking(b) {
+      if (!b) return false;
+      if (b.vehicle && (b.vehicle.vehicle_type === 'home' || b.vehicle.plate_number === 'HOME' || b.vehicle.make_model === 'Doorstep Home Care')) {
+        return true;
+      }
+      const cat = (b.package?.category?.name || b.package?.category_name || '').toLowerCase();
+      const vt = (b.package?.vehicle_type || '').toLowerCase();
+      const name = (b.package?.name || '').toLowerCase();
+      return cat.includes('home') || vt.includes('sofa') || vt === 'home' || name.includes('sofa');
+    },
     statusBadge(s) { return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan'; },
     async copy(text, label = 'Code') {
       if (!text) return;

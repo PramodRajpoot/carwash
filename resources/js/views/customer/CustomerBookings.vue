@@ -16,17 +16,26 @@
                 📍 {{ b.address }}
               </div>
             </td>
-            <td>{{ b.vehicle?.make_model }}</td>
+            <td>
+              <div v-if="isHomeCleaningBooking(b)" style="display: flex; align-items: center; gap: 4px;">
+                <span style="font-size: 1.1rem;">🏠</span>
+                <span style="font-weight: 600; color: #10b981; font-size: 0.88rem;">Doorstep Home Care</span>
+              </div>
+              <div v-else>
+                <div style="font-weight: 600;">{{ b.vehicle?.make_model || '-' }}</div>
+                <div v-if="b.vehicle?.plate_number && b.vehicle.plate_number !== 'HOME'" class="text-muted" style="font-size: 0.72rem;">{{ b.vehicle.plate_number }}</div>
+              </div>
+            </td>
             <td>
               <div style="font-weight: 600;">{{ b.package?.name || '-' }}</div>
 
               <!-- Package Wash Numbering: 1/4 in Green and Red -->
               <div v-if="b.package && b.package.max_bookings > 1" style="margin-top: 0.25rem;">
-                <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; font-weight: 700; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 6px; border-radius: 4px;" title="Wash Progress">
+                <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; font-weight: 700; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 6px; border-radius: 4px;" :title="isHomeCleaningBooking(b) ? 'Service Progress' : 'Wash Progress'">
                   <span style="color: #10b981; font-weight: 800;">{{ getWashIndex(b) }}</span>
                   <span style="color: #94a3b8; font-weight: 600;">/</span>
                   <span style="color: #ef4444; font-weight: 800;">{{ b.package.max_bookings }}</span>
-                  <span style="color: var(--text-muted); font-size: 0.65rem; font-weight: 500; margin-left: 2px;">Washes</span>
+                  <span style="color: var(--text-muted); font-size: 0.65rem; font-weight: 500; margin-left: 2px;">{{ isHomeCleaningBooking(b) ? 'Services' : 'Washes' }}</span>
                 </span>
               </div>
 
@@ -169,18 +178,51 @@
         </div>
         <div v-if="bookingMsg" class="alert" :class="bookingError ? 'alert-error' : 'alert-success'">{{ bookingMsg }}</div>
         <form @submit.prevent="createBooking">
-          <div class="form-group">
+          <!-- Category Selector Tabs -->
+          <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              :class="bookingCategory === 'carwash' ? 'btn-primary' : 'btn-outline'"
+              style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.65rem 1rem; font-weight: 600; font-size: 0.95rem; border-radius: var(--radius-md);"
+              @click="setBookingCategory('carwash')">
+              🚗 Carwash Services
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              :class="bookingCategory === 'home_cleaning' ? 'btn-primary' : 'btn-outline'"
+              style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.65rem 1rem; font-weight: 600; font-size: 0.95rem; border-radius: var(--radius-md);"
+              @click="setBookingCategory('home_cleaning')">
+              🏠 Home Cleaning
+            </button>
+          </div>
+
+          <!-- Carwash: Vehicle Selection -->
+          <div v-if="bookingCategory === 'carwash'" class="form-group">
             <label>Vehicle</label>
             <select v-model="bf.vehicle_id" class="form-select" required>
               <option value="">Select Vehicle</option>
-              <option v-for="v in vehicles" :key="v.id" :value="v.id">
+              <option v-for="v in filteredVehicles" :key="v.id" :value="v.id">
                 {{ v.make_model }} {{ v.plate_number ? '(' + v.plate_number + ')' : '' }} — {{ formatVehicleType(v.vehicle_type) }}
               </option>
             </select>
-            <div v-if="vehicles.length === 0" class="text-muted" style="font-size: 0.78rem; margin-top: 0.35rem;">
+            <div v-if="filteredVehicles.length === 0" class="text-muted" style="font-size: 0.78rem; margin-top: 0.35rem;">
               ⚠️ No registered vehicles found. <router-link to="/customer/vehicles" style="color: var(--accent-cyan); text-decoration: underline;">Add vehicle in My Garage</router-link>
             </div>
           </div>
+
+          <!-- Home Cleaning: Doorstep Service Info Banner -->
+          <div v-else style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.85rem;">
+            <div style="font-size: 2rem;">🏠</div>
+            <div>
+              <div style="font-weight: 700; color: #10b981; font-size: 0.95rem;">Doorstep Home Cleaning Service</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                No vehicle required • Verified cleaning professionals at your doorstep
+              </div>
+            </div>
+          </div>
+
           <div class="form-group">
             <label style="display: flex; justify-content: space-between; align-items: center;">
               <span>Center</span>
@@ -193,11 +235,12 @@
               <option v-for="c in centers" :key="c.id" :value="c.id">{{ c.center_name }} — {{ c.city }}</option>
             </select>
           </div>
-          <div class="form-group"><label>Package / Main Service</label>
+          <div class="form-group">
+            <label>{{ bookingCategory === 'home_cleaning' ? 'Home Cleaning Service Package' : 'Package / Main Service' }}</label>
             <select v-model="bf.package_id" class="form-select" required @change="bf.addon_ids = []">
-              <option value="">Select Package</option>
+              <option value="">{{ bookingCategory === 'home_cleaning' ? 'Select Home Cleaning Package' : 'Select Package' }}</option>
               <option v-for="p in availableBasePackages" :key="p.id" :value="p.id">
-                {{ p.name }} (₹{{ p.price }}){{ p.custom_badge ? ' — ' + p.custom_badge : '' }}
+                {{ p.name }} (₹{{ p.price }}){{ p.custom_badge ? ' — ' + p.custom_badge : '' }}{{ isHomeCleaningPkg(p) && p.vehicle_type ? ' [' + formatHomeType(p.vehicle_type) + ']' : '' }}
               </option>
             </select>
           </div>
@@ -206,10 +249,10 @@
           <div v-if="bf.package_id" style="margin-bottom: 1.25rem;">
             <!-- Add-on Services Section -->
             <label style="font-weight: 600; display: block; margin-bottom: 0.5rem; font-size: 0.95rem;">
-              ➕ Add-on Services <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">(check any to add to your wash)</span>
+              ➕ Add-on Services <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">({{ bookingCategory === 'home_cleaning' ? 'check any to add to your service' : 'check any to add to your wash' }})</span>
             </label>
             <div v-if="addonPackages.length === 0" class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">
-              No add-on services available for this package.
+              No add-on services available for this {{ bookingCategory === 'home_cleaning' ? 'service' : 'package' }}.
             </div>
             <div v-else style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem; margin-bottom: 1rem; background: var(--bg-primary);">
               <div v-for="pkg in addonPackages" :key="pkg.id"
@@ -238,7 +281,7 @@
                 <span>+ ₹{{ addonTotal.toFixed(2) }}</span>
               </div>
               <div v-if="firstWashDiscount > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald); font-weight: 600;">
-                <span>🎉 First Wash Discount (10%)</span>
+                <span>🎉 First {{ bookingCategory === 'home_cleaning' ? 'Service' : 'Wash' }} Discount (10%)</span>
                 <span>- ₹{{ firstWashDiscount.toFixed(2) }}</span>
               </div>
               <div v-else-if="appliedCouponDiscount > 0" style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.3rem; color: var(--accent-emerald); font-weight: 600;">
@@ -271,7 +314,7 @@
                   <span>₹99.00</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--accent-amber); font-weight: 600;">
-                  <span>Remaining Balance (Due after wash)</span>
+                  <span>Remaining Balance (Due after {{ bookingCategory === 'home_cleaning' ? 'service' : 'wash' }})</span>
                   <span>₹{{ (calculatedTotal - 99).toFixed(2) }}</span>
                 </div>
               </div>
@@ -458,7 +501,7 @@
           <div v-if="bf.package_id && isFirstWash" class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
             <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; color: #d97706; font-weight: 600;">
               <span>🔒</span>
-              <span>E-Points and Earning Money unlock on your next washes.</span>
+              <span>E-Points and Earning Money unlock on your next {{ bookingCategory === 'home_cleaning' ? 'services' : 'washes' }}.</span>
             </div>
           </div>
 
@@ -470,7 +513,7 @@
             </label>
             <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; margin-left: 1.55rem; line-height: 1.4;">
               Redeeming: <strong style="color: var(--accent-emerald);">{{ pointsToBeDeducted }} pts</strong>
-              (Available: {{ userPoints }} pts | Capped at 12.5% of wash)
+              (Available: {{ userPoints }} pts | Capped at 12.5% of {{ bookingCategory === 'home_cleaning' ? 'service' : 'wash' }})
             </div>
           </div>
 
@@ -534,7 +577,7 @@
                   ₹99.00 <span style="font-size: 0.72rem; font-weight: normal; color: var(--text-muted);">now</span>
                 </div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.3;">
-                  Rest ₹{{ (calculatedTotal - 99).toFixed(2) }} after wash
+                  Rest ₹{{ (calculatedTotal - 99).toFixed(2) }} after {{ bookingCategory === 'home_cleaning' ? 'service' : 'wash' }}
                 </div>
               </div>
             </div>
@@ -576,6 +619,7 @@ export default {
       slotsLoading: false,
       userStatus: 'active',
       showBookingModal: false,
+      bookingCategory: 'carwash', // 'carwash' or 'home_cleaning'
       bookingMsg: '',
       bookingError: false,
       bookingLoading: false,
@@ -618,15 +662,22 @@ export default {
     totalPages() {
       return Math.ceil(this.bookings.length / this.itemsPerPage) || 1;
     },
+    filteredVehicles() {
+      return (this.vehicles || []).filter(v => v.vehicle_type !== 'home' && v.plate_number !== 'HOME');
+    },
     selectedBasePlan() {
       return this.packages.find(p => p.id == this.bf.package_id) || null;
     },
     availableBasePackages() {
       const mainOnly = this.packages.filter(p => !p.is_addon);
-      if (!this.bf.vehicle_id) return mainOnly;
+      if (this.bookingCategory === 'home_cleaning') {
+        return mainOnly.filter(p => this.isHomeCleaningPkg(p));
+      }
+      const carOnly = mainOnly.filter(p => !this.isHomeCleaningPkg(p));
+      if (!this.bf.vehicle_id) return carOnly;
       const v = this.vehicles.find(vh => vh.id == this.bf.vehicle_id);
-      if (!v) return mainOnly;
-      return mainOnly.filter(p => p.vehicle_type === v.vehicle_type || p.vehicle_type === 'all');
+      if (!v) return carOnly;
+      return carOnly.filter(p => p.vehicle_type === v.vehicle_type || p.vehicle_type === 'all');
     },
     addonPackages() {
       if (!this.selectedBasePlan) return [];
@@ -635,9 +686,12 @@ export default {
         return this.selectedBasePlan.addons;
       }
       // 2. Otherwise return matching add-on services
+      if (this.bookingCategory === 'home_cleaning' || this.isHomeCleaningPkg(this.selectedBasePlan)) {
+        return this.packages.filter(p => p.is_addon && this.isHomeCleaningPkg(p));
+      }
       const v = this.bf.vehicle_id ? this.vehicles.find(vh => vh.id == this.bf.vehicle_id) : null;
       const vType = v ? v.vehicle_type : this.selectedBasePlan.vehicle_type;
-      return this.packages.filter(p => p.is_addon && (!vType || p.vehicle_type === 'all' || p.vehicle_type === vType));
+      return this.packages.filter(p => p.is_addon && !this.isHomeCleaningPkg(p) && (!vType || p.vehicle_type === 'all' || p.vehicle_type === vType));
     },
     selectedAddons() {
       const allAddons = [...this.packages];
@@ -748,7 +802,7 @@ export default {
       }
     },
     'bf.vehicle_id'() {
-      if (this.bf.package_id) {
+      if (this.bookingCategory === 'carwash' && this.bf.package_id) {
         const isValid = this.availableBasePackages.some(p => p.id == this.bf.package_id);
         if (!isValid) {
           this.bf.package_id = '';
@@ -981,12 +1035,58 @@ export default {
       }
     },
 
+    isHomeCleaningPkg(pkg) {
+      if (!pkg) return false;
+      const cName = (pkg.category?.name || pkg.category_name || '').toLowerCase();
+      const vt = (pkg.vehicle_type || '').toLowerCase();
+      const name = (pkg.name || '').toLowerCase();
+      return (
+        cName.includes('home') ||
+        vt.includes('sofa') ||
+        vt.includes('seator') ||
+        vt === 'home' ||
+        name.includes('sofa') ||
+        name.includes('home clean')
+      );
+    },
+
+    isHomeCleaningBooking(b) {
+      if (!b) return false;
+      if (b.vehicle && (b.vehicle.vehicle_type === 'home' || b.vehicle.plate_number === 'HOME' || b.vehicle.make_model === 'Doorstep Home Care')) {
+        return true;
+      }
+      return this.isHomeCleaningPkg(b.package);
+    },
+
+    formatHomeType(vt) {
+      if (!vt) return '';
+      return vt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    },
+
+    setBookingCategory(cat) {
+      if (this.bookingCategory === cat) return;
+      this.bookingCategory = cat;
+      this.bf.package_id = '';
+      this.bf.addon_ids = [];
+      this.removeCoupon();
+      if (cat === 'home_cleaning') {
+        const firstHome = this.packages.find(p => !p.is_addon && this.isHomeCleaningPkg(p));
+        if (firstHome) {
+          this.bf.package_id = firstHome.id;
+        }
+      } else {
+        if (this.filteredVehicles.length > 0 && !this.bf.vehicle_id) {
+          this.bf.vehicle_id = this.filteredVehicles[0].id;
+        }
+      }
+    },
+
     formatVehicleType(t) {
       if (!t) return '';
       return t.toUpperCase().replace('_', ' ');
     },
 
-    async openBookingModal(preselectedVehicleId = null) {
+    async openBookingModal(preselectedVehicleId = null, preselectedPackageId = null, preselectedCategory = null) {
       this.bookingMsg = '';
       this.bookingError = false;
       if (!this.vehicles || this.vehicles.length === 0) {
@@ -1005,6 +1105,22 @@ export default {
         });
         return;
       }
+
+      // Preselection & Category Resolution
+      if (preselectedCategory) {
+        const catStr = String(preselectedCategory).toLowerCase();
+        this.bookingCategory = catStr.includes('home') ? 'home_cleaning' : 'carwash';
+      } else if (preselectedPackageId) {
+        const p = this.packages.find(pkg => pkg.id == preselectedPackageId);
+        if (p && this.isHomeCleaningPkg(p)) {
+          this.bookingCategory = 'home_cleaning';
+        }
+      }
+
+      if (preselectedPackageId) {
+        this.bf.package_id = preselectedPackageId;
+      }
+
       if (!this.bf.franchisee_id) {
         const remembered = localStorage.getItem('selected_franchisee_id');
         if (remembered && this.centers && this.centers.some(c => String(c.id) === String(remembered))) {
@@ -1026,6 +1142,8 @@ export default {
       }
       if (preselectedVehicleId) {
         this.bf.vehicle_id = preselectedVehicleId;
+      } else if (this.bookingCategory === 'carwash' && !this.bf.vehicle_id && this.filteredVehicles.length > 0) {
+        this.bf.vehicle_id = this.filteredVehicles[0].id;
       }
       if (this.savedAddress) {
         this.addressChoice = 'saved';
@@ -1100,9 +1218,11 @@ export default {
         }
 
         // Check if query requested opening booking modal
-        if (this.$route.query.book === 'true' || this.$route.query.vehicle_id) {
+        if (this.$route.query.book === 'true' || this.$route.query.vehicle_id || this.$route.query.package_id || this.$route.query.category) {
           const vId = this.$route.query.vehicle_id ? Number(this.$route.query.vehicle_id) : null;
-          this.openBookingModal(vId);
+          const pId = this.$route.query.package_id ? Number(this.$route.query.package_id) : null;
+          const cCat = this.$route.query.category || null;
+          this.openBookingModal(vId, pId, cCat);
         }
       } catch (e) { console.error('loadData error:', e); }
     },
@@ -1163,6 +1283,11 @@ export default {
       this.bookingMsg = '';
       if (this.isCustomerBlocked) {
         this.bookingMsg = 'Your account is currently blocked/suspended. You cannot book any services. Please contact support.';
+        this.bookingError = true;
+        return;
+      }
+      if (this.bookingCategory === 'carwash' && !this.bf.vehicle_id) {
+        this.bookingMsg = 'Please select a vehicle for carwash service.';
         this.bookingError = true;
         return;
       }
