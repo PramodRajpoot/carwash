@@ -153,7 +153,7 @@
           <h2>Home Cleaning <span class="text-gradient">Categories</span></h2>
           <p>Professional doorstep sofa cleaning, furniture rejuvenation & deep residential sanitization.</p>
         </div>
-        <div class="grid grid-3 gap-3">
+        <div class="grid gap-3" :class="homeCleaningCategories.length === 2 ? 'grid-2' : 'grid-3'" :style="homeCleaningCategories.length === 2 ? 'max-width: 820px; margin: 0 auto;' : ''">
           <div v-for="cat in homeCleaningCategories" :key="cat.id" class="glass-card text-center category-card" style="cursor:pointer; padding: 2rem 1.5rem; transition: all 0.3s ease;" @click="goToHomeService(cat)">
             <div class="category-img-wrap" style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
               <img :src="cat.image" :alt="cat.name" class="category-img" style="max-height: 90px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12)); transition: transform 0.3s ease;" />
@@ -587,38 +587,32 @@ export default {
     // Home Cleaning Categories
     homeCleaningCategories() {
       const homePkgs = (this.packages || []).filter(p => !p.is_addon && this.isHomeCleaningPkg(p));
-      const items = homePkgs.map(p => {
-        const vt = (p.vehicle_type || '').toLowerCase();
-        let img = '/images/home_cleaning/home_deep.svg';
-        if (vt.includes('3_5') || vt.includes('3-5')) img = '/images/home_cleaning/sofa_3_5.svg';
-        else if (vt.includes('5_8') || vt.includes('5-8')) img = '/images/home_cleaning/sofa_5_8.svg';
+      if (homePkgs.length > 0) {
+        return homePkgs.map(p => {
+          const vt = (p.vehicle_type || '').toLowerCase();
+          let img = '/images/home_cleaning/sofa_3_5.svg';
+          if (vt.includes('5_8') || vt.includes('5-8')) {
+            img = '/images/home_cleaning/sofa_5_8.svg';
+          } else if (vt.includes('3_5') || vt.includes('3-5')) {
+            img = '/images/home_cleaning/sofa_3_5.svg';
+          } else {
+            img = '/images/home_cleaning/home_deep.svg';
+          }
 
-        let displayName = p.name;
-        if (p.vehicle_type && p.vehicle_type !== 'home' && p.vehicle_type !== 'all') {
-          displayName = this.formatHomeType(p.vehicle_type);
-        }
+          let displayName = p.name;
+          if (p.vehicle_type && p.vehicle_type !== 'home' && p.vehicle_type !== 'all') {
+            displayName = this.formatHomeType(p.vehicle_type);
+          }
 
-        return {
-          id: p.id,
-          name: displayName,
-          shortTitle: displayName,
-          image: img,
-          price: Math.round(Number(p.price)),
-          packageId: p.id
-        };
-      });
-
-      if (items.length > 0) {
-        if (items.length < 3 && !items.some(x => x.name.toLowerCase().includes('home') || x.name.toLowerCase().includes('deep'))) {
-          items.push({
-            id: 'home_deep',
-            name: 'Full Home Cleaning',
-            shortTitle: 'Home Cleaning',
-            image: '/images/home_cleaning/home_deep.svg',
-            price: 1299,
-          });
-        }
-        return items;
+          return {
+            id: p.id,
+            name: displayName,
+            shortTitle: displayName,
+            image: img,
+            price: Math.round(Number(p.price)),
+            packageId: p.id
+          };
+        });
       }
 
       return [
@@ -635,13 +629,6 @@ export default {
           shortTitle: '5-8 Seater Sofa',
           image: '/images/home_cleaning/sofa_5_8.svg',
           price: 800,
-        },
-        {
-          id: 'home_deep',
-          name: 'Full Home Cleaning',
-          shortTitle: 'Home Cleaning',
-          image: '/images/home_cleaning/home_deep.svg',
-          price: 1299,
         }
       ];
     },
