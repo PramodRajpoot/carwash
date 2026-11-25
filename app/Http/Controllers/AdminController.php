@@ -220,7 +220,10 @@ class AdminController extends Controller
     public function getOrders(Request $request)
     {
         $orders = Booking::with(['customer:id,name,phone', 'vehicle', 'franchisee', 'package', 'washer.user'])
-            ->orderBy('booking_date', 'desc')
+            ->orderByRaw("CASE WHEN status IN ('pending', 'assigned', 'ongoing', 'postponed') THEN 0 ELSE 1 END ASC")
+            ->orderBy('booking_date', 'asc')
+            ->orderBy('slot_time', 'asc')
+            ->orderBy('id', 'desc')
             ->get();
         return response()->json($orders);
     }

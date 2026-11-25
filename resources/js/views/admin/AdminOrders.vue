@@ -19,12 +19,23 @@
           <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Status</label>
           <select v-model="filters.status" class="form-select">
             <option value="">All</option>
+            <option value="upcoming">Upcoming (Active)</option>
             <option value="pending">Pending</option>
             <option value="assigned">Assigned</option>
             <option value="ongoing">Ongoing</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
             <option value="postponed">Postponed</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width: 180px; margin-bottom: 0;">
+          <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Sort By</label>
+          <select v-model="filters.sortBy" class="form-select">
+            <option value="upcoming">Next Upcoming Wash</option>
+            <option value="date_asc">Date & Time (Earliest First)</option>
+            <option value="date_desc">Date & Time (Latest First)</option>
+            <option value="id_desc">Order ID (Newest First)</option>
+            <option value="id_asc">Order ID (Oldest First)</option>
           </select>
         </div>
         <div class="form-group" style="min-width: 150px; margin-bottom: 0;">
@@ -58,7 +69,12 @@
               <th>Vehicle</th>
               <th>Service package</th>
               <th>Center Assigned</th>
-              <th>Wash Date</th>
+              <th @click="toggleSortDate" style="cursor: pointer; user-select: none;" title="Click to sort by Date & Time">
+                Wash Date
+                <span v-if="filters.sortBy === 'upcoming'" style="color: var(--accent-cyan); font-size: 0.8rem;"> (Upcoming)</span>
+                <span v-else-if="filters.sortBy === 'date_asc'" style="color: var(--accent-cyan); font-size: 0.8rem;"> ▲</span>
+                <span v-else-if="filters.sortBy === 'date_desc'" style="color: var(--accent-cyan); font-size: 0.8rem;"> ▼</span>
+              </th>
               <th>Price</th>
               <th>Progress</th>
               <th>Action</th>
@@ -269,7 +285,8 @@ export default {
         status: '',
         payment_status: '',
         franchisee_id: '',
-        date: ''
+        date: '',
+        sortBy: 'upcoming'
       },
       form: {
         franchisee_id: '',
@@ -283,11 +300,23 @@ export default {
   },
   computed: {
     hasFilters() {
-      return Object.values(this.filters).some(v => v !== '');
+      return this.filters.search !== '' ||
+        this.filters.status !== '' ||
+        this.filters.payment_status !== '' ||
+        this.filters.franchisee_id !== '' ||
+        this.filters.date !== '' ||
+        this.filters.sortBy !== 'upcoming';
     },
     filteredOrders() {
-      return this.orders.filter(o => {
-        if (this.filters.status && o.status !== this.filters.status) return false;
+      const activeStatuses = ['pending', 'assigned', 'ongoing', 'postponed'];
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      let list = this.orders.filter(o => {
+        if (this.filters.status === 'upcoming') {
+          if (!activeStatuses.includes(o.status)) return false;
+        } else if (this.filters.status && o.status !== this.filters.status) {
+          return false;
+        }
         if (this.filters.payment_status && o.payment_status !== this.filters.payment_status) return false;
         if (this.filters.franchisee_id && String(o.franchisee_id) !== String(this.filters.franchisee_id)) return false;
         if (this.filters.date && o.booking_date !== this.filters.date) return false;
@@ -300,6 +329,59 @@ export default {
           if (!matchId && !matchName && !matchEmail && !matchPlate) return false;
         }
         return true;
+      });
+
+      // Sorting
+      const sortBy = this.filters.sortBy || 'upcoming';
+      return list.sort((a, b) => {
+        if (sortBy === 'id_desc') {
+          return b.id - a.id;
+        }
+        if (sortBy === 'id_asc') {
+          return a.id - b.id;
+        }
+        if (sortBy === 'date_desc') {
+          const dateDiff = (b.booking_date || '').localeCompare(a.booking_date || '');
+          if (dateDiff !== 0) return dateDiff;
+          const timeDiff = this.getSlotMinutes(b.slot_time) - this.getSlotMinutes(a.slot_time);
+          if (timeDiff !== 0) return timeDiff;
+          return b.id - a.id;
+        }
+        if (sortBy === 'date_asc') {
+          const dateDiff = (a.booking_date || '').localeCompare(b.booking_date || '');
+          if (dateDiff !== 0) return dateDiff;
+          const timeDiff = this.getSlotMinutes(a.slot_time) - this.getSlotMinutes(b.slot_time);
+          if (timeDiff !== 0) return timeDiff;
+          return a.id - b.id;
+        }
+
+        // Default 'upcoming': Prioritize upcoming active washes chronologically
+        const aIsActive = activeStatuses.includes(a.status);
+        const bIsActive = activeStatuses.includes(b.status);
+
+        if (aIsActive && !bIsActive) return -1;
+        if (!aIsActive && bIsActive) return 1;
+
+        if (aIsActive && bIsActive) {
+          const aIsFutureOrToday = (a.booking_date || '') >= todayStr;
+          const bIsFutureOrToday = (b.booking_date || '') >= todayStr;
+
+          if (aIsFutureOrToday && !bIsFutureOrToday) return -1;
+          if (!aIsFutureOrToday && bIsFutureOrToday) return 1;
+
+          const dateDiff = (a.booking_date || '').localeCompare(b.booking_date || '');
+          if (dateDiff !== 0) return dateDiff;
+          const timeDiff = this.getSlotMinutes(a.slot_time) - this.getSlotMinutes(b.slot_time);
+          if (timeDiff !== 0) return timeDiff;
+          return a.id - b.id;
+        }
+
+        // For past / completed / cancelled bookings, show latest completed first (DESC)
+        const dateDiff = (b.booking_date || '').localeCompare(a.booking_date || '');
+        if (dateDiff !== 0) return dateDiff;
+        const timeDiff = this.getSlotMinutes(b.slot_time) - this.getSlotMinutes(a.slot_time);
+        if (timeDiff !== 0) return timeDiff;
+        return b.id - a.id;
       });
     },
     paginatedOrders() {
@@ -327,7 +409,30 @@ export default {
   },
   methods: {
     clearFilters() {
-      this.filters = { search: '', status: '', payment_status: '', franchisee_id: '', date: '' };
+      this.filters = { search: '', status: '', payment_status: '', franchisee_id: '', date: '', sortBy: 'upcoming' };
+    },
+    toggleSortDate() {
+      if (this.filters.sortBy === 'upcoming') {
+        this.filters.sortBy = 'date_asc';
+      } else if (this.filters.sortBy === 'date_asc') {
+        this.filters.sortBy = 'date_desc';
+      } else if (this.filters.sortBy === 'date_desc') {
+        this.filters.sortBy = 'upcoming';
+      } else {
+        this.filters.sortBy = 'upcoming';
+      }
+    },
+    getSlotMinutes(slot) {
+      if (!slot) return 0;
+      const startTime = slot.split('-')[0].trim();
+      const match = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return 0;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
     },
     getAddons(o) {
       if (!o || !o.addon_services) return [];
