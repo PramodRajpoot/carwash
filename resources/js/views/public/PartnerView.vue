@@ -318,21 +318,22 @@
 
         <div class="cards-slider-container">
           <div ref="feedbackSlider" class="cards-slider-track" @scroll="onSliderScroll">
-            <div v-for="feedback in partnerFeedback" :key="feedback.id" class="card slider-card" style="padding:0;overflow:hidden">
-              <div style="height:220px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center">
-                <video
-                  v-if="feedback.video_path"
-                  :src="formatMediaUrl(feedback.video_path)"
-                  controls
-                  playsinline
-                  preload="metadata"
-                  :poster="formatMediaUrl(feedback.thumbnail_path)"
-                  style="width:100%;height:100%;object-fit:cover"
-                >
-                  <source :src="formatMediaUrl(feedback.video_path)" type="video/mp4">
-                </video>
-                <img v-else-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" style="width:100%;height:100%;object-fit:cover" />
-                <span v-else class="text-muted">No media available</span>
+            <div
+              v-for="feedback in partnerFeedback"
+              :key="feedback.id"
+              class="card feedback-card slider-card"
+              style="padding:0;overflow:hidden;cursor:pointer"
+              @click="openVideoLightbox(feedback)"
+            >
+              <div class="feedback-thumb">
+                <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" loading="lazy" />
+                <div v-else class="feedback-thumb-placeholder"></div>
+                <!-- Play button overlay -->
+                <div class="play-btn-overlay" v-if="feedback.video_path">
+                  <div class="play-btn-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                  </div>
+                </div>
               </div>
               <div style="padding:1.25rem">
                 <h4>{{ feedback.name || 'CleanAtDoorstep Partner' }}</h4>
@@ -353,6 +354,58 @@
           ></span>
         </div>
       </div>
+
+      <!-- Video Lightbox Modal (Same as Home Page) -->
+      <transition name="lightbox">
+        <div v-if="lightboxOpen" class="video-lightbox-overlay" @click.self="closeLightbox">
+          <!-- Floating ambient particles -->
+          <div class="lightbox-particle lightbox-particle-1"></div>
+          <div class="lightbox-particle lightbox-particle-2"></div>
+          <div class="lightbox-particle lightbox-particle-3"></div>
+
+          <div class="video-lightbox-content">
+            <!-- Animated gradient border glow -->
+            <div class="lightbox-glow"></div>
+
+            <button class="lightbox-close-btn" @click="closeLightbox" aria-label="Close video">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+            </button>
+
+            <div class="lightbox-video-wrapper">
+              <video
+                v-if="lightboxFeedback && lightboxFeedback.video_path"
+                :key="lightboxFeedback.id ? String(lightboxFeedback.id) + (lightboxFeedback.video_path || '') : lightboxFeedback.video_path"
+                ref="lightboxVideo"
+                :src="formatMediaUrl(lightboxFeedback.video_path)"
+                :poster="formatMediaUrl(lightboxFeedback.thumbnail_path)"
+                controls
+                autoplay
+                playsinline
+                preload="auto"
+                class="lightbox-video"
+              >
+                <source :src="formatMediaUrl(lightboxFeedback.video_path)" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+              <div v-else class="lightbox-no-video">
+                <img v-if="lightboxFeedback && lightboxFeedback.thumbnail_path" :src="formatMediaUrl(lightboxFeedback.thumbnail_path)" style="width:100%;height:100%;object-fit:cover;" />
+                <p v-else class="text-muted" style="text-align:center;padding:3rem;">No video available</p>
+              </div>
+            </div>
+
+            <div v-if="lightboxFeedback" class="lightbox-info">
+              <div class="lightbox-info-inner">
+                <div v-if="lightboxFeedback.city" class="lightbox-partner-badge">
+                  <span class="lightbox-badge-icon">📍</span>
+                  <span>{{ lightboxFeedback.city }}</span>
+                </div>
+                <h4 class="lightbox-title">{{ lightboxFeedback.name || (lightboxFeedback.city ? lightboxFeedback.city + ' Partner' : 'Partner Feedback') }}</h4>
+                <p class="lightbox-quote">"{{ lightboxFeedback.quote }}"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
     </section>
 
   </div>
@@ -372,6 +425,8 @@ export default {
       currentBannerIndex: 0,
       partnerFeedback: [],
       currentFeedbackIndex: 0,
+      lightboxOpen: false,
+      lightboxFeedback: null,
     };
   },
   methods: {
@@ -462,6 +517,32 @@ export default {
       const card = container.querySelector('.slider-card');
       const cardWidth = card ? card.offsetWidth + 24 : 340;
       this.currentFeedbackIndex = Math.max(0, Math.min(this.partnerFeedback.length - 1, Math.round(container.scrollLeft / cardWidth)));
+    },
+    openVideoLightbox(feedback) {
+      this.lightboxFeedback = feedback;
+      this.lightboxOpen = true;
+      document.body.style.overflow = 'hidden';
+      this.$nextTick(() => {
+        if (this.$refs.lightboxVideo) {
+          try {
+            this.$refs.lightboxVideo.load();
+            const p = this.$refs.lightboxVideo.play();
+            if (p && typeof p.catch === 'function') {
+              p.catch(() => {});
+            }
+          } catch (e) {}
+        }
+      });
+    },
+    closeLightbox() {
+      if (this.$refs.lightboxVideo) {
+        try {
+          this.$refs.lightboxVideo.pause();
+        } catch (e) {}
+      }
+      this.lightboxOpen = false;
+      this.lightboxFeedback = null;
+      document.body.style.overflow = '';
     },
   },
   mounted() {
@@ -664,5 +745,314 @@ export default {
 .glass-card > * {
   position: relative;
   z-index: 2;
+}
+
+/* ── Feedback Thumb & Play Button (Identical to Home page) ── */
+.feedback-thumb {
+  height: 220px;
+  background: var(--bg-card-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.feedback-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.feedback-card:hover .feedback-thumb-img {
+  transform: scale(1.05);
+}
+.feedback-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card-hover) 100%);
+}
+.play-btn-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  transition: background 0.3s ease;
+  z-index: 2;
+}
+.feedback-card:hover .play-btn-overlay {
+  background: rgba(0, 0, 0, 0.45);
+}
+.play-btn-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(6, 182, 212, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 4px;
+  transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+}
+.feedback-card:hover .play-btn-circle {
+  transform: scale(1.15);
+  background: rgba(6, 182, 212, 1);
+  box-shadow: 0 6px 30px rgba(6, 182, 212, 0.5);
+}
+
+/* ── Video Lightbox (Identical to Home page) ── */
+.video-lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: radial-gradient(ellipse at center, rgba(6, 28, 44, 0.92) 0%, rgba(0, 0, 0, 0.95) 100%);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 2rem;
+  overflow: hidden;
+}
+
+/* Floating ambient particles */
+.lightbox-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(60px);
+  opacity: 0.35;
+}
+.lightbox-particle-1 {
+  width: 300px;
+  height: 300px;
+  background: rgba(6, 182, 212, 0.4);
+  top: -80px;
+  left: -60px;
+  animation: floatParticle1 8s ease-in-out infinite;
+}
+.lightbox-particle-2 {
+  width: 200px;
+  height: 200px;
+  background: rgba(139, 92, 246, 0.35);
+  bottom: -40px;
+  right: -40px;
+  animation: floatParticle2 10s ease-in-out infinite;
+}
+.lightbox-particle-3 {
+  width: 150px;
+  height: 150px;
+  background: rgba(16, 185, 129, 0.3);
+  top: 50%;
+  right: 10%;
+  animation: floatParticle3 12s ease-in-out infinite;
+}
+@keyframes floatParticle1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, 30px) scale(1.15); }
+}
+@keyframes floatParticle2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-30px, -40px) scale(1.1); }
+}
+@keyframes floatParticle3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.25; }
+  50% { transform: translate(-20px, 20px) scale(1.2); opacity: 0.4; }
+}
+
+.video-lightbox-content {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #0c1222;
+  box-shadow:
+    0 30px 100px rgba(0, 0, 0, 0.7),
+    0 0 80px rgba(6, 182, 212, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 1;
+}
+
+/* Animated gradient glow behind the card */
+.lightbox-glow {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 22px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(6, 182, 212, 0.5),
+    rgba(139, 92, 246, 0.4),
+    rgba(16, 185, 129, 0.4),
+    rgba(245, 158, 11, 0.3),
+    rgba(6, 182, 212, 0.5)
+  );
+  z-index: -1;
+  animation: rotateGlow 4s linear infinite;
+  opacity: 0.6;
+  filter: blur(4px);
+}
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lightbox-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lightbox-close-btn:hover {
+  background: rgba(239, 68, 68, 0.7);
+  color: #fff;
+  border-color: rgba(239, 68, 68, 0.5);
+  transform: rotate(90deg) scale(1.1);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+}
+
+.lightbox-video-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  position: relative;
+}
+.lightbox-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.lightbox-no-video {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-info {
+  position: relative;
+  background: linear-gradient(180deg, #0e1629 0%, #0c1222 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.lightbox-info-inner {
+  padding: 1.25rem 1.75rem 1.5rem;
+}
+.lightbox-partner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: linear-gradient(135deg, rgba(0, 180, 255, 0.15) 0%, rgba(0, 112, 192, 0.1) 100%);
+  border: 1px solid rgba(0, 180, 255, 0.25);
+  border-radius: 20px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  letter-spacing: 0.03em;
+  margin-bottom: 0.75rem;
+}
+.lightbox-badge-icon {
+  font-size: 0.85rem;
+}
+.lightbox-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.lightbox-quote {
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Lightbox transitions */
+.lightbox-enter-active {
+  animation: lightboxOverlayIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lightbox-leave-active {
+  animation: lightboxOverlayOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes lightboxOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lightboxOverlayOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.lightbox-enter-active .video-lightbox-content {
+  animation: lightboxContentIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lightbox-leave-active .video-lightbox-content {
+  animation: lightboxContentOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes lightboxContentIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(30px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+@keyframes lightboxContentOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+}
+
+@media (max-width: 768px) {
+  .video-lightbox-overlay {
+    padding: 1rem;
+  }
+  .video-lightbox-content {
+    max-width: 100%;
+    border-radius: 14px;
+  }
+  .lightbox-glow {
+    border-radius: 16px;
+  }
+  .lightbox-info-inner {
+    padding: 1rem 1.25rem 1.25rem;
+  }
 }
 </style>
