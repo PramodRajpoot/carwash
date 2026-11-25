@@ -37,7 +37,19 @@
                 <div>{{ o.vehicle?.make_model }}</div>
                 <div style="font-size: 0.75rem; font-family: monospace;" class="text-secondary">{{ o.vehicle?.plate_number }}</div>
               </td>
-              <td>{{ o.package?.name }}</td>
+              <td>
+                <div style="font-weight: 600;">{{ o.package?.name || '-' }}</div>
+
+                <!-- Package Wash Progress / Wash Numbering for Subscriptions -->
+                <div v-if="o.package && o.package.max_bookings > 1" style="margin-top: 0.3rem;">
+                  <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.75rem; font-weight: 700; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 6px;" title="Subscription Wash Progress">
+                    <span style="color: #10b981; font-weight: 800;">{{ getWashIndex(o) }}</span>
+                    <span style="color: #94a3b8; font-weight: 600;">/</span>
+                    <span style="color: #ef4444; font-weight: 800;">{{ o.package.max_bookings }}</span>
+                    <span style="color: var(--text-muted); font-size: 0.68rem; font-weight: 500; margin-left: 2px;">Washes</span>
+                  </span>
+                </div>
+              </td>
               <td>
                 <div>{{ o.booking_date }}</div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">{{ o.slot_time }}</div>
@@ -51,7 +63,10 @@
                 </span>
               </td>
               <td>
-                <div style="font-weight: 600;">₹{{ o.total_price }}</div>
+                <div style="font-weight: 600; font-size: 0.95rem;">₹{{ getOrderPrice(o) }}</div>
+                <div v-if="isSubscriptionWash(o)" style="font-size: 0.68rem; color: var(--accent-cyan); font-weight: 600; margin-top: 2px;">
+                  📦 Plan Price
+                </div>
                 <div v-if="o.coupon_code || parseFloat(o.coupon_discount || 0) > 0" style="font-size: 0.68rem; color: var(--accent-emerald); font-weight: 600;">
                   🎟️ {{ o.coupon_code }}: -₹{{ parseFloat(o.coupon_discount || 0).toFixed(2) }}
                 </div>
@@ -523,6 +538,35 @@ export default {
         alert(e.response?.data?.message || 'Failed to update order status.');
       }
       this.submitting = false;
+    },
+    isSubscriptionWash(o) {
+      if (!o) return false;
+      return o.payment_method === 'subscription' || (o.package && (o.package.is_subscription || o.package.max_bookings > 1));
+    },
+    getOrderPrice(o) {
+      if (!o) return '0.00';
+      const total = parseFloat(o.total_price || 0);
+      if (total > 0) {
+        return total.toFixed(2);
+      }
+      // If total_price is 0 or it's a subscription plan wash, show the full subscription plan price (with GST / base package price)
+      if (this.isSubscriptionWash(o) && o.package && parseFloat(o.package.price || 0) > 0) {
+        return parseFloat(o.package.price).toFixed(2);
+      }
+      return '0.00';
+    },
+    getWashIndex(o) {
+      if (!o || !o.package || !o.package.max_bookings) return 1;
+      const max = o.package.max_bookings;
+      if (max <= 1) return 1;
+
+      const custBookings = (this.orders || [])
+        .filter(b => b.customer_id === o.customer_id && b.package_id === o.package_id && b.status !== 'cancelled')
+        .sort((a, b) => (new Date(a.created_at || a.booking_date || 0)) - (new Date(b.created_at || b.booking_date || 0)));
+
+      const idx = custBookings.findIndex(b => b.id === o.id);
+      if (idx === -1) return 1;
+      return (idx % max) + 1;
     }
   },
   mounted() {

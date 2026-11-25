@@ -87,7 +87,8 @@ class FranchiseeController extends Controller
         $orders = Booking::where('franchisee_id', $franchisee->id)
             ->where(function ($q) {
                 $q->whereIn('payment_status', ['paid', 'partially_paid'])
-                  ->orWhere('payment_method', 'cod');
+                  ->orWhere('payment_method', 'cod')
+                  ->orWhere('payment_method', 'subscription');
             })
             ->with(['customer:id,name,phone', 'vehicle', 'package', 'washer.user'])
             ->orderBy('booking_date', 'desc')
