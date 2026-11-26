@@ -348,13 +348,20 @@ class FranchiseeController extends Controller
     {
         $franchisee = $this->getFranchisee($request);
 
-        $booking = Booking::where('franchisee_id', $franchisee->id)
+        $booking = Booking::with('package')->where('franchisee_id', $franchisee->id)
             ->findOrFail($bookingId);
 
         if ($booking->status === 'completed' || $booking->status === 'cancelled') {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Completed or cancelled wash bookings cannot be edited or rescheduled.',
+            ], 422);
+        }
+
+        if ($booking->package && (int) $booking->package->max_bookings === 26) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'The 26-wash plan bookings cannot be rescheduled.',
             ], 422);
         }
 
@@ -369,6 +376,22 @@ class FranchiseeController extends Controller
             'booking_date' => 'required|date|after_or_equal:today',
             'slot_time'    => 'required|string',
         ]);
+
+        if ($booking->package && (int) $booking->package->max_bookings === 4) {
+            $conflict = Booking::where('customer_id', $booking->customer_id)
+                ->where('package_id', $booking->package_id)
+                ->where('id', '!=', $booking->id)
+                ->whereNotIn('status', ['cancelled'])
+                ->where('booking_date', $request->booking_date)
+                ->exists();
+
+            if ($conflict) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Another wash is already booked for this customer on ' . $request->booking_date . '. You cannot reschedule to this date in a 4-wash plan.',
+                ], 422);
+            }
+        }
 
         $booking->update([
             'booking_date' => $request->booking_date,

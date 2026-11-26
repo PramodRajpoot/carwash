@@ -145,7 +145,23 @@
                 <!-- Cancelled: No options at all -->
                 <span v-if="o.status === 'cancelled'" class="text-muted" style="font-size: 0.85rem;">—</span>
 
-                <!-- Completed / Active: Actions dropdown (Completed has only Download Invoice) -->
+                <!-- 26-wash plan: When not completed, no actions available yet -->
+                <span v-else-if="is26WashPlan(o) && o.status !== 'completed'" class="text-muted" style="font-size: 0.85rem;" title="Invoice available upon completion">—</span>
+
+                <!-- 26-wash plan (completed): 1 option -> Download Invoice -->
+                <select v-else-if="is26WashPlan(o) && o.status === 'completed'" class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
+                  <option value="">-- Actions --</option>
+                  <option value="invoice">Download Invoice</option>
+                </select>
+
+                <!-- 4-wash plan: 2 options -> Edit (if not completed) & Download Invoice -->
+                <select v-else-if="is4WashPlan(o)" class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
+                  <option value="">-- Actions --</option>
+                  <option value="edit" v-if="o.status !== 'completed'">Edit</option>
+                  <option value="invoice">Download Invoice</option>
+                </select>
+
+                <!-- Regular / All other plans -->
                 <select v-else class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
                   <option value="">-- Actions --</option>
                   <option value="edit" v-if="o.status !== 'completed'">Edit</option>
@@ -457,6 +473,20 @@ export default {
       const idx = custBookings.findIndex(b => b.id === o.id);
       if (idx === -1) return 1;
       return (idx % max) + 1;
+    },
+    is4WashPlan(o) {
+      if (!o) return false;
+      const max = Number(o.package?.max_bookings || 0);
+      if (max === 4) return true;
+      if (o.package?.name && /4[\s-]*(wash|slot)/i.test(o.package.name)) return true;
+      return false;
+    },
+    is26WashPlan(o) {
+      if (!o) return false;
+      const max = Number(o.package?.max_bookings || 0);
+      if (max === 26) return true;
+      if (o.package?.name && /26[\s-]*(wash|slot)/i.test(o.package.name)) return true;
+      return false;
     },
     statusBadge(s) {
       return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan';

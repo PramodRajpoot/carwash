@@ -315,7 +315,7 @@ class SuperAdminController extends Controller
 
     public function rescheduleOrder(Request $request, $id)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = Booking::with('package')->findOrFail($id);
 
         if ($booking->status === 'completed' || $booking->status === 'cancelled') {
             return response()->json([
@@ -324,10 +324,33 @@ class SuperAdminController extends Controller
             ], 422);
         }
 
+        if ($booking->package && (int) $booking->package->max_bookings === 26) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'The 26-wash plan bookings cannot be rescheduled.',
+            ], 422);
+        }
+
         $request->validate([
             'booking_date' => 'required|date|after_or_equal:today',
             'slot_time'    => 'required|string'
         ]);
+
+        if ($booking->package && (int) $booking->package->max_bookings === 4) {
+            $conflict = Booking::where('customer_id', $booking->customer_id)
+                ->where('package_id', $booking->package_id)
+                ->where('id', '!=', $booking->id)
+                ->whereNotIn('status', ['cancelled'])
+                ->where('booking_date', $request->booking_date)
+                ->exists();
+
+            if ($conflict) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Another wash is already booked for this customer on ' . $request->booking_date . '. You cannot reschedule to this date in a 4-wash plan.',
+                ], 422);
+            }
+        }
 
         $booking->update([
             'booking_date' => $request->booking_date,
@@ -340,12 +363,19 @@ class SuperAdminController extends Controller
 
     public function changePlan(Request $request, $id)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = Booking::with('package')->findOrFail($id);
 
         if ($booking->status === 'completed' || $booking->status === 'cancelled') {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Completed or cancelled bookings cannot be edited.',
+            ], 422);
+        }
+
+        if ($booking->package && in_array((int) $booking->package->max_bookings, [4, 26], true)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Subscription plan bookings cannot be changed or customized.',
             ], 422);
         }
 

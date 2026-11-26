@@ -154,7 +154,23 @@
                 <!-- Cancelled: No options at all -->
                 <span v-if="o.status === 'cancelled'" class="text-muted" style="font-size: 0.85rem;">—</span>
 
-                <!-- Completed / Active: Actions dropdown (Completed has only Download Invoice) -->
+                <!-- 26-wash plan: When not completed, no actions available yet -->
+                <span v-else-if="is26WashPlan(o) && o.status !== 'completed'" class="text-muted" style="font-size: 0.85rem;" title="Invoice available upon completion">—</span>
+
+                <!-- 26-wash plan (completed): 1 option -> Download Invoice -->
+                <select v-else-if="is26WashPlan(o) && o.status === 'completed'" class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
+                  <option value="">-- Actions --</option>
+                  <option value="invoice">Download Invoice</option>
+                </select>
+
+                <!-- 4-wash plan: 2 options -> Reschedule (if not completed) & Download Invoice -->
+                <select v-else-if="is4WashPlan(o)" class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
+                  <option value="">-- Actions --</option>
+                  <option value="reschedule" v-if="o.status !== 'completed'">Reschedule</option>
+                  <option value="invoice">Download Invoice</option>
+                </select>
+
+                <!-- Regular / All other plans -->
                 <select v-else class="form-select" style="padding: 0.25rem; font-size: 0.8rem; width: 130px;" @change="handleAction($event, o)">
                   <option value="">-- Actions --</option>
                   <option value="assign" v-if="o.status !== 'completed'">Assign Center</option>
@@ -312,10 +328,18 @@
     <div v-if="rescheduleModalOrder" class="modal-overlay" @click.self="rescheduleModalOrder = null">
       <div class="modal-content">
         <h3>Reschedule Order #{{ rescheduleModalOrder.id }}</h3>
+
+        <!-- Notice for 4-wash plan -->
+        <div v-if="is4WashPlan(rescheduleModalOrder) && blockedRescheduleDates.length" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.82rem; color: #f87171;">
+          <div style="font-weight: 700; margin-bottom: 4px;">⚠️ 4-Wash Plan Reschedule Restriction:</div>
+          <div>Another wash is already booked on: <strong>{{ blockedRescheduleDates.join(', ') }}</strong>.</div>
+          <div style="font-size: 0.76rem; margin-top: 4px; color: var(--text-muted);">You cannot reschedule this wash to any of these dates.</div>
+        </div>
+
         <form @submit.prevent="submitReschedule">
           <div class="form-group">
             <label>New Date</label>
-            <input v-model="rescheduleForm.booking_date" type="date" class="form-input" :min="minDate" required />
+            <input v-model="rescheduleForm.booking_date" type="date" class="form-input" :min="minDate" required @change="onRescheduleDateChange" />
           </div>
           <div class="form-group">
             <label>New Time Slot</label>
@@ -486,6 +510,7 @@ export default {
 
       rescheduleModalOrder: null,
       rescheduleForm: { booking_date: '', slot_time: '' },
+      blockedRescheduleDates: [],
 
       changePlanModalOrder: null,
       changePlanForm: { package_id: '', total_price: 0, addons: [] }
@@ -650,6 +675,24 @@ export default {
         }
       }
 
+      if (this.is26WashPlan(o) && action !== 'invoice') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Action Not Allowed',
+          text: '26-wash plan only allows invoice download once service is completed.'
+        });
+        return;
+      }
+
+      if (this.is4WashPlan(o) && !['reschedule', 'invoice'].includes(action)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Action Not Allowed',
+          text: '4-wash plan only allows Reschedule and Download Invoice.'
+        });
+        return;
+      }
+
       if (action === 'assign') {
         this.openAssignModal(o);
       } else if (action === 'reschedule') {
@@ -713,6 +756,20 @@ export default {
       const idx = custBookings.findIndex(b => b.id === o.id);
       if (idx === -1) return 1;
       return (idx % max) + 1;
+    },
+    is4WashPlan(o) {
+      if (!o) return false;
+      const max = Number(o.package?.max_bookings || 0);
+      if (max === 4) return true;
+      if (o.package?.name && /4[\s-]*(wash|slot)/i.test(o.package.name)) return true;
+      return false;
+    },
+    is26WashPlan(o) {
+      if (!o) return false;
+      const max = Number(o.package?.max_bookings || 0);
+      if (max === 26) return true;
+      if (o.package?.name && /26[\s-]*(wash|slot)/i.test(o.package.name)) return true;
+      return false;
     },
     statusBadge(s) {
       return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan';
@@ -799,8 +856,38 @@ export default {
         booking_date: (o.booking_date && o.booking_date >= this.minDate) ? o.booking_date : this.minDate,
         slot_time: o.slot_time
       };
+
+      if (this.is4WashPlan(o)) {
+        this.blockedRescheduleDates = (this.orders || [])
+          .filter(b => b.id !== o.id && b.customer_id === o.customer_id && b.package_id === o.package_id && b.status !== 'cancelled')
+          .map(b => b.booking_date)
+          .filter(Boolean);
+      } else {
+        this.blockedRescheduleDates = [];
+      }
+    },
+    onRescheduleDateChange() {
+      if (this.is4WashPlan(this.rescheduleModalOrder) && this.rescheduleForm.booking_date) {
+        if (this.blockedRescheduleDates.includes(this.rescheduleForm.booking_date)) {
+          const bookedDate = this.rescheduleForm.booking_date;
+          this.rescheduleForm.booking_date = '';
+          Swal.fire({
+            icon: 'warning',
+            title: 'Date Already Booked',
+            text: `Another wash for this 4-wash plan is already scheduled on ${bookedDate}. You cannot select this date.`
+          });
+        }
+      }
     },
     async submitReschedule() {
+      if (this.is4WashPlan(this.rescheduleModalOrder) && this.blockedRescheduleDates.includes(this.rescheduleForm.booking_date)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Date Already Booked',
+          text: `Another wash for this 4-wash plan is already scheduled on ${this.rescheduleForm.booking_date}. You cannot select this date.`
+        });
+        return;
+      }
       this.submitting = true;
       try {
         await axios.put(`/api/super-admin/orders/${this.rescheduleModalOrder.id}/reschedule`, this.rescheduleForm);
