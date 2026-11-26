@@ -549,9 +549,11 @@ export default {
       if (total > 0) {
         return total.toFixed(2);
       }
-      // If total_price is 0 or it's a subscription plan wash, show the full subscription plan price (with GST / base package price)
+      // If total_price is 0 or it's a subscription plan wash, show the full subscription plan price (with GST)
       if (this.isSubscriptionWash(o) && o.package && parseFloat(o.package.price || 0) > 0) {
-        return parseFloat(o.package.price).toFixed(2);
+        const base = parseFloat(o.package.price);
+        const gst = Math.round(base * 0.18);
+        return (base + gst).toFixed(2);
       }
       return '0.00';
     },

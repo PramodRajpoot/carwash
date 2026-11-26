@@ -129,7 +129,7 @@
                 <div style="font-size: 0.75rem; color: var(--text-muted);">{{ o.slot_time }}</div>
               </td>
               <td>
-                <div style="font-weight:600; color:var(--text-primary);">₹{{ o.total_price }}</div>
+                <div style="font-weight:600; color:var(--text-primary);">₹{{ getOrderPrice(o) }}</div>
                 <div v-if="o.coupon_code || parseFloat(o.coupon_discount || 0) > 0" style="font-size: 0.68rem; color: var(--accent-emerald); font-weight: 600;">
                   🎟️ {{ o.coupon_code }}: -₹{{ parseFloat(o.coupon_discount || 0).toFixed(2) }}
                 </div>
@@ -473,6 +473,19 @@ export default {
       const idx = custBookings.findIndex(b => b.id === o.id);
       if (idx === -1) return 1;
       return (idx % max) + 1;
+    },
+    getOrderPrice(o) {
+      if (!o) return '0.00';
+      const total = parseFloat(o.total_price || 0);
+      if (total > 0) return total.toFixed(2);
+      if (o.package && (o.package.is_subscription || [4, 26].includes(Number(o.package.max_bookings)) || o.payment_method === 'subscription')) {
+        const base = parseFloat(o.package.price || 0);
+        if (base > 0) {
+          const gst = Math.round(base * 0.18);
+          return (base + gst).toFixed(2);
+        }
+      }
+      return '0.00';
     },
     is4WashPlan(o) {
       if (!o) return false;

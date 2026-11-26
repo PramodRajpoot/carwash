@@ -289,6 +289,10 @@ class CashfreeController extends Controller
                                     ->exists();
 
                                 if (!$exists) {
+                                    $subPkgPrice = (float) ($subscription->package->price ?? 0);
+                                    $subGstAmount = (float) round($subPkgPrice * 0.18);
+                                    $subTotalPrice = (float) round($subPkgPrice + $subGstAmount);
+
                                     Booking::create([
                                         'customer_id' => $subscription->customer_id,
                                         'vehicle_id' => $vehicle->id,
@@ -301,10 +305,10 @@ class CashfreeController extends Controller
                                         'payment_status' => 'paid',
                                         'payment_method' => 'subscription',
                                         'payment_type' => 'full',
-                                        'advance_amount' => 0,
-                                        'paid_amount' => 0,
-                                        'total_price' => 0,
-                                        'gst_amount' => 0,
+                                        'advance_amount' => $subTotalPrice,
+                                        'paid_amount' => $subTotalPrice,
+                                        'total_price' => $subTotalPrice,
+                                        'gst_amount' => $subGstAmount,
                                     ]);
                                     \App\Http\Controllers\BookingController::syncSlotBookings($franchisee->id, $bookingDate, $slotTime);
                                 }

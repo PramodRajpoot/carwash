@@ -46,7 +46,7 @@
                 </div>
               </div>
             </td>
-            <td>₹{{ (parseFloat(b.total_price) + parseFloat(b.coupon_discount || 0) + parseFloat(b.epoints_used || 0) + parseFloat(b.earning_money_used || 0)).toFixed(2) }}</td>
+            <td>₹{{ getBookingTotalPrice(b).toFixed(2) }}</td>
             <td>
               <div v-if="b.payment_type === 'partial'">
                 <span style="font-weight: 700; color: var(--accent-cyan); font-size: 0.88rem;">₹{{ parseFloat(b.advance_amount || 99).toFixed(2) }}</span>
@@ -73,17 +73,21 @@
             </td>
             <td style="font-weight: 600; color: var(--text-primary);">
               <div>
-                ₹{{ (b.payment_status === 'paid' ? parseFloat(b.total_price) : parseFloat(b.paid_amount || 0)).toFixed(2) }}
+                ₹{{ getBookingAmountPaid(b).toFixed(2) }}
               </div>
-              <div v-if="parseFloat(b.total_price) > 0" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 2px;">
-                Total: ₹{{ parseFloat(b.total_price).toFixed(2) }} <span style="font-size: 0.68rem; color: #6366f1; font-weight: 600;">(incl. 18% GST)</span>
+              <div v-if="getBookingTotalPrice(b) > 0" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 2px;">
+                Total: ₹{{ getBookingTotalPrice(b).toFixed(2) }} <span style="font-size: 0.68rem; color: #6366f1; font-weight: 600;">(incl. 18% GST)</span>
               </div>
-              <div v-if="b.payment_status === 'partially_paid'" style="font-size: 0.72rem; color: var(--accent-amber); font-weight: 600; margin-top: 2px;">
+              <div v-if="!isSubscriptionWash(b) && b.payment_status === 'partially_paid'" style="font-size: 0.72rem; color: var(--accent-amber); font-weight: 600; margin-top: 2px;">
                 ₹{{ (parseFloat(b.total_price) - parseFloat(b.paid_amount || 0)).toFixed(2) }} Due
+              </div>
+              <div v-else-if="isSubscriptionWash(b)" style="font-size: 0.68rem; color: var(--accent-emerald); font-weight: 600; margin-top: 2px;">
+                (Paid via Subscription)
               </div>
             </td>
             <td>
-              <span v-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid (Slot Booked)</span>
+              <span v-if="isSubscriptionWash(b)" class="badge badge-emerald" style="font-size:0.7rem;" title="Paid via Subscription Package">✓ Paid (Subscription)</span>
+              <span v-else-if="b.payment_status === 'paid'" class="badge badge-emerald" style="font-size:0.7rem;">✓ Paid (Slot Booked)</span>
               <template v-else-if="b.payment_status === 'partially_paid' || parseFloat(b.paid_amount || 0) >= 99">
                 <span class="badge badge-cyan" style="font-size:0.7rem;">₹{{ parseFloat(b.paid_amount || 0).toFixed(0) }} Paid (Slot Booked)</span>
                 <div style="margin-top: 3px;">
@@ -1006,6 +1010,49 @@ export default {
       const idx = custBookings.findIndex(x => x.id === b.id);
       if (idx === -1) return 1;
       return (idx % max) + 1;
+    },
+    isSubscriptionWash(b) {
+      if (!b) return false;
+      return b.payment_method === 'subscription' || (b.package && (b.package.is_subscription || [4, 26].includes(Number(b.package.max_bookings))));
+    },
+    getSubscriptionPrice(b) {
+      if (!b || !b.package) return 0;
+      const basePrice = parseFloat(b.package.price || 0);
+      if (basePrice <= 0) return 0;
+      const gst = Math.round(basePrice * 0.18);
+      return basePrice + gst;
+    },
+    getBookingTotalPrice(b) {
+      if (!b) return 0;
+      const total = parseFloat(b.total_price || 0);
+      if (total > 0) {
+        return total + parseFloat(b.coupon_discount || 0) + parseFloat(b.epoints_used || 0) + parseFloat(b.earning_money_used || 0);
+      }
+      if (this.isSubscriptionWash(b)) {
+        return this.getSubscriptionPrice(b);
+      }
+      return 0;
+    },
+    getBookingAmountPaid(b) {
+      if (!b) return 0;
+      const total = parseFloat(b.total_price || 0);
+      const paid = parseFloat(b.paid_amount || 0);
+      if (b.payment_status === 'paid') {
+        if (total > 0) return total;
+        if (this.isSubscriptionWash(b)) return this.getSubscriptionPrice(b);
+        if (paid > 0) return paid;
+      }
+      if (this.isSubscriptionWash(b)) {
+        return this.getSubscriptionPrice(b);
+      }
+      return paid;
+    },
+    getOrderPrice(b) {
+      if (!b) return '0.00';
+      const total = parseFloat(b.total_price || 0);
+      if (total > 0) return total.toFixed(2);
+      if (this.isSubscriptionWash(b)) return this.getSubscriptionPrice(b).toFixed(2);
+      return '0.00';
     },
     isAddonSelected(id) { return this.bf.addon_ids.includes(id); },
     toggleAddon(pkg) {

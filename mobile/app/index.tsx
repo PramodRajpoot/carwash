@@ -427,7 +427,7 @@ export default function HomeScreen() {
           <View style={styles.brandRow}>
             <View style={styles.headerLogoContainer}>
               <Image
-                source={require('../assets/images/icon.png')}
+                source={require('../assets/images/carawashlogo.png')}
                 style={styles.headerLogo}
                 resizeMode="contain"
               />
@@ -1212,22 +1212,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   headerLogoContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: '#e0f2fe',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 6,
-    shadowColor: '#0ea5e9',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
   headerLogo: {
-    width: 20,
-    height: 20,
+    width: 32,
+    height: 24,
   },
   brandTitleText: {
     fontSize: 15,

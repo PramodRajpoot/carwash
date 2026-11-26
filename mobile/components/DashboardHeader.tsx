@@ -193,7 +193,7 @@ export default function DashboardHeader({
       <View style={styles.brandRow}>
         <View style={styles.headerLogoContainer}>
           <Image
-            source={require('../assets/images/icon.png')}
+            source={require('../assets/images/carawashlogo.png')}
             style={styles.headerLogo}
             resizeMode="contain"
           />
@@ -428,22 +428,14 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   headerLogoContainer: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: '#e0f2fe',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
-    shadowColor: '#0ea5e9',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
   },
   headerLogo: {
-    width: 22,
-    height: 22,
+    width: 34,
+    height: 26,
   },
   brandTextWrap: {
     flex: 1,

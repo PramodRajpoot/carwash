@@ -48,12 +48,21 @@
         // Taxable subtotal and GST
         $gstAmount = (float)($booking->gst_amount ?? 0);
         $totalPrice = (float)$booking->total_price;
-        if ($gstAmount > 0) {
+        $isSub = $booking->payment_method === 'subscription' || ($booking->package && ($booking->package->is_subscription || in_array((int)$booking->package->max_bookings, [4, 26], true)));
+
+        if ($isSub && $totalPrice <= 0 && $basePrice > 0) {
+            $gstAmount = round($basePrice * 0.18, 2);
+            $totalPrice = round($basePrice + $gstAmount, 2);
+            $taxableSubtotal = $basePrice;
+            $cgst = round($gstAmount / 2, 2);
+            $sgst = round($gstAmount - $cgst, 2);
+            $booking->paid_amount = $totalPrice;
+        } elseif ($gstAmount > 0) {
             $taxableSubtotal = max(0, $totalPrice - $gstAmount);
             $cgst = round($gstAmount / 2, 2);
             $sgst = round($gstAmount - $cgst, 2);
         } else {
-            if ($booking->payment_method !== 'subscription' && $totalPrice > 0) {
+            if ($totalPrice > 0) {
                 $taxableSubtotal = round($totalPrice / 1.18, 2);
                 $gstAmount = round($totalPrice - $taxableSubtotal, 2);
                 $cgst = round($gstAmount / 2, 2);

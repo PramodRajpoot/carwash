@@ -69,7 +69,9 @@ interface BookingItem {
   package?: {
     id: number;
     name: string;
+    price?: number | string;
     max_bookings?: number;
+    is_subscription?: boolean | number;
     description?: string;
   };
   franchisee?: {
@@ -440,6 +442,27 @@ export default function BookingsScreen() {
     }
   };
 
+  const isSubscriptionWash = useCallback((b: BookingItem) => {
+    if (!b) return false;
+    return (
+      b.payment_method === 'subscription' ||
+      (b.package && (Boolean(b.package.is_subscription) || [4, 26].includes(Number(b.package.max_bookings))))
+    );
+  }, []);
+
+  const getOrderPrice = useCallback((b: BookingItem) => {
+    const total = parseFloat(String(b.total_price || 0));
+    if (total > 0) return total.toFixed(2);
+    if (isSubscriptionWash(b) && b.package) {
+      const base = parseFloat(String(b.package.price || 0));
+      if (base > 0) {
+        const gst = Math.round(base * 0.18);
+        return (base + gst).toFixed(2);
+      }
+    }
+    return '0.00';
+  }, [isSubscriptionWash]);
+
   // Check if user paid only 99 rupees (partial advance payment)
   const isOnly99Paid = useCallback((b: BookingItem) => {
     const paid = parseFloat(String(b.paid_amount || 0));
@@ -640,6 +663,13 @@ export default function BookingsScreen() {
   };
 
   const renderPaymentBadge = (b: BookingItem) => {
+    if (isSubscriptionWash(b)) {
+      return (
+        <View style={[styles.payBadge, styles.payBadgePaid]}>
+          <Text style={styles.payBadgePaidText}>Paid • Subscription</Text>
+        </View>
+      );
+    }
     if (b.payment_status === 'paid') {
       return (
         <View style={[styles.payBadge, styles.payBadgePaid]}>
@@ -981,7 +1011,7 @@ export default function BookingsScreen() {
                             Total Amount
                           </Text>
                           <Text style={[styles.priceValue, isDark && styles.darkText]}>
-                            ₹{parseFloat(String(b.total_price || 0)).toFixed(2)}
+                            ₹{getOrderPrice(b)}
                           </Text>
                         </View>
 

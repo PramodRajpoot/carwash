@@ -449,16 +449,26 @@ class BookingController extends Controller
             }
         }
 
-        // Calculate 18% GST on taxable subtotal (unless subscription booking)
-        $taxableSubtotal = max(0, (float)$price);
-        $gstAmount = ($request->payment_method === 'subscription') ? 0.00 : (float) round($taxableSubtotal * 0.18);
-        $totalPrice = (float) round($taxableSubtotal + $gstAmount);
+        // Calculate 18% GST on taxable subtotal
+        if ($request->payment_method === 'subscription') {
+            $taxableSubtotal = (float) ($package->price ?? 0);
+            $gstAmount = (float) round($taxableSubtotal * 0.18);
+            $totalPrice = (float) round($taxableSubtotal + $gstAmount);
+            $paidAmount = $totalPrice;
+            $advanceAmount = $totalPrice;
+            $paymentStatus = 'paid';
+        } else {
+            $taxableSubtotal = max(0, (float)$price);
+            $gstAmount = (float) round($taxableSubtotal * 0.18);
+            $totalPrice = (float) round($taxableSubtotal + $gstAmount);
+            $paidAmount = 0.00;
+        }
 
         // Determine payment type and advance amount
         $paymentType = 'full';
         $advanceAmount = $totalPrice;
         $paymentMethod = $request->payment_method;
-        if ($request->input('payment_type') === 'partial' && $totalPrice > 99) {
+        if ($request->input('payment_type') === 'partial' && $totalPrice > 99 && $request->payment_method !== 'subscription') {
             $paymentType = 'partial';
             $advanceAmount = 99.00;
             if ($request->filled('remaining_payment_method')) {
@@ -493,7 +503,7 @@ class BookingController extends Controller
             'payment_method' => $paymentMethod,
             'payment_type' => $paymentType,
             'advance_amount' => $advanceAmount,
-            'paid_amount' => 0.00,
+            'paid_amount' => $paidAmount,
             'total_price' => $totalPrice,
             'gst_amount' => $gstAmount,
             'addon_price' => $addonPrice,

@@ -173,4 +173,46 @@ class BookingGstAndInvoiceTest extends TestCase
         $response = $this->actingAs($this->customer, 'sanctum')->get("/api/bookings/{$booking->id}/invoice");
         $response->assertStatus(404);
     }
+
+    public function test_customer_dashboard_returns_subscription_wash_with_gst_price()
+    {
+        $subPackage = ServicePackage::create([
+            'name' => 'Monthly Wash Package',
+            'vehicle_type' => 'sedan',
+            'price' => 1312.00,
+            'max_bookings' => 4,
+            'is_subscription' => true,
+            'status' => 'active',
+        ]);
+
+        $subBooking = Booking::create([
+            'customer_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'franchisee_id' => $this->franchisee->id,
+            'package_id' => $subPackage->id,
+            'booking_date' => now()->addDays(2)->toDateString(),
+            'slot_time' => '09:00 AM - 11:00 AM',
+            'address' => '123 Customer Home',
+            'status' => 'pending',
+            'payment_status' => 'paid',
+            'payment_method' => 'subscription',
+            'payment_type' => 'full',
+            'total_price' => 0.00,
+            'gst_amount' => 0.00,
+            'paid_amount' => 0.00,
+        ]);
+
+        $response = $this->actingAs($this->customer, 'sanctum')->getJson('/api/customer/dashboard');
+        $response->assertStatus(200);
+
+        $services = collect($response->json('upcoming_services'));
+        $found = $services->firstWhere('id', $subBooking->id);
+        $this->assertNotNull($found);
+
+        // 1312 + 18% GST (236) = 1548
+        $this->assertEquals(1548.0, (float)$found['total_price']);
+        $this->assertEquals(236.0, (float)$found['gst_amount']);
+        $this->assertEquals(1548.0, (float)$found['paid_amount']);
+    }
 }
+

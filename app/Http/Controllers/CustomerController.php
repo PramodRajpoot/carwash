@@ -49,7 +49,23 @@ class CustomerController extends Controller
             $upcomingServicesQuery->limit((int) $limit);
         }
 
-        $upcomingServices = $upcomingServicesQuery->get();
+        $upcomingServices = $upcomingServicesQuery->get()->map(function ($booking) {
+            $isSub = $booking->payment_method === 'subscription' 
+                || ($booking->package && ($booking->package->is_subscription || in_array((int)$booking->package->max_bookings, [4, 26], true)));
+
+            if ($isSub && ((float)$booking->total_price <= 0 || (float)$booking->paid_amount <= 0)) {
+                $base = (float)($booking->package->price ?? 0);
+                if ($base > 0) {
+                    $gst = (float)round($base * 0.18);
+                    $total = (float)round($base + $gst);
+                    $booking->total_price = (string)$total;
+                    $booking->gst_amount = (string)$gst;
+                    $booking->paid_amount = (string)$total;
+                    $booking->advance_amount = (string)$total;
+                }
+            }
+            return $booking;
+        });
         $totalBookings = Booking::where('customer_id', $user->id)
             ->where(function ($q) {
                 $q->where('payment_status', 'paid')

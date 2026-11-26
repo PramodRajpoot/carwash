@@ -690,7 +690,7 @@ export default function ServicesScreen() {
         <View style={[styles.splashContainer, !isDark && styles.containerLight]}>
           <View style={styles.splashBadge}>
             <Image 
-              source={require('../assets/images/icon.png')} 
+              source={require('../assets/images/carawashlogo.png')} 
               style={styles.splashLogo}
               resizeMode="contain"
             />
@@ -711,7 +711,7 @@ export default function ServicesScreen() {
         <View style={styles.brandRow}>
           <View style={styles.headerLogoContainer}>
             <Image
-              source={require('../assets/images/icon.png')}
+              source={require('../assets/images/logo.png')}
               style={styles.headerLogo}
               resizeMode="contain"
             />
@@ -1185,19 +1185,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#080c15',
   },
   splashBadge: {
-    width: 90,
-    height: 90,
-    borderRadius: 24,
-    backgroundColor: 'rgba(14, 165, 233, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(14, 165, 233, 0.3)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
   splashLogo: {
-    width: 56,
-    height: 56,
+    width: 100,
+    height: 58,
   },
   loaderText: {
     color: '#94a3b8',
@@ -1237,19 +1232,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerLogoContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.18)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerLogo: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
+    width: 34,
+    height: 26,
   },
   headerTitle: {
     color: '#0f172a',

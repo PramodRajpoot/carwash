@@ -375,7 +375,7 @@ export default function LoginScreen() {
           <View style={styles.header}>
             <View style={[styles.logoBadge, isDark && styles.darkLogoBadge]}>
               <Image
-                source={require('../assets/images/icon.png')}
+                source={require('../assets/images/carawashlogo.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -925,23 +925,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: 20,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
+    marginBottom: 8,
   },
   darkLogoBadge: {
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    borderColor: 'rgba(34, 197, 94, 0.25)',
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
   },
   logoImage: {
-    width: 44,
-    height: 44,
+    width: 100,
+    height: 58,
   },
   brandTitle: {
     fontSize: 22,

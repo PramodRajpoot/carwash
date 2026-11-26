@@ -309,7 +309,7 @@ export default function RegisterScreen() {
           <View style={styles.header}>
             <View style={[styles.logoBadge, isDark && styles.darkLogoBadge]}>
               <Image
-                source={require('../assets/images/icon.png')}
+                source={require('../assets/images/carawashlogo.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -716,23 +716,18 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
+    marginBottom: 8,
   },
   darkLogoBadge: {
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    borderColor: 'rgba(34, 197, 94, 0.25)',
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
   },
   logoImage: {
-    width: 42,
-    height: 42,
+    width: 100,
+    height: 58,
   },
   brandTitle: {
     fontSize: 22,
