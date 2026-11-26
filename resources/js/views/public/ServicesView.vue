@@ -211,6 +211,7 @@
 
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 export default {
   name: 'ServicesView',
@@ -316,6 +317,15 @@ export default {
     },
 
     setCategory(cat) {
+      if (cat === 'home_cleaning') {
+        Swal.fire({
+          title: 'Coming Soon',
+          text: 'Home Cleaning service is coming soon!',
+          icon: 'info',
+          confirmButtonColor: '#0099ff'
+        });
+        return;
+      }
       this.activeCategory = cat;
       this.activeSubFilter = 'all';
     },
@@ -383,6 +393,15 @@ export default {
 
     bookService(pkg) {
       const isHome = this.isHomeCleaning(pkg);
+      if (isHome) {
+        Swal.fire({
+          title: 'Coming Soon',
+          text: 'Home Cleaning service is coming soon!',
+          icon: 'info',
+          confirmButtonColor: '#0099ff'
+        });
+        return;
+      }
       const catParam = isHome ? 'home_cleaning' : 'carwash';
       const token = localStorage.getItem('auth_token');
 
@@ -410,7 +429,13 @@ export default {
     if (this.$route.query.category) {
       const cat = String(this.$route.query.category).toLowerCase();
       if (cat.includes('home')) {
-        this.activeCategory = 'home_cleaning';
+        Swal.fire({
+          title: 'Coming Soon',
+          text: 'Home Cleaning service is coming soon!',
+          icon: 'info',
+          confirmButtonColor: '#0099ff'
+        });
+        this.activeCategory = 'all';
       } else if (cat.includes('car')) {
         this.activeCategory = 'carwash';
       }

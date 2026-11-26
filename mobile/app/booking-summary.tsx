@@ -27,6 +27,7 @@ import { safeHapticLight, safeHapticMedium, safeHapticSuccess, safeHapticWarning
 import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import { useAppTheme } from '../utils/themeManager';
+import { WaterElectricityCard, WaterElectricityModal } from '../components/WaterElectricitySection';
 
 const WebViewComponent: any = WebView;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -136,6 +137,8 @@ export default function BookingSummaryScreen() {
   // Payment Selection: Defaults to partial (₹99 online advance)
   const [paymentType, setPaymentType] = useState<'partial' | 'full'>('partial');
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const [hasWaterElectricity, setHasWaterElectricity] = useState<boolean>(true);
+  const [waterElecModalVisible, setWaterElecModalVisible] = useState<boolean>(false);
 
   // Cashfree Payment & Submission
   const [submitting, setSubmitting] = useState(false);
@@ -595,6 +598,10 @@ export default function BookingSummaryScreen() {
 
   // Submit Booking & Initiate Online Payment
   const handleConfirmBooking = async () => {
+    if (isHomeCleaning) {
+      showSweetAlert('Coming Soon', 'Home Cleaning service is coming soon!', 'info');
+      return;
+    }
     if (!isHomeCleaning && !selectedVehicle?.id) {
       showSweetAlert('Vehicle Required', 'Please select or add a vehicle.', 'warning');
       return;
@@ -630,6 +637,11 @@ export default function BookingSummaryScreen() {
       return;
     }
 
+    if (!hasWaterElectricity) {
+      setWaterElecModalVisible(true);
+      return;
+    }
+
     safeHapticMedium();
     setSubmitting(true);
     setErrorMsg('');
@@ -649,6 +661,7 @@ export default function BookingSummaryScreen() {
         coupon_code: couponDiscount > 0 ? couponCode.trim().toUpperCase() : null,
         use_epoints: canUsePoints ? useEPoints : false,
         use_earning_money: canUsePoints ? useEarningMoney : false,
+        has_water_electricity: true,
       };
 
       const res = await axios.post(`${API_BASE}/api/bookings`, payload, {
@@ -661,7 +674,7 @@ export default function BookingSummaryScreen() {
         // If online payment is required, initialize Cashfree
         if (booking && calculatedTotal > 0) {
           try {
-            const orderPayload: any = { booking_id: booking.id };
+            const orderPayload: any = { booking_id: booking.id, has_water_electricity: true };
             if (paymentType === 'full') {
               orderPayload.payment_split = 'full';
             }
@@ -1523,6 +1536,14 @@ export default function BookingSummaryScreen() {
             )}
           </View>
 
+          {/* SECTION 5.5: WATER & ELECTRICITY AVAILABILITY */}
+          <WaterElectricityCard
+            value={hasWaterElectricity}
+            onChange={setHasWaterElectricity}
+            onRequestWarning={() => setWaterElecModalVisible(true)}
+            isDark={isDark}
+          />
+
           {/* SECTION 6: PAYMENT OPTIONS & ₹99 ONLINE ADVANCE */}
           <View style={[styles.modernCard, isDark && styles.darkCard]}>
             <View style={styles.cardHeaderRow}>
@@ -1882,6 +1903,13 @@ export default function BookingSummaryScreen() {
           />
         </SafeAreaView>
       </Modal>
+
+      {/* Water & Electricity Warning Modal */}
+      <WaterElectricityModal
+        visible={waterElecModalVisible}
+        onClose={() => setWaterElecModalVisible(false)}
+        isDark={isDark}
+      />
     </SafeAreaView>
   );
 }

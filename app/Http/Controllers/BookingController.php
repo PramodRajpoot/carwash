@@ -230,6 +230,7 @@ class BookingController extends Controller
             'use_earning_money' => 'nullable|boolean',
             'payment_type' => 'nullable|string|in:full,partial',
             'remaining_payment_method' => 'nullable|string|in:online,cod',
+            'has_water_electricity' => 'nullable|boolean',
         ]);
 
         $vehicle = Vehicle::where('customer_id', $user->id)->findOrFail($request->vehicle_id);
@@ -501,6 +502,7 @@ class BookingController extends Controller
             'coupon_discount' => $couponDiscount,
             'epoints_used' => $epointsUsed,
             'earning_money_used' => $earningMoneyUsed,
+            'has_water_electricity' => $request->boolean('has_water_electricity', true),
         ]);
 
         if ($request->payment_method === 'subscription' && isset($subscription)) {

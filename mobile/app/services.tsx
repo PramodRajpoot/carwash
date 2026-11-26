@@ -198,10 +198,8 @@ export default function ServicesScreen() {
   // Active Category ('all', 'Carwash', 'Home Cleaning', etc.)
   const [activeCategory, setActiveCategory] = useState<string>(() => {
     if (typeof localParams?.category === 'string' && localParams.category) {
+      if (localParams.category.toLowerCase().includes('home')) return 'all';
       return localParams.category;
-    }
-    if (typeof localParams?.search === 'string' && localParams.search.toLowerCase() === 'home') {
-      return 'Home Cleaning';
     }
     return 'all';
   });
@@ -219,11 +217,17 @@ export default function ServicesScreen() {
 
   useEffect(() => {
     if (typeof localParams?.category === 'string' && localParams.category) {
-      setActiveCategory(localParams.category);
+      if (localParams.category.toLowerCase().includes('home')) {
+        showSweetAlert('Coming Soon', 'Home Cleaning service is coming soon!', 'info');
+        setActiveCategory('all');
+      } else {
+        setActiveCategory(localParams.category);
+      }
       setActiveSubFilter('all');
     } else if (typeof localParams?.search === 'string' && localParams.search) {
       if (localParams.search.toLowerCase() === 'home') {
-        setActiveCategory('Home Cleaning');
+        showSweetAlert('Coming Soon', 'Home Cleaning service is coming soon!', 'info');
+        setActiveCategory('all');
         setActiveSubFilter('all');
         setSearchQuery('');
       } else {
@@ -377,6 +381,10 @@ export default function ServicesScreen() {
 
   const handleCategorySelect = (catValue: string) => {
     safeHapticLight();
+    if (catValue.toLowerCase().includes('home')) {
+      showSweetAlert('Coming Soon', 'Home Cleaning service is coming soon!', 'info');
+      return;
+    }
     setActiveCategory(catValue);
     setActiveSubFilter('all');
     setCurrentPage(1);
@@ -1131,13 +1139,17 @@ export default function ServicesScreen() {
                   <TouchableOpacity
                     activeOpacity={0.85}
                     style={styles.bookBtn}
-                    onPress={() =>
+                    onPress={() => {
+                      if (isHomeService) {
+                        showSweetAlert('Coming Soon', 'Home Cleaning service is coming soon!', 'info');
+                        return;
+                      }
                       router.push(
                         isLoggedIn
-                          ? `/book?package_id=${pkg.id}&category=${isHomeService ? 'Home Cleaning' : 'Carwash'}`
+                          ? `/book?package_id=${pkg.id}&category=Carwash`
                           : '/login'
-                      )
-                    }
+                      );
+                    }}
                   >
                     <Text style={styles.bookBtnText}>{isHomeService ? 'Book Service' : 'Book Wash'}</Text>
                     <Ionicons name="arrow-forward" size={15} color="#ffffff" style={{ marginLeft: 6 }} />

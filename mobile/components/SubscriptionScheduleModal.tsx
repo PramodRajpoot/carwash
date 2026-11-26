@@ -19,6 +19,7 @@ import axios from 'axios';
 import { API_BASE } from '../constants/api';
 import { showSweetAlert } from '../utils/sweetAlert';
 import { safeHapticLight, safeHapticMedium, safeHapticSuccess } from '../utils/haptics';
+import { WaterElectricityCard, WaterElectricityModal } from './WaterElectricitySection';
 
 interface Plan {
   id: number;
@@ -155,6 +156,8 @@ export default function SubscriptionScheduleModal({
   const [cashfreeModalVisible, setCashfreeModalVisible] = useState(false);
   const [cashfreeHtml, setCashfreeHtml] = useState<string | null>(null);
   const [cashfreeOrderId, setCashfreeOrderId] = useState<string | null>(null);
+  const [hasWaterElectricity, setHasWaterElectricity] = useState<boolean>(true);
+  const [waterElecModalVisible, setWaterElecModalVisible] = useState<boolean>(false);
 
   // Date range constraints matching web
   const monthMinDate = useMemo(() => {
@@ -439,6 +442,11 @@ export default function SubscriptionScheduleModal({
       }
     }
 
+    if (!hasWaterElectricity) {
+      setWaterElecModalVisible(true);
+      return;
+    }
+
     setSubmitting(true);
     safeHapticMedium();
 
@@ -457,6 +465,7 @@ export default function SubscriptionScheduleModal({
           vehicle_id: Number(selectedVehicleId),
           franchisee_id: Number(selectedCenterId),
           address: address.trim(),
+          has_water_electricity: true,
           schedules: scheduleItems.map((item) => ({
             date: item.date,
             slot: is26Plan ? '' : item.slot,
@@ -926,6 +935,16 @@ export default function SubscriptionScheduleModal({
                 })
               )}
             </View>
+
+            {/* Water & Electricity Requirement */}
+            <View style={{ marginHorizontal: 16 }}>
+              <WaterElectricityCard
+                value={hasWaterElectricity}
+                onChange={setHasWaterElectricity}
+                onRequestWarning={() => setWaterElecModalVisible(true)}
+                isDark={isDark}
+              />
+            </View>
           </ScrollView>
         )}
 
@@ -1201,6 +1220,13 @@ export default function SubscriptionScheduleModal({
             )}
           </View>
         </Modal>
+
+        {/* Water & Electricity Warning Modal */}
+        <WaterElectricityModal
+          visible={waterElecModalVisible}
+          onClose={() => setWaterElecModalVisible(false)}
+          isDark={isDark}
+        />
       </View>
     </Modal>
   );

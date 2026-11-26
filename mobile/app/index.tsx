@@ -766,7 +766,7 @@ export default function HomeScreen() {
           activeOpacity={0.9}
           onPress={() => {
             safeHapticMedium();
-            router.push({ pathname: '/services', params: { category: 'Home Cleaning' } });
+            showSweetAlert('Coming Soon', 'Home Cleaning service is coming soon!', 'info');
           }}
         >
           <Image

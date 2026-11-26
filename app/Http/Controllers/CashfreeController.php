@@ -49,10 +49,16 @@ class CashfreeController extends Controller
         $request->validate([
             'booking_id'    => 'required|integer|exists:bookings,id',
             'payment_split' => 'nullable|string|in:full,half,remaining,partial,advance',
+            'has_water_electricity' => 'nullable|boolean',
         ]);
 
         $user = $request->user();
         $booking = Booking::findOrFail($request->booking_id);
+
+        if ($request->has('has_water_electricity')) {
+            $booking->has_water_electricity = $request->boolean('has_water_electricity');
+            $booking->save();
+        }
 
         // Ensure booking belongs to the current user
         if ($booking->customer_id !== $user->id) {
@@ -598,6 +604,7 @@ class CashfreeController extends Controller
             'paid_amount' => 0,
             'payment_method' => 'online',
             'is_refundable' => false,
+            'has_water_electricity' => $request->boolean('has_water_electricity', true),
             'schedules' => in_array((int) $package->max_bookings, [4, 26], true) ? [
                 'vehicle_id' => (int) $request->vehicle_id,
                 'franchisee_id' => (int) $request->franchisee_id,

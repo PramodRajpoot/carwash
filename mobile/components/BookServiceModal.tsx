@@ -19,6 +19,7 @@ import { WebView } from 'react-native-webview';
 import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { WaterElectricityCard, WaterElectricityModal } from './WaterElectricitySection';
 
 const WebViewComponent: any = WebView;
 
@@ -121,6 +122,8 @@ export default function BookServiceModal({
   // Payment choice
   const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full');
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const [hasWaterElectricity, setHasWaterElectricity] = useState<boolean>(true);
+  const [waterElecModalVisible, setWaterElecModalVisible] = useState<boolean>(false);
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -556,6 +559,11 @@ export default function BookServiceModal({
       return;
     }
 
+    if (!hasWaterElectricity) {
+      setWaterElecModalVisible(true);
+      return;
+    }
+
     safeHapticMedium();
     setSubmitting(true);
     setErrorMsg('');
@@ -575,6 +583,7 @@ export default function BookServiceModal({
         coupon_code: couponDiscount > 0 ? couponCode.trim().toUpperCase() : null,
         use_epoints: canUsePoints ? useEPoints : false,
         use_earning_money: canUsePoints ? useEarningMoney : false,
+        has_water_electricity: true,
       };
 
       const res = await axios.post(`${API_BASE}/api/bookings`, payload, {
@@ -586,7 +595,7 @@ export default function BookServiceModal({
 
         if (res.data?.requires_payment && booking) {
           try {
-            const orderPayload: any = { booking_id: booking.id };
+            const orderPayload: any = { booking_id: booking.id, has_water_electricity: true };
             if (paymentType === 'full') {
               orderPayload.payment_split = 'full';
             }
@@ -1259,6 +1268,16 @@ export default function BookServiceModal({
               )}
             </View>
 
+            {/* Water & Electricity Requirement */}
+            {selectedPackageId && (
+              <WaterElectricityCard
+                value={hasWaterElectricity}
+                onChange={setHasWaterElectricity}
+                onRequestWarning={() => setWaterElecModalVisible(true)}
+                isDark={isDark}
+              />
+            )}
+
             {/* Payment Choice */}
             <View style={styles.formGroup}>
               <Text style={[styles.fieldLabel, isDark && styles.darkText]}>
@@ -1865,6 +1884,12 @@ export default function BookServiceModal({
             </View>
           </View>
         </Modal>
+        {/* Water & Electricity Warning Modal */}
+        <WaterElectricityModal
+          visible={waterElecModalVisible}
+          onClose={() => setWaterElecModalVisible(false)}
+          isDark={isDark}
+        />
       </View>
     </Modal>
   );

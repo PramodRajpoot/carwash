@@ -167,7 +167,7 @@
         <div 
           class="glass-card" 
           style="margin-top: 2rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.08)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-lg); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.25rem; cursor: pointer;"
-          @click="$router.push({ path: '/services', query: { category: 'Home Cleaning' } })"
+          @click="showHomeCleaningComingSoon"
         >
           <div style="display: flex; align-items: center; gap: 1.25rem;">
             <div style="font-size: 3rem;">🏠</div>
@@ -564,6 +564,7 @@
 
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 export default {
   name: 'HomeView',
@@ -727,14 +728,16 @@ export default {
         .replace(/_/g, ' ')
         .replace(/\b\w/g, l => l.toUpperCase());
     },
-    goToHomeService(cat) {
-      this.$router.push({
-        path: '/services',
-        query: {
-          category: 'Home Cleaning',
-          search: cat.shortTitle || ''
-        }
+    showHomeCleaningComingSoon() {
+      Swal.fire({
+        title: 'Coming Soon',
+        text: 'Home Cleaning service is coming soon!',
+        icon: 'info',
+        confirmButtonColor: '#0099ff'
       });
+    },
+    goToHomeService(cat) {
+      this.showHomeCleaningComingSoon();
     },
     async fetchBanners() {
       try {

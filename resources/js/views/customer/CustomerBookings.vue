@@ -529,6 +529,61 @@
             </div>
           </div>
 
+          <!-- Water & Electricity Requirement Card -->
+          <div v-if="bf.package_id" class="form-group" style="margin-top: 1rem; margin-bottom: 1.25rem;">
+            <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.35); border-radius: var(--radius-md); padding: 0.9rem 1.15rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 220px;">
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(2, 132, 199, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+                  💧⚡
+                </div>
+                <div>
+                  <div style="font-weight: 700; color: var(--text-primary); font-size: 0.92rem; line-height: 1.3;">
+                    Do you have Water & Electricity available at your location?
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                    This helps us adjust your service accordingly.
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button 
+                  type="button" 
+                  @click="bf.has_water_electricity = true"
+                  :style="{
+                    background: bf.has_water_electricity ? '#0099ff' : 'rgba(15, 23, 42, 0.6)',
+                    color: bf.has_water_electricity ? '#ffffff' : 'var(--text-muted)',
+                    border: bf.has_water_electricity ? 'none' : '1px solid var(--border-color)',
+                    boxShadow: bf.has_water_electricity ? '0 0 14px rgba(0, 153, 255, 0.4)' : 'none',
+                    borderRadius: '9999px',
+                    padding: '0.45rem 1.35rem',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }">
+                  Yes
+                </button>
+                <button 
+                  type="button" 
+                  @click="bf.has_water_electricity = false; showWaterElectricityModal = true"
+                  :style="{
+                    background: !bf.has_water_electricity ? '#0099ff' : 'rgba(15, 23, 42, 0.6)',
+                    color: !bf.has_water_electricity ? '#ffffff' : 'var(--text-muted)',
+                    border: !bf.has_water_electricity ? 'none' : '1px solid var(--border-color)',
+                    boxShadow: !bf.has_water_electricity ? '0 0 14px rgba(0, 153, 255, 0.4)' : 'none',
+                    borderRadius: '9999px',
+                    padding: '0.45rem 1.35rem',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }">
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Payment Choice: Pay Full Balance vs Minimum ₹99 Advance -->
           <div v-if="bf.package_id && calculatedTotal > 99" class="form-group" style="margin-top: 1rem; margin-bottom: 1.25rem;">
             <label style="font-weight: 700; display: block; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.92rem;">
@@ -601,6 +656,40 @@
       </div>
     </div>
 
+    <!-- Water & Electricity Not Available Warning Modal -->
+    <div v-if="showWaterElectricityModal" class="modal-overlay" style="z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); position: fixed; inset: 0;" @click.self="showWaterElectricityModal = false">
+      <div style="max-width: 400px; width: 90%; text-align: center; padding: 2rem 1.5rem; background: #ffffff; color: #0f172a; border-radius: 18px; box-shadow: 0 20px 45px rgba(0,0,0,0.4); animation: modalIn 0.2s ease-out;">
+        <!-- Warning Icon with yellow radiating rays -->
+        <div style="width: 76px; height: 76px; margin: 0 auto 1.25rem auto; display: flex; align-items: center; justify-content: center;">
+          <svg width="76" height="76" viewBox="0 0 80 80" fill="none">
+            <line x1="40" y1="5" x2="40" y2="15" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="22" y1="12" x2="29" y2="19" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="58" y1="12" x2="51" y2="19" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="12" y1="28" x2="21" y2="31" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="68" y1="28" x2="59" y2="31" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
+            <circle cx="40" cy="48" r="22" fill="#fef3c7" stroke="#fde68a" stroke-width="2" />
+            <path d="M40 38v11" stroke="#d97706" stroke-width="3.5" stroke-linecap="round" />
+            <circle cx="40" cy="56" r="2" fill="#d97706" />
+          </svg>
+        </div>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0 0 0.75rem 0;">
+          Water & Electricity Not Available
+        </h3>
+        <p style="font-size: 0.9rem; color: #475569; line-height: 1.5; margin: 0 0 0.6rem 0;">
+          We are unable to provide car wash service without water and electricity at your location.
+        </p>
+        <p style="font-size: 0.9rem; color: #1e293b; font-weight: 600; margin: 0 0 1.5rem 0;">
+          Please select 'Yes' to continue with the booking.
+        </p>
+        <button 
+          type="button" 
+          @click="showWaterElectricityModal = false"
+          style="background: #0099ff; color: #ffffff; border: none; border-radius: 9999px; padding: 0.65rem 3rem; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 153, 255, 0.4); outline: none;">
+          Got it
+        </button>
+      </div>
+    </div>
+
   </div>
 </template>
 <script>
@@ -619,6 +708,7 @@ export default {
       slotsLoading: false,
       userStatus: 'active',
       showBookingModal: false,
+      showWaterElectricityModal: false,
       bookingCategory: 'carwash', // 'carwash' or 'home_cleaning'
       bookingMsg: '',
       bookingError: false,
@@ -644,7 +734,8 @@ export default {
         addon_ids: [],
         use_epoints: false,
         use_earning_money: false,
-        payment_type: 'full'
+        payment_type: 'full',
+        has_water_electricity: true
       },
       currentPage: 1,
       itemsPerPage: 10,
@@ -1064,6 +1155,15 @@ export default {
     },
 
     setBookingCategory(cat) {
+      if (cat === 'home_cleaning') {
+        Swal.fire({
+          title: 'Coming Soon',
+          text: 'Home Cleaning service is coming soon!',
+          icon: 'info',
+          confirmButtonColor: '#0099ff'
+        });
+        return;
+      }
       if (this.bookingCategory === cat) return;
       this.bookingCategory = cat;
       this.bf.package_id = '';
@@ -1286,6 +1386,10 @@ export default {
         this.bookingError = true;
         return;
       }
+      if (!this.bf.has_water_electricity) {
+        this.showWaterElectricityModal = true;
+        return;
+      }
       if (this.bookingCategory === 'carwash' && !this.bf.vehicle_id) {
         this.bookingMsg = 'Please select a vehicle for carwash service.';
         this.bookingError = true;
@@ -1346,7 +1450,8 @@ export default {
           addon_ids: [],
           use_epoints: false,
           use_earning_money: false,
-          payment_type: 'full'
+          payment_type: 'full',
+          has_water_electricity: true
         };
         this.removeCoupon();
         Swal.fire({
@@ -1372,7 +1477,8 @@ export default {
         // Step 1: Create Cashfree order on server
         const { data } = await axios.post('/api/cashfree/create-order', {
           booking_id: bookingId,
-          payment_split: paymentSplit
+          payment_split: paymentSplit,
+          has_water_electricity: true
         });
 
         if (data.status !== 'success' || !data.payment_session_id) {

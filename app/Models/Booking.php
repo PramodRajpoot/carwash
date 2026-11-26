@@ -38,11 +38,13 @@ class Booking extends Model
         'service_photos',
         'service_video',
         'washer_review',
+        'has_water_electricity',
     ];
 
     protected $casts = [
         'addon_services' => 'array',
         'service_photos' => 'array',
+        'has_water_electricity' => 'boolean',
         'gst_amount' => 'decimal:2',
         'earning_money_used' => 'decimal:2',
         'advance_amount' => 'decimal:2',

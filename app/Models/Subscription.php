@@ -21,6 +21,7 @@ class Subscription extends Model
         'paid_amount',
         'payment_method',
         'is_refundable',
+        'has_water_electricity',
         'cashfree_order_id',
         'schedules',
     ];
@@ -31,6 +32,7 @@ class Subscription extends Model
         'booking_count' => 'integer',
         'paid_amount' => 'decimal:2',
         'is_refundable' => 'boolean',
+        'has_water_electricity' => 'boolean',
         'schedules' => 'json',
     ];
 

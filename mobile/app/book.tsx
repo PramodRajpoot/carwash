@@ -222,6 +222,12 @@ export default function BookScreen() {
     return false;
   }, [packages, searchParams.package_id, searchParams.category]);
 
+  useEffect(() => {
+    if (isHomeCleaning) {
+      showSweetAlert('Coming Soon', 'Home Cleaning service is coming soon!', 'info');
+    }
+  }, [isHomeCleaning]);
+
   // Packages strictly filtered according to category
   const availableBasePackages = useMemo(() => {
     if (isHomeCleaning) {
@@ -399,6 +405,11 @@ export default function BookScreen() {
 
   // Proceed to Step 2: Booking Summary & Advance Payment
   const handleProceedToSummary = () => {
+    if (isHomeCleaning) {
+      showSweetAlert('Coming Soon', 'Home Cleaning service is coming soon!', 'info');
+      return;
+    }
+
     if (!selectedPackageId) {
       showSweetAlert('Service Required', isHomeCleaning ? 'Please choose a home cleaning service to proceed.' : 'Please choose a wash package to proceed.', 'warning');
       return;
