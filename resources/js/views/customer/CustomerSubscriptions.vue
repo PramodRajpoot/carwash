@@ -271,6 +271,7 @@
 <script>
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { playBookingSuccessSound } from '../../utils/sound';
 export default {
   name: 'CustomerSubscriptions',
   data() {
@@ -609,9 +610,35 @@ export default {
         this.subscribingId = null;
       }
     },
+    async verifySubscriptionPayment(orderId) {
+      try {
+        const { data } = await axios.get(`/api/cashfree/verify/${orderId}`);
+        if (data.status === 'success' || data.payment_status === 'paid') {
+          playBookingSuccessSound();
+          Swal.fire({
+            icon: 'success',
+            title: 'Subscription Confirmed! 🎉',
+            text: 'Your subscription washes have been scheduled successfully!',
+            timer: 4000,
+            showConfirmButton: true,
+            confirmButtonColor: '#10b981'
+          });
+        }
+      } catch (e) {
+        console.error('Subscription verification failed:', e);
+      } finally {
+        this.loadSubscriptions();
+      }
+    },
   },
   mounted() {
     this.loadSubscriptions();
+    const urlParams = new URLSearchParams(window.location.search);
+    const cashfreeOrderId = urlParams.get('cashfree_order_id');
+    if (cashfreeOrderId) {
+      this.verifySubscriptionPayment(cashfreeOrderId);
+      history.replaceState(null, '', window.location.pathname);
+    }
   }
 };
 </script>

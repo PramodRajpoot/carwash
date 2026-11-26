@@ -699,6 +699,7 @@
 <script>
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { playBookingSuccessSound } from '../../utils/sound';
 
 export default {
   name: 'CustomerBookings',
@@ -1501,6 +1502,7 @@ export default {
           has_water_electricity: true
         };
         this.removeCoupon();
+        playBookingSuccessSound();
         Swal.fire({
           icon: 'success',
           title: 'Booking Confirmed!',
@@ -1579,6 +1581,7 @@ export default {
         const { data } = await axios.get(`/api/cashfree/verify/${orderId}`);
 
         if (data.status === 'success' && (data.payment_status === 'paid' || data.payment_status === 'partially_paid')) {
+          playBookingSuccessSound();
           const isPartial = data.payment_status === 'partially_paid';
           if (isPartial) {
             const due = (parseFloat(data.total_price || data.booking?.total_price || 0) - parseFloat(data.paid_amount || 0)).toFixed(2);

@@ -25,6 +25,7 @@ import AppFooter, { FooterTab } from '../components/AppFooter';
 import BookServiceModal from '../components/BookServiceModal';
 import DashboardHeader from '../components/DashboardHeader';
 import { safeHapticLight, safeHapticMedium, safeHapticSuccess } from '../utils/haptics';
+import { playBookingSuccessSound } from '../utils/sound';
 import { showSweetAlert } from '../utils/sweetAlert';
 import { useAppTheme } from '../utils/themeManager';
 
@@ -388,6 +389,7 @@ export default function BookingsScreen() {
         res.data?.payment_status === 'partially_paid'
       ) {
         safeHapticSuccess();
+        playBookingSuccessSound();
         showSweetAlert(
           'Payment Successful',
           'Your payment has been completed and verified successfully!',

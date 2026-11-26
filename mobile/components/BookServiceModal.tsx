@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 
 import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
+import { playBookingSuccessSound } from '../utils/sound';
 import { showSweetAlert } from '../utils/sweetAlert';
 import { WaterElectricityCard, WaterElectricityModal } from './WaterElectricitySection';
 
@@ -131,6 +132,12 @@ export default function BookServiceModal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successBookingId, setSuccessBookingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (successBookingId) {
+      playBookingSuccessSound();
+    }
+  }, [successBookingId]);
 
   // Cashfree in-modal checkout state
   const [cashfreeHtml, setCashfreeHtml] = useState<string | null>(null);

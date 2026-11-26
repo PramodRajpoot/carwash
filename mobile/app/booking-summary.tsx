@@ -24,6 +24,7 @@ import * as Location from 'expo-location';
 
 import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium, safeHapticSuccess, safeHapticWarning } from '../utils/haptics';
+import { playBookingSuccessSound } from '../utils/sound';
 import { showSweetAlert } from '../utils/sweetAlert';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import { useAppTheme } from '../utils/themeManager';
@@ -146,6 +147,14 @@ export default function BookingSummaryScreen() {
   const [cashfreeHtml, setCashfreeHtml] = useState<string | null>(null);
   const [cashfreeOrderId, setCashfreeOrderId] = useState<string | null>(null);
   const [verifiedBooking, setVerifiedBooking] = useState<any>(null);
+  const successSoundPlayedRef = useRef(false);
+
+  useEffect(() => {
+    if (verifiedBooking && !successSoundPlayedRef.current) {
+      successSoundPlayedRef.current = true;
+      playBookingSuccessSound();
+    }
+  }, [verifiedBooking]);
 
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 32 : 16);
 
@@ -705,6 +714,7 @@ export default function BookingSummaryScreen() {
 
         // Direct confirmation if fully discounted or zero total
         safeHapticSuccess();
+        playBookingSuccessSound();
         setVerifiedBooking(booking);
       }
     } catch (err: any) {
@@ -730,6 +740,7 @@ export default function BookingSummaryScreen() {
         res.data?.payment_status === 'partially_paid'
       ) {
         safeHapticSuccess();
+        playBookingSuccessSound();
         setCashfreeHtml(null);
         setVerifiedBooking(res.data.booking || { id: res.data.booking_id });
       } else {
