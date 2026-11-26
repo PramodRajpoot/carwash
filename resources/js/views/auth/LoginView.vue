@@ -8,11 +8,12 @@
         <p class="text-muted" style="font-size:0.9rem;margin-top:0.25rem">Sign in to your account</p>
       </div>
 
-      <!-- Tab Toggle -->
+      <!-- Tab Toggle (Temporarily commented out from frontend)
       <div v-if="mode !== 'forgot'" class="flex" style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:4px;margin-bottom:1.5rem">
         <button class="btn btn-sm" :class="mode === 'email' ? 'btn-primary' : 'btn-ghost'" style="flex:1" @click="mode = 'email'">📧 Email</button>
         <button class="btn btn-sm" :class="mode === 'otp' ? 'btn-primary' : 'btn-ghost'" style="flex:1" @click="mode = 'otp'">📱 OTP</button>
       </div>
+      -->
 
       <!-- Email Login -->
       <div v-if="mode === 'email'" style="display:flex;flex-direction:column;gap:0.75rem">
@@ -37,7 +38,8 @@
         <button class="btn btn-primary w-full" @click="loginEmail" :disabled="loading">{{ loading ? 'Signing in…' : 'Sign In' }}</button>
       </div>
 
-      <!-- OTP Login -->
+      <!-- OTP Login (Temporarily commented out from frontend) -->
+      <!--
       <div v-else-if="mode === 'otp'" style="display:flex;flex-direction:column;gap:0.75rem">
         <div>
           <input v-model="identifier" type="text" class="form-input" placeholder="Mobile Number or Email" id="login-identifier" />
@@ -79,6 +81,7 @@
           </div>
         </div>
       </div>
+      -->
 
       <!-- Forgot Password -->
       <div v-else-if="mode === 'forgot'" style="display:flex;flex-direction:column;gap:0.75rem">
@@ -94,6 +97,8 @@
         </div>
       </div>
 
+      <!-- Continue with Google (Temporarily commented out from frontend) -->
+      <!--
       <div v-if="mode !== 'forgot'" style="margin:1.5rem 0;display:flex;align-items:center;gap:1rem;">
         <div style="flex:1;height:1px;background:var(--border-color);"></div>
         <span style="color:var(--text-muted);font-size:0.85rem;font-weight:500;">OR</span>
@@ -106,6 +111,7 @@
           Continue with Google
         </a>
       </div>
+      -->
 
       <div style="text-align:center;margin-top:1.5rem">
         <span class="text-muted" style="font-size:0.85rem">Don't have an account? </span>

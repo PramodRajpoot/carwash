@@ -390,7 +390,8 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Segmented Mode Switcher (Email / OTP) */}
+          {/* Segmented Mode Switcher (Email / OTP) - Temporarily commented out from frontend */}
+          {/*
           {activeTab !== 'forgot' && (
             <View style={[styles.tabContainer, isDark && styles.darkTabContainer]}>
               <TouchableOpacity
@@ -462,6 +463,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
           )}
+          */}
 
           {/* Global / Server Error Banner */}
           {serverError ? (
@@ -585,7 +587,8 @@ export default function LoginScreen() {
               </>
             )}
 
-            {/* ── 2. OTP LOGIN MODE ── */}
+            {/* ── 2. OTP LOGIN MODE (Temporarily commented out from frontend) ── */}
+            {/*
             {activeTab === 'otp' && (
               <>
                 {!otpSent ? (
@@ -735,6 +738,7 @@ export default function LoginScreen() {
                 )}
               </>
             )}
+            */}
 
             {/* ── 3. FORGOT PASSWORD MODE ── */}
             {activeTab === 'forgot' && (
@@ -798,6 +802,35 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </>
             )}
+
+            {/* Divider OR & Google Login (Temporarily commented out from frontend) */}
+            {/*
+            {activeTab !== 'forgot' && (
+              <>
+                <View style={styles.dividerContainer}>
+                  <View style={[styles.divider, isDark && styles.darkDivider]} />
+                  <Text style={[styles.dividerText, isDark && styles.darkSubtext]}>OR</Text>
+                  <View style={[styles.divider, isDark && styles.darkDivider]} />
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.googleButton, isDark && styles.darkGoogleButton]}
+                  activeOpacity={0.85}
+                  onPress={handleGoogleSignIn}
+                >
+                  <Image
+                    source={{
+                      uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
+                    }}
+                    style={styles.googleIcon}
+                  />
+                  <Text style={[styles.googleButtonText, isDark && styles.darkGoogleButtonText]}>
+                    Continue with Google
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+            */}
           </View>
 
           {/* Bottom Card Footer */}

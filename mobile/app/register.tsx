@@ -597,6 +597,31 @@ export default function RegisterScreen() {
                 </View>
               )}
             </TouchableOpacity>
+
+            {/* Divider OR & Google Signup (Temporarily commented out from frontend) */}
+            {/*
+            <View style={styles.dividerContainer}>
+              <View style={[styles.divider, isDark && styles.darkDivider]} />
+              <Text style={[styles.dividerText, isDark && styles.darkSubtext]}>OR</Text>
+              <View style={[styles.divider, isDark && styles.darkDivider]} />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.googleButton, isDark && styles.darkGoogleButton]}
+              activeOpacity={0.85}
+              onPress={handleGoogleSignIn}
+            >
+              <Image
+                source={{
+                  uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
+                }}
+                style={styles.googleIcon}
+              />
+              <Text style={[styles.googleButtonText, isDark && styles.darkGoogleButtonText]}>
+                Continue with Google
+              </Text>
+            </TouchableOpacity>
+            */}
           </View>
 
           {/* Footer */}

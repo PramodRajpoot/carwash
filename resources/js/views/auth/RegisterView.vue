@@ -85,6 +85,8 @@
         </button>
       </div>
 
+      <!-- Continue with Google (Temporarily commented out from frontend) -->
+      <!--
       <div style="margin:1.5rem 0;display:flex;align-items:center;gap:1rem;">
         <div style="flex:1;height:1px;background:var(--border-color);"></div>
         <span style="color:var(--text-muted);font-size:0.85rem;font-weight:500;">OR</span>
@@ -97,6 +99,7 @@
           Continue with Google
         </a>
       </div>
+      -->
 
       <div style="text-align:center;margin-top:1.5rem">
         <span class="text-muted" style="font-size:0.85rem">Already have an account? </span>
