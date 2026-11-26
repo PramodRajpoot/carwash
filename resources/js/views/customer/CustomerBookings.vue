@@ -683,7 +683,7 @@
         </p>
         <button 
           type="button" 
-          @click="showWaterElectricityModal = false"
+          @click="showWaterElectricityModal = false; showBookingModal = false; $router.push('/services')"
           style="background: #0099ff; color: #ffffff; border: none; border-radius: 9999px; padding: 0.65rem 3rem; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 153, 255, 0.4); outline: none;">
           Got it
         </button>

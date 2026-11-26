@@ -15,6 +15,7 @@ import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { WebView } from 'react-native-webview';
+import { useRouter } from 'expo-router';
 
 import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
@@ -77,6 +78,7 @@ export default function BookServiceModal({
   defaultAddress,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   // Data loaded from server
   const [loading, setLoading] = useState(true);
@@ -1888,6 +1890,11 @@ export default function BookServiceModal({
         <WaterElectricityModal
           visible={waterElecModalVisible}
           onClose={() => setWaterElecModalVisible(false)}
+          onGotIt={() => {
+            setWaterElecModalVisible(false);
+            onClose();
+            router.push('/services');
+          }}
           isDark={isDark}
         />
       </View>

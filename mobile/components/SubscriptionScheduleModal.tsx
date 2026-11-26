@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 
 import { API_BASE } from '../constants/api';
 import { showSweetAlert } from '../utils/sweetAlert';
@@ -126,6 +127,7 @@ export default function SubscriptionScheduleModal({
   isDark = false,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const requiredCount = Number(plan?.max_bookings || 4);
   const is26Plan = requiredCount === 26;
 
@@ -1225,6 +1227,11 @@ export default function SubscriptionScheduleModal({
         <WaterElectricityModal
           visible={waterElecModalVisible}
           onClose={() => setWaterElecModalVisible(false)}
+          onGotIt={() => {
+            setWaterElecModalVisible(false);
+            onClose();
+            router.push('/services');
+          }}
           isDark={isDark}
         />
       </View>

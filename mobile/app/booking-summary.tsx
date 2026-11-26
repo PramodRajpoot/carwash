@@ -1908,6 +1908,10 @@ export default function BookingSummaryScreen() {
       <WaterElectricityModal
         visible={waterElecModalVisible}
         onClose={() => setWaterElecModalVisible(false)}
+        onGotIt={() => {
+          setWaterElecModalVisible(false);
+          router.replace('/services');
+        }}
         isDark={isDark}
       />
     </SafeAreaView>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { safeHapticLight, safeHapticWarning } from '../utils/haptics';
 
 interface WaterElectricityCardProps {
@@ -82,14 +83,31 @@ export function WaterElectricityCard({
 interface WaterElectricityModalProps {
   visible: boolean;
   onClose: () => void;
+  onGotIt?: () => void;
   isDark?: boolean;
 }
 
 export function WaterElectricityModal({
   visible,
   onClose,
+  onGotIt,
   isDark = false,
 }: WaterElectricityModalProps) {
+  const router = useRouter();
+
+  const handleGotIt = () => {
+    if (onGotIt) {
+      onGotIt();
+    } else {
+      onClose();
+      try {
+        router.push('/services');
+      } catch (e) {
+        // Fallback
+      }
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -131,7 +149,7 @@ export function WaterElectricityModal({
 
           <TouchableOpacity
             style={styles.modalGotItBtn}
-            onPress={onClose}
+            onPress={handleGotIt}
             activeOpacity={0.85}
           >
             <Text style={styles.modalGotItBtnText}>Got it</Text>
