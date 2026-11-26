@@ -184,6 +184,36 @@ class BookingController extends Controller
             ], 403);
         }
 
+        // Auto-provision or assign home vehicle if booking a Home Cleaning service
+        $isHomeCleaning = false;
+        $carTypes = ['hatchback', 'sedan', 'suv', 'luxury', 'commercial', 'bus', 'volvo_bus', 'all'];
+        if ($request->filled('package_id')) {
+            $requestedPkg = ServicePackage::with('category')->find($request->package_id);
+            $isHomeCleaning = $requestedPkg && (
+                !in_array(strtolower($requestedPkg->vehicle_type ?? ''), $carTypes) ||
+                ($requestedPkg->category && stripos($requestedPkg->category->name, 'home') !== false) ||
+                stripos($requestedPkg->name, 'sofa') !== false ||
+                stripos($requestedPkg->name, 'home') !== false ||
+                stripos($requestedPkg->vehicle_type, 'sofa') !== false ||
+                stripos($requestedPkg->vehicle_type, 'seator') !== false
+            );
+
+            if ($isHomeCleaning) {
+                $homeVehicle = Vehicle::where('customer_id', $user->id)
+                    ->where('vehicle_type', 'home')
+                    ->first();
+                if (!$homeVehicle) {
+                    $homeVehicle = Vehicle::create([
+                        'customer_id'  => $user->id,
+                        'make_model'   => 'Doorstep Home Care',
+                        'plate_number' => 'HOME',
+                        'vehicle_type' => 'home',
+                    ]);
+                }
+                $request->merge(['vehicle_id' => $homeVehicle->id]);
+            }
+        }
+
         $request->validate([
             'vehicle_id' => 'required|exists:vehicles,id',
             'franchisee_id' => 'required|exists:franchisees,id',
@@ -238,12 +268,30 @@ class BookingController extends Controller
             ], 400);
         }
 
-        // Validate package fits vehicle type
-        if ($package->vehicle_type !== $vehicle->vehicle_type) {
+        // Validate package fits vehicle type (only for vehicle/carwash packages, skip for Home Cleaning or 'all')
+        $isNonVehiclePackage = $isHomeCleaning || !in_array(strtolower($package->vehicle_type ?? ''), $carTypes);
+        if (!$isNonVehiclePackage && $package->vehicle_type !== 'all' && $package->vehicle_type !== $vehicle->vehicle_type) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'The selected package is for ' . $package->vehicle_type . 's, but your vehicle is a ' . $vehicle->vehicle_type
             ], 400);
+        }
+
+        // Prevent double booking of 4-wash subscription on the same day
+        if ((int) $package->max_bookings === 4) {
+            $alreadyBookedThatDay = Booking::where('customer_id', $user->id)
+                ->where('package_id', $package->id)
+                ->where('booking_date', $request->booking_date)
+                ->where('payment_method', 'subscription')
+                ->whereNotIn('status', ['cancelled'])
+                ->exists();
+
+            if ($alreadyBookedThatDay) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'The 4-wash plan allows one wash on each separate day.'
+                ], 400);
+            }
         }
 
         // Initialize price
@@ -297,6 +345,21 @@ class BookingController extends Controller
                 ], 400);
             }
 
+            $bookingDate = Carbon::parse($request->booking_date);
+            if ($subscription->selected_month && $bookingDate->format('Y-m') !== $subscription->selected_month) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This subscription can only be used in ' . $subscription->selected_month . '.'
+                ], 400);
+            }
+
+            if ($subscription->expires_at && $bookingDate->gt(Carbon::parse($subscription->expires_at)->endOfDay())) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This subscription has expired for the selected month.'
+                ], 400);
+            }
+
             if ($subscription->booking_count >= $package->max_bookings) {
                 return response()->json([
                     'status' => 'error',
@@ -333,7 +396,7 @@ class BookingController extends Controller
                     }
 
                     // Check if coupon is restricted to a specific vehicle category
-                    if ($coupon->vehicle_type && $coupon->vehicle_type !== 'all' && strtolower($coupon->vehicle_type) !== strtolower($vehicle->vehicle_type)) {
+                    if (!$isHomeCleaning && $coupon->vehicle_type && $coupon->vehicle_type !== 'all' && strtolower($coupon->vehicle_type) !== strtolower($vehicle->vehicle_type)) {
                         return response()->json([
                             'status' => 'error',
                             'message' => 'Coupon ' . $coupon->code . ' is only valid for ' . ucfirst($coupon->vehicle_type) . ' vehicles, but your vehicle is a ' . ucfirst($vehicle->vehicle_type) . '.'
@@ -440,6 +503,11 @@ class BookingController extends Controller
             'earning_money_used' => $earningMoneyUsed,
         ]);
 
+        if ($request->payment_method === 'subscription' && isset($subscription)) {
+            $subscription->increment('booking_count');
+            $subscription->refresh();
+        }
+
         // Sync slot bookings count: slot is ONLY booked if user paid full payment (e.g. subscription or zero-price).
         // If payment is pending/failed/unpaid, the slot is NOT booked until payment completes.
         self::syncSlotBookings($franchisee->id, $request->booking_date, $request->slot_time);
@@ -527,6 +595,16 @@ class BookingController extends Controller
 
         $booking->status = 'cancelled';
         $booking->save();
+
+        if ($booking->payment_method === 'subscription') {
+            $subscription = Subscription::where('customer_id', $booking->customer_id)
+                ->where('package_id', $booking->package_id)
+                ->where('status', 'active')
+                ->first();
+            if ($subscription && $subscription->booking_count > 0) {
+                $subscription->decrement('booking_count');
+            }
+        }
 
         // Refund points if epoints_used > 0
         if ($booking->epoints_used > 0) {
@@ -691,6 +769,7 @@ class BookingController extends Controller
                 ->where('coupon_code', 'FIRSTWASH10')
                 ->slotBooked()
                 ->exists();
+
             $isFirstWash = (!$priorWashExists && !$tookFirstWashDiscount);
             if ($isFirstWash) {
                 return response()->json([
@@ -720,17 +799,29 @@ class BookingController extends Controller
 
         // Check vehicle category compatibility if coupon is restricted
         if ($coupon->vehicle_type && $coupon->vehicle_type !== 'all') {
-            $vehicleType = $request->input('vehicle_type');
-            if (!$vehicleType && $request->filled('vehicle_id')) {
-                $vehicle = Vehicle::find($request->vehicle_id);
-                $vehicleType = $vehicle?->vehicle_type;
+            $isHomeCleaningCoupon = false;
+            if ($request->filled('package_id')) {
+                $pkg = ServicePackage::with('category')->find($request->package_id);
+                $isHomeCleaningCoupon = $pkg && (
+                    ($pkg->category && stripos($pkg->category->name, 'home') !== false) ||
+                    stripos($pkg->name, 'sofa') !== false ||
+                    stripos($pkg->name, 'home') !== false ||
+                    stripos($pkg->vehicle_type, 'sofa') !== false
+                );
             }
+            if (!$isHomeCleaningCoupon) {
+                $vehicleType = $request->input('vehicle_type');
+                if (!$vehicleType && $request->filled('vehicle_id')) {
+                    $vehicle = Vehicle::find($request->vehicle_id);
+                    $vehicleType = $vehicle?->vehicle_type;
+                }
 
-            if ($vehicleType && strtolower($coupon->vehicle_type) !== strtolower($vehicleType)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Coupon ' . $coupon->code . ' is only valid for ' . ucfirst($coupon->vehicle_type) . ' vehicles.'
-                ], 400);
+                if ($vehicleType && strtolower($coupon->vehicle_type) !== strtolower($vehicleType)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Coupon ' . $coupon->code . ' is only valid for ' . ucfirst($coupon->vehicle_type) . ' vehicles.'
+                    ], 400);
+                }
             }
         }
 

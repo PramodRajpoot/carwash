@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200">
+  <defs>
+    <filter id="shadow2" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    <linearGradient id="secGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="50%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="secCushion" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6ee7b7"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="secLeg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <linearGradient id="secPillow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground Shadow -->
+  <ellipse cx="200" cy="180" rx="170" ry="15" fill="#000000" opacity="0.2"/>
+
+  <g filter="url(#shadow2)">
+    <!-- Legs -->
+    <polygon points="50,152 46,180 54,180 60,152" fill="url(#secLeg)"/>
+    <polygon points="140,152 138,178 146,178 148,152" fill="url(#secLeg)"/>
+    <polygon points="240,152 238,178 246,178 248,152" fill="url(#secLeg)"/>
+    <polygon points="345,152 340,180 348,180 355,152" fill="url(#secLeg)"/>
+
+    <!-- L-Shape Backrest Base -->
+    <rect x="40" y="45" width="320" height="80" rx="22" fill="url(#secGrad)"/>
+    
+    <!-- Vertical Tufting / Separators (Multi-seater 5-8 seats) -->
+    <line x1="105" y1="50" x2="105" y2="115" stroke="#047857" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <line x1="170" y1="50" x2="170" y2="115" stroke="#047857" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <line x1="235" y1="50" x2="235" y2="115" stroke="#047857" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <line x1="300" y1="50" x2="300" y2="115" stroke="#047857" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+
+    <!-- Main Base Frame -->
+    <rect x="30" y="115" width="340" height="42" rx="15" fill="url(#secGrad)"/>
+
+    <!-- Multi-seat Cushions -->
+    <rect x="52" y="110" width="60" height="28" rx="9" fill="url(#secCushion)"/>
+    <rect x="117" y="110" width="60" height="28" rx="9" fill="url(#secCushion)"/>
+    <rect x="182" y="110" width="60" height="28" rx="9" fill="url(#secCushion)"/>
+    <rect x="247" y="110" width="60" height="28" rx="9" fill="url(#secCushion)"/>
+    <rect x="312" y="106" width="40" height="36" rx="10" fill="url(#secCushion)"/>
+
+    <!-- Left Armrest -->
+    <rect x="24" y="75" width="34" height="72" rx="17" fill="url(#secGrad)"/>
+    <rect x="27" y="78" width="28" height="66" rx="14" fill="none" stroke="#6ee7b7" stroke-width="1.5" opacity="0.7"/>
+
+    <!-- Right Extended Chaise / Armrest -->
+    <rect x="344" y="75" width="34" height="72" rx="17" fill="url(#secGrad)"/>
+    <rect x="347" y="78" width="28" height="66" rx="14" fill="none" stroke="#6ee7b7" stroke-width="1.5" opacity="0.7"/>
+
+    <!-- Throw Pillows -->
+    <rect x="60" y="92" width="28" height="28" rx="7" transform="rotate(-12 60 92)" fill="url(#secPillow)"/>
+    <rect x="130" y="94" width="24" height="24" rx="6" fill="#38bdf8"/>
+    <rect x="315" y="90" width="28" height="28" rx="7" transform="rotate(15 315 90)" fill="url(#secPillow)"/>
+  </g>
+
+  <!-- Sparkles -->
+  <path d="M 65 30 Q 65 38 57 38 Q 65 38 65 46 Q 65 38 73 38 Q 65 38 65 30" fill="#6ee7b7"/>
+  <path d="M 345 30 Q 345 40 335 40 Q 345 40 345 50 Q 345 40 355 40 Q 345 40 345 30" fill="#facc15"/>
+  <path d="M 200 25 Q 200 32 193 32 Q 200 32 200 39 Q 200 32 207 32 Q 200 32 200 25" fill="#38bdf8"/>
+</svg>

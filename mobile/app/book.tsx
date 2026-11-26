@@ -45,6 +45,8 @@ interface Center {
 interface ServicePkg {
   id: number;
   name: string;
+  category?: { id?: number; name?: string };
+  category_name?: string;
   description?: string;
   price: number;
   vehicle_type: string;
@@ -203,26 +205,63 @@ export default function BookScreen() {
     return centers.find((c) => c.id === selectedCenterId) || null;
   }, [centers, selectedCenterId]);
 
-  // Packages filtered by selected vehicle's vehicle_type
-  const availableBasePackages = useMemo(() => {
-    if (!selectedVehicle) {
-      return packages.filter((p) => !p.is_addon);
+  // Category determination: Home Cleaning vs Carwash
+  const isHomeCleaning = useMemo(() => {
+    const paramCat = typeof searchParams.category === 'string' ? searchParams.category.toLowerCase() : '';
+    if (paramCat.includes('home')) return true;
+    if (paramCat.includes('car')) return false;
+
+    const paramPId = searchParams.package_id ? Number(searchParams.package_id) : null;
+    if (paramPId) {
+      const p = packages.find((item) => item.id === paramPId);
+      if (p) {
+        const cName = (p.category?.name || p.category_name || '').toLowerCase();
+        return cName.includes('home') || (p.vehicle_type || '').toLowerCase().includes('sofa');
+      }
     }
-    const vt = selectedVehicle.vehicle_type?.toLowerCase();
-    return packages.filter(
-      (p) => !p.is_addon && (p.vehicle_type?.toLowerCase() === vt || p.vehicle_type === 'all')
-    );
-  }, [packages, selectedVehicle]);
+    return false;
+  }, [packages, searchParams.package_id, searchParams.category]);
+
+  // Packages strictly filtered according to category
+  const availableBasePackages = useMemo(() => {
+    if (isHomeCleaning) {
+      return packages.filter((p) => {
+        if (p.is_addon) return false;
+        const cName = (p.category?.name || p.category_name || '').toLowerCase();
+        return cName.includes('home') || (p.vehicle_type || '').toLowerCase().includes('sofa');
+      });
+    }
+
+    // Carwash packages filtered by selected vehicle's vehicle_type
+    const vt = selectedVehicle?.vehicle_type?.toLowerCase();
+    return packages.filter((p) => {
+      if (p.is_addon) return false;
+      const cName = (p.category?.name || p.category_name || '').toLowerCase();
+      if (cName.includes('home') || (p.vehicle_type || '').toLowerCase().includes('sofa')) {
+        return false;
+      }
+      return !selectedVehicle || p.vehicle_type?.toLowerCase() === vt || p.vehicle_type === 'all';
+    });
+  }, [packages, selectedVehicle, isHomeCleaning]);
 
   const availableAddons = useMemo(() => {
-    if (!selectedVehicle) {
-      return packages.filter((p) => p.is_addon);
+    if (isHomeCleaning) {
+      return packages.filter((p) => {
+        if (!p.is_addon) return false;
+        const cName = (p.category?.name || p.category_name || '').toLowerCase();
+        return cName.includes('home');
+      });
     }
-    const vt = selectedVehicle.vehicle_type?.toLowerCase();
-    return packages.filter(
-      (p) => p.is_addon && (p.vehicle_type?.toLowerCase() === vt || p.vehicle_type === 'all')
-    );
-  }, [packages, selectedVehicle]);
+
+    // Carwash Add-ons
+    const vt = selectedVehicle?.vehicle_type?.toLowerCase();
+    return packages.filter((p) => {
+      if (!p.is_addon) return false;
+      const cName = (p.category?.name || p.category_name || '').toLowerCase();
+      if (cName.includes('home')) return false;
+      return !selectedVehicle || p.vehicle_type?.toLowerCase() === vt || p.vehicle_type === 'all';
+    });
+  }, [packages, selectedVehicle, isHomeCleaning]);
 
   // Auto-select package when vehicle or packages change
   useEffect(() => {
@@ -244,11 +283,17 @@ export default function BookScreen() {
   const getPackageAddons = useCallback(
     (pkg: ServicePkg) => {
       if (pkg.addons && pkg.addons.length > 0) {
+        if (isHomeCleaning) {
+          return pkg.addons.filter((a) => {
+            const aCat = (a.category?.name || a.category_name || '').toLowerCase();
+            return aCat.includes('home');
+          });
+        }
         return pkg.addons;
       }
       return availableAddons;
     },
-    [availableAddons]
+    [availableAddons, isHomeCleaning]
   );
 
   const handleSelectPackage = (pkgId: number) => {
@@ -355,18 +400,26 @@ export default function BookScreen() {
   // Proceed to Step 2: Booking Summary & Advance Payment
   const handleProceedToSummary = () => {
     if (!selectedPackageId) {
-      showSweetAlert('Package Required', 'Please choose a wash package to proceed.', 'warning');
+      showSweetAlert('Service Required', isHomeCleaning ? 'Please choose a home cleaning service to proceed.' : 'Please choose a wash package to proceed.', 'warning');
       return;
     }
+
+    if (!isHomeCleaning && !selectedVehicleId) {
+      showSweetAlert('Vehicle Required', 'Please select a vehicle to proceed with car wash.', 'warning');
+      return;
+    }
+
+    const effectiveVehicleId = selectedVehicleId || (vehicles.length > 0 ? vehicles[0].id : '');
 
     safeHapticMedium();
     router.push({
       pathname: '/booking-summary',
       params: {
-        vehicle_id: selectedVehicleId || '',
+        vehicle_id: effectiveVehicleId,
         center_id: selectedCenterId || '',
         package_id: selectedPackageId,
         addon_ids: selectedAddonIds.join(','),
+        category: isHomeCleaning ? 'Home Cleaning' : 'Carwash',
         coupon: typeof searchParams.coupon === 'string' ? searchParams.coupon : '',
       },
     });
@@ -419,7 +472,7 @@ export default function BookScreen() {
           <View>
             <Text style={[styles.headerTitle, isDark && styles.darkText]}>Select Services</Text>
             <Text style={[styles.headerSub, isDark && styles.darkSubtext]}>
-              Step 1 of 2 • Wash & Add-on Packages
+              {isHomeCleaning ? 'Step 1 of 2 • Home Service & Add-ons' : 'Step 1 of 2 • Wash & Add-on Packages'}
             </Text>
           </View>
         </View>
@@ -448,7 +501,9 @@ export default function BookScreen() {
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color="#0284c7" />
           <Text style={[styles.centerLoadingText, isDark && styles.darkSubtext]}>
-            Preparing available wash services & addons...
+            {isHomeCleaning
+              ? 'Preparing available home cleaning services & addons...'
+              : 'Preparing available wash services & addons...'}
           </Text>
         </View>
       ) : (
@@ -459,103 +514,168 @@ export default function BookScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#0284c7']} />}
         >
-          {/* VEHICLE CONTEXT BAR */}
-          <View style={[styles.modernCard, isDark && styles.darkCard]}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.badgeLabelRow}>
-                <Ionicons name="car-sport" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>BOOKING FOR VEHICLE</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.switchLinkBtn}
-                onPress={() => {
-                  safeHapticLight();
-                  setActivePicker('vehicle');
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.switchLinkText}>Switch</Text>
-                <Ionicons name="chevron-forward" size={14} color="#0284c7" />
-              </TouchableOpacity>
-            </View>
-
-            {vehicles.length === 0 ? (
-              <View style={styles.emptyVehicleWrap}>
-                <Text style={styles.emptyVehicleIcon}>🚗</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.emptyVehicleTitle, isDark && styles.darkText]}>No vehicle registered</Text>
-                  <Text style={[styles.emptyVehicleSub, isDark && styles.darkSubtext]}>Add your vehicle to continue</Text>
+          {/* VEHICLE OR HOME SERVICE CONTEXT BAR */}
+          {isHomeCleaning ? (
+            <View style={[styles.modernCard, isDark && styles.darkCard]}>
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.badgeLabelRow}>
+                  <Ionicons name="home" size={16} color="#059669" />
+                  <Text style={[styles.badgeLabelText, { color: '#059669' }]}>HOME CLEANING SERVICE</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.addMiniActionBtn}
-                  onPress={() => setAddVehicleModalVisible(true)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.addMiniActionText}>+ Add</Text>
-                </TouchableOpacity>
+                <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Doorstep</Text>
+                </View>
               </View>
-            ) : (
+
               <View style={[styles.vehicleHeroBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
-                <View style={styles.vehicleEmojiCircle}>
-                  <Text style={{ fontSize: 26 }}>{getVehicleEmoji(selectedVehicle?.vehicle_type)}</Text>
+                <View style={[styles.vehicleEmojiCircle, { backgroundColor: isDark ? '#064e3b' : '#ecfdf5' }]}>
+                  <Text style={{ fontSize: 26 }}>🏠</Text>
                 </View>
 
                 <View style={{ flex: 1 }}>
                   <View style={styles.vehicleTitleRow}>
                     <Text style={[styles.vehicleNameText, isDark && styles.darkText]} numberOfLines={1}>
-                      {selectedVehicle?.make_model || 'Select Vehicle'}
+                      Doorstep Home Service
                     </Text>
-                    <View style={styles.typeBadgePill}>
-                      <Text style={styles.typeBadgeText}>
-                        {(selectedVehicle?.vehicle_type || 'CAR').toUpperCase()}
+                    <View style={[styles.typeBadgePill, { backgroundColor: '#d1fae5' }]}>
+                      <Text style={[styles.typeBadgeText, { color: '#065f46' }]}>
+                        HOME CARE
                       </Text>
                     </View>
                   </View>
-
-                  {selectedVehicle?.plate_number ? (
-                    <View style={styles.plateContainer}>
-                      <View style={styles.plateIndStripe}>
-                        <Text style={styles.plateIndText}>IND</Text>
-                      </View>
-                      <Text style={styles.plateNumberText}>{selectedVehicle.plate_number.toUpperCase()}</Text>
-                    </View>
-                  ) : (
-                    <Text style={[styles.noPlateText, isDark && styles.darkSubtext]}>No plate registered</Text>
-                  )}
+                  <Text style={[styles.noPlateText, isDark && styles.darkSubtext]}>
+                    Deep cleaning and sanitization at your doorstep
+                  </Text>
                 </View>
               </View>
-            )}
 
-            {/* Service Center Link */}
-            <TouchableOpacity
-              style={[styles.hubSelectorRow, isDark ? styles.darkBorderTop : styles.lightBorderTop]}
-              onPress={() => {
-                safeHapticLight();
-                setActivePicker('center');
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.hubIconCircle}>
-                <Ionicons name="location" size={14} color="#0284c7" />
+              {/* Service Center Link */}
+              <TouchableOpacity
+                style={[styles.hubSelectorRow, isDark ? styles.darkBorderTop : styles.lightBorderTop]}
+                onPress={() => {
+                  safeHapticLight();
+                  setActivePicker('center');
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.hubIconCircle, { backgroundColor: '#ecfdf5' }]}>
+                  <Ionicons name="location" size={14} color="#059669" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.hubNameText, isDark && styles.darkText]} numberOfLines={1}>
+                    {selectedCenter?.center_name || 'Select Service Hub'}
+                  </Text>
+                  <Text style={[styles.hubSubText, isDark && styles.darkSubtext]} numberOfLines={1}>
+                    {selectedCenter?.city || selectedCenter?.address || 'Certified Operating Hub'}
+                  </Text>
+                </View>
+                <Text style={[styles.hubChangeText, { color: '#059669' }]}>Change Hub</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[styles.modernCard, isDark && styles.darkCard]}>
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.badgeLabelRow}>
+                  <Ionicons name="car-sport" size={16} color="#0284c7" />
+                  <Text style={styles.badgeLabelText}>BOOKING FOR VEHICLE</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.switchLinkBtn}
+                  onPress={() => {
+                    safeHapticLight();
+                    setActivePicker('vehicle');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.switchLinkText}>Switch</Text>
+                  <Ionicons name="chevron-forward" size={14} color="#0284c7" />
+                </TouchableOpacity>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.hubNameText, isDark && styles.darkText]} numberOfLines={1}>
-                  {selectedCenter?.center_name || 'Select Service Center'}
-                </Text>
-                <Text style={[styles.hubSubText, isDark && styles.darkSubtext]} numberOfLines={1}>
-                  {selectedCenter?.city || selectedCenter?.address || 'Doorstep Service Station'}
-                </Text>
-              </View>
-              <Text style={styles.hubChangeText}>Change Hub</Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* WASH PACKAGES & ADD-ON SERVICES ONLY */}
+              {vehicles.length === 0 ? (
+                <View style={styles.emptyVehicleWrap}>
+                  <Text style={styles.emptyVehicleIcon}>🚗</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.emptyVehicleTitle, isDark && styles.darkText]}>No vehicle registered</Text>
+                    <Text style={[styles.emptyVehicleSub, isDark && styles.darkSubtext]}>Add your vehicle to continue</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.addMiniActionBtn}
+                    onPress={() => setAddVehicleModalVisible(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.addMiniActionText}>+ Add</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={[styles.vehicleHeroBox, isDark ? styles.darkInnerBox : styles.lightInnerBox]}>
+                  <View style={styles.vehicleEmojiCircle}>
+                    <Text style={{ fontSize: 26 }}>{getVehicleEmoji(selectedVehicle?.vehicle_type)}</Text>
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.vehicleTitleRow}>
+                      <Text style={[styles.vehicleNameText, isDark && styles.darkText]} numberOfLines={1}>
+                        {selectedVehicle?.make_model || 'Select Vehicle'}
+                      </Text>
+                      <View style={styles.typeBadgePill}>
+                        <Text style={styles.typeBadgeText}>
+                          {(selectedVehicle?.vehicle_type || 'CAR').toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {selectedVehicle?.plate_number ? (
+                      <View style={styles.plateContainer}>
+                        <View style={styles.plateIndStripe}>
+                          <Text style={styles.plateIndText}>IND</Text>
+                        </View>
+                        <Text style={styles.plateNumberText}>{selectedVehicle.plate_number.toUpperCase()}</Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.noPlateText, isDark && styles.darkSubtext]}>No plate registered</Text>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Service Center Link */}
+              <TouchableOpacity
+                style={[styles.hubSelectorRow, isDark ? styles.darkBorderTop : styles.lightBorderTop]}
+                onPress={() => {
+                  safeHapticLight();
+                  setActivePicker('center');
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.hubIconCircle}>
+                  <Ionicons name="location" size={14} color="#0284c7" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.hubNameText, isDark && styles.darkText]} numberOfLines={1}>
+                    {selectedCenter?.center_name || 'Select Service Center'}
+                  </Text>
+                  <Text style={[styles.hubSubText, isDark && styles.darkSubtext]} numberOfLines={1}>
+                    {selectedCenter?.city || selectedCenter?.address || 'Doorstep Service Station'}
+                  </Text>
+                </View>
+                <Text style={styles.hubChangeText}>Change Hub</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* PACKAGES & ADD-ON SERVICES */}
           <View style={[styles.modernCard, isDark && styles.darkCard]}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.badgeLabelRow}>
-                <Ionicons name="sparkles" size={16} color="#0284c7" />
-                <Text style={styles.badgeLabelText}>WASH PACKAGES ({availableBasePackages.length})</Text>
+                <Ionicons
+                  name={isHomeCleaning ? 'home' : 'sparkles'}
+                  size={16}
+                  color={isHomeCleaning ? '#059669' : '#0284c7'}
+                />
+                <Text style={[styles.badgeLabelText, isHomeCleaning && { color: '#059669' }]}>
+                  {isHomeCleaning ? 'HOME CLEANING SERVICES' : 'WASH PACKAGES'} ({availableBasePackages.length})
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.switchLinkBtn}
@@ -570,6 +690,17 @@ export default function BookScreen() {
             </View>
 
             <View style={styles.packageListContainer}>
+              {availableBasePackages.length === 0 ? (
+                <View style={{ padding: 24, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>{isHomeCleaning ? '🏠' : '🚗'}</Text>
+                  <Text style={[styles.emptyVehicleTitle, isDark && styles.darkText]}>
+                    {isHomeCleaning ? 'No home cleaning services found' : 'No wash packages available for this vehicle'}
+                  </Text>
+                  <Text style={[styles.emptyVehicleSub, isDark && styles.darkSubtext]}>
+                    {isHomeCleaning ? 'Please check another service center' : 'Try selecting another vehicle or service center'}
+                  </Text>
+                </View>
+              ) : null}
               {availableBasePackages.map((pkg, idx) => {
                 const isSelected = pkg.id === selectedPackageId;
                 const isPopular = pkg.custom_badge || (idx === 0 && availableBasePackages.length > 1);
@@ -762,7 +893,9 @@ export default function BookScreen() {
         >
           <View>
             <Text style={[styles.floatingPayableLabel, isDark && styles.darkSubtext]}>
-              {selectedAddonIds.length > 0 ? `1 WASH + ${selectedAddonIds.length} ADD-ONS` : 'SELECTED SERVICE'}
+              {selectedAddonIds.length > 0
+                ? `1 ${isHomeCleaning ? 'SERVICE' : 'WASH'} + ${selectedAddonIds.length} ADD-ONS`
+                : (isHomeCleaning ? 'HOME SERVICE' : 'SELECTED SERVICE')}
             </Text>
             <View style={styles.floatingPriceRow}>
               <Text style={[styles.floatingPayableAmount, isDark && styles.darkText]}>

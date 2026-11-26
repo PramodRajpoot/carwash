@@ -25,6 +25,7 @@ use App\Http\Controllers\CmsController;
 use App\Http\Controllers\PaymentGatewayController;
 use App\Http\Controllers\CashfreeController;
 use App\Http\Controllers\WasherController;
+use App\Http\Controllers\PartnerValuableFeedbackController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +50,7 @@ Route::get('/auth/google/callback', [App\Http\Controllers\GoogleAuthController::
 
 // Public service data
 Route::get('/categories', [BookingController::class, 'getCategories']);
+Route::get('/service-types', function() { return response()->json(\App\Models\ServiceType::where('status', 'active')->get()); });
 Route::get('/packages', [BookingController::class, 'getPackages']);
 Route::get('/centers',  [BookingController::class, 'getCenters']);
 Route::get('/offers',   [BookingController::class, 'getOffers']);
@@ -102,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Cashfree Payment
     Route::post('/cashfree/create-order',       [CashfreeController::class, 'createOrder']);
+    Route::post('/cashfree/create-subscription-order', [CashfreeController::class, 'createSubscriptionOrder']);
     Route::get('/cashfree/verify/{orderId}',    [CashfreeController::class, 'verifyPayment']);
 
     // Feedback / Reviews
@@ -275,6 +278,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/categories/{id}', [SuperAdminController::class, 'updateCategory']);
         Route::delete('/categories/{id}', [SuperAdminController::class, 'deleteCategory']);
 
+        Route::get('/service-types', [SuperAdminController::class, 'getServiceTypes']);
+        Route::post('/service-types', [SuperAdminController::class, 'createServiceType']);
+        Route::put('/service-types/{id}', [SuperAdminController::class, 'updateServiceType']);
+        Route::delete('/service-types/{id}', [SuperAdminController::class, 'deleteServiceType']);
+
         Route::get('/services', [SuperAdminController::class, 'getServices']);
         Route::post('/services', [SuperAdminController::class, 'createService']);
         Route::post('/services/{id}', [SuperAdminController::class, 'updateService']); // Using POST to support multipart form data (method spoofing can also be used but POST is simpler for file upload)
@@ -328,6 +336,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/partner-feedback/{id}', [PartnerFeedbackController::class, 'update']); // FormData with _method=PUT
         Route::delete('/partner-feedback/{id}', [PartnerFeedbackController::class, 'destroy']);
 
+        // Partner Valuable Feedback Management
+        Route::get('/partner-valuable-feedback', [PartnerValuableFeedbackController::class, 'adminIndex']);
+        Route::post('/partner-valuable-feedback', [PartnerValuableFeedbackController::class, 'store']);
+        Route::put('/partner-valuable-feedback/{id}', [PartnerValuableFeedbackController::class, 'update']);
+        Route::post('/partner-valuable-feedback/{id}', [PartnerValuableFeedbackController::class, 'update']);
+        Route::delete('/partner-valuable-feedback/{id}', [PartnerValuableFeedbackController::class, 'destroy']);
+
         // FAQ Management
         Route::get('/faqs', [FaqController::class, 'adminIndex']);
         Route::post('/faqs', [FaqController::class, 'store']);
@@ -377,3 +392,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tasks/{id}/complete',             [WasherController::class, 'washerUpdateTaskStatus']);
     });
 });
+
+// Public Feedback Endpoints
+Route::get('/partner-valuable-feedback', [PartnerValuableFeedbackController::class, 'index']);

@@ -11,7 +11,7 @@ class PartnerFeedbackController extends Controller
     // Public endpoint
     public function index()
     {
-        $feedbacks = PartnerFeedback::where('is_active', true)->latest()->take(3)->get();
+        $feedbacks = PartnerFeedback::where('is_active', true)->latest()->get();
         return response()->json($feedbacks);
     }
 

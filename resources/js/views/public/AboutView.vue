@@ -135,7 +135,7 @@
     </section>
 
     <!-- App Download Section -->
-    <section class="section" style="padding: 2rem 0; background: var(--bg-primary);">
+    <!-- <section class="section" style="padding: 2rem 0; background: var(--bg-primary);">
       <div class="container">
         <div class="app-download-banner">
           <div class="app-download-content fade-in-up">
@@ -182,7 +182,7 @@
           </div>
         </div>
       </div>
-    </section>
+    </section> -->
 
   </div>
 </template>

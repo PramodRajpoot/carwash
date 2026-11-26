@@ -82,6 +82,7 @@ import SuperAdminOrders from '@/views/super-admin/SuperAdminOrders.vue';
 import SuperAdminServices from '@/views/super-admin/SuperAdminServices.vue';
 import SuperAdminMarketing from '@/views/super-admin/SuperAdminMarketing.vue';
 import SuperAdminWithdrawals from '@/views/super-admin/SuperAdminWithdrawals.vue';
+import SuperAdminPartnerValuableFeedback from '@/views/super-admin/SuperAdminPartnerValuableFeedback.vue';
 
 export const routes = [
     // ── Public Pages ─────────────────────────────────────────────
@@ -187,6 +188,7 @@ export const routes = [
             { path: 'cms/privacy-policy', name: 'superadmin-cms-privacy-policy', component: CmsPrivacyPolicy },
             { path: 'cms/terms', name: 'superadmin-cms-terms', component: CmsTerms },
             { path: 'cms/contact', name: 'superadmin-cms-contact', component: CmsContact },
+            { path: 'partner-valuable-feedback', name: 'superadmin-partner-valuable-feedback', component: SuperAdminPartnerValuableFeedback },
             // Super admin also has access to all admin sub-pages via their own routes
             { path: 'users', name: 'superadmin-users', component: AdminUsers },
             { path: 'customers', name: 'superadmin-customers', component: () => import('@/views/super-admin/SuperAdminCustomers.vue') },
@@ -203,7 +205,8 @@ export const routes = [
             { path: 'reports', name: 'superadmin-reports', component: AdminReports },
             { path: 'payment-gateway', name: 'superadmin-payment-gateway', component: SuperAdminPaymentGateway },
             { path: 'marketing', name: 'superadmin-marketing', component: SuperAdminMarketing },
-            { path: 'withdrawals', name: 'superadmin-withdrawals', component: SuperAdminWithdrawals }
+            { path: 'withdrawals', name: 'superadmin-withdrawals', component: SuperAdminWithdrawals },
+            { path: 'happy-customers', name: 'superadmin-happy-customers', component: SuperAdminPartnerFeedback },
         ],
     },
 

@@ -4,6 +4,7 @@
 
 /* --- CSS Variables --- */
 :root {
+    color-scheme: dark;
     --bg-primary: #070D1A;
     --bg-secondary: #0D1629;
     --bg-card: #131E35;
@@ -44,6 +45,7 @@
 
 /* --- Light Mode Override --- */
 [data-theme="light"] {
+    color-scheme: light;
     --bg-primary: #F0F6FF;
     --bg-secondary: #FFFFFF;
     --bg-card: #FFFFFF;
@@ -347,6 +349,121 @@ h4 { font-size: 1.25rem; }
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     padding-right: 2.5rem;
+}
+
+/* --- Date & Time Inputs (Theme-Adaptive Calendar Icon) --- */
+.form-input[type="date"],
+.form-input[type="time"],
+.form-input[type="datetime-local"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+    color-scheme: dark;
+}
+
+[data-theme="light"] .form-input[type="date"],
+[data-theme="light"] .form-input[type="time"],
+[data-theme="light"] .form-input[type="datetime-local"],
+[data-theme="light"] input[type="date"],
+[data-theme="light"] input[type="time"],
+[data-theme="light"] input[type="datetime-local"] {
+    color-scheme: light;
+}
+
+/* Custom Calendar Picker Icon for Dark Theme */
+.form-input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2300B4FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px 18px;
+    width: 22px;
+    height: 22px;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    filter: none !important;
+    opacity: 0.9;
+    transition: all 0.2s ease;
+}
+
+.form-input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background-color: rgba(0, 180, 255, 0.16);
+    transform: scale(1.1);
+}
+
+/* Custom Calendar Picker Icon for Light Theme */
+[data-theme="light"] .form-input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%230070C0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px 18px;
+    filter: none !important;
+    opacity: 0.85;
+}
+
+[data-theme="light"] .form-input[type="date"]::-webkit-calendar-picker-indicator:hover,
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background-color: rgba(0, 112, 192, 0.12);
+    transform: scale(1.1);
+}
+
+/* Custom Time Picker Icon for Dark Theme */
+.form-input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2300B4FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px 18px;
+    width: 22px;
+    height: 22px;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    filter: none !important;
+    opacity: 0.9;
+    transition: all 0.2s ease;
+}
+
+.form-input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background-color: rgba(0, 180, 255, 0.16);
+    transform: scale(1.1);
+}
+
+/* Custom Time Picker Icon for Light Theme */
+[data-theme="light"] .form-input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%230070C0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+    filter: none !important;
+    opacity: 0.85;
+}
+
+[data-theme="light"] .form-input[type="time"]::-webkit-calendar-picker-indicator:hover,
+[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background-color: rgba(0, 112, 192, 0.12);
+    transform: scale(1.1);
+}
+
+/* Form Controls Disabled State */
+.form-input:disabled,
+.form-select:disabled,
+.form-textarea:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: var(--bg-card);
+}
+
+.form-input[type="date"]:disabled::-webkit-calendar-picker-indicator,
+input[type="date"]:disabled::-webkit-calendar-picker-indicator {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 /* --- Badge --- */

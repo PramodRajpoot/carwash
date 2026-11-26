@@ -2,14 +2,14 @@
   <div>
     <div class="dash-header-compact">
       <div>
-        <h1>Partner Feedback Management</h1>
-        <p class="text-muted">Manage the Partners' Feedback displayed on the homepage.</p>
+        <h1>Happy Customers Management</h1>
+        <p class="text-muted">Manage the customer stories displayed in the “Our Happy Customers” homepage section.</p>
       </div>
     </div>
 
     <!-- Add New Feedback -->
     <div class="glass-card" style="margin-bottom: 2rem;">
-      <h4 style="margin-bottom:1rem">Add New Feedback</h4>
+      <h4 style="margin-bottom:1rem">Add Happy Customer</h4>
       <form @submit.prevent="addFeedback">
         <div class="flex gap-2 items-start flex-wrap">
           <div style="flex:1; min-width: 200px;">
@@ -27,7 +27,7 @@
         </div>
         <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
           <button type="submit" class="btn btn-primary" :disabled="adding">
-            {{ adding ? 'Adding...' : '+ Add Feedback' }}
+            {{ adding ? 'Adding...' : '+ Add Customer' }}
           </button>
         </div>
       </form>
@@ -35,70 +35,75 @@
 
     <!-- Existing Feedback -->
     <div class="glass-card">
-      <h4 style="margin-bottom:1rem">Existing Feedback</h4>
-      <div v-if="loading" class="text-center text-muted py-4">Loading feedback...</div>
-      <div v-else-if="feedbacks.length === 0" class="text-center text-muted py-4">No feedback found.</div>
-      <div v-else class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
-        <div v-for="feedback in feedbacks" :key="feedback.id" class="card" style="padding: 1.5rem; position: relative;">
-
-          <!-- Media Preview -->
-          <div style="height: 140px; background: var(--bg-primary); border-radius: var(--radius-sm); margin-bottom: 1rem; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-            <video v-if="feedback.video_path" controls :poster="feedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover;">
-              <source :src="feedback.video_path">
-            </video>
-            <template v-else>
-              <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover;" />
-              <div v-else class="text-muted text-sm">No Media</div>
-            </template>
-          </div>
-
-          <!-- Display Mode -->
-          <template v-if="editingId !== feedback.id">
-            <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem;color:var(--text-secondary);">
-              {{ feedback.city }} Partner
-            </div>
-            <p style="font-style:italic;color:var(--text-secondary);margin-bottom:1rem;font-size:0.95rem;">
-              "{{ feedback.quote }}"
-            </p>
-          </template>
-
-          <!-- Edit Mode -->
-          <template v-else>
-            <label class="text-muted" style="font-size:0.75rem;">City</label>
-            <input type="text" v-model="editForm.city" class="form-input mb-2" />
-            <label class="text-muted" style="font-size:0.75rem;">Quote</label>
-            <textarea v-model="editForm.quote" class="form-input mb-2" style="height: 50px; resize: none;"></textarea>
-            <label class="text-muted" style="font-size:0.75rem;">Replace Thumbnail</label>
-            <input type="file" ref="editThumbnailInput" @change="handleEditThumbnail" accept="image/*" class="form-input mb-2" style="font-size:0.8rem; padding:0.25rem;" />
-            <label class="text-muted" style="font-size:0.75rem;">Replace Video</label>
-            <input type="file" ref="editVideoInput" @change="handleEditVideo" accept="video/mp4,video/webm,video/ogg" class="form-input mb-2" style="font-size:0.8rem; padding:0.25rem;" />
-            <div class="flex gap-2" style="margin-top: 0.5rem;">
-              <button @click="saveEdit(feedback.id)" class="btn btn-primary btn-sm" :disabled="saving">
-                {{ saving ? 'Saving...' : '💾 Save' }}
-              </button>
-              <button @click="cancelEdit" class="btn btn-outline btn-sm">Cancel</button>
-            </div>
-          </template>
-
-          <!-- Actions Bar -->
-          <div class="flex justify-between items-center" style="gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-            <div class="flex items-center gap-2">
-              <label class="toggle-switch">
-                <input type="checkbox" v-model="feedback.is_active" @change="toggleActive(feedback)" />
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="text-muted" style="font-size:0.75rem;">{{ feedback.is_active ? 'Active' : 'Hidden' }}</span>
-            </div>
-            <div class="flex gap-2">
-              <button v-if="editingId !== feedback.id" @click="startEdit(feedback)" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.5rem;">
-                ✏️ Edit
-              </button>
-              <button @click="deleteFeedback(feedback.id)" class="btn btn-danger btn-sm" style="padding: 0.35rem 0.5rem;">
-                🗑️ Delete
-              </button>
-            </div>
-          </div>
-        </div>
+      <h4 style="margin-bottom:1rem">Happy Customer Entries</h4>
+      <div v-if="loading" class="text-center text-muted py-4">Loading customer entries...</div>
+      <div v-else-if="feedbacks.length === 0" class="text-center text-muted py-4">No happy customers found.</div>
+      <div v-else style="overflow-x:auto;">
+        <table class="feedback-table">
+          <thead>
+            <tr>
+              <th>Media</th>
+              <th>City</th>
+              <th>Customer Quote</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="feedback in feedbacks" :key="feedback.id">
+              <td>
+                <div class="feedback-media">
+                  <video v-if="feedback.video_path" controls :poster="feedback.thumbnail_path">
+                    <source :src="feedback.video_path">
+                  </video>
+                  <img v-else-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" />
+                  <span v-else class="text-muted text-sm">No media</span>
+                </div>
+              </td>
+              <td>
+                <template v-if="editingId !== feedback.id">
+                  <strong>{{ feedback.city }}</strong>
+                </template>
+                <input v-else type="text" v-model="editForm.city" class="form-input" />
+              </td>
+              <td>
+                <template v-if="editingId !== feedback.id">
+                  <span class="feedback-quote">"{{ feedback.quote }}"</span>
+                </template>
+                <div v-else>
+                  <textarea v-model="editForm.quote" class="form-input" style="height:70px;resize:vertical;"></textarea>
+                  <div class="edit-media-inputs">
+                    <input type="file" @change="handleEditThumbnail" accept="image/*" class="form-input" />
+                    <input type="file" @change="handleEditVideo" accept="video/mp4,video/webm,video/ogg" class="form-input" />
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <label class="toggle-switch">
+                    <input type="checkbox" v-model="feedback.is_active" @change="toggleActive(feedback)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="text-muted text-sm">{{ feedback.is_active ? 'Active' : 'Hidden' }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="flex gap-2 justify-end">
+                  <template v-if="editingId !== feedback.id">
+                    <button @click="startEdit(feedback)" class="btn btn-outline btn-sm">✏️ Edit</button>
+                  </template>
+                  <template v-else>
+                    <button @click="saveEdit(feedback.id)" class="btn btn-primary btn-sm" :disabled="saving">
+                      {{ saving ? 'Saving...' : 'Save' }}
+                    </button>
+                    <button @click="cancelEdit" class="btn btn-outline btn-sm">Cancel</button>
+                  </template>
+                  <button @click="deleteFeedback(feedback.id)" class="btn btn-danger btn-sm">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -320,5 +325,48 @@ input:checked + .toggle-slider {
 }
 input:checked + .toggle-slider:before {
   transform: translateX(16px);
+}
+.feedback-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+.feedback-table th, .feedback-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border: 1px solid var(--border-color);
+}
+.feedback-table th {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.feedback-media {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.feedback-media video, .feedback-media img {
+  max-width: 100px;
+  border-radius: var(--radius-sm);
+}
+.feedback-quote {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+.edit-media-inputs {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .feedback-table th, .feedback-table td {
+    padding: 0.5rem;
+    font-size: 14px;
+  }
+  .feedback-media video, .feedback-media img {
+    max-width: 80px;
+  }
 }
 </style>

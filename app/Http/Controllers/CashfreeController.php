@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Booking;
 use App\Models\PaymentGateway;
+use App\Models\Subscription;
+use App\Models\ServicePackage;
+use App\Models\NotificationLog;
+use Carbon\Carbon;
 
 class CashfreeController extends Controller
 {
@@ -221,13 +225,113 @@ class CashfreeController extends Controller
                 ], 422);
             }
 
+            $orderStatus = $data['order_status'] ?? 'UNKNOWN';
+
+            if (str_starts_with($orderId, 'CW_SUB_')) {
+                $subscription = Subscription::with('package')->where('cashfree_order_id', $orderId)->first();
+                if (!$subscription) {
+                    return response()->json(['status' => 'error', 'message' => 'Subscription not found for this order'], 404);
+                }
+
+                if ($orderStatus === 'PAID') {
+                    Subscription::where('customer_id', $subscription->customer_id)
+                        ->where('status', 'active')
+                        ->where('id', '!=', $subscription->id)
+                        ->update(['status' => 'expired']);
+
+                    $subscription->update([
+                        'status' => 'active',
+                        'payment_status' => 'paid',
+                        'paid_amount' => (float) $subscription->package->price,
+                        'payment_method' => 'online',
+                    ]);
+
+                    NotificationLog::create([
+                        'user_id' => $subscription->customer_id,
+                        'type' => 'subscription_expiry',
+                        'title' => 'Subscription Activated!',
+                        'body' => "Your {$subscription->package->name} subscription is active and fully paid for {$subscription->selected_month}. Payment is non-refundable; rescheduling is available.",
+                    ]);
+
+                    // Automatically create the 4 or 26 scheduled wash bookings after successful paid subscription verification.
+                    if (in_array((int) $subscription->package->max_bookings, [4, 26], true) && is_array($subscription->schedules)) {
+                        $scheduleData = $subscription->schedules;
+                        $vehicleId = (int) ($scheduleData['vehicle_id'] ?? 0);
+                        $franchiseeId = (int) ($scheduleData['franchisee_id'] ?? 0);
+                        $address = (string) ($scheduleData['address'] ?? '');
+                        $washes = $scheduleData['washes'] ?? [];
+                        $requiredWashes = (int) $subscription->package->max_bookings;
+
+                        $vehicle = \App\Models\Vehicle::where('customer_id', $subscription->customer_id)->find($vehicleId);
+                        $franchisee = \App\Models\Franchisee::find($franchiseeId);
+
+                        if ($vehicle && $franchisee && count($washes) === $requiredWashes) {
+                            foreach ($washes as $wash) {
+                                $bookingDate = Carbon::parse($wash['date'])->format('Y-m-d');
+                                $slotTime = (string) ($wash['slot'] ?? '');
+                                if ($slotTime === '' && $requiredWashes === 26) {
+                                    $masterSlot = \App\Models\MasterSlot::where('status', 'active')->orderBy('id')->first();
+                                    $slotTime = $masterSlot ? $masterSlot->time_range : '09:00 AM - 11:00 AM';
+                                }
+
+
+                                $exists = Booking::where('customer_id', $subscription->customer_id)
+                                    ->where('package_id', $subscription->package_id)
+                                    ->where('booking_date', $bookingDate)
+                                    ->where('slot_time', $slotTime)
+                                    ->where('payment_method', 'subscription')
+                                    ->exists();
+
+                                if (!$exists) {
+                                    Booking::create([
+                                        'customer_id' => $subscription->customer_id,
+                                        'vehicle_id' => $vehicle->id,
+                                        'franchisee_id' => $franchisee->id,
+                                        'package_id' => $subscription->package_id,
+                                        'booking_date' => $bookingDate,
+                                        'slot_time' => $slotTime,
+                                        'address' => $address,
+                                        'status' => 'pending',
+                                        'payment_status' => 'paid',
+                                        'payment_method' => 'subscription',
+                                        'payment_type' => 'full',
+                                        'advance_amount' => 0,
+                                        'paid_amount' => 0,
+                                        'total_price' => 0,
+                                        'gst_amount' => 0,
+                                    ]);
+                                    \App\Http\Controllers\BookingController::syncSlotBookings($franchisee->id, $bookingDate, $slotTime);
+                                }
+                            }
+                            $subscription->update(['booking_count' => $requiredWashes]);
+                        }
+                    }
+
+                    return response()->json([
+                        'status' => 'success',
+                        'payment_status' => 'paid',
+                        'order_status' => $orderStatus,
+                        'subscription' => $subscription->fresh(['package']),
+                    ]);
+                }
+
+                if (in_array($orderStatus, ['EXPIRED', 'TERMINATED', 'VOID', 'FAILED'], true)) {
+                    $subscription->update(['status' => 'cancelled', 'payment_status' => 'failed']);
+                }
+
+                return response()->json([
+                    'status' => 'pending',
+                    'payment_status' => $subscription->payment_status,
+                    'order_status' => $orderStatus,
+                    'subscription' => $subscription,
+                ]);
+            }
+
             $booking = Booking::where('cashfree_order_id', $orderId)->first();
 
             if (!$booking) {
                 return response()->json(['status' => 'error', 'message' => 'Booking not found for this order'], 404);
             }
-
-            $orderStatus = $data['order_status'] ?? 'UNKNOWN';
 
             if ($orderStatus === 'PAID') {
                 // Fetch payment details to get the payment ID
@@ -319,7 +423,7 @@ class CashfreeController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Cashfree verify exception', ['error' => $e->getMessage()]);
-            return response()->json(['status' => 'error', 'message' => 'Verification failed'], 500);
+            return response()->json(['status' => 'error', 'message' => 'Verification failed', 'error' => $e->getMessage()], 500);
         }
     }
 
@@ -340,8 +444,11 @@ class CashfreeController extends Controller
             }
         }
 
-        // Redirect back into the SPA with the order_id as a query param
-        return redirect('/customer/bookings?cashfree_order_id=' . urlencode($orderId));
+        $redirectPath = str_starts_with($orderId, 'CW_SUB_')
+            ? '/customer/subscriptions'
+            : '/customer/bookings';
+
+        return redirect($redirectPath . '?cashfree_order_id=' . urlencode($orderId));
     }
 
     /**
@@ -372,5 +479,172 @@ class CashfreeController extends Controller
             'environment'      => $environment,
             'bookingId'        => $bookingId,
         ]);
+    }
+
+    /**
+     * Create a Cashfree order for a new subscription.
+     * POST /api/cashfree/create-subscription-order
+     */
+    public function createSubscriptionOrder(Request $request)
+    {
+        $request->validate([
+            'package_id' => 'required|integer|exists:service_packages,id',
+            'selected_month' => 'required|regex:/^\\d{4}-\\d{2}$/',
+            'vehicle_id' => 'nullable|integer|exists:vehicles,id',
+            'franchisee_id' => 'nullable|integer|exists:franchisees,id',
+            'address' => 'nullable|string|min:5|max:1000',
+            'schedules' => 'nullable|array',
+            'schedules.*.date' => 'nullable|date',
+            'schedules.*.slot' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        if ($user->status !== 'active') {
+            return response()->json(['status' => 'error', 'message' => 'Your account is suspended or blocked.'], 403);
+        }
+
+        $package = ServicePackage::findOrFail($request->package_id);
+        if (!(bool) $package->is_subscription || !in_array((int) $package->max_bookings, [4, 26], true)) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid subscription plan.'], 422);
+        }
+
+        try {
+            $monthStart = Carbon::createFromFormat('Y-m', $request->selected_month)->startOfMonth();
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid subscription month.'], 422);
+        }
+
+        if ($monthStart->lt(Carbon::now()->startOfMonth())) {
+            return response()->json(['status' => 'error', 'message' => 'Please select the current or a future month.'], 422);
+        }
+
+        $nextMonth = $monthStart->copy()->addMonth()->format('Y-m');
+        $allowedMonths = [$request->selected_month, $nextMonth];
+        $subscriptionEnd = $monthStart->copy()->addMonth()->endOfMonth();
+
+        $requiredWashes = (int) $package->max_bookings;
+        if (in_array($requiredWashes, [4, 26], true)) {
+            $schedules = $request->input('schedules', []);
+            if (count($schedules) !== $requiredWashes) {
+                return response()->json(['status' => 'error', 'message' => "Please select {$requiredWashes} wash dates and slots."], 422);
+            }
+            if (!$request->filled('vehicle_id') || !$request->filled('franchisee_id') || !$request->filled('address')) {
+                return response()->json(['status' => 'error', 'message' => "Vehicle, center and address are required for {$requiredWashes}-wash booking."], 422);
+            }
+
+            $dates = [];
+            foreach ($schedules as $schedule) {
+                if (empty($schedule['date'])) {
+                    return response()->json(['status' => 'error', 'message' => 'A date is required for each wash.'], 422);
+                }
+                if ($requiredWashes === 4 && empty($schedule['slot'])) {
+                    return response()->json(['status' => 'error', 'message' => 'Date and slot are required for each wash.'], 422);
+                }
+                if (!in_array(substr($schedule['date'], 0, 7), $allowedMonths, true)) {
+                    return response()->json(['status' => 'error', 'message' => 'All wash dates must be inside the selected month or following month.'], 422);
+                }
+                if (Carbon::parse($schedule['date'])->lt(Carbon::today())) {
+                    return response()->json(['status' => 'error', 'message' => 'Wash dates cannot be in the past.'], 422);
+                }
+                if (Carbon::parse($schedule['date'])->gt($subscriptionEnd)) {
+                    return response()->json(['status' => 'error', 'message' => 'Wash dates cannot exceed the allowed subscription period.'], 422);
+                }
+                $dates[] = $schedule['date'];
+            }
+
+            if ($requiredWashes === 4) {
+                for ($i = 1; $i < count($dates); $i++) {
+                    $previous = Carbon::parse($dates[$i - 1]);
+                    $current = Carbon::parse($dates[$i]);
+                    if ($current->lte($previous)) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => "Wash " . ($i + 1) . " date must be after Wash {$i} date (" . $previous->format('d M Y') . ")."
+                        ], 422);
+                    }
+                }
+            }
+
+            if ($requiredWashes === 26) {
+                for ($i = 1; $i < count($dates); $i++) {
+                    $previous = Carbon::parse($dates[$i - 1]);
+                    $current = Carbon::parse($dates[$i]);
+                    if (!$current->equalTo($previous->copy()->addDay())) {
+                        return response()->json(['status' => 'error', 'message' => 'The 26-wash plan requires 26 consecutive daily dates.'], 422);
+                    }
+                }
+            }
+            if (count(array_unique($dates)) !== $requiredWashes) {
+                return response()->json(['status' => 'error', 'message' => "Please select {$requiredWashes} different wash dates."], 422);
+            }
+        }
+
+        $credentials = $this->getCredentials();
+        if (!$credentials || empty($credentials['client_id'])) {
+            return response()->json(['status' => 'error', 'message' => 'Cashfree payment gateway is not configured.'], 500);
+        }
+
+        Subscription::where('customer_id', $user->id)->where('status', 'pending')->delete();
+
+        $subscription = Subscription::create([
+            'customer_id' => $user->id,
+            'package_id' => $package->id,
+            'status' => 'pending',
+            'booking_count' => 0,
+            'starts_at' => $monthStart,
+            'expires_at' => $subscriptionEnd,
+            'selected_month' => $request->selected_month,
+            'payment_status' => 'pending',
+            'paid_amount' => 0,
+            'payment_method' => 'online',
+            'is_refundable' => false,
+            'schedules' => in_array((int) $package->max_bookings, [4, 26], true) ? [
+                'vehicle_id' => (int) $request->vehicle_id,
+                'franchisee_id' => (int) $request->franchisee_id,
+                'address' => trim((string) $request->address),
+                'washes' => $request->input('schedules', []),
+            ] : null,
+        ]);
+
+        $orderId = 'CW_SUB_' . $subscription->id . '_' . time();
+        $subscription->update(['cashfree_order_id' => $orderId]);
+
+        try {
+            $response = Http::withHeaders([
+                'x-client-id' => $credentials['client_id'],
+                'x-client-secret' => $credentials['client_secret'],
+                'x-api-version' => '2023-08-01',
+                'Content-Type' => 'application/json',
+            ])->post($credentials['base_url'] . '/orders', [
+                'order_id' => $orderId,
+                'order_amount' => (float) $package->price,
+                'order_currency' => 'INR',
+                'customer_details' => [
+                    'customer_id' => 'cust_' . $user->id,
+                    'customer_name' => $user->name ?? 'Customer',
+                    'customer_email' => $user->email ?? 'customer@example.com',
+                    'customer_phone' => $user->phone ?? '9999999999',
+                ],
+                'order_meta' => ['return_url' => url('/cashfree/return?order_id={order_id}')],
+            ]);
+
+            $data = $response->json();
+            if ($response->successful() && isset($data['payment_session_id'])) {
+                return response()->json([
+                    'status' => 'success',
+                    'payment_session_id' => $data['payment_session_id'],
+                    'cashfree_order_id' => $orderId,
+                    'environment' => $credentials['environment'],
+                    'amount' => (float) $package->price,
+                ]);
+            }
+
+            $subscription->delete();
+            return response()->json(['status' => 'error', 'message' => $data['message'] ?? 'Failed to create subscription payment order'], 422);
+        } catch (\Exception $e) {
+            $subscription->delete();
+            Log::error('Subscription Cashfree order failed', ['error' => $e->getMessage()]);
+            return response()->json(['status' => 'error', 'message' => 'Payment service error. Please try again.'], 500);
+        }
     }
 }

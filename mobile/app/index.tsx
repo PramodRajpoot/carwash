@@ -766,7 +766,7 @@ export default function HomeScreen() {
           activeOpacity={0.9}
           onPress={() => {
             safeHapticMedium();
-            router.push({ pathname: '/services', params: { search: 'Home' } });
+            router.push({ pathname: '/services', params: { category: 'Home Cleaning' } });
           }}
         >
           <Image

@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Hero / Banner -->
-    <section class="hero" style="position: relative; overflow: hidden; display: flex; align-items: center;">
+    <section class="hero" style="position: relative; overflow: hidden; display: flex; align-items: center; min-height: 70vh;">
       <!-- Background Slider -->
       <div v-if="banners && banners.length > 0">
         <div v-for="(banner, index) in banners" :key="banner.id" class="hero-bg" 
@@ -9,25 +9,10 @@
         </div>
       </div>
       <div v-else class="hero-bg" style="background-image: url('/images/hero.png');"></div>
-      
-      <!-- Overlay to make text readable -->
-      <div class="hero-overlay"></div>
 
       <!-- Slider Controls -->
       <div v-if="banners && banners.length > 1" class="slider-controls">
         <button v-for="(banner, index) in banners" :key="index" @click="currentBannerIndex = index; resetSliderInterval()" class="dot-btn" :class="{ active: currentBannerIndex === index }"></button>
-      </div>
-
-      <!-- Content -->
-      <div class="container flex items-center" style="gap:4rem;flex-wrap:wrap;position: relative;z-index: 10;">
-        <div class="hero-content fade-in-up" style="max-width: 650px; width: 100%;">
-          <h1 style="color: #fff;"><span class="text-gradient">Premium Car Wash</span><br>At Your Doorstep</h1>
-          <p class="hero-text" style="color: rgba(255,255,255,0.85); line-height: 1.6;">Experience eco-friendly, waterless car cleaning with our professional detailing team. Book online, sit back, and watch your vehicle shine — all from the comfort of your home.</p>
-          <div class="flex gap-2" style="flex-wrap: wrap;">
-            <router-link to="/services" class="btn btn-primary" style="padding: 0.85rem 1.5rem;">Explore Services</router-link>
-            <router-link to="/register" class="btn btn-outline pulse-glow" style="border-color: rgba(255,255,255,0.3); color: #fff; padding: 0.85rem 1.5rem;">Book Now</router-link>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -44,30 +29,48 @@
       </div>
     </div>
 
-    <!-- Partner Feedback -->
+    <!-- Partner Feedback / Happy Customers -->
     <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
       <div class="container">
         <div class="section-title">
-          <h2>Our Partners' <span class="text-gradient">Valuable Feedback</span></h2>
-          <p>Hear directly from our successful franchise partners across India.</p>
+          <h2>Our <span class="text-gradient">Happy Customers</span></h2>
+          <p>Hear Directly from Our Happy Customers</p>
         </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="(feedback, i) in partnerFeedback" :key="i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
-            <div class="feedback-thumb">
-               <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
-               <div v-else class="feedback-thumb-placeholder"></div>
-               <!-- Play button overlay -->
-               <div class="play-btn-overlay" v-if="feedback.video_path">
-                 <div class="play-btn-circle">
-                   <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-                 </div>
-               </div>
-            </div>
-            <div style="padding:1.5rem">
-               <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city }} Partner</h4>
-               <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+
+        <div class="cards-slider-container">
+          <div ref="customerSlider" class="cards-slider-track" @scroll="onSliderScroll('customer')">
+            <div
+              v-for="(feedback, i) in partnerFeedback"
+              :key="feedback.id || i"
+              class="card feedback-card slider-card"
+              @click="openVideoLightbox(feedback)"
+            >
+              <div class="feedback-thumb">
+                <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" loading="lazy" />
+                <div v-else class="feedback-thumb-placeholder"></div>
+                <!-- Play button overlay -->
+                <div class="play-btn-overlay" v-if="feedback.video_path">
+                  <div class="play-btn-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:1.5rem">
+                <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city ? feedback.city + ' Customer' : 'Happy Customer' }}</h4>
+                <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div class="slider-dots" v-if="partnerFeedback.length > 1">
+          <span
+            v-for="(_, dotIdx) in partnerFeedback"
+            :key="dotIdx"
+            class="slider-dot"
+            :class="{ active: customerActiveDot === dotIdx }"
+            @click="scrollToCard('customerSlider', dotIdx)"
+          ></span>
         </div>
       </div>
 
@@ -88,23 +91,34 @@
             </button>
 
             <div class="lightbox-video-wrapper">
-              <video v-if="lightboxFeedback && lightboxFeedback.video_path" ref="lightboxVideo" controls autoplay :poster="lightboxFeedback.thumbnail_path" class="lightbox-video">
-                <source :src="lightboxFeedback.video_path" type="video/mp4">
+              <video
+                v-if="lightboxFeedback && lightboxFeedback.video_path"
+                :key="lightboxFeedback.id ? String(lightboxFeedback.id) + (lightboxFeedback.video_path || '') : lightboxFeedback.video_path"
+                ref="lightboxVideo"
+                :src="formatMediaUrl(lightboxFeedback.video_path)"
+                :poster="formatMediaUrl(lightboxFeedback.thumbnail_path)"
+                controls
+                autoplay
+                playsinline
+                preload="auto"
+                class="lightbox-video"
+              >
+                <source :src="formatMediaUrl(lightboxFeedback.video_path)" type="video/mp4">
                 Your browser does not support the video tag.
               </video>
               <div v-else class="lightbox-no-video">
-                <img v-if="lightboxFeedback && lightboxFeedback.thumbnail_path" :src="lightboxFeedback.thumbnail_path" style="width:100%;height:100%;object-fit:cover;" />
+                <img v-if="lightboxFeedback && lightboxFeedback.thumbnail_path" :src="formatMediaUrl(lightboxFeedback.thumbnail_path)" style="width:100%;height:100%;object-fit:cover;" />
                 <p v-else class="text-muted" style="text-align:center;padding:3rem;">No video available</p>
               </div>
             </div>
 
             <div v-if="lightboxFeedback" class="lightbox-info">
               <div class="lightbox-info-inner">
-                <div class="lightbox-partner-badge">
+                <div v-if="lightboxFeedback.city" class="lightbox-partner-badge">
                   <span class="lightbox-badge-icon">📍</span>
                   <span>{{ lightboxFeedback.city }}</span>
                 </div>
-                <h4 class="lightbox-title">{{ lightboxFeedback.city }} Partner</h4>
+                <h4 class="lightbox-title">{{ lightboxFeedback.name || (lightboxFeedback.city ? lightboxFeedback.city + ' Partner' : 'Customer Feedback') }}</h4>
                 <p class="lightbox-quote">"{{ lightboxFeedback.quote }}"</p>
               </div>
             </div>
@@ -121,10 +135,53 @@
           <p>We service every type of vehicle — from compact hatchbacks to luxury Volvo buses.</p>
         </div>
         <div class="grid grid-3 gap-3">
-          <div v-for="cat in categories" :key="cat.type" class="glass-card text-center" style="cursor:pointer" @click="$router.push('/services')">
-            <div style="font-size:3rem;margin-bottom:0.75rem">{{ cat.icon }}</div>
-            <h4>{{ cat.name }}</h4>
+          <div v-for="cat in categories" :key="cat.type" class="glass-card text-center category-card" style="cursor:pointer; padding: 2rem 1.5rem; transition: all 0.3s ease;" @click="$router.push({ path: '/services', query: { category: 'Carwash' } })">
+            <div class="category-img-wrap" style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+              <img :src="cat.image" :alt="cat.name" class="category-img" style="max-height: 90px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12)); transition: transform 0.3s ease;" />
+            </div>
+            <h4 style="margin-bottom:0.25rem">{{ cat.name }}</h4>
             <p class="text-muted" style="font-size:0.85rem;margin-top:0.3rem">Starting ₹{{ cat.price }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Home Cleaning Categories -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="section-title">
+          <h2>Home Cleaning <span class="text-gradient">Categories</span></h2>
+          <p>Professional doorstep sofa cleaning, furniture rejuvenation & deep residential sanitization.</p>
+        </div>
+        <div class="grid gap-3" :class="homeCleaningCategories.length === 2 ? 'grid-2' : 'grid-3'" :style="homeCleaningCategories.length === 2 ? 'max-width: 820px; margin: 0 auto;' : ''">
+          <div v-for="cat in homeCleaningCategories" :key="cat.id" class="glass-card text-center category-card" style="cursor:pointer; padding: 2rem 1.5rem; transition: all 0.3s ease;" @click="goToHomeService(cat)">
+            <div class="category-img-wrap" style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+              <img :src="cat.image" :alt="cat.name" class="category-img" style="max-height: 90px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12)); transition: transform 0.3s ease;" />
+            </div>
+            <h4 style="margin-bottom:0.25rem">{{ cat.name }}</h4>
+            <p class="text-muted" style="font-size:0.85rem;margin-top:0.3rem">Starting ₹{{ cat.price }}</p>
+          </div>
+        </div>
+
+        <!-- Home Cleaning Highlight Banner -->
+        <div 
+          class="glass-card" 
+          style="margin-top: 2rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.08)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-lg); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.25rem; cursor: pointer;"
+          @click="$router.push({ path: '/services', query: { category: 'Home Cleaning' } })"
+        >
+          <div style="display: flex; align-items: center; gap: 1.25rem;">
+            <div style="font-size: 3rem;">🏠</div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span class="badge badge-emerald">DOORSTEP SERVICE</span>
+                <span style="font-size: 0.8rem; color: #10b981; font-weight: 700;">SAVE UP TO 40%</span>
+              </div>
+              <h3 style="margin: 0 0 0.35rem 0; font-size: 1.35rem;">Keep Your Home Fresh, Clean & Sanitized</h3>
+              <p class="text-muted" style="margin: 0; font-size: 0.88rem;">Professional sofa shampooing & residential sanitation without leaving your house.</p>
+            </div>
+          </div>
+          <div>
+            <button class="btn btn-primary" style="white-space: nowrap; font-weight: 600;">View All Home Services &rarr;</button>
           </div>
         </div>
       </div>
@@ -268,34 +325,6 @@
       </div>
     </section>
 
-    <!-- Partner Feedback -->
-    <section class="section" style="background:var(--bg-secondary)" v-if="partnerFeedback && partnerFeedback.length > 0">
-      <div class="container">
-        <div class="section-title">
-          <h2>Our Partners' <span class="text-gradient">Valuable Feedback</span></h2>
-          <p>Hear directly from our successful franchise partners across India.</p>
-        </div>
-        <div class="grid grid-3 gap-3">
-          <div v-for="(feedback, i) in partnerFeedback" :key="'copy-' + i" class="card feedback-card" style="padding:0;overflow:hidden;cursor:pointer;" @click="openVideoLightbox(feedback)">
-            <div class="feedback-thumb">
-               <img v-if="feedback.thumbnail_path" :src="feedback.thumbnail_path" class="feedback-thumb-img" />
-               <div v-else class="feedback-thumb-placeholder"></div>
-               <!-- Play button overlay -->
-               <div class="play-btn-overlay" v-if="feedback.video_path">
-                 <div class="play-btn-circle">
-                   <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-                 </div>
-               </div>
-            </div>
-            <div style="padding:1.5rem">
-               <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.city }} Partner</h4>
-               <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- FAQ -->
     <section class="section">
       <div class="container" style="max-width:800px">
@@ -435,7 +464,7 @@
     </section>
 
     <!-- App Download Section -->
-    <section class="section" style="padding: 2rem 0; background: var(--bg-primary);">
+    <!-- <section class="section" style="padding: 2rem 0; background: var(--bg-primary);">
       <div class="container">
         <div class="app-download-banner">
           <div class="app-download-content fade-in-up">
@@ -482,6 +511,52 @@
           </div>
         </div>
       </div>
+    </section -->
+
+    <!-- Partners' Valuable Feedback -->
+    <section class="section" v-if="partnerValuableFeedback && partnerValuableFeedback.length > 0">
+      <div class="container">
+        <div class="section-title">
+          <h2>Our <span class="text-gradient">Partners' Valuable Feedback</span></h2>
+          <p>Hear directly from our franchise partners.</p>
+        </div>
+
+        <div class="cards-slider-container">
+          <div ref="partnerSlider" class="cards-slider-track" @scroll="onSliderScroll('partner')">
+            <div
+              v-for="feedback in partnerValuableFeedback"
+              :key="feedback.id"
+              class="card feedback-card slider-card"
+              @click="openVideoLightbox(feedback)"
+            >
+              <div class="feedback-thumb">
+                <img v-if="feedback.thumbnail_path" :src="formatMediaUrl(feedback.thumbnail_path)" class="feedback-thumb-img" loading="lazy" />
+                <div v-else class="feedback-thumb-placeholder"></div>
+                <div class="play-btn-overlay" v-if="feedback.video_path">
+                  <div class="play-btn-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:1.5rem">
+                <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.name || (feedback.city ? feedback.city + ' Partner' : 'CleanAtDoorstep Partner') }}</h4>
+                <p v-if="feedback.city" class="text-muted" style="font-size:0.85rem;margin-bottom:.35rem">{{ feedback.city }}</p>
+                <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slider-dots" v-if="partnerValuableFeedback.length > 1">
+          <span
+            v-for="(_, dotIdx) in partnerValuableFeedback"
+            :key="dotIdx"
+            class="slider-dot"
+            :class="{ active: partnerActiveDot === dotIdx }"
+            @click="scrollToCard('partnerSlider', dotIdx)"
+          ></span>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -508,6 +583,54 @@ export default {
     // Backward compatibility
     filteredPackages() {
       return this.filteredServices;
+    },
+    // Home Cleaning Categories
+    homeCleaningCategories() {
+      const homePkgs = (this.packages || []).filter(p => !p.is_addon && this.isHomeCleaningPkg(p));
+      if (homePkgs.length > 0) {
+        return homePkgs.map(p => {
+          const vt = (p.vehicle_type || '').toLowerCase();
+          let img = '/images/home_cleaning/sofa_3_5.svg';
+          if (vt.includes('5_8') || vt.includes('5-8')) {
+            img = '/images/home_cleaning/sofa_5_8.svg';
+          } else if (vt.includes('3_5') || vt.includes('3-5')) {
+            img = '/images/home_cleaning/sofa_3_5.svg';
+          } else {
+            img = '/images/home_cleaning/home_deep.svg';
+          }
+
+          let displayName = p.name;
+          if (p.vehicle_type && p.vehicle_type !== 'home' && p.vehicle_type !== 'all') {
+            displayName = this.formatHomeType(p.vehicle_type);
+          }
+
+          return {
+            id: p.id,
+            name: displayName,
+            shortTitle: displayName,
+            image: img,
+            price: Math.round(Number(p.price)),
+            packageId: p.id
+          };
+        });
+      }
+
+      return [
+        {
+          id: 'sofa_3_5',
+          name: '3-5 Seater Sofa',
+          shortTitle: '3-5 Seater Sofa',
+          image: '/images/home_cleaning/sofa_3_5.svg',
+          price: 600,
+        },
+        {
+          id: 'sofa_5_8',
+          name: '5-8 Seater Sofa',
+          shortTitle: '5-8 Seater Sofa',
+          image: '/images/home_cleaning/sofa_5_8.svg',
+          price: 800,
+        }
+      ];
     },
   },
   data() {
@@ -540,17 +663,21 @@ export default {
       currentBannerIndex: 0,
       sliderInterval: null,
       categories: [
-        { type: 'hatchback', name: 'Hatchbacks', icon: '🚙', price: 299 },
-        { type: 'sedan', name: 'Sedans', icon: '🚗', price: 399 },
-        { type: 'suv', name: 'SUVs', icon: '🚘', price: 499 },
-        { type: 'commercial', name: 'Commercial', icon: '🚐', price: 699 },
-        { type: 'bus', name: 'Buses', icon: '🚌', price: 1499 },
-        { type: 'volvo_bus', name: 'Volvo Buses', icon: '🚍', price: 2499 },
+        { type: 'hatchback', name: 'Hatchbacks', image: '/images/vehicles/hatchback.png', price: 299 },
+        { type: 'sedan', name: 'Sedans', image: '/images/vehicles/sedan.png', price: 399 },
+        { type: 'suv', name: 'SUVs', image: '/images/vehicles/suv.png', price: 499 },
+        { type: 'commercial', name: 'Commercial', image: '/images/vehicles/commercial.png', price: 699 },
+        { type: 'bus', name: 'Buses', image: '/images/vehicles/bus.png', price: 1499 },
+        { type: 'volvo_bus', name: 'Volvo Buses', image: '/images/vehicles/volvo_bus.png', price: 2499 },
       ],
       testimonials: [],
       partnerFeedback: [],
       faqs: [],
-      aboutUs: null
+      aboutUs: null,
+      partnerValuableFeedback: [],
+      customerActiveDot: 0,
+      partnerActiveDot: 0,
+      feedbackSliderTimer: null
     };
   },
   mounted() {
@@ -561,6 +688,12 @@ export default {
     this.fetchPartnerFeedback();
     this.fetchFaqs();
     this.fetchAboutUs();
+    this.fetchPartnerValuableFeedback();
+    this.startFeedbackSliders();
+  },
+  beforeUnmount() {
+    if (this.sliderInterval) clearInterval(this.sliderInterval);
+    if (this.feedbackSliderTimer) clearInterval(this.feedbackSliderTimer);
   },
   methods: {
     async fetchPackages() {
@@ -571,6 +704,37 @@ export default {
         console.error('Failed to fetch packages:', e);
       }
       this.loadingServices = false;
+    },
+    isHomeCleaningPkg(pkg) {
+      if (!pkg) return false;
+      const cName = (pkg.category?.name || pkg.category_name || '').toLowerCase();
+      const vt = (pkg.vehicle_type || '').toLowerCase();
+      const name = (pkg.name || '').toLowerCase();
+      return (
+        cName.includes('home') ||
+        vt.includes('sofa') ||
+        vt.includes('seator') ||
+        vt === 'home' ||
+        name.includes('sofa') ||
+        name.includes('home clean')
+      );
+    },
+    formatHomeType(vt) {
+      if (!vt) return '';
+      return vt
+        .replace(/3_5_seator_sofas?/i, '3-5 Seater Sofa')
+        .replace(/5_8_seator_sofas?/i, '5-8 Seater Sofa')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+    },
+    goToHomeService(cat) {
+      this.$router.push({
+        path: '/services',
+        query: {
+          category: 'Home Cleaning',
+          search: cat.shortTitle || ''
+        }
+      });
     },
     async fetchBanners() {
       try {
@@ -624,6 +788,26 @@ export default {
         console.error('Failed to fetch About Us:', error);
       }
     },
+    async fetchOffers() {
+      try {
+        const response = await fetch('/api/offers');
+        if (response.ok) {
+          this.offers = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch offers:', error);
+      }
+    },
+    async fetchPartnerValuableFeedback() {
+      try {
+        const response = await fetch('/api/partner-valuable-feedback');
+        if (response.ok) {
+          this.partnerValuableFeedback = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch partner valuable feedback:', error);
+      }
+    },
     startBannerSlider() {
       if (this.banners && this.banners.length > 1) {
         this.sliderInterval = setInterval(() => {
@@ -648,16 +832,6 @@ export default {
         clearInterval(this.sliderInterval);
       }
       this.startBannerSlider();
-    },
-    async fetchOffers() {
-      try {
-        const response = await fetch('/api/offers');
-        if (response.ok) {
-          this.offers = await response.json();
-        }
-      } catch (error) {
-        console.error('Failed to fetch offers:', error);
-      }
     },
     toggleFaq(index) {
       const wasOpen = this.faqs[index].open;
@@ -720,18 +894,106 @@ export default {
         }, 5000);
       }
     },
+    formatMediaUrl(url) {
+      if (!url || typeof url !== 'string') return '';
+      if (
+        url.startsWith('http://carwash.local') ||
+        url.startsWith('https://carwash.local') ||
+        url.startsWith('http://localhost') ||
+        url.startsWith('https://localhost')
+      ) {
+        try {
+          const parsed = new URL(url);
+          return parsed.pathname;
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+        return '/' + url;
+      }
+      return url;
+    },
     openVideoLightbox(feedback) {
       this.lightboxFeedback = feedback;
       this.lightboxOpen = true;
       document.body.style.overflow = 'hidden';
+      this.$nextTick(() => {
+        if (this.$refs.lightboxVideo) {
+          try {
+            this.$refs.lightboxVideo.load();
+            const p = this.$refs.lightboxVideo.play();
+            if (p && typeof p.catch === 'function') {
+              p.catch(() => {});
+            }
+          } catch (e) {
+            // Autoplay prevented by browser
+          }
+        }
+      });
     },
     closeLightbox() {
       if (this.$refs.lightboxVideo) {
-        this.$refs.lightboxVideo.pause();
+        try {
+          this.$refs.lightboxVideo.pause();
+        } catch (e) {}
       }
       this.lightboxOpen = false;
       this.lightboxFeedback = null;
       document.body.style.overflow = '';
+    },
+    scrollSlider(refName, direction) {
+      const container = this.$refs[refName];
+      if (!container) return;
+      const card = container.querySelector('.slider-card');
+      const cardWidth = card ? card.offsetWidth + 24 : 340;
+      container.scrollBy({
+        left: direction * cardWidth,
+        behavior: 'smooth'
+      });
+    },
+    scrollToCard(refName, index) {
+      const container = this.$refs[refName];
+      if (!container) return;
+      const cards = container.querySelectorAll('.slider-card');
+      if (cards[index]) {
+        cards[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      }
+    },
+    onSliderScroll(type) {
+      const refName = type === 'customer' ? 'customerSlider' : 'partnerSlider';
+      const container = this.$refs[refName];
+      if (!container) return;
+      const card = container.querySelector('.slider-card');
+      const cardWidth = card ? card.offsetWidth + 24 : 340;
+      const index = Math.round(container.scrollLeft / cardWidth);
+      if (type === 'customer') {
+        this.customerActiveDot = Math.max(0, Math.min(this.partnerFeedback.length - 1, index));
+      } else {
+        this.partnerActiveDot = Math.max(0, Math.min(this.partnerValuableFeedback.length - 1, index));
+      }
+    },
+    startFeedbackSliders() {
+      if (this.feedbackSliderTimer) clearInterval(this.feedbackSliderTimer);
+      this.feedbackSliderTimer = setInterval(() => {
+        if (this.lightboxOpen) return;
+        if (this.partnerFeedback && this.partnerFeedback.length > 3) {
+          this.autoAdvanceSlider('customerSlider', 'customer');
+        }
+        if (this.partnerValuableFeedback && this.partnerValuableFeedback.length > 3) {
+          this.autoAdvanceSlider('partnerSlider', 'partner');
+        }
+      }, 5000);
+    },
+    autoAdvanceSlider(refName, type) {
+      const container = this.$refs[refName];
+      if (!container) return;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (container.scrollLeft >= maxScroll - 15) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        this.scrollSlider(refName, 1);
+      }
     }
   }
 };
@@ -812,6 +1074,131 @@ export default {
 @keyframes ticker {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* ── Category Cards ── */
+.category-card {
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.category-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 10px 30px rgba(0, 180, 255, 0.12);
+}
+.category-card:hover .category-img {
+  transform: scale(1.08);
+}
+
+/* ── Feedback Sliders ── */
+.section-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.slider-nav-btns {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.slider-arrow-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.slider-arrow-btn:hover {
+  background: var(--accent-cyan);
+  color: #0b1120;
+  border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.35);
+}
+
+.slider-arrow-btn:active {
+  transform: translateY(0);
+}
+
+.cards-slider-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.cards-slider-track {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0.5rem 0.25rem 1rem 0.25rem;
+}
+
+.cards-slider-track::-webkit-scrollbar {
+  display: none;
+}
+
+.slider-card {
+  flex: 0 0 calc((100% - 3rem) / 3);
+  min-width: 300px;
+  max-width: 380px;
+  scroll-snap-align: start;
+  padding: 0 !important;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 992px) {
+  .slider-card {
+    flex: 0 0 calc((100% - 1.5rem) / 2);
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 640px) {
+  .slider-card {
+    flex: 0 0 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
+.slider-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.slider-dot.active {
+  width: 24px;
+  background: var(--accent-cyan);
 }
 
 /* ── Feedback Cards ── */
@@ -1374,6 +1761,19 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .video-lightbox-overlay {
+    padding: 1rem;
+  }
+  .video-lightbox-content {
+    max-width: 100%;
+    border-radius: 14px;
+  }
+  .lightbox-glow {
+    border-radius: 16px;
+  }
+  .lightbox-info-inner {
+    padding: 1rem 1.25rem 1.25rem;
+  }
   .refer-earn-steps {
     flex-direction: column;
     gap: 1.5rem;
@@ -1388,7 +1788,7 @@ export default {
   }
   .refer-earn-title {
     font-size: 1.8rem;
-  }
+ }
   .refer-earn-section {
     padding: 3.5rem 0 3rem;
   }
