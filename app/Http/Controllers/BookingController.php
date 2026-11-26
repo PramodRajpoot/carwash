@@ -31,6 +31,27 @@ class BookingController extends Controller
             $query->where('is_addon', filter_var($request->is_addon, FILTER_VALIDATE_BOOLEAN));
         }
 
+        if ($request->has('is_subscription')) {
+            $isSub = filter_var($request->is_subscription, FILTER_VALIDATE_BOOLEAN);
+            if ($isSub) {
+                $query->where(function ($q) {
+                    $q->where('is_subscription', true)
+                      ->orWhere(function ($sub) {
+                          $sub->where('is_addon', false)
+                              ->where('frequency_days', '>=', 30)
+                              ->where('max_bookings', '>', 1);
+                      });
+                });
+            } else {
+                $query->where('is_subscription', false)
+                      ->where(function ($q) {
+                          $q->where('frequency_days', '<', 30)
+                            ->orWhereNull('frequency_days')
+                            ->orWhere('max_bookings', '<=', 1);
+                      });
+            }
+        }
+
         if ($categoryId && $categoryId !== 'all') {
             $query->where('category_id', $categoryId);
         }

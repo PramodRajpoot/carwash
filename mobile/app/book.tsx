@@ -230,9 +230,14 @@ export default function BookScreen() {
 
   // Packages strictly filtered according to category
   const availableBasePackages = useMemo(() => {
+    const isSubscriptionPass = (p: ServicePkg) =>
+      p.is_subscription ||
+      Number(p.frequency_days || 0) >= 30 ||
+      Number(p.max_bookings || 1) > 1;
+
     if (isHomeCleaning) {
       return packages.filter((p) => {
-        if (p.is_addon) return false;
+        if (p.is_addon || isSubscriptionPass(p)) return false;
         const cName = (p.category?.name || p.category_name || '').toLowerCase();
         return cName.includes('home') || (p.vehicle_type || '').toLowerCase().includes('sofa');
       });
@@ -241,7 +246,7 @@ export default function BookScreen() {
     // Carwash packages filtered by selected vehicle's vehicle_type
     const vt = selectedVehicle?.vehicle_type?.toLowerCase();
     return packages.filter((p) => {
-      if (p.is_addon) return false;
+      if (p.is_addon || isSubscriptionPass(p)) return false;
       const cName = (p.category?.name || p.category_name || '').toLowerCase();
       if (cName.includes('home') || (p.vehicle_type || '').toLowerCase().includes('sofa')) {
         return false;
