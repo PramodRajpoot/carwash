@@ -277,7 +277,7 @@ export default function EPointsScreen() {
         }
       );
 
-      showSweetAlert('Success', 'Withdrawal request submitted successfully.', 'success');
+      showSweetAlert('Success', 'The amount will be reflected in your account within 24–48 hours.', 'success');
       setRedeemAmount('100');
       await loadWalletData();
     } catch (error: any) {

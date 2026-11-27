@@ -179,7 +179,7 @@ export default {
         await axios.post('/api/wallet/withdraw', { 
           amount: amount
         });
-        Swal.fire({ icon: 'success', title: 'Success', text: 'Withdrawal request submitted successfully.', timer: 2000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Success', text: 'The amount will be reflected in your account within 24–48 hours.', timer: 2500, showConfirmButton: false });
         await this.load();
       } catch (e) {
         Swal.fire('Error', e.response?.data?.message || 'Request failed.', 'error');
