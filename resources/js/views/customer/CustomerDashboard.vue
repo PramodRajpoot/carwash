@@ -62,7 +62,7 @@
         <h4 style="margin-bottom:1rem">📋 Active Subscription</h4>
         <div v-if="data.subscription">
           <div style="font-weight:600;margin-bottom:0.25rem">{{ data.subscription.package?.name }}</div>
-          <div class="text-muted" style="font-size:0.85rem">{{ data.subscription.booking_count }} / {{ data.subscription.package?.max_bookings }} washes used</div>
+          <div class="text-muted" style="font-size:0.85rem">{{ completedSubWashes }} / {{ data.subscription.package?.max_bookings }} washes completed</div>
           <div style="margin-top:0.75rem;background:var(--bg-secondary);border-radius:var(--radius-sm);height:6px">
             <div :style="{ width: progressPct + '%', background: 'var(--gradient-btn)', borderRadius: 'var(--radius-sm)', height: '100%' }"></div>
           </div>
@@ -143,9 +143,17 @@ export default {
     };
   },
   computed: {
+    completedSubWashes() {
+      if (!this.data.subscription) return 0;
+      if (this.data.subscription.completed_washes !== undefined && this.data.subscription.completed_washes !== null) {
+        return Number(this.data.subscription.completed_washes);
+      }
+      return 0;
+    },
     progressPct() {
       if (!this.data.subscription?.package) return 0;
-      return Math.round((this.data.subscription.booking_count / this.data.subscription.package.max_bookings) * 100);
+      const max = Number(this.data.subscription.package.max_bookings || 1);
+      return Math.min(100, Math.round((this.completedSubWashes / max) * 100));
     },
   },
   methods: {

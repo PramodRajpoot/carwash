@@ -13,7 +13,7 @@
           <div>
             <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent-cyan);">{{ activeSub.package?.name }}</div>
             <div class="text-secondary" style="font-size: 0.9rem; margin-top: 0.25rem;">
-              Usage: <strong style="color: var(--text-primary);">{{ activeSub.booking_count }} / {{ activeSub.package?.max_bookings }} washes</strong> completed
+              Usage: <strong style="color: var(--text-primary);">{{ (activeSub.completed_washes !== undefined ? activeSub.completed_washes : 0) }} / {{ activeSub.package?.max_bookings }} washes</strong> completed
             </div>
             <div class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">
               Valid from {{ formatDate(activeSub.starts_at) }} to {{ formatDate(activeSub.expires_at) }}

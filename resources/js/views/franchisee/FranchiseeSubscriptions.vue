@@ -20,10 +20,10 @@
           <div class="flex gap-3 items-center">
             <div style="flex:1">
               <div style="font-size:0.85rem;font-weight:600;color:#ffffff;margin-bottom:0.35rem">
-                Progress: <span style="color:#38bdf8;font-weight:700">{{ s.booking_count }}</span> / {{ s.package?.max_bookings }} washes
+                Progress: <span style="color:#38bdf8;font-weight:700">{{ getCompletedWashes(s) }}</span> / {{ s.package?.max_bookings }} washes
               </div>
               <div style="background:rgba(255,255,255,0.2);border-radius:4px;height:6px;overflow:hidden">
-                <div :style="{ width: Math.min(100, Math.round((s.booking_count / (s.package?.max_bookings || 1)) * 100)) + '%', background:'var(--gradient-btn, #00B4FF)', height:'100%', borderRadius:'4px' }"></div>
+                <div :style="{ width: getProgressWidth(s), background:'var(--gradient-btn, #00B4FF)', height:'100%', borderRadius:'4px', transition: 'width 0.3s ease' }"></div>
               </div>
             </div>
           </div>
@@ -48,6 +48,18 @@ export default {
   },
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },
+    getCompletedWashes(s) {
+      if (s.completed_washes !== undefined && s.completed_washes !== null) {
+        return Number(s.completed_washes);
+      }
+      return 0;
+    },
+    getProgressWidth(s) {
+      const completed = this.getCompletedWashes(s);
+      const max = Number(s.package?.max_bookings || 1);
+      const pct = Math.min(100, Math.round((completed / max) * 100));
+      return pct + '%';
+    },
   },
   async mounted() {
     try {

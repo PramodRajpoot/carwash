@@ -36,6 +36,24 @@ class Subscription extends Model
         'schedules' => 'json',
     ];
 
+    protected $appends = ['completed_washes'];
+
+    public function getCompletedWashesAttribute(): int
+    {
+        $query = Booking::where('customer_id', $this->customer_id)
+            ->where('package_id', $this->package_id)
+            ->where('status', 'completed');
+
+        if ($this->starts_at) {
+            $query->where('booking_date', '>=', \Carbon\Carbon::parse($this->starts_at)->format('Y-m-d'));
+        }
+        if ($this->expires_at) {
+            $query->where('booking_date', '<=', \Carbon\Carbon::parse($this->expires_at)->format('Y-m-d'));
+        }
+
+        return (int) $query->count();
+    }
+
     public function customer()
     {
         return $this->belongsTo(User::class, 'customer_id');
