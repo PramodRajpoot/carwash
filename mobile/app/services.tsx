@@ -462,7 +462,12 @@ export default function ServicesScreen() {
 
   // Category counts
   const categoryCounts = useMemo(() => {
-    const activePkgs = packages.filter((pkg) => !pkg.is_addon);
+    const activePkgs = packages.filter(
+      (pkg) =>
+        !pkg.is_addon &&
+        !pkg.is_subscription &&
+        (Number(pkg.frequency_days || 0) < 30 || Number(pkg.max_bookings || 1) <= 1)
+    );
     const counts: Record<string, number> = { all: activePkgs.length };
 
     categoryList.forEach((cat) => {
@@ -489,7 +494,14 @@ export default function ServicesScreen() {
   // Dynamic Sub-filters based on the active category
   const dynamicFilterOptions = useMemo(() => {
     const basePkgs = packages.filter((p) => {
-      if (p.is_addon) return false;
+      if (
+        p.is_addon ||
+        p.is_subscription ||
+        Number(p.frequency_days || 0) >= 30 ||
+        Number(p.max_bookings || 1) > 1
+      ) {
+        return false;
+      }
       if (activeCategory === 'all') return true;
       const cName = (p.category?.name || p.category_name || '').toLowerCase();
       return cName === activeCategory.toLowerCase();
@@ -578,7 +590,14 @@ export default function ServicesScreen() {
   // Filtered packages
   const filteredPackages = useMemo(() => {
     return packages.filter((pkg) => {
-      if (pkg.is_addon) return false;
+      if (
+        pkg.is_addon ||
+        pkg.is_subscription ||
+        Number(pkg.frequency_days || 0) >= 30 ||
+        Number(pkg.max_bookings || 1) > 1
+      ) {
+        return false;
+      }
 
       const pkgCatName = (pkg.category?.name || pkg.category_name || '').toLowerCase();
       const pkgVehType = (pkg.vehicle_type || '').toLowerCase();

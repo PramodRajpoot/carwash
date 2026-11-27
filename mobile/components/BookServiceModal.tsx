@@ -374,12 +374,20 @@ export default function BookServiceModal({
 
   // Filter packages matching selected vehicle's vehicle_type
   const availableBasePackages = useMemo(() => {
+    const isSubscriptionPass = (p: ServicePkg) =>
+      p.is_subscription ||
+      Number(p.frequency_days || 0) >= 30 ||
+      Number(p.max_bookings || 1) > 1;
+
     if (!selectedVehicle) {
-      return packages.filter((p) => !p.is_addon);
+      return packages.filter((p) => !p.is_addon && !isSubscriptionPass(p));
     }
     const vt = selectedVehicle.vehicle_type?.toLowerCase();
     return packages.filter(
-      (p) => !p.is_addon && (p.vehicle_type?.toLowerCase() === vt || p.vehicle_type === 'all')
+      (p) =>
+        !p.is_addon &&
+        !isSubscriptionPass(p) &&
+        (p.vehicle_type?.toLowerCase() === vt || p.vehicle_type === 'all')
     );
   }, [packages, selectedVehicle]);
 

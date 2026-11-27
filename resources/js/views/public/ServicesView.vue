@@ -130,79 +130,35 @@
 
         <div v-if="!loading && filteredServices.length === 0" class="empty-state" style="padding: 2.5rem 0;">
           <div class="empty-icon">📦</div>
-          <p>No one-time services found for this selection.</p>
+          <p>No services found for this selection.</p>
         </div>
       </div>
     </section>
 
-    <!-- Monthly Packages -->
-    <section class="section" id="monthly-packages" style="padding-top: 1.5rem;">
+    <!-- Subscription Plans Banner -->
+    <section class="section" style="padding-top: 1rem; padding-bottom: 3rem;">
       <div class="container">
-        <div class="flex justify-between items-center" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-          <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-            <span>🗓️</span>
-            <span>Monthly Packages</span>
-            <span class="text-muted" style="font-size: 0.85rem; font-weight: normal;">({{ filteredMonthlyPackages.length }})</span>
-          </h3>
-        </div>
-
-        <div v-if="loading" class="text-center text-muted" style="padding: 3rem;">Loading packages...</div>
-
-        <div v-else class="grid grid-3 gap-3">
-          <div
-            v-for="pkg in filteredMonthlyPackages"
-            :key="pkg.id"
-            class="glass-card"
-            style="border: 1px solid rgba(139, 92, 246, 0.25); display: flex; flex-direction: column; justify-content: space-between;"
-          >
-            <div>
-              <div class="flex justify-between items-center" style="margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.35rem;">
-                <!-- Category/Vehicle Badge -->
-                <span v-if="isHomeCleaning(pkg)" class="badge badge-emerald" style="display: inline-flex; align-items: center; gap: 3px;">
-                  🏠 {{ formatServiceType(pkg) }}
-                </span>
-                <span v-else class="badge badge-cyan" style="text-transform: uppercase;">
-                  🚗 {{ pkg.vehicle_type }}
-                </span>
-
-                <span class="badge badge-emerald">Monthly Pass</span>
-                <span v-if="pkg.custom_badge" class="badge" style="background: var(--accent-rose); color: white;">{{ pkg.custom_badge }}</span>
-
-                <!-- Wishlist Heart Button -->
-                <button
-                  type="button"
-                  @click.stop="toggleWishlist(pkg)"
-                  style="background: none; border: none; cursor: pointer; font-size: 1.2rem; margin-left: auto; padding: 2px 4px; transition: transform 0.2s;"
-                  :title="isWishlisted(pkg.id) ? 'Remove from wishlist' : 'Add to wishlist'"
-                >
-                  {{ isWishlisted(pkg.id) ? '❤️' : '🤍' }}
-                </button>
-              </div>
-
-              <h4 style="margin-bottom: 0.5rem;">{{ pkg.name }}</h4>
-              <p class="text-muted" style="font-size: 0.85rem; line-height: 1.6; margin-bottom: 1rem;">{{ pkg.description }}</p>
+        <div
+          class="glass-card"
+          style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(139, 92, 246, 0.12)); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 1rem; padding: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;"
+        >
+          <div style="max-width: 600px;">
+            <div class="flex items-center gap-2" style="margin-bottom: 0.5rem;">
+              <span style="font-size: 1.5rem;">🔁</span>
+              <h3 style="margin: 0; font-size: 1.25rem;">Looking for Subscription Plans?</h3>
             </div>
-
-            <div>
-              <div class="flex justify-between items-center" style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-                <div>
-                  <span style="font-size: 1.45rem; font-weight: 700; color: var(--accent-cyan);">₹{{ pkg.price }}</span>
-                  <span class="text-muted" style="font-size: 0.8rem;"> / mo</span>
-                </div>
-                <button type="button" @click="bookService(pkg)" class="btn btn-primary btn-sm" style="font-weight: 600;">
-                  Subscribe →
-                </button>
-              </div>
-              <div v-if="pkg.max_bookings > 1" class="text-muted" style="font-size: 0.75rem; margin-top: 0.4rem;">
-                Includes {{ pkg.max_bookings }} {{ isHomeCleaning(pkg) ? 'services' : 'washes' }} per month
-              </div>
-            </div>
+            <p class="text-muted" style="margin: 0; font-size: 0.95rem; line-height: 1.5;">
+              Save up to 40% with recurring daily, weekly, or monthly wash & deep cleaning packages. Manage all your recurring passes in one place.
+            </p>
           </div>
-        </div>
-
-        <div v-if="!loading && filteredMonthlyPackages.length === 0" class="empty-state" style="padding: 2.5rem 0;">
-          <div class="empty-icon">📦</div>
-          <p>No monthly packages found for this selection.</p>
+          <router-link
+            to="/customer/subscriptions"
+            class="btn btn-primary"
+            style="border-radius: 9999px; padding: 0.75rem 1.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap;"
+          >
+            <span>View Subscription Plans</span>
+            <span>→</span>
+          </router-link>
         </div>
       </div>
     </section>
@@ -262,7 +218,12 @@ export default {
     },
 
     counts() {
-      const main = this.packages.filter(p => !p.is_addon);
+      const main = this.packages.filter(
+        p =>
+          !p.is_addon &&
+          !p.is_subscription &&
+          (Number(p.frequency_days || 0) < 30 || Number(p.max_bookings || 1) <= 1)
+      );
       return {
         all: main.length,
         carwash: main.filter(p => !this.isHomeCleaning(p)).length,
@@ -272,16 +233,12 @@ export default {
 
     filteredServices() {
       const services = this.packages.filter(
-        p => !p.is_addon && !p.is_subscription && (p.frequency_days < 30 || !p.frequency_days)
+        p =>
+          !p.is_addon &&
+          !p.is_subscription &&
+          (Number(p.frequency_days || 0) < 30 || Number(p.max_bookings || 1) <= 1)
       );
       return this.filterList(services);
-    },
-
-    filteredMonthlyPackages() {
-      const monthly = this.packages.filter(
-        p => !p.is_addon && (p.is_subscription || p.frequency_days >= 30)
-      );
-      return this.filterList(monthly);
     },
   },
   methods: {

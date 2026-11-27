@@ -765,7 +765,8 @@ export default {
       return this.packages.find(p => p.id == this.bf.package_id) || null;
     },
     availableBasePackages() {
-      const mainOnly = this.packages.filter(p => !p.is_addon);
+      // Exclude addons and subscription plans (subscriptions belong only on the subscription page)
+      const mainOnly = this.packages.filter(p => !p.is_addon && !p.is_subscription && (Number(p.frequency_days || 0) < 30 || Number(p.max_bookings || 1) <= 1));
       if (this.bookingCategory === 'home_cleaning') {
         return mainOnly.filter(p => this.isHomeCleaningPkg(p));
       }
