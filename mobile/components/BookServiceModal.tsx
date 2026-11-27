@@ -21,6 +21,7 @@ import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium } from '../utils/haptics';
 import { playBookingSuccessSound } from '../utils/sound';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { isSlotTimePassed } from '../utils/slotHelper';
 import { WaterElectricityCard, WaterElectricityModal } from './WaterElectricitySection';
 
 const WebViewComponent: any = WebView;
@@ -55,6 +56,7 @@ interface SlotItem {
   max_bookings: number;
   current_bookings: number;
   is_full?: boolean;
+  is_past?: boolean;
 }
 
 interface Props {
@@ -431,9 +433,13 @@ export default function BookServiceModal({
         if (isMounted) {
           const list: SlotItem[] = res.data || [];
           setAvailableSlots(list);
-          const firstOpen = list.find((s) => !s.is_full && s.current_bookings < s.max_bookings);
+          const firstOpen = list.find(
+            (s) => !s.is_full && !s.is_past && !isSlotTimePassed(selectedDate, s.time_range) && s.current_bookings < s.max_bookings
+          );
           if (firstOpen) {
             setSelectedSlot(firstOpen.time_range);
+          } else {
+            setSelectedSlot('');
           }
         }
       } catch (err) {
@@ -567,6 +573,10 @@ export default function BookServiceModal({
     }
     if (!selectedSlot) {
       showSweetAlert('Time Slot Required', 'Please choose a time slot.', 'warning');
+      return;
+    }
+    if (isSlotTimePassed(selectedDate, selectedSlot)) {
+      showSweetAlert('Slot Expired', 'The selected time slot has already passed for today. Please choose an upcoming slot.', 'warning');
       return;
     }
 
@@ -1804,7 +1814,8 @@ export default function BookServiceModal({
                     </View>
                   ) : (
                     availableSlots.map((s) => {
-                      const isFull = s.is_full || s.current_bookings >= s.max_bookings;
+                      const isPassed = Boolean(s.is_past || isSlotTimePassed(selectedDate, s.time_range));
+                      const isFull = Boolean(s.is_full || s.current_bookings >= s.max_bookings || isPassed);
                       const isSelected = s.time_range === selectedSlot;
 
                       return (
@@ -1814,7 +1825,7 @@ export default function BookServiceModal({
                           style={[
                             styles.pickerOptionItem,
                             isDark && styles.darkBorder,
-                            isFull && { opacity: 0.4 },
+                            isFull && { opacity: 0.45 },
                             isSelected && (isDark ? styles.pickerActiveItemDark : styles.pickerActiveItemLight),
                           ]}
                           onPress={() => {
@@ -1826,18 +1837,22 @@ export default function BookServiceModal({
                           <Ionicons
                             name="time-outline"
                             size={18}
-                            color="#0284c7"
+                            color={isPassed ? '#94a3b8' : '#0284c7'}
                             style={{ marginRight: 10 }}
                           />
                           <View style={{ flex: 1 }}>
-                            <Text style={[styles.pickerOptionTitle, isDark && styles.darkText]}>
+                            <Text style={[styles.pickerOptionTitle, isDark && styles.darkText, isPassed && { textDecorationLine: 'line-through', opacity: 0.7 }]}>
                               {s.time_range}
                             </Text>
                             <Text style={[styles.pickerOptionSub, isDark && styles.darkSubtext]}>
-                              {isFull ? 'Slot Full' : 'Available for booking'}
+                              {isPassed ? 'Time has passed' : isFull ? 'Slot Full' : 'Available for booking'}
                             </Text>
                           </View>
-                          {isFull ? (
+                          {isPassed ? (
+                            <View style={[styles.fullBadge, { backgroundColor: '#fee2e2' }]}>
+                              <Text style={[styles.fullBadgeText, { color: '#ef4444' }]}>PASSED</Text>
+                            </View>
+                          ) : isFull ? (
                             <View style={styles.fullBadge}>
                               <Text style={styles.fullBadgeText}>FULL</Text>
                             </View>

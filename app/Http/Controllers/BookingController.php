@@ -132,6 +132,40 @@ class BookingController extends Controller
         }
     }
 
+    /**
+     * Determine if a given slot on a date has already passed.
+     */
+    public static function isSlotPassed($dateStr, $timeRange)
+    {
+        if (empty($dateStr) || empty($timeRange)) {
+            return false;
+        }
+
+        $now = now('Asia/Kolkata');
+        try {
+            $slotDate = \Carbon\Carbon::parse($dateStr, 'Asia/Kolkata')->startOfDay();
+            $today = $now->copy()->startOfDay();
+
+            if ($slotDate->lt($today)) {
+                return true;
+            }
+            if ($slotDate->gt($today)) {
+                return false;
+            }
+
+            $parts = preg_split('/[-–—]/', $timeRange);
+            $startStr = trim($parts[0] ?? '');
+            if (!$startStr) {
+                return false;
+            }
+
+            $slotStart = \Carbon\Carbon::parse($dateStr . ' ' . $startStr, 'Asia/Kolkata');
+            return $now->greaterThanOrEqualTo($slotStart);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
     public function checkSlotAvailability(Request $request)
     {
         $request->validate([
@@ -188,7 +222,10 @@ class BookingController extends Controller
             }
             $slot->max_bookings = $max;
             $slot->save();
-            $slot->is_full = ($slot->current_bookings >= $max);
+
+            $isPast = self::isSlotPassed($request->date, $slot->time_range);
+            $slot->is_past = $isPast;
+            $slot->is_full = ($slot->current_bookings >= $max) || $isPast;
         }
 
         return response()->json($slots);
@@ -273,6 +310,13 @@ class BookingController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Selected slot is currently unavailable. Please choose another slot.'
+            ], 400);
+        }
+
+        if (self::isSlotPassed($request->booking_date, $request->slot_time)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The selected time slot has already passed for today. Please select an upcoming slot or choose another date.'
             ], 400);
         }
 

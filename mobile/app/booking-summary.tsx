@@ -26,6 +26,7 @@ import { API_BASE } from '../constants/api';
 import { safeHapticLight, safeHapticMedium, safeHapticSuccess, safeHapticWarning } from '../utils/haptics';
 import { playBookingSuccessSound } from '../utils/sound';
 import { showSweetAlert } from '../utils/sweetAlert';
+import { isSlotTimePassed } from '../utils/slotHelper';
 import AppFooter, { FooterTab } from '../components/AppFooter';
 import { useAppTheme } from '../utils/themeManager';
 import { WaterElectricityCard, WaterElectricityModal } from '../components/WaterElectricitySection';
@@ -67,6 +68,7 @@ interface SlotItem {
   max_bookings: number;
   current_bookings: number;
   is_full?: boolean;
+  is_past?: boolean;
 }
 
 export default function BookingSummaryScreen() {
@@ -489,9 +491,13 @@ export default function BookingSummaryScreen() {
         if (isMounted) {
           const list: SlotItem[] = res.data || [];
           setAvailableSlots(list);
-          const firstOpen = list.find((s) => !s.is_full && s.current_bookings < s.max_bookings);
+          const firstOpen = list.find(
+            (s) => !s.is_full && !s.is_past && !isSlotTimePassed(selectedDate, s.time_range) && s.current_bookings < s.max_bookings
+          );
           if (firstOpen) {
             setSelectedSlot(firstOpen.time_range);
+          } else {
+            setSelectedSlot('');
           }
         }
       } catch (err) {
@@ -637,6 +643,10 @@ export default function BookingSummaryScreen() {
     }
     if (!selectedSlot) {
       showSweetAlert('Time Slot Required', 'Please choose an available time slot.', 'warning');
+      return;
+    }
+    if (isSlotTimePassed(selectedDate, selectedSlot)) {
+      showSweetAlert('Slot Expired', 'The selected time slot has already passed for today. Please choose an upcoming slot.', 'warning');
       return;
     }
 
@@ -1231,7 +1241,8 @@ export default function BookingSummaryScreen() {
               ) : (
                 <View style={styles.slotsGridWrap}>
                   {availableSlots.map((slot) => {
-                    const isFull = slot.current_bookings >= slot.max_bookings || slot.is_full;
+                    const isPassed = Boolean(slot.is_past || isSlotTimePassed(selectedDate, slot.time_range));
+                    const isFull = Boolean(slot.current_bookings >= slot.max_bookings || slot.is_full || isPassed);
                     const isSelected = selectedSlot === slot.time_range;
                     return (
                       <TouchableOpacity
@@ -1282,7 +1293,7 @@ export default function BookingSummaryScreen() {
                                 : styles.textAvailable,
                             ]}
                           >
-                            {isFull ? 'FULL' : 'OPEN'}
+                            {isPassed ? 'PASSED' : isFull ? 'FULL' : 'OPEN'}
                           </Text>
                         </View>
                       </TouchableOpacity>

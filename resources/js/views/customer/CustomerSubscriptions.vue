@@ -167,8 +167,8 @@
               <label>Time Slot</label>
               <select v-model="item.slot" class="form-select" :disabled="!item.date || !scheduleCenterId || scheduleSlotLoading[index]">
                 <option value="">{{ scheduleSlotLoading[index] ? 'Loading slots...' : 'Select Slot' }}</option>
-                <option v-for="slot in scheduleSlots[index]" :key="slot.time_range" :value="slot.time_range" :disabled="slot.is_full || slot.current_bookings >= slot.max_bookings">
-                  {{ slot.time_range }}{{ slot.is_full || slot.current_bookings >= slot.max_bookings ? ' — Full' : '' }}
+                <option v-for="slot in scheduleSlots[index]" :key="slot.time_range" :value="slot.time_range" :disabled="slot.is_past || slot.is_full || slot.current_bookings >= slot.max_bookings">
+                  {{ slot.time_range }}{{ slot.is_past ? ' — (Time Passed)' : (slot.is_full || slot.current_bookings >= slot.max_bookings ? ' — (Slot Full)' : '') }}
                 </option>
               </select>
             </div>

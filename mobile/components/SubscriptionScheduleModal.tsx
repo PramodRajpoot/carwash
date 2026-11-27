@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { API_BASE } from '../constants/api';
 import { showSweetAlert } from '../utils/sweetAlert';
 import { safeHapticLight, safeHapticMedium, safeHapticSuccess } from '../utils/haptics';
+import { isSlotTimePassed } from '../utils/slotHelper';
 import { WaterElectricityCard, WaterElectricityModal } from './WaterElectricitySection';
 
 interface Plan {
@@ -55,6 +56,7 @@ interface ScheduleItem {
 interface SlotItem {
   time_range: string;
   is_full?: boolean;
+  is_past?: boolean;
   current_bookings?: number;
   max_bookings?: number;
 }
@@ -413,6 +415,11 @@ export default function SubscriptionScheduleModal({
         `Please select date${is26Plan ? '' : ' and slot'} for all ${requiredCount} washes.`,
         'warning'
       );
+      return;
+    }
+
+    if (!is26Plan && scheduleItems.some((item) => isSlotTimePassed(item.date, item.slot))) {
+      showSweetAlert('Slot Expired', 'One or more selected slots have already passed for today. Please pick upcoming slots.', 'warning');
       return;
     }
 
@@ -1138,8 +1145,10 @@ export default function SubscriptionScheduleModal({
                           </View>
                         );
                       }
+                      const targetDate = scheduleItems[activeWashIndex]?.date;
                       return slots.map((s, idx) => {
-                        const isFull = Boolean(s.is_full || (s.max_bookings && s.current_bookings && s.current_bookings >= s.max_bookings));
+                        const isPassed = Boolean(s.is_past || isSlotTimePassed(targetDate, s.time_range));
+                        const isFull = Boolean(s.is_full || (s.max_bookings && s.current_bookings && s.current_bookings >= s.max_bookings) || isPassed);
                         const isSelected = scheduleItems[activeWashIndex]?.slot === s.time_range;
                         return (
                           <TouchableOpacity
@@ -1163,12 +1172,16 @@ export default function SubscriptionScheduleModal({
                             <Ionicons
                               name="time-outline"
                               size={18}
-                              color={isSelected ? (isDark ? '#38bdf8' : '#0284c7') : (isDark ? '#94a3b8' : '#64748b')}
+                              color={isPassed ? '#94a3b8' : isSelected ? (isDark ? '#38bdf8' : '#0284c7') : (isDark ? '#94a3b8' : '#64748b')}
                             />
-                            <Text style={[styles.pickerOptionTitle, { flex: 1, marginLeft: 12 }, isDark && styles.whiteText]}>
+                            <Text style={[styles.pickerOptionTitle, { flex: 1, marginLeft: 12 }, isDark && styles.whiteText, isPassed && { textDecorationLine: 'line-through', opacity: 0.7 }]}>
                               {s.time_range}
                             </Text>
-                            {isFull ? (
+                            {isPassed ? (
+                              <View style={[styles.fullBadge, { backgroundColor: '#fee2e2' }]}>
+                                <Text style={[styles.fullBadgeText, { color: '#ef4444' }]}>PASSED</Text>
+                              </View>
+                            ) : isFull ? (
                               <View style={styles.fullBadge}>
                                 <Text style={styles.fullBadgeText}>FULL</Text>
                               </View>

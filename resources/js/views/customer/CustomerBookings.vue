@@ -361,22 +361,22 @@
                 <option value="" v-if="slotsLoading">Loading slots...</option>
                 <option value="" v-else-if="!bf.franchisee_id || !bf.booking_date">Select center & date first</option>
                 <option value="" v-else-if="availableSlots.length === 0">No slots available for this date</option>
-                <option value="" v-else-if="allSlotsFull">All slots are full for this date</option>
+                <option value="" v-else-if="allSlotsFull">All slots are full or passed for this date</option>
                 <option v-else value="">Choose Slot</option>
-                <option v-for="s in availableSlots" :key="s.time_range" :value="s.time_range" :disabled="s.current_bookings >= s.max_bookings || s.is_full">
-                  {{ s.time_range }} {{ (s.current_bookings >= s.max_bookings || s.is_full) ? '— (Slot Full)' : '' }}
+                <option v-for="s in availableSlots" :key="s.time_range" :value="s.time_range" :disabled="s.is_past || s.current_bookings >= s.max_bookings || s.is_full">
+                  {{ s.time_range }} {{ s.is_past ? '— (Time Passed)' : ((s.current_bookings >= s.max_bookings || s.is_full) ? '— (Slot Full)' : '') }}
                 </option>
               </select>
             </div>
           </div>
 
-          <!-- Alert message when any slot is booked/full on selected date -->
+          <!-- Alert message when any slot is booked/full or passed on selected date -->
           <div v-if="bookedSlots.length > 0 && !slotsLoading" style="margin-top: -0.25rem; margin-bottom: 0.75rem; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.85rem;">
             <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
               <span style="font-size: 1.1rem; line-height: 1.2;">⚠️</span>
               <div style="flex: 1;">
                 <div v-for="s in bookedSlots" :key="s.time_range" style="font-weight: 600; line-height: 1.45;">
-                  <span style="font-weight: 700;">Slot Full:</span> {{ s.time_range }}
+                  <span style="font-weight: 700;">{{ s.is_past ? 'Time Passed:' : 'Slot Full:' }}</span> {{ s.time_range }}
                 </div>
                 <div v-if="allSlotsFull" style="margin-top: 0.25rem; font-size: 0.78rem; font-weight: 500; color: #dc2626;">
                   All slots are fully booked on this date. Please choose another date.
@@ -932,10 +932,10 @@ export default {
     },
     bookedSlots() {
       if (!this.availableSlots || !this.availableSlots.length) return [];
-      return this.availableSlots.filter(s => (s.current_bookings >= s.max_bookings) || s.is_full);
+      return this.availableSlots.filter(s => (s.current_bookings >= s.max_bookings) || s.is_full || s.is_past);
     },
     allSlotsFull() {
-      return this.availableSlots.length > 0 && this.bookedSlots.length === this.availableSlots.length;
+      return this.availableSlots.length > 0 && this.availableSlots.every(s => (s.current_bookings >= s.max_bookings) || s.is_full || s.is_past);
     },
     isCenterRemembered() {
       const saved = localStorage.getItem('selected_franchisee_id');
@@ -1490,7 +1490,15 @@ export default {
           params: { franchisee_id: this.bf.franchisee_id, date: this.bf.booking_date }
         });
         if (this._currentSlotsReqKey === reqKey) {
-          this.availableSlots = Array.isArray(data) ? data : [];
+          const raw = Array.isArray(data) ? data : [];
+          this.availableSlots = raw.map(s => {
+            const isPast = Boolean(s.is_past || this.checkSlotPassed(this.bf.booking_date, s.time_range));
+            return {
+              ...s,
+              is_past: isPast,
+              is_full: Boolean(isPast || s.is_full || (s.current_bookings >= s.max_bookings))
+            };
+          });
         }
       } catch (e) {
         console.error('fetchSlots error:', e);
@@ -1502,6 +1510,29 @@ export default {
           this.slotsLoading = false;
         }
       }
+    },
+    checkSlotPassed(dateStr, timeRange) {
+      if (!dateStr || !timeRange) return false;
+      const parts = String(dateStr).split('T')[0].split('-');
+      if (parts.length < 3) return false;
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const targetDate = new Date(year, month, day);
+      if (targetDate < today) return true;
+      if (targetDate > today) return false;
+      const startStr = timeRange.split(/[-–—]/)[0].trim();
+      const match = startStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+      if (!match) return false;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const meridiem = (match[3] || '').toUpperCase();
+      if (meridiem === 'PM' && hours < 12) hours += 12;
+      if (meridiem === 'AM' && hours === 12) hours = 0;
+      const slotStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+      return now >= slotStartTime;
     },
 
 
