@@ -10,6 +10,26 @@
     </div>
 
     <div v-else>
+      <!-- Booking Tabs: 1. Services | 2. Subscription Plans -->
+      <div class="booking-tabs-nav">
+        <button 
+          type="button" 
+          class="booking-tab-btn" 
+          :class="{ active: activeTab === 'services' }" 
+          @click="activeTab = 'services'; currentPage = 1">
+          🚗 Services
+          <span class="booking-tab-count">{{ servicesCount }}</span>
+        </button>
+        <button 
+          type="button" 
+          class="booking-tab-btn" 
+          :class="{ active: activeTab === 'subscriptions' }" 
+          @click="activeTab = 'subscriptions'; currentPage = 1">
+          📦 Subscription Plans
+          <span class="booking-tab-count badge-sub">{{ subscriptionsCount }}</span>
+        </button>
+      </div>
+
       <div class="glass-card mb-4 p-4 flex flex-wrap gap-3 items-end" style="background: var(--bg-primary); margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
         <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
           <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Search</label>
@@ -296,6 +316,7 @@ export default {
       submitting: false,
       currentPage: 1,
       itemsPerPage: 10,
+      activeTab: 'services', // 'services' | 'subscriptions'
       filters: {
         search: '',
         status: '',
@@ -323,11 +344,21 @@ export default {
         this.filters.date !== '' ||
         this.filters.sortBy !== 'upcoming';
     },
+    servicesCount() {
+      return (this.orders || []).filter(o => !this.isSubscriptionWash(o)).length;
+    },
+    subscriptionsCount() {
+      return (this.orders || []).filter(o => this.isSubscriptionWash(o)).length;
+    },
     filteredOrders() {
       const activeStatuses = ['pending', 'assigned', 'ongoing', 'postponed'];
       const todayStr = new Date().toISOString().split('T')[0];
 
       let list = this.orders.filter(o => {
+        const isSub = this.isSubscriptionWash(o);
+        if (this.activeTab === 'subscriptions' && !isSub) return false;
+        if (this.activeTab === 'services' && isSub) return false;
+
         if (this.filters.status === 'upcoming') {
           if (!activeStatuses.includes(o.status)) return false;
         } else if (this.filters.status && o.status !== this.filters.status) {
@@ -471,11 +502,15 @@ export default {
       if (idx === -1) return 1;
       return (idx % max) + 1;
     },
+    isSubscriptionWash(o) {
+      if (!o) return false;
+      return o.payment_method === 'subscription' || (o.package && (o.package.is_subscription || [4, 26].includes(Number(o.package.max_bookings))));
+    },
     getOrderPrice(o) {
       if (!o) return '0.00';
       const total = parseFloat(o.total_price || 0);
       if (total > 0) return total.toFixed(2);
-      if (o.package && (o.package.is_subscription || [4, 26].includes(Number(o.package.max_bookings)) || o.payment_method === 'subscription')) {
+      if (this.isSubscriptionWash(o)) {
         const base = parseFloat(o.package.price || 0);
         if (base > 0) {
           const gst = Math.round(base * 0.18);

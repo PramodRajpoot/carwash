@@ -7,6 +7,26 @@
       </div>
     </div>
 
+    <!-- Task Tabs: 1. Services | 2. Subscription Plans -->
+    <div class="booking-tabs-nav">
+      <button 
+        type="button" 
+        class="booking-tab-btn" 
+        :class="{ active: activeTab === 'services' }" 
+        @click="activeTab = 'services'; currentPage = 1">
+        🚗 Services
+        <span class="booking-tab-count">{{ servicesCount }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="booking-tab-btn" 
+        :class="{ active: activeTab === 'subscriptions' }" 
+        @click="activeTab = 'subscriptions'; currentPage = 1">
+        📦 Subscription Plans
+        <span class="booking-tab-count badge-sub">{{ subscriptionsCount }}</span>
+      </button>
+    </div>
+
     <!-- Filters -->
     <div class="glass-card mb-4 p-4 flex flex-wrap gap-3 items-end" style="background: var(--bg-primary); margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
       <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
@@ -142,8 +162,8 @@
       </div>
 
       <div v-if="!filteredTasks.length" class="empty-state">
-        <div class="empty-icon">🚗</div>
-        <p>No cleaning tasks found matching your criteria.</p>
+        <div class="empty-icon">{{ activeTab === 'subscriptions' ? '📦' : '🚗' }}</div>
+        <p>No {{ activeTab === 'subscriptions' ? 'subscription plan tasks' : 'service tasks' }} found matching your criteria.</p>
       </div>
     </div>
 
@@ -386,18 +406,29 @@ export default {
       videoError: '',
 
       // View Proof modal
-      proofModalTask: null
+      proofModalTask: null,
+      activeTab: 'services' // 'services' | 'subscriptions'
     };
   },
   computed: {
     hasFilters() {
       return this.filters.search || this.filters.status || this.filters.date;
     },
+    servicesCount() {
+      return (this.tasks || []).filter(t => !this.isSubscriptionWash(t)).length;
+    },
+    subscriptionsCount() {
+      return (this.tasks || []).filter(t => this.isSubscriptionWash(t)).length;
+    },
     filteredTasks() {
       const activeStatuses = ['pending', 'assigned', 'ongoing', 'postponed'];
       const todayStr = new Date().toISOString().split('T')[0];
 
       let list = this.tasks.filter(t => {
+        const isSub = this.isSubscriptionWash(t);
+        if (this.activeTab === 'subscriptions' && !isSub) return false;
+        if (this.activeTab === 'services' && isSub) return false;
+
         if (this.filters.search) {
           const s = this.filters.search.toLowerCase();
           const matchId = String(t.id).includes(s);
@@ -494,6 +525,10 @@ export default {
       const idx = custBookings.findIndex(b => b.id === t.id);
       if (idx === -1) return 1;
       return (idx % max) + 1;
+    },
+    isSubscriptionWash(t) {
+      if (!t) return false;
+      return t.payment_method === 'subscription' || (t.package && (t.package.is_subscription || [4, 26].includes(Number(t.package.max_bookings))));
     },
     statusBadge(s) {
       return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan';

@@ -10,7 +10,27 @@
     </div>
 
     <div v-else>
-      <div v-if="orders.length" class="table-wrap">
+      <!-- Booking Tabs: 1. Services | 2. Subscription Plans -->
+      <div class="booking-tabs-nav">
+        <button 
+          type="button" 
+          class="booking-tab-btn" 
+          :class="{ active: activeTab === 'services' }" 
+          @click="activeTab = 'services'; currentPage = 1">
+          🚗 Services
+          <span class="booking-tab-count">{{ servicesCount }}</span>
+        </button>
+        <button 
+          type="button" 
+          class="booking-tab-btn" 
+          :class="{ active: activeTab === 'subscriptions' }" 
+          @click="activeTab = 'subscriptions'; currentPage = 1">
+          📦 Subscription Plans
+          <span class="booking-tab-count badge-sub">{{ subscriptionsCount }}</span>
+        </button>
+      </div>
+
+      <div v-if="tabFilteredOrders.length" class="table-wrap">
         <table>
           <thead>
             <tr>
@@ -130,7 +150,7 @@
           </tbody>
         </table>
       </div>
-      <div v-if="orders.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div v-if="tabFilteredOrders.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
           <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
           <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
@@ -142,7 +162,7 @@
             <option :value="200">200</option>
           </select>
           <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
-            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, orders.length) }} of {{ orders.length }}
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, tabFilteredOrders.length) }} of {{ tabFilteredOrders.length }}
           </span>
         </div>
         <div class="flex gap-1" v-if="totalPages > 1">
@@ -151,8 +171,8 @@
         </div>
       </div>
       <div v-else class="empty-state">
-        <div class="empty-icon">📋</div>
-        <p>No active wash bookings assigned to your center.</p>
+        <div class="empty-icon">{{ activeTab === 'subscriptions' ? '📦' : '🚗' }}</div>
+        <p>{{ activeTab === 'subscriptions' ? 'No subscription plan bookings found for your center.' : 'No service wash bookings found for your center.' }}</p>
       </div>
     </div>
 
@@ -418,6 +438,7 @@ export default {
       submitting: false,
       currentPage: 1,
       itemsPerPage: 10,
+      activeTab: 'services', // 'services' | 'subscriptions'
       form: {
         status: '',
         washer_id: null,
@@ -458,12 +479,24 @@ export default {
         return b.id - a.id;
       });
     },
+    tabFilteredOrders() {
+      return (this.sortedOrders || []).filter(o => {
+        const isSub = this.isSubscriptionWash(o);
+        return this.activeTab === 'subscriptions' ? isSub : !isSub;
+      });
+    },
+    servicesCount() {
+      return (this.orders || []).filter(o => !this.isSubscriptionWash(o)).length;
+    },
+    subscriptionsCount() {
+      return (this.orders || []).filter(o => this.isSubscriptionWash(o)).length;
+    },
     paginatedOrders() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
-      return this.sortedOrders.slice(start, start + this.itemsPerPage);
+      return this.tabFilteredOrders.slice(start, start + this.itemsPerPage);
     },
     totalPages() {
-      return Math.ceil(this.sortedOrders.length / this.itemsPerPage) || 1;
+      return Math.ceil(this.tabFilteredOrders.length / this.itemsPerPage) || 1;
     },
     minDate() {
       const d = new Date();

@@ -4,7 +4,28 @@
       <div><h3>My Bookings</h3><p class="text-muted" style="font-size:0.85rem">View, rebook, or manage your appointments.</p></div>
       <button class="btn btn-primary btn-sm" @click="openBookingModal()">+ Book Service</button>
     </div>
-    <div v-if="bookings.length" class="table-wrap">
+
+    <!-- Booking Services Tabs: 1. Services | 2. Subscription Plans -->
+    <div class="booking-tabs-nav">
+      <button 
+        type="button" 
+        class="booking-tab-btn" 
+        :class="{ active: activeTab === 'services' }" 
+        @click="activeTab = 'services'; currentPage = 1">
+        🚗 Services
+        <span class="booking-tab-count">{{ servicesCount }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="booking-tab-btn" 
+        :class="{ active: activeTab === 'subscriptions' }" 
+        @click="activeTab = 'subscriptions'; currentPage = 1">
+        📦 Subscription Plans
+        <span class="booking-tab-count badge-sub">{{ subscriptionsCount }}</span>
+      </button>
+    </div>
+
+    <div v-if="tabFilteredBookings.length" class="table-wrap">
       <table>
         <thead><tr><th>Date</th><th>Slot</th><th>Vehicle</th><th>Package</th><th>Total Price</th><th>Slot Advance</th><th>Discounts Used</th><th>Amount Paid</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
@@ -151,7 +172,7 @@
         </tbody>
       </table>
     </div>
-    <div v-if="bookings.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div v-if="tabFilteredBookings.length > 0" class="flex justify-between items-center" style="margin-top: 1rem; padding: 0.5rem; flex-wrap: wrap; gap: 1rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <label style="font-size: 0.85rem; color: var(--text-muted);">Rows per page:</label>
         <select v-model="itemsPerPage" class="form-select" style="width: 80px; padding: 0.25rem 2rem 0.25rem 0.5rem; font-size: 0.85rem;" @change="currentPage = 1">
@@ -163,7 +184,7 @@
           <option :value="200">200</option>
         </select>
         <span class="text-muted" style="font-size: 0.85rem; margin-left: 0.5rem;">
-          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, bookings.length) }} of {{ bookings.length }}
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, tabFilteredBookings.length) }} of {{ tabFilteredBookings.length }}
         </span>
       </div>
       <div class="flex gap-1" v-if="totalPages > 1">
@@ -171,7 +192,11 @@
         <button class="btn btn-sm btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
       </div>
     </div>
-    <div v-else class="empty-state"><div class="empty-icon">📅</div><p>No bookings yet.</p></div>
+    <div v-else class="empty-state">
+      <div class="empty-icon">{{ activeTab === 'subscriptions' ? '📦' : '🚗' }}</div>
+      <p>{{ activeTab === 'subscriptions' ? 'No subscription plan bookings yet.' : 'No service bookings yet.' }}</p>
+      <button class="btn btn-primary btn-sm" style="margin-top: 0.75rem;" @click="openBookingModal()">+ Book Service</button>
+    </div>
 
     <!-- Book Service Modal -->
     <div v-if="showBookingModal" class="modal-overlay" @click.self="showBookingModal = false">
@@ -744,6 +769,7 @@ export default {
       },
       currentPage: 1,
       itemsPerPage: 10,
+      activeTab: 'services', // 'services' | 'subscriptions'
       userPoints: 0,
       userEarningMoney: 0,
       isFirstWash: false,
@@ -781,12 +807,24 @@ export default {
         return b.id - a.id;
       });
     },
+    tabFilteredBookings() {
+      return (this.sortedBookings || []).filter(b => {
+        const isSub = this.isSubscriptionWash(b);
+        return this.activeTab === 'subscriptions' ? isSub : !isSub;
+      });
+    },
+    servicesCount() {
+      return (this.bookings || []).filter(b => !this.isSubscriptionWash(b)).length;
+    },
+    subscriptionsCount() {
+      return (this.bookings || []).filter(b => this.isSubscriptionWash(b)).length;
+    },
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
-      return this.sortedBookings.slice(start, start + this.itemsPerPage);
+      return this.tabFilteredBookings.slice(start, start + this.itemsPerPage);
     },
     totalPages() {
-      return Math.ceil(this.sortedBookings.length / this.itemsPerPage) || 1;
+      return Math.ceil(this.tabFilteredBookings.length / this.itemsPerPage) || 1;
     },
     filteredVehicles() {
       return (this.vehicles || []).filter(v => v.vehicle_type !== 'home' && v.plate_number !== 'HOME');
@@ -1817,6 +1855,9 @@ export default {
     },
   },
   mounted() {
+    if (this.$route.query.tab === 'subscriptions' || this.$route.query.tab === 'subscription') {
+      this.activeTab = 'subscriptions';
+    }
     this.loadData();
 
     // Check if returning from Cashfree payment (query param in history-mode URL)
