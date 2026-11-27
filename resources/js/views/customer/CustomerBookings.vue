@@ -751,12 +751,42 @@ export default {
     };
   },
   computed: {
+    sortedBookings() {
+      const activeStatuses = ['pending', 'assigned', 'ongoing', 'postponed'];
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      return [...(this.bookings || [])].sort((a, b) => {
+        const aIsActive = activeStatuses.includes(a.status);
+        const bIsActive = activeStatuses.includes(b.status);
+        const aIsUpcoming = aIsActive && (a.booking_date || '') >= todayStr;
+        const bIsUpcoming = bIsActive && (b.booking_date || '') >= todayStr;
+
+        if (aIsUpcoming && !bIsUpcoming) return -1;
+        if (!aIsUpcoming && bIsUpcoming) return 1;
+
+        if (aIsUpcoming && bIsUpcoming) {
+          // For upcoming active washes: earliest date first (ASC), earliest slot first (ASC)
+          const dateDiff = (a.booking_date || '').localeCompare(b.booking_date || '');
+          if (dateDiff !== 0) return dateDiff;
+          const timeDiff = this.getSlotMinutes(a.slot_time) - this.getSlotMinutes(b.slot_time);
+          if (timeDiff !== 0) return timeDiff;
+          return a.id - b.id;
+        }
+
+        // For past / completed / cancelled bookings, show latest first (DESC)
+        const dateDiff = (b.booking_date || '').localeCompare(a.booking_date || '');
+        if (dateDiff !== 0) return dateDiff;
+        const timeDiff = this.getSlotMinutes(b.slot_time) - this.getSlotMinutes(a.slot_time);
+        if (timeDiff !== 0) return timeDiff;
+        return b.id - a.id;
+      });
+    },
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
-      return this.bookings.slice(start, start + this.itemsPerPage);
+      return this.sortedBookings.slice(start, start + this.itemsPerPage);
     },
     totalPages() {
-      return Math.ceil(this.bookings.length / this.itemsPerPage) || 1;
+      return Math.ceil(this.sortedBookings.length / this.itemsPerPage) || 1;
     },
     filteredVehicles() {
       return (this.vehicles || []).filter(v => v.vehicle_type !== 'home' && v.plate_number !== 'HOME');
@@ -930,6 +960,18 @@ export default {
     }
   },
   methods: {
+    getSlotMinutes(slot) {
+      if (!slot) return 0;
+      const startTime = slot.split('-')[0].trim();
+      const match = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return 0;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    },
     async applyCoupon(silent = false) {
       if (this.qualifiesForFirstWash) {
         if (!silent) {

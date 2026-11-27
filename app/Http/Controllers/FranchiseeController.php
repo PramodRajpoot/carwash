@@ -94,7 +94,12 @@ class FranchiseeController extends Controller
                   ->orWhere('payment_method', 'subscription');
             })
             ->with(['customer:id,name,phone', 'vehicle', 'package', 'washer.user'])
+            ->orderByRaw("CASE WHEN status IN ('pending', 'assigned', 'ongoing', 'postponed') AND booking_date >= CURDATE() THEN 0 ELSE 1 END ASC")
+            ->orderByRaw("CASE WHEN status IN ('pending', 'assigned', 'ongoing', 'postponed') AND booking_date >= CURDATE() THEN booking_date END ASC")
+            ->orderByRaw("CASE WHEN status IN ('pending', 'assigned', 'ongoing', 'postponed') AND booking_date >= CURDATE() THEN STR_TO_DATE(TRIM(SUBSTRING_INDEX(slot_time, '-', 1)), '%h:%i %p') END ASC")
             ->orderBy('booking_date', 'desc')
+            ->orderByRaw("STR_TO_DATE(TRIM(SUBSTRING_INDEX(slot_time, '-', 1)), '%h:%i %p') DESC")
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json($orders);

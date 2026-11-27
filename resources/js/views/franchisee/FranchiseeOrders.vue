@@ -428,12 +428,42 @@ export default {
     };
   },
   computed: {
+    sortedOrders() {
+      const activeStatuses = ['pending', 'assigned', 'ongoing', 'postponed'];
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      return [...(this.orders || [])].sort((a, b) => {
+        const aIsActive = activeStatuses.includes(a.status);
+        const bIsActive = activeStatuses.includes(b.status);
+        const aIsUpcoming = aIsActive && (a.booking_date || '') >= todayStr;
+        const bIsUpcoming = bIsActive && (b.booking_date || '') >= todayStr;
+
+        if (aIsUpcoming && !bIsUpcoming) return -1;
+        if (!aIsUpcoming && bIsUpcoming) return 1;
+
+        if (aIsUpcoming && bIsUpcoming) {
+          // For upcoming active washes: earliest date first (ASC), earliest slot first (ASC)
+          const dateDiff = (a.booking_date || '').localeCompare(b.booking_date || '');
+          if (dateDiff !== 0) return dateDiff;
+          const timeDiff = this.getSlotMinutes(a.slot_time) - this.getSlotMinutes(b.slot_time);
+          if (timeDiff !== 0) return timeDiff;
+          return a.id - b.id;
+        }
+
+        // For past / completed / cancelled bookings, show latest first (DESC)
+        const dateDiff = (b.booking_date || '').localeCompare(a.booking_date || '');
+        if (dateDiff !== 0) return dateDiff;
+        const timeDiff = this.getSlotMinutes(b.slot_time) - this.getSlotMinutes(a.slot_time);
+        if (timeDiff !== 0) return timeDiff;
+        return b.id - a.id;
+      });
+    },
     paginatedOrders() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
-      return this.orders.slice(start, start + this.itemsPerPage);
+      return this.sortedOrders.slice(start, start + this.itemsPerPage);
     },
     totalPages() {
-      return Math.ceil(this.orders.length / this.itemsPerPage) || 1;
+      return Math.ceil(this.sortedOrders.length / this.itemsPerPage) || 1;
     },
     minDate() {
       const d = new Date();
@@ -444,6 +474,18 @@ export default {
     }
   },
   methods: {
+    getSlotMinutes(slot) {
+      if (!slot) return 0;
+      const startTime = slot.split('-')[0].trim();
+      const match = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return 0;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    },
     statusBadge(s) {
       return { pending: 'badge-amber', assigned: 'badge-cyan', ongoing: 'badge-violet', completed: 'badge-emerald', cancelled: 'badge-rose', postponed: 'badge-amber' }[s] || 'badge-cyan';
     },

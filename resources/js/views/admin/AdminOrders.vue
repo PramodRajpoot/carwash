@@ -374,17 +374,14 @@ export default {
         // Default 'upcoming': Prioritize upcoming active washes chronologically
         const aIsActive = activeStatuses.includes(a.status);
         const bIsActive = activeStatuses.includes(b.status);
+        const aIsUpcoming = aIsActive && (a.booking_date || '') >= todayStr;
+        const bIsUpcoming = bIsActive && (b.booking_date || '') >= todayStr;
 
-        if (aIsActive && !bIsActive) return -1;
-        if (!aIsActive && bIsActive) return 1;
+        if (aIsUpcoming && !bIsUpcoming) return -1;
+        if (!aIsUpcoming && bIsUpcoming) return 1;
 
-        if (aIsActive && bIsActive) {
-          const aIsFutureOrToday = (a.booking_date || '') >= todayStr;
-          const bIsFutureOrToday = (b.booking_date || '') >= todayStr;
-
-          if (aIsFutureOrToday && !bIsFutureOrToday) return -1;
-          if (!aIsFutureOrToday && bIsFutureOrToday) return 1;
-
+        if (aIsUpcoming && bIsUpcoming) {
+          // For upcoming active washes: earliest date first (ASC), earliest slot first (ASC)
           const dateDiff = (a.booking_date || '').localeCompare(b.booking_date || '');
           if (dateDiff !== 0) return dateDiff;
           const timeDiff = this.getSlotMinutes(a.slot_time) - this.getSlotMinutes(b.slot_time);
@@ -392,7 +389,7 @@ export default {
           return a.id - b.id;
         }
 
-        // For past / completed / cancelled bookings, show latest completed first (DESC)
+        // For past / completed / cancelled bookings, show latest first (DESC)
         const dateDiff = (b.booking_date || '').localeCompare(a.booking_date || '');
         if (dateDiff !== 0) return dateDiff;
         const timeDiff = this.getSlotMinutes(b.slot_time) - this.getSlotMinutes(a.slot_time);

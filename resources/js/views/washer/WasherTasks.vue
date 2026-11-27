@@ -394,7 +394,10 @@ export default {
       return this.filters.search || this.filters.status || this.filters.date;
     },
     filteredTasks() {
-      return this.tasks.filter(t => {
+      const activeStatuses = ['pending', 'assigned', 'ongoing', 'postponed'];
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      let list = this.tasks.filter(t => {
         if (this.filters.search) {
           const s = this.filters.search.toLowerCase();
           const matchId = String(t.id).includes(s);
@@ -410,6 +413,30 @@ export default {
           return false;
         }
         return true;
+      });
+
+      return list.sort((a, b) => {
+        const aIsActive = activeStatuses.includes(a.status);
+        const bIsActive = activeStatuses.includes(b.status);
+        const aIsUpcoming = aIsActive && (a.booking_date || '') >= todayStr;
+        const bIsUpcoming = bIsActive && (b.booking_date || '') >= todayStr;
+
+        if (aIsUpcoming && !bIsUpcoming) return -1;
+        if (!aIsUpcoming && bIsUpcoming) return 1;
+
+        if (aIsUpcoming && bIsUpcoming) {
+          const dateDiff = (a.booking_date || '').localeCompare(b.booking_date || '');
+          if (dateDiff !== 0) return dateDiff;
+          const timeDiff = this.getSlotMinutes(a.slot_time) - this.getSlotMinutes(b.slot_time);
+          if (timeDiff !== 0) return timeDiff;
+          return a.id - b.id;
+        }
+
+        const dateDiff = (b.booking_date || '').localeCompare(a.booking_date || '');
+        if (dateDiff !== 0) return dateDiff;
+        const timeDiff = this.getSlotMinutes(b.slot_time) - this.getSlotMinutes(a.slot_time);
+        if (timeDiff !== 0) return timeDiff;
+        return b.id - a.id;
       });
     },
     paginatedTasks() {
@@ -429,6 +456,18 @@ export default {
     }
   },
   methods: {
+    getSlotMinutes(slot) {
+      if (!slot) return 0;
+      const startTime = slot.split('-')[0].trim();
+      const match = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return 0;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    },
     clearFilters() {
       this.filters = { search: '', status: '', date: '' };
     },
