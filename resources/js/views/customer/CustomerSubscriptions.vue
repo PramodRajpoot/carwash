@@ -5,7 +5,7 @@
       <p class="text-muted" style="font-size: 0.85rem;">Save big with monthly recurring packages for your vehicle.</p>
     </div>
 
-    <!-- Active Subscription Summary -->
+    <!-- Active Subscription Summary (Commented out)
     <div class="glass-card" style="margin-bottom: 2rem; border-left: 4px solid var(--accent-emerald);">
       <h4 style="margin-bottom: 0.75rem;">Your Current Subscription</h4>
       <div v-if="activeSub">
@@ -29,8 +29,9 @@
         You do not have an active monthly subscription. Choose a package below to subscribe and start saving!
       </div>
     </div>
+    -->
 
-    <!-- Available Packages -->
+    <!-- Available Packages Heading & Month Selection (Commented out)
     <div style="margin-bottom: 1.5rem;">
       <h4>Available Subscription Plans</h4>
     </div>
@@ -49,6 +50,7 @@
         Full advance payment • Non-refundable • Rescheduling allowed
       </div>
     </div>
+    -->
 
     <div v-if="loading" class="text-center text-muted" style="padding: 2rem;">
       Loading subscription plans...
