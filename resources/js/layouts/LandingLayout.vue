@@ -61,7 +61,7 @@
             <h4>Contact</h4>
             <ul>
               <li><span class="text-muted" style="font-size:0.9rem">📞 +91 99102 26873</span></li>
-              <li><span class="text-muted" style="font-size:0.9rem">✉️ info@cleanatdoorstep.in</span></li>
+              <li><span class="text-muted" style="font-size:0.9rem">✉️ info@cleanatdoorstep.com</span></li>
               <li><span class="text-muted" style="font-size:0.9rem">📍 Delhi, India</span></li>
             </ul>
           </div>
