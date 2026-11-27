@@ -102,7 +102,7 @@ class WalletController extends Controller
             ]);
 
             DB::commit();
-            return response()->json(['message' => 'The amount will be reflected in your account within 24–48 hours.', 'data' => $withdrawal]);
+            return response()->json(['message' => 'Withdrawal request submitted successfully. The amount will be reflected in your account within 24–48 hours.', 'data' => $withdrawal]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Failed to process request.', 'error' => $e->getMessage()], 500);

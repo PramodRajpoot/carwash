@@ -59,7 +59,7 @@
       <div class="glass-card">
         <h4 style="margin-bottom:0.75rem">Withdraw Earning Money</h4>
         <div class="text-muted" style="font-size:0.85rem;margin-bottom:1rem">
-          Request a withdrawal of your Earning Money to your bank account.
+          Request a withdrawal of your Earning Money to your bank account. The amount will be reflected in your account within 24–48 hours.
         </div>
         
         <div v-if="!hasBankDetails" class="alert alert-warning" style="margin-bottom:1rem">
@@ -176,10 +176,16 @@ export default {
       
       this.redeeming = true;
       try {
-        await axios.post('/api/wallet/withdraw', { 
+        const res = await axios.post('/api/wallet/withdraw', { 
           amount: amount
         });
-        Swal.fire({ icon: 'success', title: 'Success', text: 'The amount will be reflected in your account within 24–48 hours.', timer: 2500, showConfirmButton: false });
+        Swal.fire({ 
+          icon: 'success', 
+          title: 'Success', 
+          text: res?.data?.message || 'Withdrawal request submitted successfully. The amount will be reflected in your account within 24–48 hours.', 
+          timer: 3000, 
+          showConfirmButton: false 
+        });
         await this.load();
       } catch (e) {
         Swal.fire('Error', e.response?.data?.message || 'Request failed.', 'error');

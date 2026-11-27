@@ -264,7 +264,7 @@ export default function EPointsScreen() {
       }
 
       setRedeeming(true);
-      await axios.post(
+      const res = await axios.post(
         `${API_BASE}/api/wallet/withdraw`,
         { amount },
         {
@@ -277,7 +277,10 @@ export default function EPointsScreen() {
         }
       );
 
-      showSweetAlert('Success', 'The amount will be reflected in your account within 24–48 hours.', 'success');
+      const successMsg =
+        res?.data?.message ||
+        'Withdrawal request submitted successfully. The amount will be reflected in your account within 24–48 hours.';
+      showSweetAlert('Success', successMsg, 'success');
       setRedeemAmount('100');
       await loadWalletData();
     } catch (error: any) {
@@ -382,7 +385,7 @@ export default function EPointsScreen() {
         <View style={[styles.card, isDark && styles.darkCard]}>
           <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Withdraw Earning Money</Text>
           <Text style={[styles.helperText, isDark && styles.darkSubtext]}>
-            Request a withdrawal of your Earning Money to your bank account.
+            Request a withdrawal of your Earning Money to your bank account. The amount will be reflected in your account within 24–48 hours.
           </Text>
 
           {!hasBankDetails && (
