@@ -275,64 +275,7 @@ export default function SubscriptionsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#38bdf8" colors={['#38bdf8']} />}
       >
-        {/* Active Subscription Summary */}
-        <View style={[styles.activeSubCard, isDark && styles.activeSubCardDark]}>
-          <View style={styles.activeSubHeader}>
-            <Text style={[styles.activeSubTitle, isDark && styles.titleDark]}>Your Current Subscription</Text>
-            {activeSub && <View style={styles.emeraldBadge}><Text style={styles.emeraldBadgeText}>ACTIVE</Text></View>}
-          </View>
 
-          {activeSub ? (
-            <View style={styles.activeSubBody}>
-              <Text style={styles.activeSubPlanName}>{activeSub.package?.name}</Text>
-              <Text style={[styles.activeSubUsage, isDark && styles.whiteText]}>
-                Usage:{' '}
-                <Text style={{ fontWeight: '800', color: isDark ? '#38bdf8' : '#0284c7' }}>
-                  {activeSub.booking_count || 0} / {activeSub.package?.max_bookings || 1} washes
-                </Text>{' '}
-                completed
-              </Text>
-              <Text style={[styles.activeSubDates, isDark && styles.subtleTextDark]}>
-                Valid from {formatDate(activeSub.starts_at)} to {formatDate(activeSub.expires_at)}
-              </Text>
-              <TouchableOpacity
-                style={styles.scheduleWashBtn}
-                onPress={() => router.push('/bookings')}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="calendar-outline" size={16} color="#07182b" />
-                <Text style={styles.scheduleWashBtnText}>Schedule Wash</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <Text style={[styles.activeSubEmpty, isDark && styles.subtleTextDark]}>
-              You do not have an active monthly subscription. Choose a package below to subscribe and start saving!
-            </Text>
-          )}
-        </View>
-
-        <View style={[styles.sectionHeader, isDark && styles.sectionHeaderDark]}>
-          <Text style={[styles.sectionTitle, isDark && styles.titleDark]}>Available Subscription Plans</Text>
-        </View>
-
-        <View style={[styles.monthSelector, isDark && styles.monthSelectorDark]}>
-          <Text style={[styles.monthLabel, isDark && styles.titleDark]}>Select subscription month</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthOptions}>
-            {monthOptions.map((month) => (
-              <TouchableOpacity
-                key={month.value}
-                activeOpacity={0.85}
-                onPress={() => setSelectedMonth(month.value)}
-                style={[styles.monthOption, selectedMonth === month.value && styles.monthOptionActive]}
-              >
-                <Text style={[styles.monthOptionText, selectedMonth === month.value && styles.monthOptionTextActive]}>{month.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <Text style={[styles.paymentNote, isDark && styles.subtleTextDark]}>
-            Full advance payment • Non-refundable • Rescheduling allowed
-          </Text>
-        </View>
 
         {monthlyPlans.map((plan) => {
           const hasMonthly = (plan.frequency_days || 0) > 0;

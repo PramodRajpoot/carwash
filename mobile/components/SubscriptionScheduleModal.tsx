@@ -731,7 +731,14 @@ export default function SubscriptionScheduleModal({
                     activeOpacity={0.8}
                   >
                     <Ionicons name="car-outline" size={17} color="#38bdf8" />
-                    <Text style={[styles.selectBoxText, !selectedVehicle && styles.placeholderText, isDark && styles.whiteText]} numberOfLines={1}>
+                    <Text
+                      style={[
+                        styles.selectBoxText,
+                        isDark && styles.whiteText,
+                        !selectedVehicle && (isDark ? styles.placeholderDarkText : styles.placeholderText),
+                      ]}
+                      numberOfLines={1}
+                    >
                       {selectedVehicle
                         ? `${selectedVehicle.make_model || selectedVehicle.make || 'Vehicle'} ${selectedVehicle.plate_number ? `(${selectedVehicle.plate_number})` : ''}`
                         : 'Select Vehicle'}
@@ -752,7 +759,14 @@ export default function SubscriptionScheduleModal({
                     activeOpacity={0.8}
                   >
                     <Ionicons name="business-outline" size={17} color="#38bdf8" />
-                    <Text style={[styles.selectBoxText, !selectedCenter && styles.placeholderText, isDark && styles.whiteText]} numberOfLines={1}>
+                    <Text
+                      style={[
+                        styles.selectBoxText,
+                        isDark && styles.whiteText,
+                        !selectedCenter && (isDark ? styles.placeholderDarkText : styles.placeholderText),
+                      ]}
+                      numberOfLines={1}
+                    >
                       {selectedCenter ? selectedCenter.name || selectedCenter.center_name : 'Select Center'}
                     </Text>
                     <Ionicons name="chevron-down" size={16} color={isDark ? '#94a3b8' : '#64748b'} />
@@ -797,7 +811,13 @@ export default function SubscriptionScheduleModal({
                     activeOpacity={0.8}
                   >
                     <Ionicons name="calendar-outline" size={18} color="#38bdf8" />
-                    <Text style={[styles.selectBoxText, isDark && styles.whiteText]}>
+                    <Text
+                      style={[
+                        styles.selectBoxText,
+                        isDark && styles.whiteText,
+                        !scheduleItems[0]?.date && (isDark ? styles.placeholderDarkText : styles.placeholderText),
+                      ]}
+                    >
                       {scheduleItems[0]?.date ? formatScheduleDate(scheduleItems[0].date) : 'Choose starting date'}
                     </Text>
                     <Ionicons name="chevron-down" size={16} color={isDark ? '#94a3b8' : '#64748b'} />
@@ -868,9 +888,9 @@ export default function SubscriptionScheduleModal({
                             <Text
                               style={[
                                 styles.selectBoxText,
-                                !item.date && styles.placeholderText,
                                 isDark && styles.whiteText,
-                                disabled && styles.disabledText,
+                                !item.date && (isDark ? styles.placeholderDarkText : styles.placeholderText),
+                                disabled && (isDark ? styles.disabledDarkText : styles.disabledText),
                               ]}
                               numberOfLines={1}
                             >
@@ -920,9 +940,9 @@ export default function SubscriptionScheduleModal({
                             <Text
                               style={[
                                 styles.selectBoxText,
-                                !item.slot && styles.placeholderText,
                                 isDark && styles.whiteText,
-                                (!item.date || !selectedCenterId) && styles.disabledText,
+                                !item.slot && (isDark ? styles.placeholderDarkText : styles.placeholderText),
+                                (!item.date || !selectedCenterId) && (isDark ? styles.disabledDarkText : styles.disabledText),
                               ]}
                               numberOfLines={1}
                             >
@@ -1027,6 +1047,7 @@ export default function SubscriptionScheduleModal({
                             key={v.id}
                             style={[
                               styles.pickerOption,
+                              isDark && styles.pickerOptionDark,
                               isSelected && (isDark ? styles.pickerOptionActiveDark : styles.pickerOptionActiveLight),
                             ]}
                             onPress={() => {
@@ -1034,7 +1055,11 @@ export default function SubscriptionScheduleModal({
                               setActivePicker(null);
                             }}
                           >
-                            <Ionicons name="car-outline" size={20} color={isSelected ? '#0284c7' : '#94a3b8'} />
+                            <Ionicons
+                              name="car-outline"
+                              size={20}
+                              color={isSelected ? (isDark ? '#38bdf8' : '#0284c7') : (isDark ? '#94a3b8' : '#64748b')}
+                            />
                             <View style={{ flex: 1, marginLeft: 12 }}>
                               <Text style={[styles.pickerOptionTitle, isDark && styles.whiteText]}>
                                 {v.make_model || v.make || 'Vehicle'}
@@ -1043,7 +1068,7 @@ export default function SubscriptionScheduleModal({
                                 {v.plate_number || v.registration_number || 'No plate'} • {(v.vehicle_type || '').toUpperCase()}
                               </Text>
                             </View>
-                            {isSelected && <Ionicons name="checkmark-circle" size={20} color="#0284c7" />}
+                            {isSelected && <Ionicons name="checkmark-circle" size={20} color={isDark ? '#38bdf8' : '#0284c7'} />}
                           </TouchableOpacity>
                         );
                       })
@@ -1056,7 +1081,7 @@ export default function SubscriptionScheduleModal({
                   <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
                     {centers.length === 0 ? (
                       <View style={styles.emptyPickerBox}>
-                        <Ionicons name="business-outline" size={32} color="#94a3b8" />
+                        <Ionicons name="business-outline" size={32} color={isDark ? '#64748b' : '#94a3b8'} />
                         <Text style={[styles.subtleText, isDark && styles.subtleTextDark, { marginTop: 8 }]}>
                           No service centers available.
                         </Text>
@@ -1069,6 +1094,7 @@ export default function SubscriptionScheduleModal({
                             key={c.id}
                             style={[
                               styles.pickerOption,
+                              isDark && styles.pickerOptionDark,
                               isSelected && (isDark ? styles.pickerOptionActiveDark : styles.pickerOptionActiveLight),
                             ]}
                             onPress={() => {
@@ -1076,7 +1102,11 @@ export default function SubscriptionScheduleModal({
                               setActivePicker(null);
                             }}
                           >
-                            <Ionicons name="business-outline" size={20} color={isSelected ? '#0284c7' : '#94a3b8'} />
+                            <Ionicons
+                              name="business-outline"
+                              size={20}
+                              color={isSelected ? (isDark ? '#38bdf8' : '#0284c7') : (isDark ? '#94a3b8' : '#64748b')}
+                            />
                             <View style={{ flex: 1, marginLeft: 12 }}>
                               <Text style={[styles.pickerOptionTitle, isDark && styles.whiteText]}>
                                 {c.name || c.center_name}
@@ -1085,7 +1115,7 @@ export default function SubscriptionScheduleModal({
                                 {c.address || c.city || 'Doorstep Service Hub'}
                               </Text>
                             </View>
-                            {isSelected && <Ionicons name="checkmark-circle" size={20} color="#0284c7" />}
+                            {isSelected && <Ionicons name="checkmark-circle" size={20} color={isDark ? '#38bdf8' : '#0284c7'} />}
                           </TouchableOpacity>
                         );
                       })
@@ -1101,7 +1131,7 @@ export default function SubscriptionScheduleModal({
                       if (slots.length === 0) {
                         return (
                           <View style={styles.emptyPickerBox}>
-                            <Ionicons name="time-outline" size={32} color="#94a3b8" />
+                            <Ionicons name="time-outline" size={32} color={isDark ? '#64748b' : '#94a3b8'} />
                             <Text style={[styles.subtleText, isDark && styles.subtleTextDark, { marginTop: 8 }]}>
                               No slots available for this date.
                             </Text>
@@ -1117,6 +1147,7 @@ export default function SubscriptionScheduleModal({
                             disabled={isFull}
                             style={[
                               styles.pickerOption,
+                              isDark && styles.pickerOptionDark,
                               isSelected && (isDark ? styles.pickerOptionActiveDark : styles.pickerOptionActiveLight),
                               isFull && styles.pickerOptionDisabled,
                             ]}
@@ -1129,7 +1160,11 @@ export default function SubscriptionScheduleModal({
                               setActivePicker(null);
                             }}
                           >
-                            <Ionicons name="time-outline" size={18} color={isSelected ? '#0284c7' : '#94a3b8'} />
+                            <Ionicons
+                              name="time-outline"
+                              size={18}
+                              color={isSelected ? (isDark ? '#38bdf8' : '#0284c7') : (isDark ? '#94a3b8' : '#64748b')}
+                            />
                             <Text style={[styles.pickerOptionTitle, { flex: 1, marginLeft: 12 }, isDark && styles.whiteText]}>
                               {s.time_range}
                             </Text>
@@ -1138,7 +1173,7 @@ export default function SubscriptionScheduleModal({
                                 <Text style={styles.fullBadgeText}>FULL</Text>
                               </View>
                             ) : isSelected ? (
-                              <Ionicons name="checkmark-circle" size={20} color="#0284c7" />
+                              <Ionicons name="checkmark-circle" size={20} color={isDark ? '#38bdf8' : '#0284c7'} />
                             ) : null}
                           </TouchableOpacity>
                         );
@@ -1430,8 +1465,15 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontWeight: '400',
   },
+  placeholderDarkText: {
+    color: '#64748b',
+    fontWeight: '400',
+  },
   disabledText: {
     color: '#94a3b8',
+  },
+  disabledDarkText: {
+    color: '#475569',
   },
   helperText: {
     fontSize: 10,
@@ -1652,14 +1694,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 10,
-    marginBottom: 6,
+    marginBottom: 8,
     backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  pickerOptionDark: {
+    backgroundColor: '#0f243c',
+    borderColor: '#1e3a5f',
   },
   pickerOptionActiveLight: {
     backgroundColor: 'rgba(2, 132, 199, 0.12)',
+    borderColor: '#0284c7',
   },
   pickerOptionActiveDark: {
-    backgroundColor: 'rgba(2, 132, 199, 0.25)',
+    backgroundColor: 'rgba(2, 132, 199, 0.35)',
+    borderColor: '#38bdf8',
   },
   pickerOptionDisabled: {
     opacity: 0.45,

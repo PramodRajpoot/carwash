@@ -169,7 +169,14 @@ export default {
       return this.user.franchisee?.status === 'inactive' || this.user.status === 'inactive';
     },
     profileRoute() {
-      const base = { customer: '/customer', franchisee: '/franchisee', admin: '/admin', super_admin: '/super-admin', washer: '/customer' };
+      const base = {
+        customer: '/customer',
+        franchisee: '/franchisee',
+        admin: '/admin',
+        super_admin: '/super-admin',
+        'super-admin': '/super-admin',
+        washer: '/washer',
+      };
       return (base[this.role] || '/customer') + '/profile';
     },
     pageTitle() {
@@ -179,21 +186,23 @@ export default {
         'customer-subscriptions': 'Subscriptions', 'customer-wallet': 'E-Points Wallet', 'customer-referrals': 'Referrals',
         'customer-offers': 'Offers & Coupons', 'customer-support': 'Help & Support', 'customer-notifications': 'Notifications',
         'customer-wishlist': 'Wishlist', 'customer-profile': 'My Profile',
-        'washer-dashboard': 'Washer Station', 'washer-tasks': 'Assigned Tasks',
+        'washer-dashboard': 'Washer Station', 'washer-tasks': 'Assigned Tasks', 'washer-profile': 'My Profile',
         'franchisee-dashboard': 'Dashboard', 'franchisee-orders': 'Booking Management', 'franchisee-washers': 'Our Washer Team', 'franchisee-slots': 'Slots Management',
         'franchisee-expenses': 'Expenses',
         'franchisee-reports': 'Reports', 'franchisee-royalty': 'Royalty Management', 'franchisee-subscriptions': 'Subscriptions',
-        'franchisee-offers': 'Offers',
+        'franchisee-offers': 'Offers', 'franchisee-profile': 'My Profile',
         'admin-dashboard': 'Dashboard', 'admin-franchisees': 'Franchise Management', 'admin-washers': 'Washer Management',
         'admin-users': 'Users', 'admin-orders': 'Booking Management', 'admin-slots': 'Slots',
         'admin-coupons': 'Coupons', 'admin-reports': 'Reports',
         'admin-packages': 'Subscription Packages', 'admin-referrals': 'Referral Network', 'admin-blog': 'Blog',
         'admin-tickets': 'Support Tickets', 'admin-partners': 'Partner Applications', 'admin-customers': 'Customer Management',
+        'admin-profile': 'My Profile',
         'superadmin-dashboard': 'Super Admin Dashboard', 'superadmin-admins': 'Admin Management',
         'superadmin-washers': 'Washer Management', 'superadmin-customers': 'Customer Management',
         'superadmin-orders': 'Booking Management', 'superadmin-settings': 'Platform Settings', 'superadmin-service-partners': 'Service Partners Management',
         'superadmin-marketing': 'Marketing', 'superadmin-withdrawals': 'Payouts & Withdrawals',
         'superadmin-happy-customers': 'Happy Customers', 'superadmin-partner-feedback': 'Partner Valuable Feedback',
+        'superadmin-profile': 'My Profile',
       };
       return map[n] || n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     },

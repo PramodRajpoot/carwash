@@ -144,6 +144,7 @@ export const routes = [
             { path: 'royalty', name: 'franchisee-royalty', component: FranchiseeRoyalty },
             { path: 'subscriptions', name: 'franchisee-subscriptions', component: FranchiseeSubscriptions },
             { path: 'offers', name: 'franchisee-offers', component: FranchiseeOffers },
+            { path: 'profile', name: 'franchisee-profile', component: CustomerProfile },
         ],
     },
 
@@ -166,6 +167,7 @@ export const routes = [
             { path: 'blog', name: 'admin-blog', component: AdminBlog },
             { path: 'customers', name: 'admin-customers', component: () => import('@/views/super-admin/SuperAdminCustomers.vue') },
             { path: 'tickets', name: 'admin-tickets', component: AdminTickets },
+            { path: 'profile', name: 'admin-profile', component: CustomerProfile },
         ],
     },
 
@@ -207,6 +209,7 @@ export const routes = [
             { path: 'marketing', name: 'superadmin-marketing', component: SuperAdminMarketing },
             { path: 'withdrawals', name: 'superadmin-withdrawals', component: SuperAdminWithdrawals },
             { path: 'happy-customers', name: 'superadmin-happy-customers', component: SuperAdminPartnerFeedback },
+            { path: 'profile', name: 'superadmin-profile', component: CustomerProfile },
         ],
     },
 
@@ -218,6 +221,7 @@ export const routes = [
         children: [
             { path: '', name: 'washer-dashboard', component: WasherDashboard },
             { path: 'tasks', name: 'washer-tasks', component: WasherTasks },
+            { path: 'profile', name: 'washer-profile', component: CustomerProfile },
         ],
     },
 

@@ -84,6 +84,7 @@ interface BookingItem {
 }
 
 type FilterType = 'all' | 'upcoming' | 'assigned' | 'completed' | 'cancelled';
+type BookingCategoryTab = 'services' | 'subscriptions';
 
 export default function BookingsScreen() {
   const router = useRouter();
@@ -95,8 +96,17 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { isDark, toggleTheme } = useAppTheme();
+  const [activeCategoryTab, setActiveCategoryTab] = useState<BookingCategoryTab>(
+    params.tab === 'subscriptions' ? 'subscriptions' : 'services'
+  );
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
+
+  useEffect(() => {
+    if (params.tab === 'subscriptions' || params.tab === 'services') {
+      setActiveCategoryTab(params.tab as BookingCategoryTab);
+    }
+  }, [params.tab]);
   const [visibleCount, setVisibleCount] = useState(6);
   const [expandedBookingIds, setExpandedBookingIds] = useState<Record<number, boolean>>({});
 
@@ -448,6 +458,7 @@ export default function BookingsScreen() {
     if (!b) return false;
     return (
       b.payment_method === 'subscription' ||
+      Boolean((b as any).is_subscription) ||
       (b.package && (Boolean(b.package.is_subscription) || [4, 26].includes(Number(b.package.max_bookings))))
     );
   }, []);
@@ -536,30 +547,50 @@ export default function BookingsScreen() {
     }
   };
 
-  // Filter bookings: only show washes which have paid ₹99 advance or full amount
-  const filteredBookings = bookings.filter((b) => {
-    const paid = Number(b.paid_amount || 0);
-    const isPaidWash = b.payment_status === 'paid' || paid >= 99 || (b.payment_status === 'partially_paid' && paid >= 99);
-    if (!isPaidWash) return false;
+  // Tab counts
+  const servicesCount = useMemo(() => {
+    return bookings.filter((b) => !isSubscriptionWash(b)).length;
+  }, [bookings, isSubscriptionWash]);
 
-    if (activeFilter === 'upcoming') {
-      return ['pending', 'assigned', 'ongoing', 'postponed'].includes(b.status);
-    }
-    if (activeFilter === 'assigned') {
-      return b.status === 'assigned';
-    }
-    if (activeFilter === 'completed') {
-      return b.status === 'completed';
-    }
-    if (activeFilter === 'cancelled') {
-      return b.status === 'cancelled';
-    }
-    return true;
-  });
+  const subscriptionsCount = useMemo(() => {
+    return bookings.filter((b) => isSubscriptionWash(b)).length;
+  }, [bookings, isSubscriptionWash]);
+
+  // Bookings filtered by active category tab (Services vs Subscription Plans)
+  const tabBookings = useMemo(() => {
+    const isSubTab = activeCategoryTab === 'subscriptions';
+    return bookings.filter((b) => {
+      const isSub = isSubscriptionWash(b);
+      return isSubTab ? isSub : !isSub;
+    });
+  }, [bookings, activeCategoryTab, isSubscriptionWash]);
+
+  // Filter bookings: only show washes which have paid ₹99 advance or full amount, matching activeFilter
+  const filteredBookings = useMemo(() => {
+    return tabBookings.filter((b) => {
+      const paid = Number(b.paid_amount || 0);
+      const isPaidWash = b.payment_status === 'paid' || paid >= 99 || (b.payment_status === 'partially_paid' && paid >= 99);
+      if (!isPaidWash) return false;
+
+      if (activeFilter === 'upcoming') {
+        return ['pending', 'assigned', 'ongoing', 'postponed'].includes(b.status);
+      }
+      if (activeFilter === 'assigned') {
+        return b.status === 'assigned';
+      }
+      if (activeFilter === 'completed') {
+        return b.status === 'completed';
+      }
+      if (activeFilter === 'cancelled') {
+        return b.status === 'cancelled';
+      }
+      return true;
+    });
+  }, [tabBookings, activeFilter]);
 
   useEffect(() => {
     setVisibleCount(6);
-  }, [activeFilter]);
+  }, [activeFilter, activeCategoryTab]);
 
   const PAGE_SIZE = 6;
   const visibleBookings = filteredBookings.slice(0, visibleCount);
@@ -574,20 +605,20 @@ export default function BookingsScreen() {
     }
   };
 
-  const upcomingCount = bookings.filter((b) =>
+  const upcomingCount = useMemo(() => tabBookings.filter((b) =>
     ['pending', 'assigned', 'ongoing', 'postponed'].includes(b.status)
-  ).length;
-  const assignedCount = bookings.filter((b) => b.status === 'assigned').length;
-  const completedCount = bookings.filter((b) => b.status === 'completed').length;
-  const cancelledCount = bookings.filter((b) => b.status === 'cancelled').length;
+  ).length, [tabBookings]);
+  const assignedCount = useMemo(() => tabBookings.filter((b) => b.status === 'assigned').length, [tabBookings]);
+  const completedCount = useMemo(() => tabBookings.filter((b) => b.status === 'completed').length, [tabBookings]);
+  const cancelledCount = useMemo(() => tabBookings.filter((b) => b.status === 'cancelled').length, [tabBookings]);
 
-  const filterOptions: Array<{ key: FilterType; label: string; count: number }> = [
-    { key: 'all', label: 'All', count: bookings.length },
+  const filterOptions: Array<{ key: FilterType; label: string; count: number }> = useMemo(() => [
+    { key: 'all', label: 'All', count: tabBookings.length },
     { key: 'upcoming', label: 'Upcoming', count: upcomingCount },
     { key: 'assigned', label: 'Assigned', count: assignedCount },
     { key: 'completed', label: 'Completed', count: completedCount },
     { key: 'cancelled', label: 'Cancelled', count: cancelledCount },
-  ];
+  ], [tabBookings.length, upcomingCount, assignedCount, completedCount, cancelledCount]);
 
   const activeFilterLabel = filterOptions.find((option) => option.key === activeFilter)?.label || 'All';
 
@@ -744,6 +775,113 @@ export default function BookingsScreen() {
         onToggleTheme={handleToggleTheme}
       />
 
+      {/* Category Tabs: Services & Subscription Plans */}
+      <View style={[styles.categoryTabsNav, isDark && styles.categoryTabsNavDark]}>
+        <View style={[styles.categoryTabsInner, isDark && styles.categoryTabsInnerDark]}>
+          <TouchableOpacity
+            style={[
+              styles.categoryTabBtn,
+              activeCategoryTab === 'services' && (isDark ? styles.categoryTabBtnActiveDark : styles.categoryTabBtnActiveLight),
+            ]}
+            onPress={() => {
+              safeHapticLight();
+              setActiveCategoryTab('services');
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="car-sport-outline"
+              size={15}
+              color={
+                activeCategoryTab === 'services'
+                  ? '#ffffff'
+                  : isDark
+                  ? '#94a3b8'
+                  : '#64748b'
+              }
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                styles.categoryTabBtnText,
+                isDark && styles.categoryTabBtnTextDark,
+                activeCategoryTab === 'services' && styles.categoryTabBtnTextActive,
+              ]}
+            >
+              Services
+            </Text>
+            <View
+              style={[
+                styles.tabCountBadge,
+                isDark && styles.tabCountBadgeDark,
+                activeCategoryTab === 'services' && styles.tabCountBadgeActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabCountBadgeText,
+                  isDark && styles.tabCountBadgeTextDark,
+                  activeCategoryTab === 'services' && styles.tabCountBadgeTextActive,
+                ]}
+              >
+                {servicesCount}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.categoryTabBtn,
+              activeCategoryTab === 'subscriptions' && (isDark ? styles.categoryTabBtnActiveDark : styles.categoryTabBtnActiveLight),
+            ]}
+            onPress={() => {
+              safeHapticLight();
+              setActiveCategoryTab('subscriptions');
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={15}
+              color={
+                activeCategoryTab === 'subscriptions'
+                  ? '#ffffff'
+                  : isDark
+                  ? '#94a3b8'
+                  : '#64748b'
+              }
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                styles.categoryTabBtnText,
+                isDark && styles.categoryTabBtnTextDark,
+                activeCategoryTab === 'subscriptions' && styles.categoryTabBtnTextActive,
+              ]}
+            >
+              Subscription Plans
+            </Text>
+            <View
+              style={[
+                styles.tabCountBadge,
+                isDark && styles.tabCountBadgeDark,
+                activeCategoryTab === 'subscriptions' && styles.tabCountBadgeActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabCountBadgeText,
+                  isDark && styles.tabCountBadgeTextDark,
+                  activeCategoryTab === 'subscriptions' && styles.tabCountBadgeTextActive,
+                ]}
+              >
+                {subscriptionsCount}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={[styles.sectionHeaderRow, isDark && styles.darkSectionHeaderRow]}>
         <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Wash List</Text>
 
@@ -820,24 +958,28 @@ export default function BookingsScreen() {
         {filteredBookings.length === 0 ? (
           <View style={[styles.emptyContainer, isDark && styles.darkEmpty]}>
             <Ionicons
-              name="water-outline"
+              name={activeCategoryTab === 'subscriptions' ? 'calendar-outline' : 'water-outline'}
               size={48}
               color={isDark ? '#475569' : '#94a3b8'}
             />
             <Text style={[styles.emptyTitle, isDark && styles.darkText]}>
-              No washes found
+              {activeCategoryTab === 'subscriptions' ? 'No subscription washes found' : 'No service washes found'}
             </Text>
             <Text style={[styles.emptySub, isDark && styles.darkSubtext]}>
               {activeFilter === 'all'
-                ? 'You have not booked any services yet.'
-                : `No ${activeFilter} wash bookings.`}
+                ? (activeCategoryTab === 'subscriptions'
+                    ? 'Your scheduled monthly or daily subscription pass washes will appear here.'
+                    : 'You have not booked any services yet.')
+                : `No ${activeFilter} ${activeCategoryTab === 'subscriptions' ? 'subscription' : 'service'} bookings.`}
             </Text>
             <TouchableOpacity
               style={styles.emptyBtn}
-              onPress={openBookingModal}
+              onPress={activeCategoryTab === 'subscriptions' ? () => router.push('/subscriptions') : openBookingModal}
               activeOpacity={0.8}
             >
-              <Text style={styles.emptyBtnText}>Book Your First Wash</Text>
+              <Text style={styles.emptyBtnText}>
+                {activeCategoryTab === 'subscriptions' ? 'View Subscription Plans' : 'Book Your First Wash'}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -1504,11 +1646,90 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  ctaBannerBtnText: {
+  /* Category Tabs: Services & Subscription Plans */
+  categoryTabsNav: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    backgroundColor: '#ffffff',
+  },
+  categoryTabsNavDark: {
+    backgroundColor: '#090d16',
+  },
+  categoryTabsInner: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  categoryTabsInnerDark: {
+    backgroundColor: '#0f172a',
+    borderColor: '#1e293b',
+  },
+  categoryTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    borderRadius: 9,
+  },
+  categoryTabBtnActiveLight: {
+    backgroundColor: '#0284c7',
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryTabBtnActiveDark: {
+    backgroundColor: '#0284c7',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryTabBtnText: {
     fontSize: 12,
     fontWeight: '700',
+    color: '#64748b',
+  },
+  categoryTabBtnTextDark: {
+    color: '#94a3b8',
+  },
+  categoryTabBtnTextActive: {
+    color: '#ffffff',
+    fontWeight: '800',
+  },
+  tabCountBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#e2e8f0',
+  },
+  tabCountBadgeDark: {
+    backgroundColor: '#1e293b',
+  },
+  tabCountBadgeActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+  },
+  tabCountBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  tabCountBadgeTextDark: {
+    color: '#94a3b8',
+  },
+  tabCountBadgeTextActive: {
     color: '#ffffff',
   },
+
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
