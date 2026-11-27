@@ -187,7 +187,7 @@ Refer More • Earn More • Grow Together!
       try {
         if (navigator.share) {
           await navigator.share({
-            title: 'Earn Money with CleanAtDoorstep',
+            title: 'Earn Money with Cleanatdoorstep',
             text: message,
             url: link,
           });

@@ -737,7 +737,7 @@ export default function ServicesScreen() {
           </View>
 
           <View style={styles.brandTextWrap}>
-            <Text style={[styles.headerTitle, !isDark && styles.headerTitleLight]}>CleanAtDoorstep</Text>
+            <Text style={[styles.headerTitle, !isDark && styles.headerTitleLight]}>Cleanatdoorstep</Text>
             <Text style={[styles.headerSubtitle, !isDark && styles.headerSubtitleLight]}>Doorstep Detailing • On-Demand</Text>
           </View>
         </View>

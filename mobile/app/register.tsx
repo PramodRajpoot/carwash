@@ -318,7 +318,7 @@ export default function RegisterScreen() {
               Create Account
             </Text>
             <Text style={[styles.subtitle, isDark && styles.darkSubtitle]}>
-              Join CleanAtDoorstep for premium doorstep car care
+              Join Cleanatdoorstep for premium doorstep car care
             </Text>
           </View>
 

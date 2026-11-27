@@ -126,7 +126,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status'       => 'success',
-            'message'      => 'Registered successfully. Welcome to CleanAtDoorstep! You earned 50 E-Points as a welcome bonus!',
+            'message'      => 'Registered successfully. Welcome to Cleanatdoorstep! You earned 50 E-Points as a welcome bonus!',
             'access_token' => $token,
             'token_type'   => 'Bearer',
             'user'         => $user,

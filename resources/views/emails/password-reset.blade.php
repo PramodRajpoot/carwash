@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Your Password - CleanAt Doorstep</title>
+    <title>Reset Your Password - Cleanatdoorstep</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f0f4f8; font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
 
@@ -20,7 +20,7 @@
                         <td style="background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #8b5cf6 100%); padding:40px 40px 36px; text-align:center;">
                             <div style="margin-bottom:16px;">
                                 @if(file_exists(public_path('logo.png')))
-                                    <img src="{{ $message->embed(public_path('logo.png')) }}" alt="CleanAt Doorstep" width="80" height="80" style="display:inline-block; background:rgba(255,255,255,0.95); border-radius:14px; padding:8px;">
+                                    <img src="{{ $message->embed(public_path('logo.png')) }}" alt="Cleanatdoorstep" width="80" height="80" style="display:inline-block; background:rgba(255,255,255,0.95); border-radius:14px; padding:8px;">
                                 @else
                                     <div style="display:inline-block; width:64px; height:64px; line-height:64px; border-radius:14px; background:rgba(255,255,255,0.2); font-size:32px;">🔑</div>
                                 @endif
@@ -29,7 +29,7 @@
                                 Password Reset Request
                             </h1>
                             <p style="margin:0; color:rgba(255,255,255,0.9); font-size:15px; font-weight:400;">
-                                Secure access to your CleanAt Doorstep account
+                                Secure access to your Cleanatdoorstep account
                             </p>
                         </td>
                     </tr>
@@ -44,7 +44,7 @@
                                 Reset Your Account Password
                             </h2>
                             <p style="margin:0 0 16px; color:#475569; font-size:15px; line-height:1.7;">
-                                We received a request to reset the password for your CleanAt Doorstep account. Click the button below to choose your new password.
+                                We received a request to reset the password for your Cleanatdoorstep account. Click the button below to choose your new password.
                             </p>
                         </td>
                     </tr>
@@ -104,14 +104,14 @@
                     <tr>
                         <td style="padding:24px 40px 36px; text-align:center;">
                             <p style="margin:0 0 6px; color:#1e293b; font-size:15px; font-weight:700;">
-                                CleanAt Doorstep
+                                Cleanatdoorstep
                             </p>
                             <p style="margin:0 0 12px; color:#94a3b8; font-size:12px; line-height:1.5;">
                                 Professional car wash services at your doorstep.<br>
                                 Quality • Convenience • Trust
                             </p>
                             <p style="margin:0; color:#cbd5e1; font-size:11px; line-height:1.5;">
-                                © {{ date('Y') }} CleanAt Doorstep. All rights reserved.
+                                © {{ date('Y') }} Cleanatdoorstep. All rights reserved.
                             </p>
                         </td>
                     </tr>

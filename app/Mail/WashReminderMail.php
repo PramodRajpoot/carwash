@@ -51,7 +51,7 @@ class WashReminderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "🚗 Time for Your Next Wash! ({$this->usedWashes}/{$this->totalWashes} Washes Used) — CleanAt Doorstep",
+            subject: "🚗 Time for Your Next Wash! ({$this->usedWashes}/{$this->totalWashes} Washes Used) — Cleanatdoorstep",
         );
     }
 

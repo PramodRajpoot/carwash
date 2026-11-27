@@ -157,7 +157,7 @@ export default function ReferAndEarnScreen() {
       const message = buildReferralMessage(data.referral_code);
       await Share.share({
         message,
-        title: 'Earn Money with CleanAtDoorstep',
+        title: 'Earn Money with Cleanatdoorstep',
       });
       setCopied(true);
       showSweetAlert('Ready to Share', 'Referral message and link are ready.', 'success');
@@ -190,7 +190,7 @@ export default function ReferAndEarnScreen() {
       if (type === 'instagram' || type === 'more') {
         await Share.share({
           message,
-          title: 'Earn Money with CleanAtDoorstep',
+          title: 'Earn Money with Cleanatdoorstep',
         });
       }
     } catch {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Login OTP - CleanAt Doorstep</title>
+    <title>Your Login OTP - Cleanatdoorstep</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -29,13 +29,13 @@
                         <td style="background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #8b5cf6 100%); padding:48px 40px 40px; text-align:center;">
                             <!-- Car wash icon -->
                             <div style="margin-bottom:20px;">
-                                <img src="{{ $message->embed(public_path('logo.png')) }}" alt="CleanAt Doorstep" width="100" height="100" style="display:inline-block; background:rgba(255,255,255,0.9); border-radius:16px; padding:10px;">
+                                <img src="{{ $message->embed(public_path('logo.png')) }}" alt="Cleanatdoorstep" width="100" height="100" style="display:inline-block; background:rgba(255,255,255,0.9); border-radius:16px; padding:10px;">
                             </div>
                             <h1 style="margin:0 0 8px; color:#ffffff; font-size:28px; font-weight:700; letter-spacing:-0.5px;">
                                 Your Login OTP
                             </h1>
                             <p style="margin:0; color:rgba(255,255,255,0.85); font-size:16px; font-weight:400;">
-                                Secure access to your CleanAt Doorstep account
+                                Secure access to your Cleanatdoorstep account
                             </p>
                         </td>
                     </tr>
@@ -80,14 +80,14 @@
                     <tr>
                         <td style="padding:24px 40px 36px; text-align:center;">
                             <p style="margin:0 0 8px; color:#1e293b; font-size:16px; font-weight:700;">
-                                CleanAt Doorstep
+                                Cleanatdoorstep
                             </p>
                             <p style="margin:0 0 16px; color:#94a3b8; font-size:13px; line-height:1.5;">
                                 Professional car wash services at your doorstep.<br>
                                 Quality • Convenience • Trust
                             </p>
                             <p style="margin:0; color:#cbd5e1; font-size:11px; line-height:1.6;">
-                                © {{ date('Y') }} CleanAt Doorstep. All rights reserved.<br>
+                                © {{ date('Y') }} Cleanatdoorstep. All rights reserved.<br>
                                 If you did not request this OTP, please ignore this email.
                             </p>
                         </td>

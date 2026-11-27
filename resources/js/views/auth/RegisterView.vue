@@ -3,7 +3,7 @@
     <div class="glass-card" style="width:100%;max-width:460px">
       <div style="text-align:center;margin-bottom:1.5rem">
         <router-link to="/" style="text-decoration:none;display:inline-block;margin-bottom:0.5rem">
-          <img src="/logo.png" alt="CleanAt Doorstep" style="height:60px;max-width:220px;object-fit:contain;" />
+          <img src="/logo.png" alt="Cleanatdoorstep" style="height:60px;max-width:220px;object-fit:contain;" />
         </router-link>
         <p class="text-muted" style="font-size:0.9rem;margin-top:0.25rem">Create your free account</p>
       </div>
@@ -12,7 +12,7 @@
       <div v-if="form.referred_by_code" style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:12px;padding:0.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
         <div style="font-size:0.85rem">
           <div style="font-weight:700;color:var(--accent-cyan);display:flex;align-items:center;gap:4px">
-            <span>📱</span> CleanAtDoorstep App
+            <span>📱</span> Cleanatdoorstep App
           </div>
           <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">
             Have the app? Continue with referral code

@@ -30,7 +30,7 @@
                             <!-- App Badge -->
                             <div style="display:inline-block; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.3); border-radius:24px; padding:6px 16px; margin-bottom:16px;">
                                 <span style="color:#ffffff; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase;">
-                                    ✨ CleanAt Doorstep
+                                    ✨ Cleanatdoorstep
                                 </span>
                             </div>
                             <h1 style="margin:0 0 10px; color:#ffffff; font-size:26px; font-weight:800; letter-spacing:-0.5px; line-height:1.25;">
@@ -153,7 +153,7 @@
                     <tr>
                         <td style="background:#0f172a; padding:24px 32px; text-align:center;">
                             <p style="margin:0 0 6px; color:#94a3b8; font-size:12px;">
-                                © {{ date('Y') }} CleanAt Doorstep. All rights reserved.
+                                © {{ date('Y') }} Cleanatdoorstep. All rights reserved.
                             </p>
                             <p style="margin:0; color:#64748b; font-size:11px;">
                                 You received this service reminder because you have an active package with remaining washes.

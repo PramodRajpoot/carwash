@@ -433,7 +433,7 @@ export default function HomeScreen() {
               />
             </View>
             <Text style={styles.brandTitleText} numberOfLines={1}>
-              CleanAtDoorstep
+              Cleanatdoorstep
             </Text>
           </View>
 

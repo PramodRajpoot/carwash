@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "CleanAtDoorStep",
+    "name": "Cleanatdoorstep",
     "slug": "cleanatdoorstep",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -74,8 +74,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow CleanAtDoorstep to access your location to find nearby wash centers and provide doorstep service.",
-          "locationWhenInUsePermission": "Allow CleanAtDoorstep to access your location to find nearby wash centers and provide doorstep service."
+          "locationAlwaysAndWhenInUsePermission": "Allow Cleanatdoorstep to access your location to find nearby wash centers and provide doorstep service.",
+          "locationWhenInUsePermission": "Allow Cleanatdoorstep to access your location to find nearby wash centers and provide doorstep service."
         }
       ],
       "expo-status-bar",

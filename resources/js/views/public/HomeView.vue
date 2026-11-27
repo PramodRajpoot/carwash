@@ -243,7 +243,7 @@
       <div class="container">
         <div class="section-title">
           <h2>Customer <span class="text-gradient">Testimonials</span></h2>
-          <p>What our happy customers say about CleanAtDoorstep.</p>
+          <p>What our happy customers say about Cleanatdoorstep.</p>
         </div>
         <div class="grid grid-3 gap-3">
           <div v-for="(t, i) in testimonials" :key="i" class="glass-card fade-in-up" :class="'delay-' + (i+1)" style="position:relative">
@@ -271,7 +271,7 @@
         <div class="refer-earn-header">
           <div class="re-badge-pill">🎁 REFER &amp; EARN</div>
           <h2 class="refer-earn-title">Refer Friends.<br><span class="re-highlight">Earn Rewards Together.</span></h2>
-          <p class="refer-earn-desc">Invite friends to CleanAtDoorstep and both of you get rewarded on eligible bookings.</p>
+          <p class="refer-earn-desc">Invite friends to Cleanatdoorstep and both of you get rewarded on eligible bookings.</p>
         </div>
 
         <div class="refer-earn-steps">
@@ -404,7 +404,7 @@
 
               <div style="margin-bottom:1rem">
                 <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Tell us about yourself</label>
-                <textarea v-model="partnerForm.message" class="form-input" rows="4" placeholder="Your background, why you want to join CleanAtDoorstep, existing business experience…" style="resize:vertical"></textarea>
+                <textarea v-model="partnerForm.message" class="form-input" rows="4" placeholder="Your background, why you want to join Cleanatdoorstep, existing business experience…" style="resize:vertical"></textarea>
               </div>
 
               <div v-if="partnerError" style="color:#ef4444;font-size:0.85rem;margin-bottom:0.75rem;padding:0.75rem;background:rgba(239,68,68,0.08);border-radius:var(--radius-sm)">
@@ -539,7 +539,7 @@
                 </div>
               </div>
               <div style="padding:1.5rem">
-                <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.name || (feedback.city ? feedback.city + ' Partner' : 'CleanAtDoorstep Partner') }}</h4>
+                <h4 style="font-size:1.1rem;margin-bottom:0.25rem">{{ feedback.name || (feedback.city ? feedback.city + ' Partner' : 'Cleanatdoorstep Partner') }}</h4>
                 <p v-if="feedback.city" class="text-muted" style="font-size:0.85rem;margin-bottom:.35rem">{{ feedback.city }}</p>
                 <p class="text-muted" style="font-size:0.85rem">"{{ feedback.quote }}"</p>
               </div>

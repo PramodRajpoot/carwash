@@ -96,7 +96,7 @@ class WashReminderEmailTest extends TestCase
         $this->assertStringContainsString('#ef4444', $html); // Red for total / remaining
         $this->assertStringContainsString('Book Your Next Wash Now', $html);
         $this->assertEquals(
-            '🚗 Time for Your Next Wash! (1/4 Washes Used) — CleanAt Doorstep',
+            '🚗 Time for Your Next Wash! (1/4 Washes Used) — Cleanatdoorstep',
             $mail->envelope()->subject
         );
     }

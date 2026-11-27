@@ -381,7 +381,7 @@ export default function LoginScreen() {
               />
             </View>
             <Text style={[styles.brandTitle, isDark && styles.darkBrandTitle]}>
-              CleanAtDoorstep
+              Cleanatdoorstep
             </Text>
             <Text style={[styles.subtitle, isDark && styles.darkSubtitle]}>
               {activeTab === 'forgot'

@@ -95,7 +95,7 @@ export default function DashboardHeader({
 
   const activeUser = user || storedUser;
   const isLoggedIn = Boolean(token || (activeUser && (activeUser.id || (activeUser.email && activeUser.name !== 'User'))));
-  const displayTitle = title === 'Dashboard' && !isLoggedIn ? 'CleanAtDoorstep' : title;
+  const displayTitle = title === 'Dashboard' && !isLoggedIn ? 'Cleanatdoorstep' : title;
 
   const resolvedAddress = safeAddress || savedAddress;
 
@@ -379,7 +379,7 @@ export default function DashboardHeader({
                 </View>
                 <View style={styles.menuItemTextCol}>
                   <Text style={[styles.menuItemTitle, isDark && styles.menuItemTitleDark]}>Website</Text>
-                  <Text style={[styles.menuItemSub, isDark && styles.menuItemSubDark]}>Visit CleanAt official portal</Text>
+                  <Text style={[styles.menuItemSub, isDark && styles.menuItemSubDark]}>Visit Cleanatdoorstep official portal</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={isDark ? '#64748b' : '#94a3b8'} />
               </TouchableOpacity>

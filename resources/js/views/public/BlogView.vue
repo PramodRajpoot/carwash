@@ -4,7 +4,7 @@
       <div class="container">
         <div class="section-title">
           <h1>Our <span class="text-gradient">Blog</span></h1>
-          <p>Tips, updates, and insights from the CleanAtDoorstep team.</p>
+          <p>Tips, updates, and insights from the Cleanatdoorstep team.</p>
         </div>
 
         <div v-if="loading" class="text-muted" style="text-align:center;padding:3rem">Loading posts…</div>

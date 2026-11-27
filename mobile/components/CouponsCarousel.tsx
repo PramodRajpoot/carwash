@@ -41,7 +41,7 @@ export default function CouponsCarousel({
     try {
       await Share.share({
         message: buildReferralMessage(referralCode),
-        title: 'Earn Money with CleanAtDoorstep',
+        title: 'Earn Money with Cleanatdoorstep',
       });
     } catch {}
   };

@@ -1,5 +1,5 @@
 <x-mail::message>
-# Welcome to CleanAt Doorstep! 🚗✨
+# Welcome to Cleanatdoorstep! 🚗✨
 
 Hi there,
 

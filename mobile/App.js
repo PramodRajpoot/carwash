@@ -108,7 +108,7 @@ export default function App() {
       {/* ── Header ── */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>🚗 CleanAtDoorstep</Text>
+          <Text style={styles.headerTitle}>🚗 Cleanatdoorstep</Text>
           <Text style={styles.headerSubtitle}>Professional Vehicle Detailing</Text>
         </View>
       </View>

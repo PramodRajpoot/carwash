@@ -5,7 +5,7 @@
     <aside class="dash-sidebar" :class="{ 'mobile-open': showMobileMenu }">
       <div class="dash-sidebar-logo">
         <router-link to="/" style="display:flex;align-items:center;text-decoration:none;">
-          <img src="/logo.png" alt="CleanAt Doorstep" class="brand-logo-img" style="height:48px;max-width:180px;object-fit:contain;" />
+          <img src="/logo.png" alt="Cleanatdoorstep" class="brand-logo-img" style="height:48px;max-width:180px;object-fit:contain;" />
         </router-link>
       </div>
       <ul class="dash-sidebar-nav">

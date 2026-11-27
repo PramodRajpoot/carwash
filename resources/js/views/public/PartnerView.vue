@@ -171,7 +171,7 @@
 
             <div style="margin-bottom:1rem">
               <label class="text-muted" style="font-size:0.85rem;display:block;margin-bottom:0.25rem">Tell us about yourself</label>
-              <textarea v-model="form.message" class="form-input" rows="4" placeholder="Your background, why you want to join CleanAtDoorstep, existing business experience…" style="resize:vertical"></textarea>
+              <textarea v-model="form.message" class="form-input" rows="4" placeholder="Your background, why you want to join Cleanatdoorstep, existing business experience…" style="resize:vertical"></textarea>
             </div>
 
             <div v-if="error" style="color:#ef4444;font-size:0.85rem;margin-bottom:0.75rem;padding:0.75rem;background:rgba(239,68,68,0.08);border-radius:var(--radius-sm)">
@@ -336,7 +336,7 @@
                 </div>
               </div>
               <div style="padding:1.25rem">
-                <h4>{{ feedback.name || 'CleanAtDoorstep Partner' }}</h4>
+                <h4>{{ feedback.name || 'Cleanatdoorstep Partner' }}</h4>
                 <p v-if="feedback.city" class="text-muted text-sm">{{ feedback.city }}</p>
                 <p class="text-muted" style="font-style:italic">"{{ feedback.quote }}"</p>
               </div>

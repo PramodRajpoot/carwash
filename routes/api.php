@@ -29,7 +29,7 @@ use App\Http\Controllers\PartnerValuableFeedbackController;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes — CleanAtDoorstep Platform
+| API Routes — Cleanatdoorstep Platform
 |--------------------------------------------------------------------------
 */
 

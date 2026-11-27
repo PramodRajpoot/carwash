@@ -118,7 +118,7 @@
       <div class="container">
         <div class="section-title text-center" style="margin-bottom: 3rem;">
           <h2>Customer <span class="text-gradient">Testimonials</span></h2>
-          <p>What our happy customers say about CleanAtDoorstep.</p>
+          <p>What our happy customers say about Cleanatdoorstep.</p>
         </div>
         <div class="grid grid-3 gap-3">
           <div v-for="(t, i) in testimonials" :key="i" class="glass-card fade-in-up" :class="'delay-' + (i+1)" style="position:relative; background: #ffffff; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">

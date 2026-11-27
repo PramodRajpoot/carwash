@@ -11,7 +11,7 @@
     <nav class="navbar">
       <div class="navbar-inner">
         <router-link to="/" class="navbar-logo" style="display:flex;align-items:center;text-decoration:none;">
-          <img src="/logo.png" alt="CleanAt Doorstep" style="height:48px;max-width:180px;object-fit:contain;" />
+          <img src="/logo.png" alt="Cleanatdoorstep" style="height:48px;max-width:180px;object-fit:contain;" />
         </router-link>
         <button class="mobile-toggle" @click="menuOpen = !menuOpen">☰</button>
         <ul class="navbar-links" :class="{ open: menuOpen }">
@@ -32,7 +32,7 @@
         <div class="footer-grid">
           <div>
             <router-link to="/" style="display:inline-block;margin-bottom:0.75rem;">
-              <img src="/logo.png" alt="CleanAt Doorstep" style="height:52px;max-width:200px;object-fit:contain;" />
+              <img src="/logo.png" alt="Cleanatdoorstep" style="height:52px;max-width:200px;object-fit:contain;" />
             </router-link>
             <p class="text-muted" style="font-size:0.9rem;line-height:1.7">India's premium doorstep vehicle cleaning &amp; detailing service. We bring the shine to your doorstep using eco-friendly waterless technology.</p>
           </div>
@@ -67,7 +67,7 @@
           </div>
         </div>
         <div class="footer-bottom">
-          © {{ new Date().getFullYear() }} CleanAtDoorstep. All rights reserved. | <router-link to="/terms" style="color:var(--text-muted)">Terms</router-link> · <router-link to="/privacy" style="color:var(--text-muted)">Privacy</router-link>
+          © {{ new Date().getFullYear() }} Cleanatdoorstep. All rights reserved. | <router-link to="/terms" style="color:var(--text-muted)">Terms</router-link> · <router-link to="/privacy" style="color:var(--text-muted)">Privacy</router-link>
         </div>
       </div>
     </footer>

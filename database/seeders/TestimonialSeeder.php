@@ -28,7 +28,7 @@ class TestimonialSeeder extends Seeder
             [
                 'name' => 'Amit Kumar',
                 'role' => 'Fleet Manager, Pune',
-                'text' => 'Managing 20+ commercial vehicles is easy with CleanAt Doorstep. Their franchise team handles everything perfectly.',
+                'text' => 'Managing 20+ commercial vehicles is easy with Cleanatdoorstep. Their franchise team handles everything perfectly.',
                 'is_active' => true,
             ],
         ];

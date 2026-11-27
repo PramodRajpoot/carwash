@@ -81,7 +81,7 @@
         
         <div class="header">
             <div>
-                <img src="{{ $logoSrc }}" alt="CleanAtDoorstep" class="invoice-logo">
+                <img src="{{ $logoSrc }}" alt="Cleanatdoorstep" class="invoice-logo">
                 <p style="color: #666; margin: 0.25rem 0 0; font-size: 0.95rem;">Premium Doorstep Car Wash Services</p>
                 <p style="color: #64748b; margin: 0.15rem 0 0; font-size: 0.85rem;">GSTIN: 07AAACC4111H1Z5 (18% GST Applicable)</p>
             </div>
@@ -108,7 +108,7 @@
                 <p><strong>Service Date:</strong> {{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}</p>
                 <p><strong>Slot Time:</strong> {{ $booking->slot_time }}</p>
                 <p><strong>Vehicle:</strong> {{ $booking->vehicle->make_model ?? 'N/A' }} ({{ $booking->vehicle->plate_number ?? 'N/A' }})</p>
-                <p><strong>Service Center:</strong> {{ $booking->franchisee->center_name ?? 'CleanAtDoorstep Network' }}</p>
+                <p><strong>Service Center:</strong> {{ $booking->franchisee->center_name ?? 'Cleanatdoorstep Network' }}</p>
                 <p>
                     <strong>Payment:</strong>
                     <span class="status-badge {{ strtolower(str_replace(' ', '_', $booking->payment_status)) }}">
@@ -222,7 +222,7 @@
 
         <div class="footer">
             <p>This is a computer-generated invoice and requires no physical signature.</p>
-            <p>Thank you for choosing CleanAtDoorstep! For any queries or support, reach us at support@cleanatdoorstep.com</p>
+            <p>Thank you for choosing Cleanatdoorstep! For any queries or support, reach us at support@cleanatdoorstep.com</p>
         </div>
     </div>
 </body>

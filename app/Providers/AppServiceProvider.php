@@ -30,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
             $url = rtrim($baseUrl, '/') . '/reset-password?token=' . $token . '&email=' . urlencode($notifiable->getEmailForPasswordReset());
             $expireMinutes = config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 10);
 
-            $appName = (config('app.name') && config('app.name') !== 'Laravel') ? config('app.name') : 'CleanAtDoorstep';
+            $appName = (config('app.name') && config('app.name') !== 'Laravel') ? config('app.name') : 'Cleanatdoorstep';
 
             return (new \Illuminate\Notifications\Messages\MailMessage)
                 ->subject('Reset Your Password - ' . $appName)

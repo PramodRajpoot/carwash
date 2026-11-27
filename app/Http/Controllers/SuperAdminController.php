@@ -195,7 +195,7 @@ class SuperAdminController extends Controller
             ['key' => 'sms_notifications',       'value' => 'false', 'group' => 'notifications', 'label' => 'Enable SMS Notifications'],
             ['key' => 'email_notifications',     'value' => 'true',  'group' => 'notifications', 'label' => 'Enable Email Notifications'],
             ['key' => 'push_notifications',      'value' => 'false', 'group' => 'notifications', 'label' => 'Enable Push Notifications'],
-            ['key' => 'platform_name',           'value' => 'CleanAtDoorstep', 'group' => 'general', 'label' => 'Platform Name'],
+            ['key' => 'platform_name',           'value' => 'Cleanatdoorstep', 'group' => 'general', 'label' => 'Platform Name'],
         ];
 
         foreach ($defaults as $d) {
