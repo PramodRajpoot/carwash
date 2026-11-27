@@ -118,7 +118,7 @@ export const routes = [
             { path: '', name: 'customer-dashboard', component: CustomerDashboard },
             { path: 'bookings', name: 'customer-bookings', component: CustomerBookings },
             { path: 'vehicles', name: 'customer-vehicles', component: CustomerVehicles },
-            { path: 'subscriptions', redirect: '/customer' },
+            { path: 'subscriptions', name: 'customer-subscriptions', component: CustomerSubscriptions },
             { path: 'wishlist', name: 'customer-wishlist', component: CustomerWishlist },
             { path: 'referrals', name: 'customer-referrals', component: CustomerReferrals },
             { path: 'wallet', name: 'customer-wallet', component: CustomerWallet },

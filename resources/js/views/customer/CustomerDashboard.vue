@@ -56,30 +56,49 @@
       </div>
     </div>
 
-    <!-- Referral Code -->
-    <div class="glass-card">
-      <h4 style="margin-bottom:1rem">🔗 Your Referral Code</h4>
-      <div style="display:flex;align-items:center;gap:0.75rem;background:var(--bg-secondary);padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px dashed var(--border-glow)">
-        <span style="font-size:1.25rem;font-weight:700;color:var(--accent-cyan);letter-spacing:2px;flex:1">{{ data.referral_code || 'N/A' }}</span>
-        <button
-          class="btn btn-sm"
-          :class="copiedCode === data.referral_code ? 'btn-primary' : 'btn-outline'"
-          :style="copiedCode === data.referral_code ? 'background:var(--accent-emerald);border-color:var(--accent-emerald);color:#fff' : ''"
-          @click="copy(data.referral_code, 'Referral code')"
-        >
-          {{ copiedCode === data.referral_code ? '✓ Copied' : 'Copy' }}
-        </button>
-      </div>
-      <p class="text-muted" style="font-size:0.8rem;margin-top:0.5rem">Share & earn 10% commission per successful referral!</p>
-      <div class="flex gap-3" style="margin-top:0.75rem">
-        <div style="text-align:center">
-          <div style="font-size:1.1rem;font-weight:700;color:var(--accent-emerald)">{{ data.e_points }}</div>
-          <div class="text-muted" style="font-size:0.72rem">Confirmed</div>
+    <div class="grid grid-2 gap-3">
+      <!-- Active Subscription -->
+      <div class="glass-card">
+        <h4 style="margin-bottom:1rem">📋 Active Subscription</h4>
+        <div v-if="data.subscription">
+          <div style="font-weight:600;margin-bottom:0.25rem">{{ data.subscription.package?.name }}</div>
+          <div class="text-muted" style="font-size:0.85rem">{{ data.subscription.booking_count }} / {{ data.subscription.package?.max_bookings }} washes used</div>
+          <div style="margin-top:0.75rem;background:var(--bg-secondary);border-radius:var(--radius-sm);height:6px">
+            <div :style="{ width: progressPct + '%', background: 'var(--gradient-btn)', borderRadius: 'var(--radius-sm)', height: '100%' }"></div>
+          </div>
+          <div class="flex gap-2 items-center" style="margin-top:0.75rem">
+            <span class="badge badge-emerald">Active</span>
+            <span class="text-muted" style="font-size:0.8rem">Expires {{ formatDate(data.subscription.expires_at) }}</span>
+          </div>
         </div>
-        <div style="width:1px;background:var(--border-color)"></div>
-        <div style="text-align:center">
-          <div style="font-size:1.1rem;font-weight:700;color:var(--accent-violet)">{{ (data.e_points || 0) + (data.pending_epoints || 0) }}</div>
-          <div class="text-muted" style="font-size:0.72rem">Total</div>
+        <div v-else class="text-muted" style="font-size:0.9rem">No active subscription. <router-link to="/customer/subscriptions">Browse packages →</router-link></div>
+      </div>
+
+      <!-- Referral Code -->
+      <div class="glass-card">
+        <h4 style="margin-bottom:1rem">🔗 Your Referral Code</h4>
+        <div style="display:flex;align-items:center;gap:0.75rem;background:var(--bg-secondary);padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px dashed var(--border-glow)">
+          <span style="font-size:1.25rem;font-weight:700;color:var(--accent-cyan);letter-spacing:2px;flex:1">{{ data.referral_code || 'N/A' }}</span>
+          <button
+            class="btn btn-sm"
+            :class="copiedCode === data.referral_code ? 'btn-primary' : 'btn-outline'"
+            :style="copiedCode === data.referral_code ? 'background:var(--accent-emerald);border-color:var(--accent-emerald);color:#fff' : ''"
+            @click="copy(data.referral_code, 'Referral code')"
+          >
+            {{ copiedCode === data.referral_code ? '✓ Copied' : 'Copy' }}
+          </button>
+        </div>
+        <p class="text-muted" style="font-size:0.8rem;margin-top:0.5rem">Share & earn 10% commission per successful referral!</p>
+        <div class="flex gap-3" style="margin-top:0.75rem">
+          <div style="text-align:center">
+            <div style="font-size:1.1rem;font-weight:700;color:var(--accent-emerald)">{{ data.e_points }}</div>
+            <div class="text-muted" style="font-size:0.72rem">Confirmed</div>
+          </div>
+          <div style="width:1px;background:var(--border-color)"></div>
+          <div style="text-align:center">
+            <div style="font-size:1.1rem;font-weight:700;color:var(--accent-violet)">{{ (data.e_points || 0) + (data.pending_epoints || 0) }}</div>
+            <div class="text-muted" style="font-size:0.72rem">Total</div>
+          </div>
         </div>
       </div>
     </div>
@@ -122,6 +141,12 @@ export default {
       data: {},
       copiedCode: null,
     };
+  },
+  computed: {
+    progressPct() {
+      if (!this.data.subscription?.package) return 0;
+      return Math.round((this.data.subscription.booking_count / this.data.subscription.package.max_bookings) * 100);
+    },
   },
   methods: {
     formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; },

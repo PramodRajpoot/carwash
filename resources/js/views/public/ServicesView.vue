@@ -134,6 +134,34 @@
         </div>
       </div>
     </section>
+
+    <!-- Subscription Plans Banner -->
+    <section class="section" style="padding-top: 1rem; padding-bottom: 3rem;">
+      <div class="container">
+        <div
+          class="glass-card"
+          style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(139, 92, 246, 0.12)); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 1rem; padding: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;"
+        >
+          <div style="max-width: 600px;">
+            <div class="flex items-center gap-2" style="margin-bottom: 0.5rem;">
+              <span style="font-size: 1.5rem;">🔁</span>
+              <h3 style="margin: 0; font-size: 1.25rem;">Looking for Subscription Plans?</h3>
+            </div>
+            <p class="text-muted" style="margin: 0; font-size: 0.95rem; line-height: 1.5;">
+              Save up to 40% with recurring daily, weekly, or monthly wash & deep cleaning packages. Manage all your recurring passes in one place.
+            </p>
+          </div>
+          <router-link
+            to="/customer/subscriptions"
+            class="btn btn-primary"
+            style="border-radius: 9999px; padding: 0.75rem 1.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap;"
+          >
+            <span>View Subscription Plans</span>
+            <span>→</span>
+          </router-link>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
