@@ -14,7 +14,6 @@
           <li><router-link to="/customer"><span class="nav-icon">📊</span> Dashboard</router-link></li>
           <li><router-link to="/customer/bookings"><span class="nav-icon">📅</span> Bookings</router-link></li>
           <li><router-link to="/customer/vehicles"><span class="nav-icon">🚗</span> My Vehicles</router-link></li>
-          <li><router-link to="/customer/subscriptions"><span class="nav-icon">📦</span> Subscriptions</router-link></li>
           <li><router-link to="/customer/wallet"><span class="nav-icon">💰</span> E-Points Wallet</router-link></li>
           <li><router-link to="/customer/referrals"><span class="nav-icon">🔗</span> Referrals</router-link></li>
           <li><router-link to="/customer/offers"><span class="nav-icon">🎟️</span> Offers</router-link></li>
