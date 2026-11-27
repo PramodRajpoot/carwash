@@ -259,63 +259,8 @@ class CashfreeController extends Controller
                         'body' => "Your {$subscription->package->name} subscription is active and fully paid for {$subscription->selected_month}. Payment is non-refundable; rescheduling is available.",
                     ]);
 
-                    // Automatically create the 4 or 26 scheduled wash bookings after successful paid subscription verification.
-                    if (in_array((int) $subscription->package->max_bookings, [4, 26], true) && is_array($subscription->schedules)) {
-                        $scheduleData = $subscription->schedules;
-                        $vehicleId = (int) ($scheduleData['vehicle_id'] ?? 0);
-                        $franchiseeId = (int) ($scheduleData['franchisee_id'] ?? 0);
-                        $address = (string) ($scheduleData['address'] ?? '');
-                        $washes = $scheduleData['washes'] ?? [];
-                        $requiredWashes = (int) $subscription->package->max_bookings;
-
-                        $vehicle = \App\Models\Vehicle::where('customer_id', $subscription->customer_id)->find($vehicleId);
-                        $franchisee = \App\Models\Franchisee::find($franchiseeId);
-
-                        if ($vehicle && $franchisee && count($washes) === $requiredWashes) {
-                            foreach ($washes as $wash) {
-                                $bookingDate = Carbon::parse($wash['date'])->format('Y-m-d');
-                                $slotTime = (string) ($wash['slot'] ?? '');
-                                if ($slotTime === '' && $requiredWashes === 26) {
-                                    $masterSlot = \App\Models\MasterSlot::where('status', 'active')->orderBy('id')->first();
-                                    $slotTime = $masterSlot ? $masterSlot->time_range : '09:00 AM - 11:00 AM';
-                                }
-
-
-                                $exists = Booking::where('customer_id', $subscription->customer_id)
-                                    ->where('package_id', $subscription->package_id)
-                                    ->where('booking_date', $bookingDate)
-                                    ->where('slot_time', $slotTime)
-                                    ->where('payment_method', 'subscription')
-                                    ->exists();
-
-                                if (!$exists) {
-                                    $subPkgPrice = (float) ($subscription->package->price ?? 0);
-                                    $subGstAmount = (float) round($subPkgPrice * 0.18);
-                                    $subTotalPrice = (float) round($subPkgPrice + $subGstAmount);
-
-                                    Booking::create([
-                                        'customer_id' => $subscription->customer_id,
-                                        'vehicle_id' => $vehicle->id,
-                                        'franchisee_id' => $franchisee->id,
-                                        'package_id' => $subscription->package_id,
-                                        'booking_date' => $bookingDate,
-                                        'slot_time' => $slotTime,
-                                        'address' => $address,
-                                        'status' => 'pending',
-                                        'payment_status' => 'paid',
-                                        'payment_method' => 'subscription',
-                                        'payment_type' => 'full',
-                                        'advance_amount' => $subTotalPrice,
-                                        'paid_amount' => $subTotalPrice,
-                                        'total_price' => $subTotalPrice,
-                                        'gst_amount' => $subGstAmount,
-                                    ]);
-                                    \App\Http\Controllers\BookingController::syncSlotBookings($franchisee->id, $bookingDate, $slotTime);
-                                }
-                            }
-                            $subscription->update(['booking_count' => $requiredWashes]);
-                        }
-                    }
+                    // Automatically create the scheduled wash bookings after successful paid subscription verification.
+                    $subscription->createScheduledBookings();
 
                     return response()->json([
                         'status' => 'success',

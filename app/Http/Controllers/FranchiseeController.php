@@ -34,12 +34,15 @@ class FranchiseeController extends Controller
         $pendingOrders   = Booking::where('franchisee_id', $franchisee->id)->whereIn('payment_status', ['paid', 'partially_paid'])->whereIn('status', ['pending', 'assigned'])->count();
         $completedOrders = Booking::where('franchisee_id', $franchisee->id)->whereIn('payment_status', ['paid', 'partially_paid'])->where('status', 'completed')->count();
 
-        // Active subscriptions for customers who have bookings at this franchise
+        // Active subscriptions for customers who have bookings or subscription schedules at this franchise
         $customerIds = Booking::where('franchisee_id', $franchisee->id)
             ->distinct()
             ->pluck('customer_id');
-        $activeSubscriptions = Subscription::whereIn('customer_id', $customerIds)
-            ->where('status', 'active')
+        $activeSubscriptions = Subscription::where('status', 'active')
+            ->where(function ($q) use ($franchisee, $customerIds) {
+                $q->where('schedules->franchisee_id', $franchisee->id)
+                  ->orWhereIn('customer_id', $customerIds);
+            })
             ->count();
 
         // Upcoming royalty
@@ -335,10 +338,14 @@ class FranchiseeController extends Controller
         $franchisee = $this->getFranchisee($request);
 
         $subscriptions = Subscription::with(['customer:id,name,phone', 'package'])
-            ->whereHas('bookings', function($q) use ($franchisee) {
-                $q->where('franchisee_id', $franchisee->id);
-            })
             ->where('status', 'active')
+            ->where(function ($query) use ($franchisee) {
+                $query->where('schedules->franchisee_id', $franchisee->id)
+                    ->orWhereHas('bookings', function ($q) use ($franchisee) {
+                        $q->where('franchisee_id', $franchisee->id);
+                    });
+            })
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json($subscriptions);

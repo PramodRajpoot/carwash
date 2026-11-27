@@ -299,6 +299,8 @@ class CustomerController extends Controller
             'is_refundable' => false,
         ]);
 
+        $subscription->createScheduledBookings();
+
         NotificationLog::create([
             'user_id' => $user->id,
             'type' => 'subscription_expiry',
