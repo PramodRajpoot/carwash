@@ -144,13 +144,6 @@
             <span>Subscription Packages</span>
             <span class="text-muted" style="font-size: 0.85rem; font-weight: normal;">({{ filteredMonthlyPackages.length }})</span>
           </h3>
-          <router-link
-            to="/customer/subscriptions"
-            class="text-gradient"
-            style="font-size: 0.9rem; font-weight: 600; text-decoration: none;"
-          >
-            Manage Subscriptions →
-          </router-link>
         </div>
 
         <div v-if="loading" class="text-center text-muted" style="padding: 3rem;">Loading packages...</div>
